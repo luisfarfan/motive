@@ -118,6 +118,11 @@ frame. Keep that source available during the test.
 
 ## Explicit limitations
 
+This section records the H1 baseline. The subsequent [scene-graph increment](scene-graph-verification.md)
+adds multiple visual sources, per-source recovery and a camera frame-arrival
+monitor. Physical hot-unplug and a deliberately stalled hardware camera remain
+untested; the baseline statements below are retained as historical evidence.
+
 - **Physical USB/Continuity hot-unplug was not exercised.** Built-in camera and
   microphone cannot be unplugged independently. Device disappearance and
   microphone stalls are implemented; their physical-removal matrix remains

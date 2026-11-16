@@ -10,20 +10,20 @@
 
 /* All functions except the frame callback run on the main/GPUI thread.
  * OBS owns render/audio/output threads. No GPUI object crosses that boundary. */
+typedef struct visual_source visual_source;
+typedef struct visual_scene visual_scene;
 typedef struct {
     pthread_mutex_t lock;
     uint8_t *pixels;
     uint32_t width, height;
-    uint32_t capture_window_id;
-    pid_t capture_owner;
-    char camera_id[512], audio_id[512];
+    char audio_id[512];
+    visual_source *visuals[16];visual_scene *scenes[8];size_t visual_count,scene_count;
     atomic_uint_fast64_t audio_seen_ns, audio_frames;
     atomic_uint audio_peak;
     uint64_t sequence, timestamp;
     atomic_uint_fast64_t busy_drops;
-    obs_scene_t *scene;
-    obs_source_t *pattern, *overlay, *capture, *audio;
-    obs_sceneitem_t *main_item, *overlay_item;
+    obs_source_t *audio;
+    atomic_uint_fast64_t preview_copies;
     obs_output_t *output;
     obs_encoder_t *video_encoder, *audio_encoder;
     atomic_int output_code;
@@ -31,12 +31,14 @@ typedef struct {
     char base[4096], error[512];
 } motive_engine;
 
-typedef struct { double elapsed; bool overlay; } pattern_state;
+typedef struct { double elapsed; bool overlay; atomic_uint color; } pattern_state;
+static void pattern_update(void *data,obs_data_t *settings) { pattern_state *p=data;atomic_store(&p->color,(unsigned)obs_data_get_int(settings,"color")); }
 static const char *pattern_name(void *unused) { (void)unused; return "Motive controlled pattern"; }
 static void *pattern_create(obs_data_t *settings, obs_source_t *source) {
     (void)source;
     pattern_state *p = calloc(1, sizeof(*p));
     p->overlay = obs_data_get_bool(settings, "overlay");
+    pattern_update(p,settings);
     return p;
 }
 static void pattern_destroy(void *data) { free(data); }
@@ -56,11 +58,12 @@ static void pattern_render(void *data, gs_effect_t *unused) {
     (void)unused;
     pattern_state *p = data;
     if (p->overlay) {
+        unsigned color=atomic_load(&p->color);float r=((color>>16)&255)/255.f,g=((color>>8)&255)/255.f,b=(color&255)/255.f;
         rect(0,0,320,72,0.035,0.09,0.12);
-        rect(0,0,6,72,0.20,0.91,0.71);
+        rect(0,0,6,72,r,g,b);
         rect(24,18,180,10,0.85,0.94,0.98);
         rect(24,42,110,6,0.33,0.45,0.52);
-        rect(248 + 20*sin(p->elapsed*2),24,24,24,0.20,0.91,0.71);
+        rect(248 + 20*sin(p->elapsed*2),24,24,24,r,g,b);
     } else {
         rect(0,0,960,540,0.055,0.085,0.14);
         rect(0,0,320,150,0.13,0.61,0.53);
@@ -74,7 +77,7 @@ static struct obs_source_info pattern_info = {
     .output_flags=OBS_SOURCE_VIDEO | OBS_SOURCE_CUSTOM_DRAW,
     .get_name=pattern_name, .create=pattern_create, .destroy=pattern_destroy,
     .get_width=pattern_width, .get_height=pattern_height,
-    .video_tick=pattern_tick, .video_render=pattern_render,
+    .video_tick=pattern_tick, .video_render=pattern_render,.update=pattern_update,
 };
 
 static void receive_frame(void *param, struct video_data *frame) {
@@ -109,22 +112,7 @@ static int reset_video(motive_engine *e) {
         .range=VIDEO_RANGE_PARTIAL,.scale_type=OBS_SCALE_BICUBIC};
     return obs_reset_video(&v);
 }
-static void layout(motive_engine *e) {
-    struct vec2 bounds, pos; vec2_set(&bounds,e->width,e->height); vec2_set(&pos,0,0);
-    struct vec2 scale; vec2_set(&scale,1,1);
-    // OBS 33 rescales scene items on canvas resize. Restore our independent
-    // fixed-size overlay and contain policy explicitly after each reset.
-    obs_sceneitem_set_scale(e->main_item,&scale);
-    obs_sceneitem_set_bounds_type(e->main_item,OBS_BOUNDS_SCALE_INNER);
-    obs_sceneitem_set_bounds(e->main_item,&bounds);
-    obs_sceneitem_set_alignment(e->main_item,OBS_ALIGN_TOP|OBS_ALIGN_LEFT);
-    obs_sceneitem_set_pos(e->main_item,&pos);
-    pos.x=32; pos.y=e->height-104;
-    obs_sceneitem_set_bounds_type(e->overlay_item,OBS_BOUNDS_NONE);
-    obs_sceneitem_set_scale(e->overlay_item,&scale);
-    obs_sceneitem_set_alignment(e->overlay_item,OBS_ALIGN_TOP|OBS_ALIGN_LEFT);
-    obs_sceneitem_set_pos(e->overlay_item,&pos);
-}
+static struct obs_source_info watch_info;
 void motive_destroy(motive_engine *e);
 motive_engine *motive_create(const char *base) {
     motive_engine *e=calloc(1,sizeof(*e));
@@ -143,15 +131,7 @@ motive_engine *motive_create(const char *base) {
     for (size_t i=0;i<sizeof(modules)/sizeof(modules[0]);i++) if (!load_module(e,modules[i])) return e;
     obs_post_load_modules();
     obs_register_source(&pattern_info);
-    e->scene=obs_scene_create_private("Motive production");
-    e->pattern=obs_source_create_private("motive_pattern","Controlled pattern",NULL);
-    obs_data_t *settings=obs_data_create(); obs_data_set_bool(settings,"overlay",true);
-    e->overlay=obs_source_create_private("motive_pattern","Local animated overlay",settings);
-    obs_data_release(settings);
-    e->main_item=obs_scene_add(e->scene,e->pattern);
-    e->overlay_item=obs_scene_add(e->scene,e->overlay);
-    layout(e);
-    obs_set_output_source(0,obs_scene_get_source(e->scene));
+    obs_register_source(&watch_info);
     e->pixels=calloc(e->width*e->height,4);
     connect_preview(e);
     return e;
@@ -161,17 +141,19 @@ const char *motive_version(void) { return obs_get_version_string(); }
 uint64_t motive_frame(motive_engine *e, uint8_t *dest, size_t len, uint64_t *timestamp) {
     pthread_mutex_lock(&e->lock);
     uint64_t seq=e->sequence;
-    if (len>=e->width*e->height*4 && e->pixels) memcpy(dest,e->pixels,e->width*e->height*4);
+    if (len>=e->width*e->height*4 && e->pixels) {memcpy(dest,e->pixels,e->width*e->height*4);atomic_fetch_add(&e->preview_copies,1);}
     *timestamp=e->timestamp;
     pthread_mutex_unlock(&e->lock); return seq;
 }
-void motive_overlay(motive_engine *e,bool visible) { obs_sceneitem_set_visible(e->overlay_item,visible); }
+uint64_t motive_frame_sequence(motive_engine *e) {pthread_mutex_lock(&e->lock);uint64_t seq=e->sequence;pthread_mutex_unlock(&e->lock);return seq;}
+uint64_t motive_preview_copies(motive_engine *e) {return atomic_load(&e->preview_copies);}
 uint32_t motive_total_frames(void) { return obs_get_total_frames(); }
 uint32_t motive_lagged_frames(void) { return obs_get_lagged_frames(); }
 uint64_t motive_busy_drops(motive_engine *e) { return atomic_load(&e->busy_drops); }
 
+static void output_stopped(void *data,calldata_t *cd);
 static void release_output(motive_engine *e) {
-    if (e->output) { obs_output_release(e->output); e->output=NULL; }
+    if (e->output) { signal_handler_disconnect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e); obs_output_release(e->output); e->output=NULL; }
     if (e->video_encoder) { obs_encoder_release(e->video_encoder); e->video_encoder=NULL; }
     if (e->audio_encoder) { obs_encoder_release(e->audio_encoder); e->audio_encoder=NULL; }
 }
@@ -182,7 +164,7 @@ static void output_stopped(void *data, calldata_t *cd) {
 }
 int motive_output_state(motive_engine *e) {
     if (!e->output) return 0;
-    if (atomic_load(&e->output_stopped)) return 0;
+    if (atomic_load(&e->output_stopped)) return obs_output_active(e->output) ? 2:0;
     return obs_output_active(e->output) ? 1 : 2;
 }
 int motive_output_code(motive_engine *e) { return atomic_load(&e->output_code); }
@@ -243,7 +225,7 @@ void motive_stop_output(motive_engine *e) { if (e->output && !atomic_load(&e->ou
 bool motive_variant(motive_engine *e,bool vertical) {
     if (motive_output_state(e)) { snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY"); return false; }
     if (e->width==(vertical ? 540u:960u) && e->height==(vertical ? 960u:540u)) {
-        layout(e); return true;
+        return true;
     }
     release_output(e);
     obs_remove_raw_video_callback(receive_frame,e);
@@ -256,7 +238,7 @@ bool motive_variant(motive_engine *e,bool vertical) {
     }
     // Equal pixel count for the two supported variants; the callback is disconnected.
     memset(e->pixels,0,e->width*e->height*4); e->sequence=0;
-    layout(e); connect_preview(e); return true;
+    connect_preview(e); return true;
 }
 // Inventory only: no capture starts until a concrete source is selected.
 static NSArray *window_inventory(void) {
@@ -331,62 +313,7 @@ char *motive_devices(void) {
     return strdup([[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding].UTF8String);
 }
 void motive_free(char *value) { free(value); }
-static void replace_capture(motive_engine *e,obs_source_t *source) {
-    obs_sceneitem_remove(e->main_item);
-    if (e->capture) obs_source_release(e->capture);
-    e->capture=source;
-    e->main_item=obs_scene_add(e->scene,source ? source:e->pattern);
-    obs_sceneitem_set_order(e->overlay_item,OBS_ORDER_MOVE_TOP); layout(e);
-}
-bool motive_select_window(motive_engine *e,uint32_t id,bool reconnect) {
-    if (!CGPreflightScreenCaptureAccess()) { snprintf(e->error,sizeof(e->error),"SCREEN_PERMISSION_DENIED: autoriza Motive en Ajustes > Privacidad > Grabación de pantalla"); return false; }
-    NSDictionary *window=find_window(id);
-    if (!window) { snprintf(e->error,sizeof(e->error),"SOURCE_UNAVAILABLE: selecciona una ventana existente"); return false; }
-    if (e->capture && e->capture_window_id==id && e->capture_owner==[window[@"pid"] intValue] && !reconnect) { layout(e); return true; }
-    obs_data_t *settings=obs_data_create();
-    obs_data_set_int(settings,"type",1); obs_data_set_int(settings,"window",id);
-    obs_data_set_bool(settings,"show_cursor",false); obs_data_set_bool(settings,"show_hidden_windows",true);
-    obs_source_t *source=obs_source_create_private("screen_capture","Selected window",settings);
-    obs_data_release(settings);
-    if (!source) { snprintf(e->error,sizeof(e->error),"CAPTURE_CREATE_FAILED"); return false; }
-    obs_source_set_muted(source,true);
-    replace_capture(e,source); e->capture_window_id=id; e->capture_owner=[window[@"pid"] intValue]; e->camera_id[0]=0;
-    return true;
-}
-bool motive_select_camera(motive_engine *e,const char *id,bool reconnect) {
-    if ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]!=AVAuthorizationStatusAuthorized) {
-        snprintf(e->error,sizeof(e->error),"CAMERA_PERMISSION_DENIED: autoriza Motive en Ajustes de privacidad"); return false;
-    }
-    if (!find_camera(id)) { snprintf(e->error,sizeof(e->error),"CAMERA_UNAVAILABLE"); return false; }
-    if (e->capture && !strcmp(e->camera_id,id) && !reconnect) return true;
-    obs_data_t *settings=obs_data_create();
-    obs_data_set_string(settings,"device",id); obs_data_set_bool(settings,"use_preset",true);
-    obs_data_set_string(settings,"preset",AVCaptureSessionPreset1280x720.UTF8String);
-    // Audio is always the separately selected microphone, never a camera side effect.
-    obs_data_set_bool(settings,"enable_audio",false);
-    obs_source_t *source=obs_source_create_private("macos-avcapture","Selected camera",settings);
-    obs_data_release(settings);
-    if (!source) { snprintf(e->error,sizeof(e->error),"CAMERA_CREATE_FAILED"); return false; }
-    obs_source_set_muted(source,true);
-    replace_capture(e,source); e->capture_window_id=0; e->capture_owner=0;
-    snprintf(e->camera_id,sizeof(e->camera_id),"%s",id); return true;
-}
-void motive_select_pattern(motive_engine *e) {
-    replace_capture(e,NULL); e->capture_window_id=0; e->capture_owner=0; e->camera_id[0]=0;
-}
-uint32_t motive_capture_width(motive_engine *e) { return e->capture ? obs_source_get_width(e->capture) : 0; }
-int motive_capture_health(motive_engine *e) {
-    if (!e->capture) return 0;
-    if (e->camera_id[0]) {
-        if ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]!=AVAuthorizationStatusAuthorized) return 4;
-        if (!find_camera(e->camera_id)) return 3;
-    } else {
-        if (!CGPreflightScreenCaptureAccess()) return 5;
-        NSDictionary *w=find_window(e->capture_window_id);
-        if (!w || [w[@"pid"] intValue]!=e->capture_owner) return 1;
-    }
-    return obs_source_get_width(e->capture) ? 0 : 2;
-}
+#include "graph.inc"
 void motive_request_permission(int kind) {
     if (kind==0) CGRequestScreenCaptureAccess();
     else [AVCaptureDevice requestAccessForMediaType:kind==1 ? AVMediaTypeAudio:AVMediaTypeVideo completionHandler:^(BOOL granted) { (void)granted; }];
@@ -453,12 +380,12 @@ void motive_destroy(motive_engine *e) {
     if (e->pixels) obs_remove_raw_video_callback(receive_frame,e);
     if (obs_initialized()) {
         obs_set_output_source(0,NULL); obs_set_output_source(1,NULL);
-        if (e->scene) obs_scene_release(e->scene);
-        if (e->capture) obs_source_release(e->capture);
+        graph_release(e);
         if (e->audio) { obs_source_remove_audio_capture_callback(e->audio,receive_audio,e); obs_source_release(e->audio); }
-        if (e->overlay) obs_source_release(e->overlay);
-        if (e->pattern) obs_source_release(e->pattern);
+
         obs_shutdown();
     }
     free(e->pixels); pthread_mutex_destroy(&e->lock); free(e);
 }
+
+bool motive_reset_output(motive_engine *e) { if(motive_output_state(e)){snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY");return false;} release_output(e);atomic_store(&e->output_code,0);return true;}

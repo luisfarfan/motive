@@ -10,7 +10,15 @@ unsafe extern "C" {
     fn motive_error(engine: *mut c_void) -> *const c_char;
     fn motive_version() -> *const c_char;
     fn motive_frame(engine: *mut c_void, dest: *mut u8, len: usize, timestamp: *mut u64) -> u64;
-    fn motive_overlay(engine: *mut c_void, visible: bool);
+    fn motive_frame_sequence(engine: *mut c_void) -> u64;
+    fn motive_preview_copies(engine: *mut c_void) -> u64;
+    fn motive_sync_graph(
+        engine: *mut c_void,
+        json: *const c_char,
+        reconnect: *const c_char,
+    ) -> bool;
+    fn motive_graph_health(engine: *mut c_void) -> *mut c_char;
+    fn motive_reset_output(engine: *mut c_void) -> bool;
     fn motive_total_frames() -> u32;
     fn motive_lagged_frames() -> u32;
     fn motive_busy_drops(engine: *mut c_void) -> u64;
@@ -24,11 +32,7 @@ unsafe extern "C" {
     fn motive_variant(engine: *mut c_void, vertical: bool) -> bool;
     fn motive_devices() -> *mut c_char;
     fn motive_free(value: *mut c_char);
-    fn motive_select_window(engine: *mut c_void, id: u32, reconnect: bool) -> bool;
-    fn motive_select_camera(engine: *mut c_void, id: *const c_char, reconnect: bool) -> bool;
-    fn motive_select_pattern(engine: *mut c_void);
     fn motive_capture_width(engine: *mut c_void) -> u32;
-    fn motive_capture_health(engine: *mut c_void) -> i32;
     fn motive_request_permission(kind: i32);
     fn motive_audio_health(engine: *mut c_void) -> i32;
     fn motive_audio_frames(engine: *mut c_void) -> u64;
@@ -74,8 +78,27 @@ impl Engine {
             unsafe { motive_frame(self.raw, pixels.as_mut_ptr(), pixels.len(), &mut timestamp) };
         (sequence, timestamp, pixels)
     }
-    pub fn overlay(&mut self, visible: bool) {
-        unsafe { motive_overlay(self.raw, visible) };
+    pub fn frame_if_new(&self, previous: u64) -> Option<(u64, u64, Vec<u8>)> {
+        let sequence = unsafe { motive_frame_sequence(self.raw) };
+        (sequence > 0 && sequence != previous).then(|| self.frame())
+    }
+    pub fn sync_graph(&mut self, graph: &serde_json::Value, reconnect: &str) -> anyhow::Result<()> {
+        let graph = CString::new(serde_json::to_string(graph)?)?;
+        let reconnect = CString::new(reconnect)?;
+        self.checked(unsafe { motive_sync_graph(self.raw, graph.as_ptr(), reconnect.as_ptr()) })
+    }
+    pub fn graph_health(&self) -> serde_json::Value {
+        let raw = unsafe { motive_graph_health(self.raw) };
+        if raw.is_null() {
+            return serde_json::json!([]);
+        }
+        let value =
+            serde_json::from_slice(unsafe { CStr::from_ptr(raw) }.to_bytes()).unwrap_or_default();
+        unsafe { motive_free(raw) };
+        value
+    }
+    pub fn reset_output(&mut self) -> anyhow::Result<()> {
+        self.checked(unsafe { motive_reset_output(self.raw) })
     }
     fn checked(&self, ok: bool) -> anyhow::Result<()> {
         anyhow::ensure!(
@@ -100,18 +123,6 @@ impl Engine {
         unsafe { motive_free(raw) };
         value
     }
-    pub fn source(&mut self, window_id: Option<u32>, reconnect: bool) -> anyhow::Result<()> {
-        if let Some(id) = window_id {
-            self.checked(unsafe { motive_select_window(self.raw, id, reconnect) })
-        } else {
-            unsafe { motive_select_pattern(self.raw) };
-            Ok(())
-        }
-    }
-    pub fn camera(&mut self, id: &str, reconnect: bool) -> anyhow::Result<()> {
-        let id = CString::new(id)?;
-        self.checked(unsafe { motive_select_camera(self.raw, id.as_ptr(), reconnect) })
-    }
     pub fn audio(&mut self, id: &str, tone_path: &str) -> anyhow::Result<()> {
         let id = CString::new(id)?;
         let path = CString::new(tone_path)?;
@@ -130,9 +141,6 @@ impl Engine {
     pub fn output_code(&self) -> i32 {
         unsafe { motive_output_code(self.raw) }
     }
-    pub fn capture_health(&self) -> i32 {
-        unsafe { motive_capture_health(self.raw) }
-    }
     pub fn audio_health(&self) -> i32 {
         unsafe { motive_audio_health(self.raw) }
     }
@@ -144,7 +152,7 @@ impl Engine {
     }
     pub fn stats(&self) -> serde_json::Value {
         unsafe {
-            serde_json::json!({"rendered_frames":motive_total_frames(),"lagged_frames":motive_lagged_frames(),"preview_busy_drops":motive_busy_drops(self.raw),"output_bytes":motive_output_bytes(self.raw),"output_frames":motive_output_frames(self.raw),"output_dropped_frames":motive_output_drops(self.raw),"capture_width":motive_capture_width(self.raw),"audio_frames":motive_audio_frames(self.raw),"audio_peak":motive_audio_peak(self.raw)})
+            serde_json::json!({"rendered_frames":motive_total_frames(),"lagged_frames":motive_lagged_frames(),"preview_busy_drops":motive_busy_drops(self.raw),"preview_copies":motive_preview_copies(self.raw),"output_bytes":motive_output_bytes(self.raw),"output_frames":motive_output_frames(self.raw),"output_dropped_frames":motive_output_drops(self.raw),"capture_width":motive_capture_width(self.raw),"audio_frames":motive_audio_frames(self.raw),"audio_peak":motive_audio_peak(self.raw)})
         }
     }
 }

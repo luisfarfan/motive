@@ -161,7 +161,7 @@ fn tool(
     json!({"name":name,"description":description,"inputSchema":{"type":"object","properties":properties,"required":required,"additionalProperties":false},"annotations":{"readOnlyHint":readonly,"destructiveHint":false,"openWorldHint":false}})
 }
 pub fn tools() -> Vec<Value> {
-    vec![
+    let mut result = vec![
         tool(
             "status",
             "Estado de la producción abierta, revisión y métricas reales.",
@@ -246,7 +246,110 @@ pub fn tools() -> Vec<Value> {
             &[],
             false,
         ),
-    ]
+    ];
+    let id = json!({"type":"string","minLength":1,"maxLength":48});
+    let name = json!({"type":"string","minLength":1,"maxLength":80});
+    let variant = json!({"type":"string","enum":["horizontal","vertical"]});
+    let source = json!({"oneOf":[
+        {"type":"object","properties":{"kind":{"const":"pattern"}},"required":["kind"],"additionalProperties":false},
+        {"type":"object","properties":{"kind":{"const":"overlay"},"color":{"type":"integer","minimum":0,"maximum":16777215}},"required":["kind","color"],"additionalProperties":false},
+        {"type":"object","properties":{"kind":{"const":"window"},"window_id":{"type":"integer","minimum":1,"maximum":4294967295u64}},"required":["kind","window_id"],"additionalProperties":false},
+        {"type":"object","properties":{"kind":{"const":"camera"},"device_id":{"type":"string","minLength":1,"maxLength":511}},"required":["kind","device_id"],"additionalProperties":false}
+    ]});
+    let transform = json!({"type":"object","properties":{
+        "x":{"type":"number","minimum":-4096,"maximum":4096},"y":{"type":"number","minimum":-4096,"maximum":4096},
+        "width":{"type":"number","minimum":1,"maximum":4096},"height":{"type":"number","minimum":1,"maximum":4096},
+        "visible":{"type":"boolean"},"order":{"type":"integer","minimum":0,"maximum":31}},
+        "required":["x","y","width","height","visible","order"],"additionalProperties":false});
+    for (op, description, properties, required) in [
+        (
+            "create_scene",
+            "Crea y selecciona una escena vacía mientras idle.",
+            json!({"name":name}),
+            vec!["name"],
+        ),
+        (
+            "rename_scene",
+            "Renombra una escena existente.",
+            json!({"scene_id":id,"name":name}),
+            vec!["scene_id", "name"],
+        ),
+        (
+            "remove_scene",
+            "Elimina una escena mientras idle; conserva las fuentes.",
+            json!({"scene_id":id}),
+            vec!["scene_id"],
+        ),
+        (
+            "select_scene",
+            "Activa una escena mientras idle.",
+            json!({"scene_id":id}),
+            vec!["scene_id"],
+        ),
+        (
+            "add_source",
+            "Crea una fuente y una capa en la escena; IDs nuevos en state.project.graph.",
+            json!({"scene_id":id,"name":name,"source":source}),
+            vec!["scene_id", "name", "source"],
+        ),
+        (
+            "remove_source",
+            "Libera una fuente sin capas que la referencien.",
+            json!({"source_id":id}),
+            vec!["source_id"],
+        ),
+        (
+            "add_layer",
+            "Reutiliza una fuente en una nueva capa.",
+            json!({"scene_id":id,"source_id":id}),
+            vec!["scene_id", "source_id"],
+        ),
+        (
+            "remove_layer",
+            "Elimina una capa, conservando su fuente.",
+            json!({"scene_id":id,"layer_id":id}),
+            vec!["scene_id", "layer_id"],
+        ),
+        (
+            "set_transform",
+            "Rectángulo contain en píxeles, visibilidad y orden por orientación. Geometría editable durante grabación.",
+            json!({"scene_id":id,"layer_id":id,"variant":variant,"transform":transform}),
+            vec!["scene_id", "layer_id", "variant", "transform"],
+        ),
+        (
+            "set_overlay_color",
+            "Cambia el acento RGB del overlay propio (entero 0xRRGGBB).",
+            json!({"source_id":id,"color":{"type":"integer","minimum":0,"maximum":16777215}}),
+            vec!["source_id", "color"],
+        ),
+        (
+            "reconnect_source",
+            "Recrea una fuente explícita mientras idle; espera datos antes de recuperarla.",
+            json!({"source_id":id}),
+            vec!["source_id"],
+        ),
+        (
+            "snapshot",
+            "Guarda un PNG de la composición en la ubicación local fija; MCP no devuelve video.",
+            json!({}),
+            vec![],
+        ),
+        (
+            "shutdown",
+            "Cierra el estudio solo cuando la salida ha finalizado.",
+            json!({}),
+            vec![],
+        ),
+        (
+            "set_test_window",
+            "Abre/cierra la ventana nativa controlada para pruebas locales.",
+            json!({"open":{"type":"boolean"}}),
+            vec!["open"],
+        ),
+    ] {
+        result.push(tool(op, description, properties, &required, false));
+    }
+    result
 }
 
 pub fn rpc(request: Value, initialized: &mut bool) -> Option<Value> {

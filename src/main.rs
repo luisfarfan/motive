@@ -1,10 +1,12 @@
 mod control;
 mod core;
 mod engine;
+mod scene;
 
 use core::{Command, Production, Variant};
 use gpui_kit::component::button::{Button, ButtonVariants};
 use gpui_kit::*;
+use scene::{SourceInput, SourceKind};
 use serde_json::{Value, json};
 use std::{
     sync::{Arc, mpsc::Receiver},
@@ -21,6 +23,8 @@ struct Studio {
     devices: Value,
     last_device_refresh: Instant,
     picker: Option<&'static str>,
+    picker_add: bool,
+    selected_layer: Option<String>,
 }
 impl Studio {
     fn new(
@@ -46,6 +50,32 @@ impl Studio {
                             }
                             view.last_device_refresh = Instant::now();
                         }
+                        if view.production.shutdown_requested {
+                            cx.quit();
+                            return;
+                        }
+                        if let Some(open) = view.production.test_window_request.take() {
+                            if open {
+                                if !view.production.engine.devices()["windows"]
+                                    .as_array()
+                                    .is_some_and(|w| w.iter().any(|v| v["test"] == true))
+                                    && let Err(e) = open_window(
+                                        window_options(
+                                            "Motive — Fuente controlada",
+                                            680.,
+                                            420.,
+                                            cx,
+                                        ),
+                                        cx,
+                                        |_, cx| cx.new(Pattern::new),
+                                    )
+                                {
+                                    view.message = e.to_string();
+                                }
+                            } else {
+                                view.production.engine.close_test_window();
+                            }
+                        }
                         for _ in 0..4 {
                             let Ok(request) = view.requests.try_recv() else {
                                 break;
@@ -53,8 +83,9 @@ impl Studio {
                             let result = view.command(request.command, request.origin, cx);
                             let _ = request.reply.send(result);
                         }
-                        let (seq, _, pixels) = view.production.engine.frame();
-                        if seq != view.sequence && seq > 0 {
+                        if let Some((seq, _, pixels)) =
+                            view.production.engine.frame_if_new(view.sequence)
+                        {
                             view.sequence = seq;
                             let e = &view.production.engine;
                             let buffer =
@@ -83,6 +114,8 @@ impl Studio {
             devices,
             last_device_refresh: Instant::now(),
             picker: None,
+            picker_add: false,
+            selected_layer: None,
         }
     }
     fn command(&mut self, cmd: Command, origin: &str, cx: &mut Context<Self>) -> Value {
@@ -112,13 +145,294 @@ impl Studio {
             }))
     }
 }
+impl Studio {
+    fn editor(&self, cx: &mut Context<Self>) -> Div {
+        let graph = self.production.graph();
+        let scene = graph.scene(&graph.active_scene).unwrap();
+        let variant = self.production.project.variant;
+        let scene_id = scene.id.clone();
+        let scene_buttons = div()
+            .flex()
+            .flex_wrap()
+            .gap_2()
+            .children(graph.scenes.iter().enumerate().map(|(i, s)| {
+                let id = s.id.clone();
+                Button::new(("scene", i))
+                    .label(format!(
+                        "{} {}",
+                        if s.id == scene_id { "●" } else { "○" },
+                        s.name
+                    ))
+                    .on_click(cx.listener(move |v, _, _, cx| {
+                        v.command(
+                            Command::SelectScene {
+                                scene_id: id.clone(),
+                            },
+                            "UI",
+                            cx,
+                        );
+                        v.selected_layer = None;
+                    }))
+            }))
+            .child(self.button(
+                "new-scene",
+                "Nueva escena",
+                Command::CreateScene {
+                    name: format!("Escena {}", graph.next_id),
+                },
+                cx,
+            ))
+            .child(self.button(
+                "remove-scene",
+                "Eliminar escena",
+                Command::RemoveScene {
+                    scene_id: scene_id.clone(),
+                },
+                cx,
+            ));
+        let add = div()
+            .flex()
+            .flex_wrap()
+            .gap_2()
+            .children(
+                [("windows", "Añadir ventana"), ("cameras", "Añadir webcam")]
+                    .into_iter()
+                    .map(|(kind, label)| {
+                        Button::new(if kind == "windows" {
+                            "add-window"
+                        } else {
+                            "add-camera"
+                        })
+                        .label(label)
+                        .on_click(cx.listener(move |v, _, _, cx| {
+                            v.picker_add = true;
+                            v.picker = Some(kind);
+                            v.devices = v.production.engine.devices();
+                            cx.notify();
+                        }))
+                    }),
+            )
+            .child(self.button(
+                "add-overlay",
+                "Añadir overlay",
+                Command::AddSource {
+                    scene_id: scene_id.clone(),
+                    name: "Overlay nuevo".into(),
+                    source: SourceInput::Overlay { color: 0x33e8b5 },
+                },
+                cx,
+            ))
+            .child(self.button(
+                "add-pattern",
+                "Añadir patrón",
+                Command::AddSource {
+                    scene_id: scene_id.clone(),
+                    name: "Patrón secundario".into(),
+                    source: SourceInput::Pattern,
+                },
+                cx,
+            ));
+        let layers =
+            div()
+                .flex()
+                .flex_wrap()
+                .gap_2()
+                .children(scene.layers.iter().enumerate().map(|(i, l)| {
+                    let id = l.id.clone();
+                    let source = graph.sources.iter().find(|s| s.id == l.source_id).unwrap();
+                    let t = l.layouts.get(variant);
+                    Button::new(("layer", i))
+                        .label(format!(
+                            "{} · {} · ({:.0},{:.0}) {:.0}×{:.0} · z{} {}",
+                            source.name,
+                            l.id,
+                            t.x,
+                            t.y,
+                            t.width,
+                            t.height,
+                            t.order,
+                            if t.visible { "visible" } else { "oculta" }
+                        ))
+                        .on_click(cx.listener(move |v, _, _, cx| {
+                            v.selected_layer = Some(id.clone());
+                            cx.notify();
+                        }))
+                }));
+        let selected = self
+            .selected_layer
+            .as_ref()
+            .and_then(|id| scene.layers.iter().find(|l| &l.id == id))
+            .or_else(|| scene.layers.first());
+        let library =
+            div()
+                .flex()
+                .flex_wrap()
+                .gap_2()
+                .children(graph.sources.iter().enumerate().map(|(i, source)| {
+                    let source_id = source.id.clone();
+                    let scene_id = scene_id.clone();
+                    let unused = !graph
+                        .scenes
+                        .iter()
+                        .any(|s| s.layers.iter().any(|l| l.source_id == source.id));
+                    let mut row = div().flex().gap_1().child(
+                        Button::new(("reuse-source", i))
+                            .label(format!("Reutilizar {}", source.name))
+                            .on_click(cx.listener(move |v, _, _, cx| {
+                                v.command(
+                                    Command::AddLayer {
+                                        scene_id: scene_id.clone(),
+                                        source_id: source_id.clone(),
+                                    },
+                                    "UI",
+                                    cx,
+                                );
+                            })),
+                    );
+                    if unused {
+                        let source_id = source.id.clone();
+                        row = row.child(
+                            Button::new(("release-source", i))
+                                .label("Liberar fuente")
+                                .on_click(cx.listener(move |v, _, _, cx| {
+                                    v.command(
+                                        Command::RemoveSource {
+                                            source_id: source_id.clone(),
+                                        },
+                                        "UI",
+                                        cx,
+                                    );
+                                })),
+                        );
+                    }
+                    row
+                }));
+        let mut inspector = div().flex().flex_col().gap_2();
+        if let Some(l) = selected {
+            let t = l.layouts.get(variant);
+            let source = graph.sources.iter().find(|s| s.id == l.source_id).unwrap();
+            inspector = inspector.child(div().text_sm().child(format!(
+                "Propiedades: {} / {} · {:?}",
+                source.name, l.id, variant
+            )));
+            let operations = [
+                ("x-left", "X −20", 0, -20.),
+                ("x-right", "X +20", 0, 20.),
+                ("y-up", "Y −20", 1, -20.),
+                ("y-down", "Y +20", 1, 20.),
+                ("w-less", "Ancho −20", 2, -20.),
+                ("w-more", "Ancho +20", 2, 20.),
+                ("h-less", "Alto −20", 3, -20.),
+                ("h-more", "Alto +20", 3, 20.),
+                ("z-down", "Bajar capa", 4, -1.),
+                ("z-up", "Subir capa", 4, 1.),
+            ];
+            let controls = div()
+                .flex()
+                .flex_wrap()
+                .gap_2()
+                .children(operations.into_iter().map(|(id, label, axis, delta)| {
+                    let mut next = t.clone();
+                    match axis {
+                        0 => next.x += delta,
+                        1 => next.y += delta,
+                        2 => next.width = (next.width + delta).clamp(1., 4096.),
+                        3 => next.height = (next.height + delta).clamp(1., 4096.),
+                        _ => next.order = (next.order as f32 + delta).clamp(0., 31.) as u32,
+                    }
+                    self.button(
+                        id,
+                        label,
+                        Command::SetTransform {
+                            scene_id: scene_id.clone(),
+                            layer_id: l.id.clone(),
+                            variant,
+                            transform: next,
+                        },
+                        cx,
+                    )
+                }));
+            let mut hidden = t.clone();
+            hidden.visible = !hidden.visible;
+            let mut more = div()
+                .flex()
+                .flex_wrap()
+                .gap_2()
+                .child(self.button(
+                    "layer-visible",
+                    if t.visible {
+                        "Ocultar capa"
+                    } else {
+                        "Mostrar capa"
+                    },
+                    Command::SetTransform {
+                        scene_id: scene_id.clone(),
+                        layer_id: l.id.clone(),
+                        variant,
+                        transform: hidden,
+                    },
+                    cx,
+                ))
+                .child(self.button(
+                    "layer-remove",
+                    "Eliminar capa",
+                    Command::RemoveLayer {
+                        scene_id: scene_id.clone(),
+                        layer_id: l.id.clone(),
+                    },
+                    cx,
+                ))
+                .child(self.button(
+                    "source-reconnect",
+                    "Reconectar esta fuente",
+                    Command::ReconnectSource {
+                        source_id: source.id.clone(),
+                    },
+                    cx,
+                ));
+            if let SourceKind::Overlay { color } = source.spec {
+                more = more.child(self.button(
+                    "overlay-color",
+                    "Cambiar acento",
+                    Command::SetOverlayColor {
+                        source_id: source.id.clone(),
+                        color: if color == 0x33e8b5 {
+                            0xff7040
+                        } else {
+                            0x33e8b5
+                        },
+                    },
+                    cx,
+                ));
+            }
+            inspector = inspector.child(controls).child(more);
+        }
+        div()
+            .flex_none()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .p_3()
+            .bg(rgb(0x1a2330))
+            .rounded_lg()
+            .child(div().text_sm().child(format!(
+                "Editor de escenas · {} · revisión {}",
+                scene.id, self.production.revision
+            )))
+            .child(scene_buttons)
+            .child(add)
+            .child(layers)
+            .child(inspector)
+            .child(library)
+    }
+}
 impl Render for Studio {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let p = &self.production;
         let status = p.status();
         let vertical = p.project.variant == Variant::Vertical;
         // Keep choices visible without two competing scroll areas.
-        let preview_height = if self.picker.is_some() { 190. } else { 370. };
+        let preview_height = if self.picker.is_some() { 150. } else { 230. };
         let heading = div()
             .flex_none()
             .flex()
@@ -351,6 +665,7 @@ impl Render for Studio {
                     Button::new(kind)
                         .label(label)
                         .on_click(cx.listener(move |view, _, _, cx| {
+                            view.picker_add = false;
                             view.picker = if view.picker == Some(kind) {
                                 None
                             } else {
@@ -393,16 +708,41 @@ impl Render for Studio {
                 }))
                 .children(entries.into_iter().enumerate().filter_map(|(i, d)| {
                     let name = d["name"].as_str()?.to_owned();
-                    let command = match kind {
-                        "windows" => Command::SelectSource {
-                            window_id: Some(d["id"].as_u64()? as u32),
-                        },
-                        "cameras" => Command::SelectCamera {
-                            id: d["id"].as_str()?.into(),
-                        },
-                        _ => Command::SelectAudio {
-                            id: d["id"].as_str()?.into(),
-                        },
+                    let command = if self.picker_add && kind != "audio" {
+                        let source = if kind == "windows" {
+                            SourceInput::Window {
+                                window_id: d["id"].as_u64()? as u32,
+                            }
+                        } else {
+                            SourceInput::Camera {
+                                device_id: d["id"].as_str()?.into(),
+                            }
+                        };
+                        Command::AddSource {
+                            scene_id: self.production.graph().active_scene.clone(),
+                            name: {
+                                let label: String =
+                                    name.chars().filter(|c| !c.is_control()).take(80).collect();
+                                if label.trim().is_empty() {
+                                    "Fuente".into()
+                                } else {
+                                    label
+                                }
+                            },
+                            source,
+                        }
+                    } else {
+                        match kind {
+                            "windows" => Command::SelectSource {
+                                window_id: Some(d["id"].as_u64()? as u32),
+                            },
+                            "cameras" => Command::SelectCamera {
+                                id: d["id"].as_str()?.into(),
+                            },
+                            _ => Command::SelectAudio {
+                                id: d["id"].as_str()?.into(),
+                            },
+                        }
                     };
                     let label = if kind == "windows" {
                         format!("{} · {}", d["app"].as_str().unwrap_or(""), name)
@@ -434,6 +774,7 @@ impl Render for Studio {
             .text_color(rgb(0xf1f5f9))
             .child(heading)
             .child(preview)
+            .child(self.editor(cx))
             .child(rows)
             .child(selectors)
             .children(picker)

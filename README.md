@@ -35,11 +35,11 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 | 📷 | Camera input | Explicit camera selection through the official OBS AVFoundation module |
 | 🎙️ | Microphone input | A specific device UID, live level and sample-flow health |
 | 🎬 | Local recording | H.264 + AAC in MKV, encoded and muxed by libobs |
-| 🎨 | Composition | An original animated overlay, composited into the actual output |
-| ↔️ | Canvas variants | 960 × 540 landscape or 540 × 960 portrait, with aspect-preserving fit |
+| 🎨 | Scene editor | Multiple scenes and reusable sources; layer position, size, visibility and order; editable original overlays |
+| ↔️ | Canvas variants | Independent landscape/portrait layer layouts at 960 × 540 and 540 × 960, with aspect-preserving fit |
 | 🔌 | Source recovery | Availability checks, controlled output stop and explicit reconnection |
 | 🤖 | Agent control | Local MCP and CLI commands, shared state and structured errors |
-| 💾 | Project state | Versioned local JSON with guarded source restoration |
+| 💾 | Project state | Version 3 with stable scene/source/layer IDs and guarded restoration; v1/v2 migration |
 
 ## 🚀 Get started
 
@@ -75,7 +75,13 @@ Window restoration requires a unique application bundle ID and window title; amb
 
 The core checks source health once per second, and before commands. A missing window/device, revoked permission or stalled microphone data produces a structured issue. If an output is active, Motive requests a controlled stop and retains the reason. **Reconectar fuentes** retries the selected sources while idle; it never starts recording automatically. A closed window must be opened and selected again.
 
-Silence is distinct from missing audio packets. Hardware hot-unplug coverage and camera frame-stall detection are documented in the [H1 verification report](docs/h1-verification.md).
+Silence is distinct from missing audio packets. Camera health also watches actual incoming frames; a static image is not itself a stall. Recovery is tracked per source, so changing audio cannot acknowledge a failed window. See [scene verification](docs/scene-graph-verification.md) for tested behavior and hardware limits.
+
+### Build a composition
+
+Use **Añadir ventana**, **Añadir webcam** and **Añadir overlay** in the scene editor. Select a layer to adjust its position, size, visibility and order. **Reutilizar** adds another layer referencing an existing source; **Liberar fuente** releases an unused source and its capture resources. Removing a layer does not implicitly delete a shared source.
+
+Geometry, layer order and overlay color can change during recording. Adding/removing capture resources, changing visibility or switching scenes requires a stopped output in this first editor. Each orientation has its own transforms. The overlay is an original animated graphic with an editable accent color; text, images, effects and transitions are future increments.
 
 ## 🧠 One production, three controls
 
@@ -101,6 +107,17 @@ The app owns one engine. CLI and MCP connect to its Unix socket at `var/run/moti
 
 Replace example IDs with values from `devices`. A `null` window ID restores the generated pattern; audio accepts `none`, `tone` or a listed device UID.
 
+New scene operations use the same core. Read the returned graph to obtain IDs:
+
+```sh
+./target/debug/motive ctl '{"op":"add_source","scene_id":"scene-1","name":"Webcam","source":{"kind":"camera","device_id":"CAMERA_UID_FROM_DEVICES"}}'
+./target/debug/motive ctl '{"op":"set_transform","scene_id":"scene-1","layer_id":"LAYER_ID_FROM_STATE","variant":"horizontal","transform":{"x":600,"y":48,"width":320,"height":180,"visible":true,"order":2}}'
+./target/debug/motive ctl '{"op":"set_overlay_color","source_id":"overlay","color":16739166}'
+./target/debug/motive ctl '{"op":"save_project"}'
+```
+
+Agents control production through CLI/MCP, never by editing project files or automating clicks. Project restoration is explicit after launch with `load_project`.
+
 For an MCP client, use an absolute path to your checkout:
 
 ```json
@@ -118,6 +135,8 @@ For an MCP client, use an absolute path to your checkout:
 <summary><strong>Available MCP tools</strong></summary>
 
 `status` · `devices` · `set_overlay` · `set_variant` · `select_source` · `select_camera` · `select_audio` · `reconnect_sources` · `start_recording` · `stop_output` · `save_project` · `load_project`
+
+`create_scene` · `rename_scene` · `remove_scene` · `select_scene` · `add_source` · `remove_source` · `add_layer` · `remove_layer` · `set_transform` · `set_overlay_color` · `reconnect_source` · `snapshot` · `shutdown` · `set_test_window`
 
 Responses include the shared PID/revision, source issues and real engine counters. Inputs reject unknown fields. Disconnecting the MCP client leaves the production engine running.
 
@@ -137,19 +156,21 @@ cargo clippy --locked -- -D warnings
 cargo fmt -- --check
 python3 scripts/verify_control.py
 python3 scripts/verify.py
+python3 scripts/verify_scenes.py --camera-id 'YOUR_CAMERA_UID'
+python3 scripts/verify_output_recovery.py
 ```
 
 The integration scripts require the app to be open and idle. `verify.py` also requires the owned test window and normal screen-capture permission. It validates decoded video/audio, source pixels outside the overlay, overlay motion, portrait layout and a loopback receiver. It records for at least 65 seconds.
 
-See [H1 verification](docs/h1-verification.md) for device tests, recovery behavior and evidence. Captures, device inventories and runtime logs stay under ignored `var/`; they are not published with this repository.
+See [H1 verification](docs/h1-verification.md) and [scene-graph verification](docs/scene-graph-verification.md) for device tests, recovery behavior, prerequisites and evidence. The output-recovery test deliberately terminates only Motive's own mux helper. Captures, device inventories and runtime logs stay under ignored `var/`; they are not published with this repository.
 
 ## 🗺️ Direction and boundaries
 
-- **Now:** dependable capture, explicit recovery and one shared production core.
-- **Next:** longer hardware sessions, accessibility, camera frame-stall detection and a distributable macOS bundle.
-- **Later:** a richer scene editor, transitions, effects, simultaneous variants and platform streaming.
+- **Now:** a working scene graph, a simple native editor, explicit recovery and one shared production core.
+- **Next:** direct numeric property editing, tested removable-device recovery and longer recording sessions.
+- **Later:** transitions, richer overlays/effects, a distributable bundle, simultaneous variants and platform streaming.
 
-The preview currently copies BGRA frames through CPU memory into GPUI; it is not zero-copy. There is one main visual source and one overlay, not a full scene editor. There are no cloud services, payments or marketplace features.
+The preview copies new BGRA frames through CPU memory into GPUI; it is not zero-copy. This first editor supports up to 8 scenes, 16 visual sources and 32 layers in a project, with one active canvas and one output. There are no cloud services, payments or marketplace features.
 
 Competitive research prioritizes official documentation, open-source code and observable behavior. REA is optional research tooling, **never a product dependency**. Motive's design and implementation are independent; no proprietary Meld code, assets or designs are included.
 
@@ -161,9 +182,11 @@ Start with [AGENTS.md](AGENTS.md), [the plan](docs/plan.md) and [architecture de
 |---|---|
 | `src/main.rs` | Native GPUI interface |
 | `src/core.rs` | Shared commands, health policy and project state |
+| `src/scene.rs` | Stable scene graph, independent layouts and validation |
 | `src/control.rs` | Local socket, CLI and MCP adapter |
 | `src/engine.rs` | Main-thread Rust ownership of the native engine |
 | `native/engine.m` | libobs, ScreenCaptureKit and AVFoundation integration |
+| `native/graph.inc` | Native scenes, source reconciliation and camera frame health |
 | `scripts/` | Pinned bootstrap, bundle and real-media checks |
 
 ## 💚 Built on open source

@@ -264,3 +264,50 @@ mantiene una identidad estable entre builds; bootstrap no crea certificados.
 Resultados, pruebas reproducibles y limitaciones de hardware se conservan en
 [informe H1](h1-verification.md). Hot-unplug físico y cámara conectada pero sin
 frames nuevos siguen pendientes; no se sustituyeron por mocks.
+
+## D5 — Primer Scene Graph (2026-11-16)
+
+`src/scene.rs` define escenas, fuentes y capas con IDs persistentes; cada capa
+contiene dos transformaciones independientes. El proyecto v3 migra v1/v2, valida
+referencias y límites, y se guarda mediante archivo temporal, fsync y rename.
+No se persisten IDs efímeros de ventanas ni PIDs. Una ventana se restaura solo
+con una coincidencia única de bundle/título. La carga es explícita.
+
+`native/graph.inc` construye escenas privadas de libobs, aplica posición y
+rectángulo contain, visibilidad y orden (ascendente, desempate por ID de capa).
+Reutiliza fuentes por identidad: mover una capa no recrea la captura ni reinicia
+su reloj. Se reconstruyen los scene items; no hay motor de render paralelo,
+jerarquías arbitrarias ni abstracción de plugins. Una fuente de cámara por UID
+puede aparecer en varias capas y escenas.
+
+La sustitución de una cámara tiene una excepción explícita al staging: el
+dispositivo requiere liberar primero los items y la sesión anterior, esperando
+la cola de destrucción de OBS antes de crear otra sesión. Se observó un crash
+de CoreMediaIO/AVFoundation con sesiones solapadas. Si la reapertura falla,
+la fuente queda sin captura y bloquea la salida; no se presenta como saludable
+ni se borra su identidad del modelo. El resto de la composición se conserva.
+
+Las transformaciones y el color del overlay se pueden editar grabando. Cambios
+de recursos, visibilidad y selección de escena requieren salida detenida en
+esta fase. La operación heredada de visibilidad del overlay propio mantiene
+su comportamiento en vivo. No hay multistream ni dos lienzos activos.
+
+La salud usa una lectura coherente por consulta. Un filtro async passthrough
+cuenta frames reales de cámara y tiempo de llegada; no compara píxeles. Hay
+4 s de gracia al activar y fallo tras 3 s sin entrega. El estado deseado del
+grafo incluye fuentes todavía pendientes de activación nativa, evitando declarar
+listas las cámaras frías. Ventanas conservan chequeos de permiso, existencia,
+PID de propietario y dimensiones; no se afirma detección de toda congelación.
+
+La recuperación se conserva por ID de fuente, audio y output. Un cambio de
+audio no reconoce fallos visuales ni del encoder/muxer. El callback stop no
+equivale a recursos liberados: se espera además `!obs_output_active` y se
+desconecta la señal antes de liberar output/encoders. La ruta de preview sigue
+siendo CPU; consultar la secuencia antes de reservar/copiar evita trabajo
+repetido cuando no hay un frame nuevo, sin rediseñar el renderer.
+
+Evidencia ejecutada y límites: [verificación de escenas](scene-graph-verification.md).
+Fuentes públicas utilizadas: `libobs/obs-scene.c`, `libobs/obs-output.c`,
+`libobs/obs-source.c`, `plugins/mac-avcapture/plugin-main.m` y
+`plugins/mac-avcapture/OBSAVCapture.m` del árbol oficial OBS 33.0.1 fijado en
+`.deps/`. No se utilizó REA ni contenido de Meld.

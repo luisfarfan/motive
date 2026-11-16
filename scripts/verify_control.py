@@ -17,8 +17,13 @@ try:
     assert init['result']['protocolVersion']=='2025-06-18'
     p.stdin.write('{"jsonrpc":"2.0","method":"notifications/initialized"}\n');p.stdin.flush()
     listed=rpc('tools/list')['result']['tools']
-    assert len(listed)==12
+    assert len(listed)>=12
+    assert {'status','devices','set_overlay','set_variant','select_source','select_camera','select_audio','reconnect_sources','start_recording','stop_output','save_project','load_project'} <= {t['name'] for t in listed}
     assert {'select_camera','select_audio','reconnect_sources'} <= {t['name'] for t in listed}
+    assert {'create_scene','select_scene','add_source','add_layer','set_transform','set_overlay_color','remove_layer','remove_source','reconnect_source'} <= {t['name'] for t in listed}
+    nested=rpc('tools/call',{'name':'add_source','arguments':{'scene_id':'scene-1','name':'Rejected','source':{'kind':'pattern','url':'https://example.invalid'}}})
+    assert nested['result']['isError']
+    assert status()['revision']==before['revision']
     invalid=rpc('tools/call',{'name':'start_recording','arguments':{'path':'/not-allowed'}})
     assert invalid['result']['isError']
     assert status()['revision']==before['revision']

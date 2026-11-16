@@ -93,6 +93,11 @@ try:
     lost = wait_for(lambda s: 'SOURCE_UNAVAILABLE' in s['issues'] and s['output'] == 'idle')
     assert lost['recovery_required'] and 'SOURCE_UNAVAILABLE' in lost['last_fault']
     assert lost['output_code'] == 0
+    # Regression: audio acknowledgement must not clear an unrelated video fault.
+    after_audio = ctl('select_audio', id='none')['state']
+    assert after_audio['recovery_required'] and 'main' in after_audio['recovery_sources']
+    ctl('select_audio', id='tone')
+    report['audio_change_preserves_video_recovery'] = True
     assert ctl('start_recording', expect=False)['error']['code'] == 'SOURCE_UNAVAILABLE'
     assert ctl('reconnect_sources', expect=False)['error']['code'] == 'SOURCE_UNAVAILABLE'
     report['source_loss'] = {'state':lost, 'media':media(recording['output_path'])}

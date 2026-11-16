@@ -1,0 +1,173 @@
+<p align="center">
+  <img src="docs/assets/motive-banner.svg" alt="Motive — Your production. Your machine." width="100%" />
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="License: GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-65dfbc?style=flat-square" /></a>
+  <img alt="Platform: Apple Silicon" src="https://img.shields.io/badge/platform-Apple_Silicon-8daafa?style=flat-square" />
+  <img alt="Built with Rust, GPUI and libobs" src="https://img.shields.io/badge/built_with-Rust_·_GPUI_·_libobs-e8ba84?style=flat-square" />
+  <img alt="Status: experimental" src="https://img.shields.io/badge/status-experimental-c58af9?style=flat-square" />
+</p>
+
+<p align="center">
+  A free, open-source production studio for macOS.<br />
+  Native controls. Real media. One local engine.
+</p>
+
+<p align="center">
+  <a href="#-get-started">Get started</a> ·
+  <a href="#-one-production-three-controls">CLI & MCP</a> ·
+  <a href="#-verification">Verification</a> ·
+  <a href="docs/plan.md">Roadmap</a>
+</p>
+
+---
+
+Motive is an early native streaming and recording studio built with **Rust, GPUI Kit and libobs**. It brings the interface, command line and AI-agent controls to the **same running production**. No account, hosted backend or subscription is required.
+
+> **Experimental developer preview.** Recording and local loopback streaming work. This is not yet a packaged release or a full replacement for OBS Studio. The current interface is in Spanish; this README is in English.
+
+## ✨ What is taking shape
+
+| | Capability | Implementation |
+|---|---|---|
+| 🪟 | Window capture | Select an individual application window through ScreenCaptureKit |
+| 📷 | Camera input | Explicit camera selection through the official OBS AVFoundation module |
+| 🎙️ | Microphone input | A specific device UID, live level and sample-flow health |
+| 🎬 | Local recording | H.264 + AAC in MKV, encoded and muxed by libobs |
+| 🎨 | Composition | An original animated overlay, composited into the actual output |
+| ↔️ | Canvas variants | 960 × 540 landscape or 540 × 960 portrait, with aspect-preserving fit |
+| 🔌 | Source recovery | Availability checks, controlled output stop and explicit reconnection |
+| 🤖 | Agent control | Local MCP and CLI commands, shared state and structured errors |
+| 💾 | Project state | Versioned local JSON with guarded source restoration |
+
+## 🚀 Get started
+
+You need an Apple Silicon Mac, Xcode with the Metal toolchain, Rust/Cargo and Python 3. FFmpeg/ffprobe are needed for the media verification scripts.
+
+The development environment has been exercised on **macOS 27.2**, Apple M5 Pro, Rust 1.99.1 and Python 3.13.15. The binary targets macOS 15.0+, but that entire OS range has **not** been tested. Allow roughly 4 GB for dependencies and build artifacts.
+
+```sh
+git clone https://github.com/luisfarfan/motive.git
+cd motive
+python3 scripts/bootstrap.py
+python3 scripts/bundle.py
+open target/Motive.app
+```
+
+The bootstrap fetches pinned, checksum-verified **OBS Studio 33.0.1** and its full source tree, plus **SIMDe 0.8.2**, into `.deps/`. It does not install global packages. Cargo.lock pins **GPUI Kit 0.10.0** and its **GPUI 0.3.12** dependency.
+
+**Keep the app in this checkout.** This ad-hoc-signed development bundle links to `.deps/` using local paths. A self-contained, signed and notarized release is still future work. Launch the bundle rather than `cargo run` so the official muxing helper is in the expected location.
+
+Ad-hoc rebuilds change the code identity and can require macOS permissions again. If you already have a local Apple Development identity, use `python3 scripts/bundle.py --sign-identity "YOUR_EXISTING_IDENTITY"` for a stable development identity. The script never creates certificates or changes the keychain. Close Motive before rebuilding.
+
+### Make your first recording
+
+1. Start with the built-in pattern, or click **Abrir fuente de prueba** and **Capturar fuente de prueba** for a controlled window.
+2. Use **Elegir ventana**, **Elegir cámara** or **Elegir micrófono** to select a source. Complete any normal macOS permission prompts. Only select content you intend to capture.
+3. Check that the preview is ready and the audio level responds. If Stage Manager hides the selected window, show that window to let capture receive its first frame. **Audio: tono de prueba** supplies an owned 440 Hz test fixture when a physical microphone is unnecessary.
+4. Click **Grabar**, then **Finalizar salida**. Wait for `idle`; recordings are saved under `var/recordings/`.
+5. Switch canvas orientation while idle. **Guardar proyecto** and **Restaurar proyecto** use `var/project.json`.
+
+Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No source is selected automatically at launch.
+
+### When a source disappears
+
+The core checks source health once per second, and before commands. A missing window/device, revoked permission or stalled microphone data produces a structured issue. If an output is active, Motive requests a controlled stop and retains the reason. **Reconectar fuentes** retries the selected sources while idle; it never starts recording automatically. A closed window must be opened and selected again.
+
+Silence is distinct from missing audio packets. Hardware hot-unplug coverage and camera frame-stall detection are documented in the [H1 verification report](docs/h1-verification.md).
+
+## 🧠 One production, three controls
+
+```text
+ Native GPUI interface ─┐
+ Local CLI ────────────┼──► Production core ──► libobs ──► Recording / loopback
+ MCP stdio adapter ────┘          │                │
+                         versioned state      media clock + frames
+```
+
+The app owns one engine. CLI and MCP connect to its Unix socket at `var/run/motive.sock` (directory mode `0700`, socket mode `0600`). Commands run on the same main-thread owner. MCP carries control messages and metrics; it does not carry video or drive the media clock.
+
+```sh
+./target/debug/motive ctl '{"op":"status"}'
+./target/debug/motive ctl '{"op":"devices"}'
+./target/debug/motive ctl '{"op":"select_source","window_id":123}'
+./target/debug/motive ctl '{"op":"select_camera","id":"CAMERA_UID_FROM_DEVICES"}'
+./target/debug/motive ctl '{"op":"select_audio","id":"MICROPHONE_UID_FROM_DEVICES"}'
+./target/debug/motive ctl '{"op":"start_recording"}'
+./target/debug/motive ctl '{"op":"stop_output"}'
+./target/debug/motive ctl '{"op":"reconnect_sources"}'
+```
+
+Replace example IDs with values from `devices`. A `null` window ID restores the generated pattern; audio accepts `none`, `tone` or a listed device UID.
+
+For an MCP client, use an absolute path to your checkout:
+
+```json
+{
+  "mcpServers": {
+    "motive": {
+      "command": "/absolute/path/to/motive/target/debug/motive",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+<details>
+<summary><strong>Available MCP tools</strong></summary>
+
+`status` · `devices` · `set_overlay` · `set_variant` · `select_source` · `select_camera` · `select_audio` · `reconnect_sources` · `start_recording` · `stop_output` · `save_project` · `load_project`
+
+Responses include the shared PID/revision, source issues and real engine counters. Inputs reject unknown fields. Disconnecting the MCP client leaves the production engine running.
+
+</details>
+
+The API accepts no arbitrary output paths, public stream URLs, shell commands or stream keys. The CLI-only `start_local_stream` sends MPEG-TS to **127.0.0.1:19350**; it requires a local receiver. No public platform integration is implemented yet.
+
+If a forced shutdown leaves a stale socket, first confirm no Motive process remains and `ctl` cannot connect, then remove only `var/run/motive.sock`. Motive never unlinks another running instance's socket.
+
+## 🧪 Verification
+
+We record what ran on real hardware and keep limitations explicit. Build success is not evidence of working media capture.
+
+```sh
+cargo test --locked
+cargo clippy --locked -- -D warnings
+cargo fmt -- --check
+python3 scripts/verify_control.py
+python3 scripts/verify.py
+```
+
+The integration scripts require the app to be open and idle. `verify.py` also requires the owned test window and normal screen-capture permission. It validates decoded video/audio, source pixels outside the overlay, overlay motion, portrait layout and a loopback receiver. It records for at least 65 seconds.
+
+See [H1 verification](docs/h1-verification.md) for device tests, recovery behavior and evidence. Captures, device inventories and runtime logs stay under ignored `var/`; they are not published with this repository.
+
+## 🗺️ Direction and boundaries
+
+- **Now:** dependable capture, explicit recovery and one shared production core.
+- **Next:** longer hardware sessions, accessibility, camera frame-stall detection and a distributable macOS bundle.
+- **Later:** a richer scene editor, transitions, effects, simultaneous variants and platform streaming.
+
+The preview currently copies BGRA frames through CPU memory into GPUI; it is not zero-copy. There is one main visual source and one overlay, not a full scene editor. There are no cloud services, payments or marketplace features.
+
+Competitive research prioritizes official documentation, open-source code and observable behavior. REA is optional research tooling, **never a product dependency**. Motive's design and implementation are independent; no proprietary Meld code, assets or designs are included.
+
+## 🛠️ Contributing
+
+Start with [AGENTS.md](AGENTS.md), [the plan](docs/plan.md) and [architecture decisions](docs/decisions.md). Project notes are currently in Spanish. Keep changes focused and include reproducible evidence for media behavior. Never commit recordings, device inventories, stream keys or downloaded SDK bundles.
+
+| Directory | Responsibility |
+|---|---|
+| `src/main.rs` | Native GPUI interface |
+| `src/core.rs` | Shared commands, health policy and project state |
+| `src/control.rs` | Local socket, CLI and MCP adapter |
+| `src/engine.rs` | Main-thread Rust ownership of the native engine |
+| `native/engine.m` | libobs, ScreenCaptureKit and AVFoundation integration |
+| `scripts/` | Pinned bootstrap, bundle and real-media checks |
+
+## 💚 Built on open source
+
+Motive is licensed under **[GPL-3.0-or-later](LICENSE)**. It builds on [OBS Studio](https://github.com/obsproject/obs-studio), [GPUI Kit](https://github.com/longbridge/gpui-kit) and their communities. Third-party code retains its own licenses; see [third-party notes](docs/third-party.md).
+
+<p align="center"><sub>Made for creators who want their production to stay on their machine.</sub></p>

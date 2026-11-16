@@ -71,6 +71,8 @@ Ad-hoc rebuilds change the code identity and can require macOS permissions again
 
 Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No source is selected automatically at launch.
 
+Recording defaults to **Apple VideoToolbox hardware H.264** when available, with x264 fallback before recording starts. `encoders` reports availability and the selected encoder; `set_encoder` accepts `auto`, `videotoolbox` or `x264` while output is stopped. This runtime preference leaves project v3 unchanged and does not change the fixed UDP loopback encoder. See [hardware encoding verification](docs/videotoolbox-verification.md) for measurements, fallback behavior and limits.
+
 ### When a source disappears
 
 The core checks source health once per second, and before commands. A missing window/device, revoked permission or stalled microphone data produces a structured issue. If an output is active, Motive requests a controlled stop and retains the reason. **Reconectar fuentes** retries the selected sources while idle; it never starts recording automatically. A closed window must be opened and selected again.
@@ -137,6 +139,8 @@ For an MCP client, use an absolute path to your checkout:
 `status` · `devices` · `set_overlay` · `set_variant` · `select_source` · `select_camera` · `select_audio` · `reconnect_sources` · `start_recording` · `stop_output` · `save_project` · `load_project`
 
 `create_scene` · `rename_scene` · `remove_scene` · `select_scene` · `add_source` · `remove_source` · `add_layer` · `remove_layer` · `set_transform` · `set_overlay_color` · `reconnect_source` · `snapshot` · `shutdown` · `set_test_window`
+
+`encoders` · `set_encoder`
 
 Responses include the shared PID/revision, source issues and real engine counters. Inputs reject unknown fields. Disconnecting the MCP client leaves the production engine running.
 

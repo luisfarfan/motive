@@ -20,6 +20,7 @@ fn main() {
         "AppKit",
         "CoreGraphics",
         "AVFoundation",
+        "VideoToolbox",
     ] {
         println!("cargo:rustc-link-lib=framework={framework}");
     }

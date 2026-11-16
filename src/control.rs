@@ -133,7 +133,10 @@ impl Drop for Server {
 pub fn send(command: Value, origin: &str) -> Value {
     // Assemble one complete frame before connecting. Never retry a mutation:
     // the core may already have applied it when a response is lost.
-    let query = matches!(command["op"].as_str(), Some("status" | "devices"));
+    let query = matches!(
+        command["op"].as_str(),
+        Some("status" | "devices" | "encoders")
+    );
     let mut payload = json!({"command":command,"origin":origin}).to_string();
     payload.push('\n');
     let attempt = || -> anyhow::Result<Value> {
@@ -162,6 +165,20 @@ fn tool(
 }
 pub fn tools() -> Vec<Value> {
     let mut result = vec![
+        tool(
+            "encoders",
+            "Encoders H.264 registrados, capacidad hardware y selección efectiva de grabación.",
+            json!({}),
+            &[],
+            true,
+        ),
+        tool(
+            "set_encoder",
+            "Preferencia de grabación mientras idle. auto prefiere VideoToolbox y permite fallback antes de empezar; las selecciones explícitas son estrictas. No cambia el proyecto v3 ni UDP local.",
+            json!({"encoder":{"type":"string","enum":["auto","videotoolbox","x264"]}}),
+            &["encoder"],
+            false,
+        ),
         tool(
             "status",
             "Estado de la producción abierta, revisión y métricas reales.",

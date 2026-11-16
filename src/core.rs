@@ -22,11 +22,33 @@ pub enum Variant {
     Horizontal,
     Vertical,
 }
+/// Runtime recording preference, deliberately outside the v3 scene document.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RecordingEncoder {
+    #[default]
+    Auto,
+    Videotoolbox,
+    X264,
+}
+impl RecordingEncoder {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Videotoolbox => "videotoolbox",
+            Self::X264 => "x264",
+        }
+    }
+}
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Command {
     Status,
     Devices,
+    Encoders,
+    SetEncoder {
+        encoder: RecordingEncoder,
+    },
     SetOverlay {
         visible: bool,
     },
@@ -159,6 +181,7 @@ struct WindowBinding {
 }
 pub struct Production {
     pub engine: Engine,
+    pub recording_encoder: RecordingEncoder,
     pub project: Project,
     pub revision: u64,
     pub last_action: String,
@@ -186,6 +209,7 @@ impl Production {
         create_tone()?;
         let mut p = Self {
             engine: Engine::new()?,
+            recording_encoder: RecordingEncoder::default(),
             project: Project::default(),
             revision: 0,
             last_action: "Estudio iniciado".into(),
@@ -220,10 +244,16 @@ impl Production {
         } else {
             &self.output_kind
         };
-        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"issues":self.issues,
+        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"encoding":self.encoding_status(),"issues":self.issues,
             "recovery_required":self.recovery.required(),"recovery_sources":self.recovery.pending,"last_fault":self.last_fault,
             "sources":self.source_health,"window_id":self.window_id,"output":output,"output_code":self.engine.output_code(),
             "output_path":self.output_path,"last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":30,"stats":self.engine.stats()})
+    }
+    fn encoding_status(&self) -> Value {
+        let mut value = self.engine.encoding_info();
+        value["preference"] = json!(self.recording_encoder);
+        value["scope"] = json!("recording");
+        value
     }
     fn faults(&self) -> Vec<(String, String)> {
         self.faults_from(&self.engine.graph_health())
@@ -696,12 +726,25 @@ impl Production {
         if matches!(command, Command::Devices) {
             return json!({"ok":true,"devices":self.engine.devices()});
         }
+        if matches!(command, Command::Encoders) {
+            return json!({"ok":true,"encoders":self.encoding_status()});
+        }
         let label = serde_json::to_value(&command).unwrap()["op"]
             .as_str()
             .unwrap()
             .to_owned();
         let result = (|| -> anyhow::Result<()> {
             match command {
+                Command::SetEncoder { encoder } => {
+                    self.idle()?;
+                    if encoder == RecordingEncoder::Videotoolbox {
+                        anyhow::ensure!(
+                            self.engine.encoding_info()["videotoolbox_id"].is_string(),
+                            "ENCODER_UNAVAILABLE: VideoToolbox hardware is not registered"
+                        );
+                    }
+                    self.recording_encoder = encoder;
+                }
                 Command::SetOverlay { visible } => {
                     let mut graph = self.graph().clone();
                     let scene = graph.active_scene.clone();
@@ -776,7 +819,11 @@ impl Production {
                         .write(true)
                         .create_new(true)
                         .open(&path)?;
-                    if let Err(e) = self.engine.start_output(&path.to_string_lossy(), false) {
+                    if let Err(e) = self.engine.start_output(
+                        &path.to_string_lossy(),
+                        false,
+                        self.recording_encoder.as_str(),
+                    ) {
                         if fs::metadata(&path).is_ok_and(|m| m.len() == 0) {
                             let _ = fs::remove_file(&path);
                         }
@@ -789,7 +836,8 @@ impl Production {
                 Command::StartLocalStream => {
                     self.idle()?;
                     self.source_ready()?;
-                    self.engine.start_output("", true)?;
+                    self.engine
+                        .start_output("", true, self.recording_encoder.as_str())?;
                     self.output_kind = "local_stream".into();
                     self.output_path = None;
                     self.stopping = false;
@@ -837,7 +885,7 @@ impl Production {
                 Command::SetTestWindow { open } => {
                     self.test_window_request = Some(open);
                 }
-                Command::Status | Command::Devices => unreachable!(),
+                Command::Status | Command::Devices | Command::Encoders => unreachable!(),
                 graph_command => self.graph_command(graph_command)?,
             }
             Ok(())
@@ -949,6 +997,9 @@ mod tests {
             r#"{"op":"start_local_stream","url":"rtmp://example.com/key"}"#,
             r#"{"op":"set_variant","variant":"stretch"}"#,
             r#"{"op":"set_overlay","visible":"yes"}"#,
+            r#"{"op":"set_encoder","encoder":"arbitrary_plugin"}"#,
+            r#"{"op":"set_encoder","encoder":"x264","path":"/tmp/output"}"#,
+            r#"{"op":"encoders","encoder":"x264"}"#,
             r#"{"op":"add_source","scene_id":"scene-1","name":"Invalid","source":{"kind":"pattern","url":"https://example.invalid"}}"#,
             r#"{"op":"set_transform","scene_id":"scene-1","layer_id":"main-layer","variant":"horizontal","transform":{"x":0,"y":0,"width":960,"height":540,"visible":true,"order":0,"secret":"rejected"}}"#,
         ] {
@@ -957,6 +1008,23 @@ mod tests {
                 "{input}"
             );
         }
+    }
+    #[test]
+    fn recording_policy_defaults_to_auto_without_changing_v3() {
+        assert_eq!(RecordingEncoder::default(), RecordingEncoder::Auto);
+        for (name, mode) in [
+            ("auto", RecordingEncoder::Auto),
+            ("videotoolbox", RecordingEncoder::Videotoolbox),
+            ("x264", RecordingEncoder::X264),
+        ] {
+            let command = parse_command(json!({"op":"set_encoder", "encoder":name})).unwrap();
+            assert!(matches!(command, Command::SetEncoder { encoder } if encoder == mode));
+            assert_eq!(mode.as_str(), name);
+        }
+        let document = serde_json::to_value(Project::default()).unwrap();
+        assert_eq!(document["version"], 3);
+        assert!(document.get("encoder").is_none());
+        assert!(document.get("encoding").is_none());
     }
     #[test]
     fn rejects_unknown_fields_in_persisted_unit_source() {

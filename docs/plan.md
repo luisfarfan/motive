@@ -12,6 +12,7 @@ para esta fase y REA no bloqueó los hitos.
 | 3 — Diferenciador | Overlay animado dentro de archivos; 960×540 y 540×960 con contain, margen seguro y anclaje inferior; vertical 4.166000 s/123 frames | Política mínima verificada; editor libre y salidas simultáneas pendientes |
 | 4 — Streaming | libobs → MPEG-TS UDP loopback → FFmpeg, 5.021333 s/150 frames, H.264/AAC y overlay | Receptor local verificado; plataformas públicas y RTMP/SRT pendientes |
 | 5 — Primer editor | Ventana + webcam + overlay; transformaciones y orden por MCP; persistencia v3 y reapertura; UI refleja el núcleo | Ver [verificación de escenas](scene-graph-verification.md); una composición/output activo, cambios de recursos solo detenido |
+| 6 — Encoder Apple Silicon | Módulo oficial VideoToolbox, selección compartida y fallback x264; comparación de archivos y recursos | Ver [verificación VideoToolbox](videotoolbox-verification.md); alcance inicial H.264, misma resolución/FPS, sin cambiar UI ni UDP local |
 
 ## Reproducir y consultar evidencia
 
@@ -85,7 +86,7 @@ Las grabaciones y los inventarios de dispositivos permanecen fuera de Git.
 ## Incremento de escenas
 
 El formato v3 añade escenas, recursos reutilizables y capas con IDs estables y
-transformaciones horizontal/vertical independientes. UI, CLI y 26 herramientas
-MCP usan Production. Se conservan las pruebas anteriores y se añaden pruebas
+transformaciones horizontal/vertical independientes. UI, CLI y MCP usan
+Production (28 herramientas con la selección de encoder). Se conservan las pruebas anteriores y se añaden pruebas
 reales de composición y recuperación del muxer. La evidencia y las limitaciones
 actuales están en [scene-graph-verification.md](scene-graph-verification.md).

@@ -7,6 +7,7 @@
 #include <util/platform.h>
 #import <AppKit/AppKit.h>
 #import <AVFoundation/AVFoundation.h>
+#import <VideoToolbox/VideoToolbox.h>
 
 /* All functions except the frame callback run on the main/GPUI thread.
  * OBS owns render/audio/output threads. No GPUI object crosses that boundary. */
@@ -28,6 +29,9 @@ typedef struct {
     obs_encoder_t *video_encoder, *audio_encoder;
     atomic_int output_code;
     atomic_bool output_stopped;
+    bool vt_loaded, selected_hardware;
+    char vt_h264_id[512], selected_encoder[512], fallback_reason[128], vt_unavailable_reason[128];
+    char *encoder_inventory;
     char base[4096], error[512];
 } motive_engine;
 
@@ -113,6 +117,7 @@ static int reset_video(motive_engine *e) {
     return obs_reset_video(&v);
 }
 static struct obs_source_info watch_info;
+static void discover_encoders(motive_engine *e);
 void motive_destroy(motive_engine *e);
 motive_engine *motive_create(const char *base) {
     motive_engine *e=calloc(1,sizeof(*e));
@@ -129,7 +134,19 @@ motive_engine *motive_create(const char *base) {
     if (!obs_reset_audio(&audio)) { snprintf(e->error,sizeof(e->error),"obs_reset_audio falló"); return e; }
     const char *modules[]={"obs-x264","obs-ffmpeg","obs-outputs","mac-capture","mac-avcapture","obs-transitions"};
     for (size_t i=0;i<sizeof(modules)/sizeof(modules[0]);i++) if (!load_module(e,modules[i])) return e;
+    // Optional: an unavailable VT module must not prevent x264 recording.
+    const char *disable_vt=getenv("MOTIVE_DISABLE_VIDEOTOOLBOX");
+    if (disable_vt && !strcmp(disable_vt,"1")) {
+        snprintf(e->vt_unavailable_reason,sizeof(e->vt_unavailable_reason),"VIDEOTOOLBOX_DISABLED");
+    } else {
+        e->vt_loaded=load_module(e,"mac-videotoolbox");
+        if (!e->vt_loaded) {
+            snprintf(e->vt_unavailable_reason,sizeof(e->vt_unavailable_reason),"VIDEOTOOLBOX_MODULE_UNAVAILABLE");
+            e->error[0]=0;
+        }
+    }
     obs_post_load_modules();
+    discover_encoders(e);
     obs_register_source(&pattern_info);
     obs_register_source(&watch_info);
     e->pixels=calloc(e->width*e->height,4);
@@ -171,10 +188,16 @@ int motive_output_code(motive_engine *e) { return atomic_load(&e->output_code); 
 uint64_t motive_output_bytes(motive_engine *e) { return e->output ? obs_output_get_total_bytes(e->output) : 0; }
 uint32_t motive_output_frames(motive_engine *e) { return e->output ? obs_output_get_total_frames(e->output) : 0; }
 int motive_output_drops(motive_engine *e) { return e->output ? obs_output_get_frames_dropped(e->output) : 0; }
-bool motive_start_output(motive_engine *e,const char *path,bool local_stream) {
+#include "encoding.inc"
+bool motive_start_output(motive_engine *e,const char *path,bool local_stream,const char *policy) {
     e->error[0]=0;
     if (motive_output_state(e)) { snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY"); return false; }
+    if (strcmp(policy,"auto") && strcmp(policy,"videotoolbox") && strcmp(policy,"x264")) {
+        snprintf(e->error,sizeof(e->error),"INVALID_ENCODER"); return false;
+    }
     release_output(e);
+    e->selected_encoder[0]=0;e->fallback_reason[0]=0;e->selected_hardware=false;
+    if (!local_stream) return start_recording(e,path,policy);
     obs_data_t *settings=obs_data_create();
     if (local_stream) {
         // Fixed loopback destination. No public destinations or keys in this prototype.
@@ -191,24 +214,6 @@ bool motive_start_output(motive_engine *e,const char *path,bool local_stream) {
             obs_output_set_media(e->output,obs_get_video(),obs_get_audio());
             obs_output_set_mixers(e->output,1); // Bit mask: include audio mix 0.
         }
-    } else {
-        obs_data_set_string(settings,"path",path);
-        e->output=obs_output_create("ffmpeg_muxer","Local recording",settings,NULL);
-        obs_data_t *v=obs_data_create();
-        obs_data_set_int(v,"bitrate",2500); obs_data_set_string(v,"rate_control","CBR");
-        obs_data_set_string(v,"preset","veryfast"); obs_data_set_int(v,"keyint_sec",2);
-        e->video_encoder=obs_video_encoder_create("obs_x264","H264",v,NULL);
-        obs_data_release(v);
-        obs_data_t *a=obs_data_create(); obs_data_set_int(a,"bitrate",160);
-        e->audio_encoder=obs_audio_encoder_create("ffmpeg_aac","AAC",a,0,NULL);
-        obs_data_release(a);
-        if (!e->video_encoder || !e->audio_encoder || !e->output) {
-            snprintf(e->error,sizeof(e->error),"ENCODER_UNAVAILABLE"); obs_data_release(settings); release_output(e); return false;
-        }
-        obs_encoder_set_video(e->video_encoder,obs_get_video());
-        obs_encoder_set_audio(e->audio_encoder,obs_get_audio());
-        obs_output_set_video_encoder(e->output,e->video_encoder);
-        obs_output_set_audio_encoder(e->output,e->audio_encoder,0);
     }
     obs_data_release(settings);
     if (!e->output) { snprintf(e->error,sizeof(e->error),"OUTPUT_UNAVAILABLE"); return false; }
@@ -219,6 +224,7 @@ bool motive_start_output(motive_engine *e,const char *path,bool local_stream) {
         snprintf(e->error,sizeof(e->error),"OUTPUT_START_FAILED: %.440s",reason ? reason : "sin detalle");
         release_output(e); atomic_store(&e->output_stopped,true); return false;
     }
+    snprintf(e->selected_encoder,sizeof(e->selected_encoder),"libx264 (loopback)");
     return true;
 }
 void motive_stop_output(motive_engine *e) { if (e->output && !atomic_load(&e->output_stopped)) obs_output_stop(e->output); }
@@ -385,7 +391,7 @@ void motive_destroy(motive_engine *e) {
 
         obs_shutdown();
     }
-    free(e->pixels); pthread_mutex_destroy(&e->lock); free(e);
+    free(e->encoder_inventory);free(e->pixels); pthread_mutex_destroy(&e->lock); free(e);
 }
 
 bool motive_reset_output(motive_engine *e) { if(motive_output_state(e)){snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY");return false;} release_output(e);atomic_store(&e->output_code,0);return true;}

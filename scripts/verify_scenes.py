@@ -183,7 +183,7 @@ try:
     report['metrics'] = {'cpu_percent_median':statistics.median(s['cpu_percent'] for s in samples),
                          'cpu_percent_max':max(s['cpu_percent'] for s in samples),
                          'rss_mib_min':min(s['rss_mib'] for s in samples), 'rss_mib_max':max(s['rss_mib'] for s in samples),
-                         'note':'Debug app process only; includes UI, capture and software encoding, excludes mux helper. Not a comparative benchmark.'}
+                         'note':'Debug app process only; includes UI, capture and encoding, excludes mux helper. Not a comparative benchmark.'}
     report['camera_clock'] = {'before': a, 'after': b}
     mint = color_count(rgb(path, 1, '8:72:32:436'), (51,232,181))
     coral = color_count(rgb(path, 5, '10:90:60:420'), (255,107,94))

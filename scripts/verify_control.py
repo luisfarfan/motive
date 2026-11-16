@@ -43,6 +43,17 @@ try:
     assert not reconnect['result']['isError']
     restored=rpc('tools/call',{'name':'set_overlay','arguments':{'visible':before['project']['overlay']}})
     assert not restored['result']['isError']
+    assert {'encoders','set_encoder'} <= {t['name'] for t in listed}
+    encoders=rpc('tools/call',{'name':'encoders','arguments':{}})
+    assert not encoders['result']['isError']
+    picked=rpc('tools/call',{'name':'set_encoder','arguments':{'encoder':'x264'}})
+    assert not picked['result']['isError']
+    selected=status()
+    assert selected['encoding']['preference']=='x264' and selected['project']==before['project']
+    bad_encoder=rpc('tools/call',{'name':'set_encoder','arguments':{'encoder':'arbitrary_plugin'}})
+    assert bad_encoder['result']['isError'] and status()['revision']==selected['revision']
+    restore_encoder=rpc('tools/call',{'name':'set_encoder','arguments':{'encoder':before['encoding']['preference']}})
+    assert not restore_encoder['result']['isError']
 finally:
     p.stdin.close();p.wait(timeout=5)
 after=status();time.sleep(.3);later=status()

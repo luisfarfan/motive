@@ -127,8 +127,10 @@ en /Applications y ~/Applications; no descarta otras rutas.
   `video_tick`, independiente de MCP. La captura usa el módulo oficial
   `mac-capture`/ScreenCaptureKit. La ventana propia de prueba es una segunda
   ventana GPUI, no un frame fabricado para aparentar captura.
-- Grabación: `obs-x264` + `ffmpeg_aac` + `ffmpeg_muxer`, helper y bibliotecas del
-  bundle oficial. Software x264, no una demostración de encoder hardware.
+- Grabación: módulo oficial `mac-videotoolbox` preferido en `auto`, con fallback
+  a `obs-x264` antes de iniciar; `ffmpeg_aac` + `ffmpeg_muxer`, helper y
+  bibliotecas del bundle oficial. La selección es compartida en Production,
+  fuera de la persistencia v3. Ver [mediciones y límites](videotoolbox-verification.md).
   Streaming local: `ffmpeg_output`, libx264/AAC y MPEG-TS a UDP loopback fijo.
   El soporte de protocolos no prueba integración con YouTube/TikTok.
 - Un solo output simultáneo. `stop_output` es asíncrono: observar `idle` y
@@ -191,7 +193,8 @@ Hashes SHA-256 fijados en `scripts/bootstrap.py`:
 - SIMDe: `ed2a3268658f2f2a9b5367628a85ccd4cf9516460ed8604eed369653d49b25fb`.
 
 Se comprobó `codesign --verify --strict .deps/OBS.app`. Los módulos cargados
-están limitados a obs-x264, obs-ffmpeg, obs-outputs, mac-capture y obs-transitions;
+están limitados a obs-x264, obs-ffmpeg, obs-outputs, mac-capture, mac-avcapture,
+obs-transitions y, opcionalmente, mac-videotoolbox;
 no se inicia OBS Studio, CEF, obs-websocket ni plugins de frontend Qt.
 
 El código propio se publica bajo GPL-3.0-or-later. Los

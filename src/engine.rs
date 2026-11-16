@@ -27,7 +27,15 @@ unsafe extern "C" {
     fn motive_output_bytes(engine: *mut c_void) -> u64;
     fn motive_output_frames(engine: *mut c_void) -> u32;
     fn motive_output_drops(engine: *mut c_void) -> i32;
-    fn motive_start_output(engine: *mut c_void, path: *const c_char, local_stream: bool) -> bool;
+    fn motive_start_output(
+        engine: *mut c_void,
+        path: *const c_char,
+        local_stream: bool,
+        policy: *const c_char,
+    ) -> bool;
+    fn motive_encoding_info(engine: *mut c_void) -> *mut c_char;
+    fn motive_encoded_frames(engine: *mut c_void) -> u32;
+    fn motive_video_skipped_frames() -> u32;
     fn motive_stop_output(engine: *mut c_void);
     fn motive_variant(engine: *mut c_void, vertical: bool) -> bool;
     fn motive_devices() -> *mut c_char;
@@ -128,9 +136,22 @@ impl Engine {
         let path = CString::new(tone_path)?;
         self.checked(unsafe { motive_audio(self.raw, id.as_ptr(), path.as_ptr()) })
     }
-    pub fn start_output(&mut self, path: &str, stream: bool) -> anyhow::Result<()> {
+    pub fn encoding_info(&self) -> serde_json::Value {
+        let raw = unsafe { motive_encoding_info(self.raw) };
+        if raw.is_null() {
+            return serde_json::json!({});
+        }
+        let value =
+            serde_json::from_slice(unsafe { CStr::from_ptr(raw) }.to_bytes()).unwrap_or_default();
+        unsafe { motive_free(raw) };
+        value
+    }
+    pub fn start_output(&mut self, path: &str, stream: bool, policy: &str) -> anyhow::Result<()> {
         let path = CString::new(path)?;
-        self.checked(unsafe { motive_start_output(self.raw, path.as_ptr(), stream) })
+        let policy = CString::new(policy)?;
+        self.checked(unsafe {
+            motive_start_output(self.raw, path.as_ptr(), stream, policy.as_ptr())
+        })
     }
     pub fn stop_output(&mut self) {
         unsafe { motive_stop_output(self.raw) };
@@ -152,7 +173,7 @@ impl Engine {
     }
     pub fn stats(&self) -> serde_json::Value {
         unsafe {
-            serde_json::json!({"rendered_frames":motive_total_frames(),"lagged_frames":motive_lagged_frames(),"preview_busy_drops":motive_busy_drops(self.raw),"preview_copies":motive_preview_copies(self.raw),"output_bytes":motive_output_bytes(self.raw),"output_frames":motive_output_frames(self.raw),"output_dropped_frames":motive_output_drops(self.raw),"capture_width":motive_capture_width(self.raw),"audio_frames":motive_audio_frames(self.raw),"audio_peak":motive_audio_peak(self.raw)})
+            serde_json::json!({"rendered_frames":motive_total_frames(),"lagged_frames":motive_lagged_frames(),"preview_busy_drops":motive_busy_drops(self.raw),"preview_copies":motive_preview_copies(self.raw),"output_bytes":motive_output_bytes(self.raw),"output_frames":motive_output_frames(self.raw),"output_dropped_frames":motive_output_drops(self.raw),"encoded_frames":motive_encoded_frames(self.raw),"video_skipped_frames":motive_video_skipped_frames(),"capture_width":motive_capture_width(self.raw),"audio_frames":motive_audio_frames(self.raw),"audio_peak":motive_audio_peak(self.raw)})
         }
     }
 }

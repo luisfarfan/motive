@@ -18,3 +18,7 @@ detener ese trabajo, sin otro navegador. Dia solo lo maneja el propietario.
 Capturas únicamente con contenido controlado y permisos normales de macOS.
 No exponer secretos a overlays, logs ni MCP. Después de dos intentos sin
 progreso en el mismo fallo, cambiar de hipótesis o documentar el bloqueo.
+
+Diseño: la fuente de verdad visual son los lienzos de Claude Design; su copia
+de solo lectura está en design/claude-design/ (ver design/README.md). Implementar
+desde ahí y design/direction.md; no editar esa copia a mano.

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Dirección artística de Motive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1640px; box-sizing: border-box; padding: 72px 80px; display: flex; flex-direction: column; gap: 56px; background: #F2F3F5; color: #16181D; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; font-size: 14px; line-height: 21px;">
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; align-items: end;">
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 650;">
+        <svg width="28" height="28" viewBox="0 0 18 18" aria-hidden="true"><rect width="18" height="18" rx="5" fill="#5FE3C6"></rect><path d="M4.5 13V5.2L9 9.8l4.5-4.6V13" fill="none" stroke="#0F2A2E" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"></path></svg>
+        motive
+      </div>
+      <h1 style="margin: 0; font-size: 56px; line-height: 60px; font-weight: 700; letter-spacing: -0.03em;">La luz es para controlar.<br>La oscuridad es para mirar.</h1>
+    </div>
+    <p style="margin: 0; max-width: 560px; font-size: 16px; line-height: 25px; color: #545A65;">Motive es una sala de control clara alrededor de un escenario oscuro. Solo lo que muestra imagen vive en lo oscuro; todo control vive en la sala. Los colores son señales con un único significado, y el agente propone con una línea distinta a la del usuario.</p>
+  </div>
+
+  <section style="display: flex; flex-direction: column; gap: 20px;">
+    <h2 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -0.01em;">Materiales</h2>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 28px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 0 0 1px rgba(22,24,29,0.08);">
+        <b style="font-size: 16px; font-weight: 600;">Sala</b>
+        <span style="color: #545A65;">Controles, listas, inspector y barra de título. Plana, separada por líneas finas, sin tarjetas.</span>
+        <div style="display: flex; gap: 10px; margin-top: 8px;">
+          <sc-for list="{{shell}}" as="c" hint-placeholder-count="4">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+              <span style="height: 56px; border-radius: 8px; background: {{c.hex}}; box-shadow: inset 0 0 0 1px rgba(22,24,29,0.1);"></span>
+              <span style="font-size: 12px; line-height: 16px; font-weight: 500;">{{c.name}}</span>
+              <span style="font-size: 12px; line-height: 16px; color: #646A74; font-variant-numeric: tabular-nums;">{{c.hex}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 28px; border-radius: 12px; background: #17181C; color: #F1F2F4; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.5), 0 18px 40px -18px rgba(0,0,0,0.45);">
+        <b style="font-size: 16px; font-weight: 600;">Escenario</b>
+        <span style="color: #A2A7B0;">Programa, miniaturas y vistas de fuentes. El único objeto con elevación y radio de 12 px.</span>
+        <div style="display: flex; gap: 10px; margin-top: 8px;">
+          <sc-for list="{{stage}}" as="c" hint-placeholder-count="4">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+              <span style="height: 56px; border-radius: 8px; background: {{c.hex}}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);"></span>
+              <span style="font-size: 12px; line-height: 16px; font-weight: 500;">{{c.name}}</span>
+              <span style="font-size: 12px; line-height: 16px; color: #A2A7B0; font-variant-numeric: tabular-nums;">{{c.hex}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 20px;">
+    <h2 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -0.01em;">Señales: un significado cada una</h2>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px;">
+      <sc-for list="{{signals}}" as="g" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; height: 64px; border-radius: 10px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(22,24,29,0.08);">
+            <span style="flex: 1; background: {{g.light}};"></span>
+            <span style="flex: 1; background: #17181C; display: grid; place-items: center;"><span style="width: 18px; height: 18px; border-radius: 50%; background: {{g.dark}};"></span></span>
+          </div>
+          <b style="font-weight: 600;">{{g.name}}</b>
+          <span style="font-size: 13px; line-height: 19px; color: #545A65;">{{g.use}}</span>
+          <span style="font-size: 12px; color: #646A74; font-variant-numeric: tabular-nums;">{{g.light}} sobre la sala, {{g.dark}} sobre el escenario</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px;">
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -0.01em;">Tipografía: SF Pro, cifras tabulares</h2>
+      <div style="display: flex; flex-direction: column; border-top: 1px solid rgba(22,24,29,0.1);">
+        <sc-for list="{{type}}" as="t" hint-placeholder-count="6">
+          <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); align-items: baseline; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(22,24,29,0.1);">
+            <span style="font-size: 12px; line-height: 16px; color: #646A74;">{{t.spec}}</span>
+            <span style="font-size: {{t.size}}; line-height: {{t.lh}}; font-weight: {{t.weight}}; letter-spacing: {{t.track}}; font-variant-numeric: tabular-nums;">{{t.sample}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -0.01em;">Selección frente a propuesta</h2>
+      <div style="position: relative; height: 300px; border-radius: 12px; overflow: hidden; background: #17181C;">
+        <img src="/_blob/ee49ac08863b402f91c6ac71d524e5db" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.75;">
+        <div style="position: absolute; left: 56px; top: 92px; width: 200px; height: 130px;">
+          <img src="/_blob/59e35133f1a0541ebc6b2174968e116e" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+          <span style="position: absolute; left: -3px; top: -3px; width: 14px; height: 14px; border-left: 2px solid #ffffff; border-top: 2px solid #ffffff;"></span>
+          <span style="position: absolute; right: -3px; top: -3px; width: 14px; height: 14px; border-right: 2px solid #ffffff; border-top: 2px solid #ffffff;"></span>
+          <span style="position: absolute; left: -3px; bottom: -3px; width: 14px; height: 14px; border-left: 2px solid #ffffff; border-bottom: 2px solid #ffffff;"></span>
+          <span style="position: absolute; right: -3px; bottom: -3px; width: 14px; height: 14px; border-right: 2px solid #ffffff; border-bottom: 2px solid #ffffff;"></span>
+        </div>
+        <div style="position: absolute; left: 340px; top: 120px; width: 200px; height: 130px; box-sizing: border-box; border: 1.5px dashed #A3A1FF; border-radius: 2px; background: repeating-linear-gradient(135deg, rgba(163,161,255,0.22) 0 1px, transparent 1px 7px);"></div>
+        <span style="position: absolute; left: 56px; top: 236px; padding: 2px 8px; border-radius: 5px; background: rgba(12,13,16,0.86); color: #F1F2F4; font-size: 12px;">Tuya: marcas de registro blancas</span>
+        <span style="position: absolute; left: 340px; top: 264px; padding: 2px 8px; border-radius: 5px; background: rgba(12,13,16,0.86); color: #A3A1FF; font-size: 12px;">Del agente: fantasma discontinuo</span>
+      </div>
+      <p style="margin: 0; font-size: 14px; line-height: 21px; color: #545A65;">La diferencia es de forma y no solo de color: se lee igual en escala de grises. Los tiradores aparecen únicamente al pasar el puntero o al arrastrar. Cada propuesta se aplica, se descarta o se deshace con ⌘Z.</p>
+    </div>
+  </section>
+
+  <section style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px;">
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <h2 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -0.01em;">Movimiento</h2>
+      <div style="display: flex; flex-direction: column; border-top: 1px solid rgba(22,24,29,0.1);">
+        <sc-for list="{{motion}}" as="m" hint-placeholder-count="4">
+          <div style="display: grid; grid-template-columns: 96px 220px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(22,24,29,0.1);">
+            <b style="font-weight: 600;">{{m.name}}</b>
+            <span style="color: #646A74; font-variant-numeric: tabular-nums;">{{m.value}}</span>
+            <span style="color: #545A65;">{{m.use}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <span style="font-size: 13px; color: #646A74;">Alineado con los MotionTokens por defecto de GPUI Kit 0.10. Con Reducir movimiento, todo es inmediato.</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <h2 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -0.01em;">Hoy frente a visión</h2>
+      <div style="display: flex; flex-direction: column; border-top: 1px solid rgba(22,24,29,0.1);">
+        <sc-for list="{{scope}}" as="x" hint-placeholder-count="6">
+          <div style="display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(22,24,29,0.1);">
+            <span>{{x.what}}</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: {{x.color}};"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{x.color}};"></span>{{x.state}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const now = '#17905D', part = '#B36A00', fut = '#5552D4';
+    return {
+      shell: [
+        { name: 'Fondo', hex: '#F2F3F5' }, { name: 'Elevado', hex: '#FFFFFF' }, { name: 'Hundido', hex: '#E9EBEE' }, { name: 'Tinta', hex: '#16181D' }
+      ],
+      stage: [
+        { name: 'Escenario', hex: '#17181C' }, { name: 'Elevado', hex: '#222429' }, { name: 'Pozo', hex: '#0E0F12' }, { name: 'Tinta', hex: '#F1F2F4' }
+      ],
+      signals: [
+        { name: 'Directo', light: '#DC3328', dark: '#FF5247', use: 'Algo sale al público: estado, borde de tally, escena al aire.' },
+        { name: 'Listo', light: '#17905D', dark: '#45D690', use: 'Fuente sana, comprobación superada, cero pérdidas.' },
+        { name: 'Atención', light: '#B36A00', dark: '#FFB547', use: 'Fuente perdida, acción bloqueada por el motor.' },
+        { name: 'Agente', light: '#5552D4', dark: '#A3A1FF', use: 'Propuestas, historial y marca del agente local.' },
+        { name: 'Foco', light: '#0A7AFF', dark: '#0A7AFF', use: 'Anillo de teclado y resaltado de menús. Nada más.' }
+      ],
+      type: [
+        { spec: 'Escena, 22/28, 650', size: '22px', lh: '28px', weight: 650, track: '-0.02em', sample: 'Taller' },
+        { spec: 'Código de tiempo, 15/20, 600', size: '15px', lh: '20px', weight: 600, track: '0.01em', sample: '00:18:42' },
+        { spec: 'Sección, 13/18, 600', size: '13px', lh: '18px', weight: 600, track: '0', sample: 'Capas en Taller' },
+        { spec: 'Cuerpo, 13/18, 400–500', size: '13px', lh: '18px', weight: 500, track: '0', sample: 'Webcam   X 644   Y 308' },
+        { spec: 'Secundario, 12/16', size: '12px', lh: '16px', weight: 400, track: '0', sample: 'VideoToolbox H.264   6000 kb/s   −6,0 dB' },
+        { spec: 'Nota, 11/14', size: '11px', lh: '14px', weight: 400, track: '0', sample: 'Cámara integrada   ⌘2' }
+      ],
+      motion: [
+        { name: 'fast', value: '120 ms', use: 'Hover, presión, tiradores' },
+        { name: 'normal', value: '180 ms', use: 'Popovers, avisos, fantasma, corte de escena' },
+        { name: 'slow', value: '280 ms', use: 'Aplicar o deshacer una transformación' },
+        { name: 'curvas', value: 'enter 0.16,1,0.3,1 · move 0.2,0,0,1', use: 'Entradas y cambios de posición' }
+      ],
+      scope: [
+        { what: 'Escenas, capas y fuentes reutilizables', state: 'Existe', color: now },
+        { what: 'Lienzos 960 × 540 y 540 × 960', state: 'Existe', color: now },
+        { what: 'Grabación y RTMP local, una salida a la vez', state: 'Parcial', color: part },
+        { what: 'Selección en lienzo y campos numéricos', state: 'Siguiente hito', color: part },
+        { what: 'Nivel de micrófono; volumen y silencio', state: 'Parcial', color: part },
+        { what: 'Revisión de propuestas del agente', state: 'Futuro', color: fut },
+        { what: 'Rótulo con texto, audio del sistema', state: 'Futuro', color: fut }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

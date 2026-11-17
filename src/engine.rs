@@ -62,7 +62,33 @@ unsafe extern "C" {
     fn motive_audio_frames(engine: *mut c_void) -> u64;
     fn motive_audio_peak(engine: *mut c_void) -> f32;
     fn motive_close_test_window();
-    fn motive_audio(engine: *mut c_void, id: *const c_char, tone_path: *const c_char) -> bool;
+    fn motive_audio_add(
+        engine: *mut c_void,
+        id: *const c_char,
+        device: *const c_char,
+        tone_path: *const c_char,
+        gain: f32,
+        muted: bool,
+    ) -> bool;
+    fn motive_audio_remove(engine: *mut c_void, id: *const c_char) -> bool;
+    fn motive_audio_control(engine: *mut c_void, id: *const c_char, gain: f32, muted: bool)
+    -> bool;
+    fn motive_audio_state(engine: *mut c_void) -> *mut c_char;
+    fn motive_poll_audio(engine: *mut c_void);
+    fn motive_audio_disconnect(engine: *mut c_void, id: *const c_char) -> bool;
+    fn motive_audio_reconnect(
+        engine: *mut c_void,
+        id: *const c_char,
+        gain: f32,
+        muted: bool,
+    ) -> bool;
+    fn motive_audio_restore_missing(
+        engine: *mut c_void,
+        id: *const c_char,
+        device: *const c_char,
+    ) -> bool;
+    fn motive_audio_rename_id(engine: *mut c_void, old: *const c_char, new: *const c_char) -> bool;
+    fn motive_audio_legacy(engine: *mut c_void, device: *const c_char);
 }
 
 /// Main-thread owner. Rc marker intentionally prevents Send/Sync.
@@ -175,10 +201,80 @@ impl Engine {
         unsafe { motive_free(raw) };
         value
     }
-    pub fn audio(&mut self, id: &str, tone_path: &str) -> anyhow::Result<()> {
-        let id = CString::new(id)?;
+    pub fn audio_add(
+        &mut self,
+        input: &crate::core::audio::AudioInput,
+        tone_path: &str,
+    ) -> anyhow::Result<()> {
+        let id = CString::new(input.id.as_str())?;
+        let device = CString::new(input.source.device())?;
         let path = CString::new(tone_path)?;
-        self.checked(unsafe { motive_audio(self.raw, id.as_ptr(), path.as_ptr()) })
+        self.checked(unsafe {
+            motive_audio_add(
+                self.raw,
+                id.as_ptr(),
+                device.as_ptr(),
+                path.as_ptr(),
+                input.gain_db,
+                input.muted,
+            )
+        })
+    }
+    pub fn audio_remove(&mut self, id: &str) -> anyhow::Result<()> {
+        let id = CString::new(id)?;
+        self.checked(unsafe { motive_audio_remove(self.raw, id.as_ptr()) })
+    }
+    pub fn audio_control(&mut self, input: &crate::core::audio::AudioInput) -> anyhow::Result<()> {
+        let id = CString::new(input.id.as_str())?;
+        self.checked(unsafe {
+            motive_audio_control(self.raw, id.as_ptr(), input.gain_db, input.muted)
+        })
+    }
+    pub fn audio_state(&self) -> crate::core::audio::AudioRuntime {
+        let raw = unsafe { motive_audio_state(self.raw) };
+        if raw.is_null() {
+            return crate::core::audio::AudioRuntime::default();
+        }
+        let value =
+            serde_json::from_slice(unsafe { CStr::from_ptr(raw) }.to_bytes()).unwrap_or_default();
+        unsafe { motive_free(raw) };
+        value
+    }
+    pub fn poll_audio(&mut self) {
+        unsafe { motive_poll_audio(self.raw) };
+    }
+    pub fn audio_disconnect(&mut self, id: &str) -> anyhow::Result<()> {
+        let id = CString::new(id)?;
+        self.checked(unsafe { motive_audio_disconnect(self.raw, id.as_ptr()) })
+    }
+    pub fn audio_reconnect(
+        &mut self,
+        input: &crate::core::audio::AudioInput,
+    ) -> anyhow::Result<()> {
+        let id = CString::new(input.id.as_str())?;
+        self.checked(unsafe {
+            motive_audio_reconnect(self.raw, id.as_ptr(), input.gain_db, input.muted)
+        })
+    }
+    pub fn audio_restore_missing(
+        &mut self,
+        input: &crate::core::audio::AudioInput,
+    ) -> anyhow::Result<()> {
+        let id = CString::new(input.id.as_str())?;
+        let device = CString::new(input.source.device())?;
+        self.checked(unsafe {
+            motive_audio_restore_missing(self.raw, id.as_ptr(), device.as_ptr())
+        })
+    }
+    pub fn audio_rename_id(&mut self, old: &str, new: &str) -> anyhow::Result<()> {
+        let old = CString::new(old)?;
+        let new = CString::new(new)?;
+        self.checked(unsafe { motive_audio_rename_id(self.raw, old.as_ptr(), new.as_ptr()) })
+    }
+    pub fn audio_legacy(&mut self, device: &str) -> anyhow::Result<()> {
+        let device = CString::new(device)?;
+        unsafe { motive_audio_legacy(self.raw, device.as_ptr()) };
+        Ok(())
     }
     pub fn encoding_info(&self) -> serde_json::Value {
         let raw = unsafe { motive_encoding_info(self.raw) };

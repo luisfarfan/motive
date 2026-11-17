@@ -353,3 +353,33 @@ detenida conserva el recorrido de edición de escenas vacías/frías.
 
 Contratos, evidencia de video/RTMP, carreras de control, límites de readiness y
 siguiente incremento de audio: [verificación H9](h9-scene-transitions-verification.md).
+
+## D8 — Mezcla global y persistencia de audio separada (H10)
+
+`core::audio` modela entradas con identidad tipada, IDs estables, ganancia/mute
+y store v1, sin convertir escenas v3 ni perfiles v1. Repetir un UID reutiliza
+el mismo canal y conserva sus controles; no se crean capturas físicas duplicadas.
+Restaurar reconcilia por identidad incluso si cambia el orden/ID del documento.
+La UI debe consumir el mismo núcleo y sus snapshots; no implementar su propio
+mezclador ni persistencia. Ver [contrato](h10-audio-ui-contract.md).
+
+Libobs mezcla las fuentes globales en mix 0 mediante sus APIs de volumen, mute
+y ruteo. Las transiciones de video permanecen en canal 0; las entradas de audio
+usan canales 1..8. El tono propio deriva la fase y los timestamps de su posición
+de muestras. Se observó
+un cambio de fase al arranque también con esta fuente; su causa no está aislada
+y no se atribuye al WAV anterior.
+No se agregó un mezclador DSP, reloj MCP ni encoder adicional.
+
+El medidor oficial de OBS 33.0.1 es post-fader/pre-mute manual; se declara esa
+semántica y se observa también la suma nativa post-mute/pre-clamp. Clipping se
+expone como advertencia estructurada; no se oculta con normalización/limitadores.
+Monitoreo permanece desactivado. La recuperación nueva libera/reabre solo la
+entrada afectada y conserva la mezcla restante; el selector heredado de una
+sola entrada conserva su política de stop controlado. El módulo CoreAudio tiene
+reconexión propia, por lo que un fallo latched libera la fuente para impedir que
+vuelva al aire sin acción explícita.
+
+La aceptación física, espectral, de timestamps y de restauración está en
+[informe H10](h10-audio-verification.md). Captura de audio del sistema se evalúa
+para después, sin habilitarla ni cambiar el ruteo/permisos globales en H10.

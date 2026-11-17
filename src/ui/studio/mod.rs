@@ -35,6 +35,7 @@ pub struct Studio {
     editor: editor::Editor,
     forms: forms::Forms,
     mixer_ui: audio::MixerUi,
+    creative: creative::Creative,
 }
 impl Studio {
     pub fn new(
@@ -58,6 +59,7 @@ impl Studio {
                     .update(cx, |view, cx| {
                         if view.last_device_refresh.elapsed() >= Duration::from_secs(1) {
                             view.production.poll_health();
+                            view.poll_creative_import(cx);
                             // Freeze choices while a picker is open: activating windows can
                             // reorder the OS inventory between pointer-down and pointer-up.
                             if view.picker.is_none() {
@@ -136,11 +138,16 @@ impl Studio {
             editor,
             forms,
             mixer_ui: audio::MixerUi::default(),
+            creative: creative::Creative::default(),
         }
     }
     fn command(&mut self, cmd: Command, origin: &str, cx: &mut Context<Self>) -> Value {
         let revision = self.production.revision;
         let preflight = matches!(cmd, Command::PreflightOutput { .. });
+        let refresh_assets = matches!(
+            &cmd,
+            Command::Overlay(crate::core::overlays::OverlayCommand::RemoveAsset { .. })
+        );
         let result = self.production.apply(cmd, origin);
         if result["ok"] != true {
             self.message = format!(
@@ -162,6 +169,9 @@ impl Studio {
         if origin == "UI" && self.forms.revision == revision {
             self.forms.revision = self.production.revision;
         }
+        if refresh_assets && result["ok"] == true {
+            self.refresh_assets();
+        }
         cx.notify();
         result
     }
@@ -169,6 +179,7 @@ impl Studio {
 
 mod audio;
 mod chrome;
+mod creative;
 mod panels;
 mod scenes;
 mod sources;
@@ -188,6 +199,7 @@ enum Panel {
     Profiles,
     Settings,
     Scenes,
+    Creative,
 }
 impl Panel {
     fn id(self) -> &'static str {
@@ -201,6 +213,7 @@ impl Panel {
             Self::Profiles => "profiles",
             Self::Settings => "settings",
             Self::Scenes => "scenes",
+            Self::Creative => "creative",
         }
     }
 }

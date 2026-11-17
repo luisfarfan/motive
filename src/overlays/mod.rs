@@ -317,6 +317,7 @@ pub struct PresetParameters {
 pub enum OverlayCommand {
     OverlayCapabilities,
     ListAssets,
+    AssetInventory,
     ImportAsset {
         file_name: String,
     },
@@ -358,6 +359,7 @@ impl OverlayCommand {
             self,
             Self::OverlayCapabilities
                 | Self::ListAssets
+                | Self::AssetInventory
                 | Self::OverlayState
                 | Self::OverlayPresets
         )
@@ -381,6 +383,7 @@ mod tests {
             "overlay_capabilities",
             "overlay_state",
             "list_assets",
+            "asset_inventory",
             "overlay_presets",
         ] {
             let value = serde_json::json!({"op":op});

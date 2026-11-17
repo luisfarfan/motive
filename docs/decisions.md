@@ -423,3 +423,30 @@ que terminan los workers; evita que el trabajo multimedia solicitado se trate
 como inactividad. Se libera al finalizar/fallar, sin cambiar opciones globales.
 Contratos y evidencia: [UI](h11-overlay-ui-contract.md),
 [verificación](h11-overlay-verification.md).
+
+## D10 — Adaptador creativo nativo y evidencia de estabilización (H12)
+
+`studio/creative` integra H11 por funcionalidades sin otra `Production`.
+Borradores GPUI Kit capturan una revisión: una edición concurrente requiere
+recarga explícita antes de aplicar. Los controles de ejecución consultan los
+recibos nativos independientemente del borrador; no extrapolan relojes/progreso.
+Eventos de fuente y visibilidad por capa se explican por separado. El inspector
+clásico no ofrece `SetOverlayColor` para definiciones H11.
+
+El selector nativo entrega una capacidad local Rust para copiar a inbox privado.
+El guard por descriptor permanece hasta el resultado terminal del worker. La
+consulta estricta `asset_inventory` expone errores por objeto para permitir
+reimportación del mismo ID; no amplía MCP a rutas arbitrarias. La limpieza RAII
+no promete eliminar huérfanos después de un crash. Detalle en el
+[contrato H12](h12-creative-studio-contract.md).
+
+Se conserva la semántica de video oculto: quitar visibilidad de capa no pausa el
+medio. H12 lo mide y explica Pause/Stop; cambiarlo silenciosamente rompería el
+reloj esperado al volver al aire. RSS, CPU y picos de reemplazo se miden en el
+proceso, separados del presupuesto estimado de targets/atlas de H11.
+
+El verificador H10 compara ahora el mismo estadístico nativo (mediana de RMS por
+bloque) con PCM sobre el mismo intervalo; mantiene el margen de 2 dB. Encoding
+conserva muestras del ensayo fallido sin reducir el gate de cero render lag.
+Los informes históricos no se reescriben y pasar tests unitarios no sustituye
+medios reales. [Evidencia y límites](h12-creative-studio-verification.md).

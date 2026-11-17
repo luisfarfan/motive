@@ -31,7 +31,11 @@ pub fn definition_schema() -> Value {
 pub fn is_query(op: &str) -> bool {
     matches!(
         op,
-        "overlay_capabilities" | "overlay_state" | "list_assets" | "overlay_presets"
+        "overlay_capabilities"
+            | "overlay_state"
+            | "list_assets"
+            | "asset_inventory"
+            | "overlay_presets"
     )
 }
 pub fn tools() -> Vec<Value> {
@@ -63,6 +67,11 @@ pub fn tools() -> Vec<Value> {
             "import_asset",
             "Importa una copia explícita ya autorizada en var/imports; solo basename. Operación asíncrona, consulta overlay_state. Idle.",
             json!({"file_name":{"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$"}}),
+        ),
+        (
+            "asset_inventory",
+            "Inventario de metadatos con errores por recurso, incluso si falta un archivo. No lee rutas externas. La validación para renderizar permanece estricta.",
+            json!({}),
         ),
         (
             "remove_asset",

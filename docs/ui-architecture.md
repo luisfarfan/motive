@@ -144,11 +144,12 @@ native at 1440×980 and 1024×780; channels and scenes scroll independently.
   validated preview/diff, explicit accept/discard, and a core-owned inverse with
   revision/ownership preconditions. Current MCP commands execute directly and
   the UI reports their real result. It does not manufacture approval/history.
-- H11 now provides typed core contracts for text, managed images/video, shapes,
-  widgets, animations and presets through CLI/MCP. Its GPUI adapter is pending;
-  see the [overlay contract](h11-overlay-ui-contract.md). The current source list
-  labels these as legacy graphics; the legacy color command is safely rejected
-  with `USE_OVERLAY_PROPERTIES` for H11 definitions.
+- H12 integrates typed H11 overlays in `studio/creative/`: native asset picker,
+  library, revision-bound inspector, widget events, presets and native animation
+  receipts. It shares the existing Production and distinguishes classic graphics
+  from H11 definitions. See the [integration contract](h12-creative-studio-contract.md)
+  and [verification status](h12-creative-studio-verification.md). The legacy color
+  action is unavailable for H11 definitions; core validation remains authoritative.
 - Output resolution/FPS, monitoring, audio filters/system audio, multi-output,
   AI generation and extra Phase 2–5 screens remain outside current contracts.
   No fake toggles were added. The UI is usable for the implemented studio flows;

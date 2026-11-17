@@ -6,9 +6,11 @@
 //! verified managed path. This is not an OS sandbox against another process
 //! running as the same user, nor a guarantee against decoder vulnerabilities.
 use anyhow::{Context, bail, ensure};
+mod staging;
 use image::{ImageFormat, ImageReader};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+pub use staging::StagedImport;
 use std::{
     collections::BTreeSet,
     ffi::{CString, OsStr},
@@ -48,6 +50,13 @@ pub struct Asset {
     pub sha256: String,
     pub duration_ms: Option<u64>,
     pub has_audio: bool,
+}
+/// Inventory remains readable when an individual managed object needs repair.
+/// Rendering and `list_assets` still require every object they use to verify.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AssetStatus {
+    pub asset: Asset,
+    pub error: Option<String>,
 }
 impl Asset {
     fn filename(&self) -> String {
@@ -164,6 +173,18 @@ impl AssetCatalog {
             self.verify(asset)?;
         }
         Ok(index.assets)
+    }
+    pub fn inventory(&self) -> anyhow::Result<Vec<AssetStatus>> {
+        let _lock = self.lock()?;
+        Ok(self
+            .load()?
+            .assets
+            .into_iter()
+            .map(|asset| {
+                let error = self.verify(&asset).err().map(|e| e.to_string());
+                AssetStatus { asset, error }
+            })
+            .collect())
     }
     pub fn get(&self, id: &str) -> anyhow::Result<Asset> {
         validate_id(id)?;
@@ -780,9 +801,9 @@ mod tests {
         os::unix::fs::{PermissionsExt, symlink},
     };
 
-    struct Fixture(PathBuf);
+    pub(super) struct Fixture(pub(super) PathBuf);
     impl Fixture {
-        fn new() -> Self {
+        pub(super) fn new() -> Self {
             let path = std::env::temp_dir().canonicalize().unwrap().join(format!(
                 "motive-assets-{}-{}",
                 std::process::id(),
@@ -791,7 +812,7 @@ mod tests {
             fs::create_dir(&path).unwrap();
             Self(path)
         }
-        fn catalog(&self) -> AssetCatalog {
+        pub(super) fn catalog(&self) -> AssetCatalog {
             AssetCatalog::new(self.0.clone()).unwrap()
         }
         fn png(&self, name: &str, width: u32, height: u32) {

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "mode": "offline_authoring_validation",
+  "production_connection": false,
+  "native_media_acceptance": false,
+  "contracts": {
+    "show-control/src/packs.rs": "f9d0ca8fb48aad21b2cb2cecb0627b1e6018dea5063490351afffcdb6996ede0",
+    "show-control/src/deck.rs": "0c554d212b77377456cfcb4352e5a00af25a27172f0a613dc632b09d6b806119",
+    "show-control/src/actions.rs": "a7c03b5def90d131f44f735ec05920a582d42a24e23de461d11a87a6ef18c0ff",
+    "src/overlays/production.rs": "2286dd01239cfbe6e10d75216a72c1ee225db51aa7ad3b74cab818ad50156d1d",
+    "docs/h13-video-audio-contract.md": "8a31309a3e5c92bcdaca7f8ac1c17dd6e4ee9717be9d079d344c3091b4674c38"
+  },
+  "packs": [
+    {
+      "pack_id": "creator-tech",
+      "status": "FAIL",
+      "error": "ambiguous z-order: tech-live horizontal"
+    },
+    {
+      "pack_id": "neon-arena",
+      "status": "FAIL",
+      "error": "collection layer outside canvas: arena-live/arena-live-frame/horizontal"
+    }
+  ],
+  "errors": [
+    "authoritative Rust validation failed; see contracts-native.json and contracts-rust.log",
+    "creator-tech: ambiguous z-order: tech-live horizontal",
+    "neon-arena: collection layer outside canvas: arena-live/arena-live-frame/horizontal"
+  ],
+  "rust_status": "FAIL",
+  "status": "FAIL"
+}

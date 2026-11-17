@@ -100,6 +100,14 @@ El validador adicional calcula ambas estimaciones; no presenta una como RSS
 ni como verificación del decoder. El techo común es 256 MiB. Los presupuestos
 no cubren fuentes de captura, encoders, picos de reemplazo ni memoria total.
 
+Medición sobre los manifests entregados (solo aritmética): CREATOR TECH
+42.856.112 bytes en el plan, 117.475.616 bytes en la estimación H11; NEON ARENA
+43.412.912 y 126.056.224 bytes respectivamente. Cada colección tiene 6 escenas,
+12 fuentes y 27 capas. CREATOR TECH tiene cuatro slots de captura y NEON ARENA
+dos; reutilizan dos fuentes seleccionadas, para 31/14 y 29/14 capas/fuentes
+respectivamente en proyecto vacío. Un proyecto preexistente requiere su propio
+preflight.
+
 ## Personalización y movimiento
 
 `set_property` solo admite `text_content`, `widget_title`, `widget_subtitle` y
@@ -157,6 +165,12 @@ owner. Ni los generadores, ni el HTML, ni este validador conectan a Production.
 Estos hashes fijan lo leído, no prometen que H14 siga inmóvil. Antes de integrar,
 contrastar el commit final, capacidades/graph revision y resultado del instalador
 oficial. No se modificó ninguno de esos archivos.
+
+El harness independiente también se compiló contra el crate de H14, en lectura,
+y ambos packs pasaron los mismos gates. `contracts-h14-snapshot.json` conserva
+commit, instante UTC y hashes antes/después; fueron estables durante esa prueba.
+Es compatibilidad comprobada de parseo/acciones del crate, no aceptación del
+instalador especializado ni del owner.
 
 ## Evidencia y próximos gates
 

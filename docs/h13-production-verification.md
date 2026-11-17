@@ -1,8 +1,9 @@
 # H13 — verificación incremental
 
-H13 está implementado con **aceptación final EN CURSO**. Este informe distingue
-incrementos observados de la aceptación completa: todavía no acredita el
-recorrido GPUI integrado ni sesión prolongada. Las regresiones H1–H12 reúnen
+H13 está implementado con **aceptación parcial; cierre final EN CURSO**. El
+recorrido GPUI integrado y una producción dual de más de 30 minutos ya se
+ejecutaron en G. La toma conserva una alerta ocluida y un fallo posterior de
+continuidad visual en REC3; no acredita aceptación completa. Las regresiones H1–H12 reúnen
 23/23 PASS en sus últimas ejecuciones G, con metrología H10 revisada y fallos
 anteriores conservados. A/V tiene evidencia acotada a condiciones visibles;
 la exclusión propia final no pasó y su causa sigue sin atribuir. El [índice de evidencia](h13-evidence-index.md)
@@ -216,7 +217,8 @@ GPUI: controles independientes compilados y panel observado visualmente a
 1440 px en `var/evidence/h13-ui-increment/outputs.png`; aún no equivale al
 recorrido de producción final ni a la comprobación de tamaño compacto/cierre.
 Las mediciones posteriores están en la [investigación de rendimiento y colas](h13-encoder-tail-investigation.md).
-Sesión prolongada y regresiones finales continúan pendientes.
+Al cierre de ese incremento, sesión prolongada y regresiones finales seguían
+pendientes; los incrementos 7 y 8 documentan las ejecuciones posteriores.
 
 ## Incremento 5: rechazo de identidades de audio malformadas
 
@@ -478,7 +480,167 @@ fuga ni su ausencia. La [investigación de memoria](h13-encoder-tail-investigati
 conserva vmmap, métricas, logs de destrucción y límites; no se añadió purge ni
 optimización del producto.
 
-**Pendiente:** aceptación de producción GPUI dual y sus flujos de cierre,
-sesión prolongada con medios/restauración y aceptación de exclusión propia en
-condiciones de audio controladas. Las 23/23 últimas regresiones, matrices y
-probes no declaran H13 completo.
+## Incremento 8: producción GPUI prolongada en G, aceptación parcial
+
+El [observador cerrado](../var/evidence/h13-native-1794941679130733000/report.json)
+identifica PID **92305** y el mismo hash G de las 23 regresiones. Conserva
+5402 snapshots, `collector_ok=true`, `observed_shutdown=true` y el último
+`UI · request_shutdown · revisión 179`; el snapshot final, revisión 181,
+tiene ambas salidas `idle` y `native_busy=false`. El
+[manifiesto de ocho medios](../var/evidence/h13-native-1794941679130733000/media-manifest.json)
+liga explícitamente PID, destino, intento, archivo y fallo intencional.
+Las 23 suites anteriores no se repitieron para esta toma: se conserva su
+evidencia sobre el mismo binario, sin incrementar el conteo ni borrar FAIL previos.
+
+La producción se configuró por GPUI: canvas 1920×1080/30, escena A con ventana
+propia y cámara PiP, escena B con cámara y ventana PiP, lower/countdown/alerta,
+micrófono físico con estímulo acústico 440 Hz y aplicación controlada 997 Hz.
+Los perfiles independientes usan VideoToolbox, 6000 kb/s MKV y 4000 kb/s RTMP,
+keyframe 1 s y reordenamiento desactivado. CLI/MCP observaron el mismo núcleo;
+las acciones de producción quedaron registradas con origen UI.
+
+Se ejercitaron stop/restart independientes, pérdida real del receptor,
+recuperación dirigida, cancelación diferida de un handshake y cierre dual.
+La [captura de confirmación](../var/evidence/h13-native-1794941679130733000/17-confirm-quit-dual.png)
+y las barreras del observador acreditan ese cierre concreto, no todos los
+flujos compactos del [checklist nativo](h13-native-acceptance.md). Tras reabrir
+en la sesión compacta PID 36494 se observaron por GPUI la restauración del
+proyecto, mixer y definiciones de perfiles; la nueva toma y los restantes
+flujos de cierre compacto siguen pendientes.
+
+### Duración y recursos: alcance dual explícito
+
+El [resumen de métricas](../var/evidence/h13-native-1794941679130733000/metrics-summary.json)
+cubre **1814,745 s observados con ambos primeros intentos activos**. RTMP1
+termina con `active_duration_ms=1815762` (**30 min 15,762 s**); REC1 con
+`1884483` (**31 min 24,483 s**). Son duraciones nativas, distintas del primer/
+último PTS y de la duración PCM; no se usan como alineación exacta entre archivos.
+
+| Medida del intervalo dual | Resultado |
+| --- | ---: |
+| Muestras CPU/RSS | 3283 |
+| CPU mediana / p95 | 70,7128% / 81,8563% |
+| RSS mediana / máximo observado | 243,6563 / 262,3906 MiB |
+| Render lag / video skips / drops por salida / clipping de mezcla | 0 / 0 / 0 / 0 |
+| `preview_busy_drops` | 148 → 369: **+221** |
+| Copias de preview | 32761 → 83790: +51029 |
+
+CPU 100% representa un núcleo lógico del proceso Motive; no incluye helpers
+ni receptor. RSS y CPU son sondeos, no máximos garantizados del sistema. Los
+221 descartes de copia de preview no son drops de encoder; se conservan y no
+se presentan como cero. El intervalo completo del PID, que también incluye
+preparación y pruebas posteriores, tiene otro alcance: RSS máximo 348,625 MiB
+y preview +371. Las instancias de las seis fuentes visuales del tramo dual
+permanecen estables; esto no demuestra frescura de cada frame capturado.
+
+### Medios estructurales y contabilidad terminal
+
+El [análisis estructural completo](../var/evidence/h13-native-analysis-1794944731171479000/report.json)
+decodifica los ocho archivos H.264/AAC. **Siete medios tienen resultado
+funcional/integridad PASS; RTMP3, truncado por el fallo intencional, permanece
+INCONCLUSIVE.** Los ocho cumplen cadencia estricta de PTS (nominal +1 ms de
+precisión del contenedor), con gap máximo de video 34 ms y AAC 22 ms. PCM
+estéreo completo: muestras finitas y ninguna saturación; el pico máximo de
+los archivos es −8,887 dBFS. El resultado global sigue **INCONCLUSIVE** por
+cobertura y finalización parcial; el intento RTMP5 de conexión no produjo un
+medio. `acceptance=NOT_EVALUATED` conserva el límite del instrumento.
+
+El PASS estructural **no incluía un gate de igualdad entre `output_frames`
+y cuadros decodificados**. La comparación terminal descubre diferencias que
+no deben ocultarse tras los cero drops o PTS continuos:
+
+| Intento | `encoded_frames` | `output_frames` final | Cuadros decodificados | Decodificados − output |
+| --- | ---: | ---: | ---: | ---: |
+| REC1 | 56533 | 56530 | 56530 | 0 |
+| RTMP1 | 54472 | 54469 | 54469 | 0 |
+| RTMP2 | 1516 | 1513 | 1513 | 0 |
+| REC2 | 337 | 335 | 335 | 0 |
+| REC3 | 8179 | 8177 | 8176 | **−1** |
+| RTMP3, fallo intencional | 1151 | 1149 | 1147 | **−2** |
+| RTMP4 | 1231 | 1229 | 1228 | **−1** |
+| RTMP6 | 1845 | 1842 | 1842 | 0 |
+
+`encoded_frames` cuenta codificación, no entrega. El
+[puente nativo](../native/output-slots.inc) conserva máximos separados de
+`obs_output_get_total_frames` y `obs_encoder_get_encoded_frames`. En libobs
+33.0.1 el primero cuenta el despacho al callback del output, sin confirmar
+escritura/recepción final; muxer y RTMP pueden descartar un paquete al alcanzar
+`stop_ts`. La lectura de código hace compatible esa semántica con una diferencia
+terminal, pero no identifica los paquetes concretos de estos archivos.
+
+El [log original](../var/evidence/h13-native-helpers-1794941103475457000/studio.runtime.log)
+imprime 8176 cuadros para REC3, frente al máximo final 8177 del snapshot;
+RTMP4 imprime 1229 frente a 1228 decodificados. RTMP3 imprime 1148, conserva
+errores `WriteN` y llega a 1149 en el snapshot, frente a 1147 decodificados.
+No hay una traza que atribuya exactamente cada diferencia. **Contabilidad
+terminal y preservación completa de los últimos cuadros siguen pendientes**;
+no se reclasifican retroactivamente los gates originales como si la midieran.
+
+### Audio nativo: referencias y ventanas de eventos
+
+El [plan final](../var/evidence/h13-native-audio-plan-1794944894016727000/report.json)
+conserva todas las observaciones, incluidas fases breves sin interior útil.
+El [informe PCM](../var/evidence/h13-native-pcm-1794944899076084000/report.json)
+y su [resumen](../var/evidence/h13-native-pcm-1794944899076084000/summary.json)
+separan canales originales, medidores, ocho anclas y la incertidumbre del
+offset de cada archivo. Los escalones aislados tempranos/tardíos se buscan
+sin ajustar su amplitud al resultado esperado. Mute no pone a cero el medidor
+por entrada: el contrato es post-fader/pre-mute; mezcla post-fader/post-mute.
+
+- **18 comparaciones de ganancia PASS**, entre −12,000512 y −11,994918 dB,
+  frente al paso solicitado de −12 dB y tolerancia original de 1 dB.
+- **18 referencias y 54 comprobaciones PASS**; error RMS absoluto máximo
+  0,142828 dB frente a 2 dB, evaluando todos los offsets permitidos. REC1/RTMP1
+  tienen `reference_status=PASS`; REC3/RTMP6 pasan sus referencias de app,
+  pero carecen de una referencia de micrófono aislado en esos intentos.
+- **34 ventanas de eventos calibradas PASS**, 17 por cada destino largo:
+  escenas, widgets y recuperación de micrófono conservan la mezcla observada.
+  La app mantiene instancia 2; la reconexión del micrófono cambia 1 → 3.
+- 79 fragmentos reales conservan **48684 ventanas superpuestas de 20 ms,
+  cada 10 ms**, cero muestras saturadas y pico máximo −17,909 dBFS. Ese pico
+  describe los fragmentos, no el máximo del archivo completo de la sección anterior.
+
+REC3 conserva un diagnóstico alrededor de `OUTPUT_DISCONNECTED` de RTMP3:
+PCM 47,034125–52,344250 s, 530 ventanas sin incumplir el piso de mezcla, pico
+−25,032 dBFS y avance nativo de la app. Su ancla es posterior: la asociación
+temporal continúa **INCONCLUSIVE**, con extrapolación explícita y sin una cota
+de deriva demostrada. El fallo de conexión del intento RTMP5 tiene el mismo
+límite. El residuo 997 Hz con el micrófono abierto es diagnóstico, no ganancia
+aislada de la app. Estas ventanas no prueban continuidad audible de toda la
+toma ni sustituyen A/V; el informe PCM global permanece INCONCLUSIVE.
+
+El primer [informe PCM](../var/evidence/h13-native-pcm-1794944777763669000/report.json)
+se conserva. Su selección de eventos no incluía el cambio automático de un
+slot a error sin una operación UI de la lista admitida. El commit `88c19ff`
+añadió cambios de estado/fallo de los slots y generó el informe posterior;
+no modificó producción, umbrales ni archivos originales.
+
+### Revisión visual: FAIL conservado, causa del freeze inconclusa
+
+La [revisión visual](../var/evidence/h13-native-visual-extract-1794944740966518000/visual-review.md)
+conserva **FAIL global**. Los 16 probes de Cut/Fade completo pasan; la cancelación
+de Fade de 5 s muestra excursión parcial y retorno, sin etiquetarse como Fade
+completo. Lower y countdown cambian visiblemente en ambas salidas. Las 32
+muestras periódicas de REC1 y 31 de RTMP1 avanzan entre observaciones de 60 s;
+esto no garantiza ausencia de congelamientos dentro de cada intervalo.
+
+La alerta de REC3/RTMP3 está **parcialmente ocluida**: su capa y la ventana
+comparten `order=2`; el desempate por ID deja la ventana arriba. No pasa
+legibilidad completa aunque el runtime recorra sus fases. El orden de esa
+composición se corrigió después mediante UI en el estudio compacto; la nueva
+grabación de revalidación está pendiente y no sustituye el FAIL original.
+
+El segundo fallo corresponde a **REC3, no al tramo largo**: contador visual
+136267776 repetido a PTS 185 y 245 s; RTMP6 muestra el mismo valor en su única
+muestra periódica. No fija el inicio/fin exactos ni prueba 60 s continuos de
+congelación. Los logs de fixture mantienen dibujo y audio avanzando, mientras
+su oclusión cambia; el snapshot de source-2 sigue activo pero no ofrece
+`frame_age_ms` ni FPS medidos. La atribución entre publicación de la fixture,
+WindowServer, SCK y retención posterior es **INCONCLUSIVE**. No se imputa a
+Stage Manager ni se declara reparación por elevar la ventana.
+
+**Pendiente:** revalidación visual de alerta y continuidad de ventana, explicación
+de la contabilidad terminal, toma y flujos restantes de cierre compacto y
+exclusión propia en condiciones controladas. La producción prolongada ya se
+ejecutó; sus resultados parciales, las 23/23 regresiones y los instrumentos
+offline no declaran H13 completo.

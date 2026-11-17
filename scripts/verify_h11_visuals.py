@@ -19,7 +19,7 @@ import subprocess
 import time
 import zlib
 
-from h7_support import Client, ROOT, EVIDENCE, EXE, process_sample
+from h7_support import Client, ROOT, EVIDENCE, EXE, process_sample, assert_project_format
 from verify_h10_audio import tonal_amplitude
 
 WIDTH, HEIGHT = 960, 540
@@ -372,7 +372,7 @@ def main():
         ready = c.wait(lambda s: not s['issues'] and not s['recovery_required']
                        and all(source_id in sources(s) and not sources(s)[source_id]['health'] for source_id in created_sources)
                        and any(i['id'] == audio_id and i['phase'] == 'ready' for i in s['audio_mixer']['runtime']['inputs']))
-        assert ready['project']['version'] == 4
+        assert_project_format(ready['project'], 4, initial['project'].get('video'))
         shared = cli('overlay_state')
         assert shared['pid'] == ready['pid'] and shared['result']['definitions'] == ready['overlays']['definitions']
         if video_id:

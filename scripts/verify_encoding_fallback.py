@@ -11,6 +11,7 @@ import os
 import pathlib
 import subprocess
 import time
+from h7_support import assert_project_format
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 EXE=ROOT/'target/debug/motive'
@@ -78,7 +79,7 @@ original=None;disabled=False
 try:
     original=state();assert original['output']=='idle'
     assert all(s['spec']['kind'] in ('pattern','overlay') for s in original['project']['graph']['sources'])
-    project=ctl('save_project')['state']['project'];assert project['version']==3
+    project=ctl('save_project')['state']['project'];assert_project_format(project,3,original['project'].get('video'))
     restarted=restart(True);disabled=True
     assert restarted['encoding']['preference']=='auto'
     inventory=ctl('encoders')['encoders']

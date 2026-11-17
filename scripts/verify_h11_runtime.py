@@ -30,7 +30,7 @@ import subprocess
 import time
 
 from PIL import Image, ImageChops
-from h7_support import Client, EVIDENCE, ROOT, EXE, process_sample
+from h7_support import Client, EVIDENCE, ROOT, EXE, process_sample, assert_project_format
 from verify_h10_audio import tonal_amplitude
 from verify_h11_visuals import png, shape_definition, sources
 
@@ -852,9 +852,10 @@ def presets(h, _transports, args):
     h.disk_touched = True
     saved = h.c.call('save_project')['state']['project']
     persisted = json.loads((ROOT/'var/project.json').read_text())
-    (h.directory/'saved-presets-v4.json').write_text(json.dumps(persisted, indent=2))
+    (h.directory/f"saved-presets-v{persisted['version']}.json").write_text(json.dumps(persisted, indent=2))
     h.report['persistence'] = {'saved': saved, 'persisted': persisted, 'output_profiles_before': before_profiles, 'presets': selected}
-    assert saved == persisted and persisted['version'] == 4
+    assert saved == persisted
+    assert_project_format(persisted, 4, h.initial['project'].get('video'))
     assert h.c.call('output_profiles')['store'] == before_profiles
     by_id = {s['id']: s for s in persisted['graph']['sources']}
     for preset in selected:

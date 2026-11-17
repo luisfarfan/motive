@@ -3,6 +3,18 @@ import hashlib,json,math,pathlib,statistics,struct,subprocess,time
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 EVIDENCE=ROOT/'var/evidence'
 EXE=ROOT/'target/debug/motive'
+
+def assert_project_format(project, legacy_version, expected_video):
+    """The same legacy graph round-trips inside H13's explicit video envelope.
+
+    expected_video comes from the pre-test state, never from the object under
+    test. This catches lost/changed video configuration as well as wrong schema.
+    """
+    assert project['version'] == (5 if expected_video is not None else legacy_version), project
+    assert project.get('video') == expected_video, (project.get('video'), expected_video)
+    if expected_video is None:
+        assert 'video' not in project, 'Legacy project must not contain even a null video extension'
+
 class Client:
     def __init__(self):
         self.ops=[]

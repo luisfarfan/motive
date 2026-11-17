@@ -314,3 +314,24 @@ Fuentes públicas utilizadas: `libobs/obs-scene.c`, `libobs/obs-output.c`,
 `libobs/obs-source.c`, `plugins/mac-avcapture/plugin-main.m` y
 `plugins/mac-avcapture/OBSAVCapture.m` del árbol oficial OBS 33.0.1 fijado en
 `.deps/`. No se utilizó REA ni contenido de Meld.
+
+
+## D6 — Perfiles y RTMP local (H7)
+
+Escenas v3 permanecen intactas. Definiciones de perfiles usan un archivo v1
+separado, con guardado/carga explícitos; selección y endpoint son preferencias
+runtime. Grabación y RTMP comparten creación de encoders, fallback y parámetros.
+Solo CBR y canvas existentes a 30 FPS; no se declara resolución/FPS configurable.
+
+RTMP/TLS usan `rtmp_output` oficial con un adaptador mínimo de servicio local
+vía API pública. No se carga el catálogo `rtmp-services` ni su actualizador.
+Endpoint limitado a 127.0.0.1 y puerto, sin claves/URLs arbitrarias. Las claves
+futuras deberán resolverse desde Keychain dentro del núcleo, no desde MCP ni
+archivos de escena/perfil. No hay administrador de credenciales implementado.
+
+Un receptor silencioso reprodujo bloqueo al forzar stop durante conexión y
+una carrera nativa al trasladar esa espera a un worker. Se descartó el worker:
+`stop_output` devuelve `OUTPUT_CONNECTING` hasta que termine el handshake.
+No se reinicia automáticamente tras rechazo o desconexión. Ver
+[informe H7](h7-output-verification.md) para evidencia, límites TLS, anotaciones
+MCP y experimentos de B-frames sin alterar silenciosamente la calidad.

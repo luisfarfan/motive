@@ -71,7 +71,7 @@ Ad-hoc rebuilds change the code identity and can require macOS permissions again
 
 Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No source is selected automatically at launch.
 
-Recording defaults to **Apple VideoToolbox hardware H.264** when available, with x264 fallback before recording starts. `encoders` reports availability and the selected encoder; `set_encoder` accepts `auto`, `videotoolbox` or `x264` while output is stopped. This runtime preference leaves project v3 unchanged and does not change the fixed UDP loopback encoder. See [hardware encoding verification](docs/videotoolbox-verification.md) for measurements, fallback behavior and limits.
+Recording defaults to **Apple VideoToolbox hardware H.264** when available, with x264 fallback before output starts. Recording and local RTMP share validated encoder/bitrate/CBR/keyframe/reordering profiles, stored separately from project v3 with explicit save/load. Canvas dimensions and 30 FPS remain fixed. `encoders`, `output_capabilities` and `output_profiles` report the effective configuration; `set_encoder` edits the selected recording profile (also used by RTMP when it selects that profile). See [hardware measurements](docs/videotoolbox-verification.md) and [H7 output verification](docs/h7-output-verification.md) for contracts, reproduction and limits.
 
 ### When a source disappears
 
@@ -142,11 +142,13 @@ For an MCP client, use an absolute path to your checkout:
 
 `encoders` · `set_encoder`
 
+`output_capabilities` · `output_profiles` · `upsert_output_profile` · `remove_output_profile` · `select_output_profile` · `save_output_profiles` · `load_output_profiles` · `configure_stream` · `preflight_output` · `start_stream` · `recover_output`
+
 Responses include the shared PID/revision, source issues and real engine counters. Inputs reject unknown fields. Disconnecting the MCP client leaves the production engine running.
 
 </details>
 
-The API accepts no arbitrary output paths, public stream URLs, shell commands or stream keys. The CLI-only `start_local_stream` sends MPEG-TS to **127.0.0.1:19350**; it requires a local receiver. No public platform integration is implemented yet.
+The API accepts no arbitrary output paths, public stream URLs, shell commands or stream keys. `configure_stream` accepts only an RTMP/RTMPS transport and an unprivileged port at **127.0.0.1**, using the fixed public test path `/live/motive`. Local RTMP media delivery and RTMPS rejection of an untrusted certificate are verified; trusted RTMPS delivery is pending. During a pending handshake, `stop_output` returns `OUTPUT_CONNECTING` to avoid an observed upstream cancellation race; wait for connection completion, then stop or recover. The legacy CLI-only `start_local_stream` still sends MPEG-TS to **127.0.0.1:19350** using its original libx264 settings. No public platform or credential integration is implemented.
 
 If a forced shutdown leaves a stale socket, first confirm no Motive process remains and `ctl` cannot connect, then remove only `var/run/motive.sock`. Motive never unlinks another running instance's socket.
 
@@ -162,6 +164,11 @@ python3 scripts/verify_control.py
 python3 scripts/verify.py
 python3 scripts/verify_scenes.py --camera-id 'YOUR_CAMERA_UID'
 python3 scripts/verify_output_recovery.py
+python3 scripts/verify_vt_stop.py
+python3 scripts/verify_rtmp.py
+python3 scripts/verify_rtmps.py
+python3 scripts/verify_connect_stop.py
+python3 scripts/verify_profiles_restart.py
 ```
 
 The integration scripts require the app to be open and idle. `verify.py` also requires the owned test window and normal screen-capture permission. It validates decoded video/audio, source pixels outside the overlay, overlay motion, portrait layout and a loopback receiver. It records for at least 65 seconds.
@@ -186,6 +193,7 @@ Start with [AGENTS.md](AGENTS.md), [the plan](docs/plan.md) and [architecture de
 |---|---|
 | `src/main.rs` | Native GPUI interface |
 | `src/core.rs` | Shared commands, health policy and project state |
+| `src/output.rs` | Typed output profiles and loopback endpoint validation, separate from scene v3 |
 | `src/scene.rs` | Stable scene graph, independent layouts and validation |
 | `src/control.rs` | Local socket, CLI and MCP adapter |
 | `src/engine.rs` | Main-thread Rust ownership of the native engine |

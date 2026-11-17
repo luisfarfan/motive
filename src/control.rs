@@ -95,7 +95,10 @@ impl Server {
                                             answer.recv_timeout(Duration::from_secs(5)).unwrap_or_else(|_|error("TIMEOUT","Estado de operación desconocido; consulta status antes de reintentar"))
                                         }
                                     }
-                                    Err(e) => error("INVALID_ARGUMENT", e),
+                                    Err(_) => error(
+                                        "INVALID_ARGUMENT",
+                                        "Invalid command fields or values",
+                                    ),
                                 }
                             }
                             Ok(None) => continue,
@@ -135,7 +138,14 @@ pub fn send(command: Value, origin: &str) -> Value {
     // the core may already have applied it when a response is lost.
     let query = matches!(
         command["op"].as_str(),
-        Some("status" | "devices" | "encoders")
+        Some(
+            "status"
+                | "devices"
+                | "encoders"
+                | "output_capabilities"
+                | "output_profiles"
+                | "preflight_output"
+        )
     );
     let mut payload = json!({"command":command,"origin":origin}).to_string();
     payload.push('\n');
@@ -161,7 +171,26 @@ fn tool(
     required: &[&str],
     readonly: bool,
 ) -> Value {
-    json!({"name":name,"description":description,"inputSchema":{"type":"object","properties":properties,"required":required,"additionalProperties":false},"annotations":{"readOnlyHint":readonly,"destructiveHint":false,"openWorldHint":false}})
+    let destructive = matches!(
+        name,
+        "remove_scene"
+            | "remove_source"
+            | "remove_layer"
+            | "save_project"
+            | "load_project"
+            | "snapshot"
+            | "shutdown"
+            | "set_test_window"
+            | "upsert_output_profile"
+            | "remove_output_profile"
+            | "save_output_profiles"
+            | "load_output_profiles"
+            | "stop_output"
+    );
+    let development = matches!(name, "snapshot" | "shutdown" | "set_test_window");
+    json!({"name":name,"description":description,"inputSchema":{"type":"object","properties":properties,"required":required,"additionalProperties":false},
+        "annotations":{"readOnlyHint":readonly,"destructiveHint":destructive,"idempotentHint":readonly,"openWorldHint":false},
+        "_meta":{"motive/category":if development {"development"} else {"production"}}})
 }
 pub fn tools() -> Vec<Value> {
     let mut result = vec![
@@ -174,7 +203,7 @@ pub fn tools() -> Vec<Value> {
         ),
         tool(
             "set_encoder",
-            "Preferencia de grabación mientras idle. auto prefiere VideoToolbox y permite fallback antes de empezar; las selecciones explícitas son estrictas. No cambia el proyecto v3 ni UDP local.",
+            "Cambia encoder del perfil de grabación seleccionado mientras idle; afecta streaming si comparte ese perfil. auto permite fallback antes de empezar. Persistir perfiles es explícito; proyecto v3 y UDP no cambian.",
             json!({"encoder":{"type":"string","enum":["auto","videotoolbox","x264"]}}),
             &["encoder"],
             false,
@@ -264,6 +293,95 @@ pub fn tools() -> Vec<Value> {
             false,
         ),
     ];
+    let target = json!({"type":"string","enum":["recording","streaming"]});
+    let profile_id =
+        json!({"type":"string","minLength":1,"maxLength":48,"pattern":"^[a-z0-9_-]+$"});
+    let profile = json!({"type":"object","additionalProperties":false,"properties":{
+        "id":profile_id,"encoder":{"type":"string","enum":["auto","videotoolbox","x264"]},
+        "bitrate_kbps":{"type":"integer","minimum":250,"maximum":20000},"rate_control":{"const":"cbr"},
+        "keyframe_seconds":{"type":"integer","minimum":1,"maximum":10},"frame_reordering":{"type":"boolean"}},
+        "required":["id","encoder","bitrate_kbps","rate_control","keyframe_seconds","frame_reordering"]});
+    for (op, description, properties, required, readonly) in [
+        (
+            "output_capabilities",
+            "Capacidades y límites reales; resolución/FPS fijos por canvas.",
+            json!({}),
+            vec![],
+            true,
+        ),
+        (
+            "output_profiles",
+            "Perfiles versionados y selección runtime separada del proyecto v3.",
+            json!({}),
+            vec![],
+            true,
+        ),
+        (
+            "upsert_output_profile",
+            "Crea/reemplaza un perfil mientras idle; aplica a ambas salidas si comparten ID. Guardado explícito.",
+            json!({"profile":profile}),
+            vec!["profile"],
+            false,
+        ),
+        (
+            "remove_output_profile",
+            "Elimina un perfil no seleccionado mientras idle.",
+            json!({"id":profile_id}),
+            vec!["id"],
+            false,
+        ),
+        (
+            "select_output_profile",
+            "Selecciona un perfil para grabación o streaming mientras idle.",
+            json!({"target":target,"profile_id":profile_id}),
+            vec!["target", "profile_id"],
+            false,
+        ),
+        (
+            "save_output_profiles",
+            "Guarda definiciones en output-profiles.json v1; no incluye escenas, selección ni endpoints.",
+            json!({}),
+            vec![],
+            false,
+        ),
+        (
+            "load_output_profiles",
+            "Reemplaza perfiles desde archivo local validado mientras idle; una selección ausente pasa al primer perfil cargado.",
+            json!({}),
+            vec![],
+            false,
+        ),
+        (
+            "configure_stream",
+            "Configura solo protocolo y puerto de 127.0.0.1 /live/motive. Sin claves, URLs ni hosts arbitrarios; RTMPS exige confianza TLS del sistema.",
+            json!({"endpoint":{"type":"object","properties":{"transport":{"type":"string","enum":["rtmp","rtmps"]},"port":{"type":"integer","minimum":1024,"maximum":65535}},"required":["transport","port"],"additionalProperties":false}}),
+            vec!["endpoint"],
+            false,
+        ),
+        (
+            "preflight_output",
+            "Valida estado, fuentes, perfil y módulos. No conecta a red ni inicializa encoders; no garantiza disponibilidad del receptor.",
+            json!({"target":target}),
+            vec!["target"],
+            true,
+        ),
+        (
+            "start_stream",
+            "Inicia conexión RTMP(S) al receptor local configurado. Consulta connecting/streaming/error; sin reintentos automáticos.",
+            json!({}),
+            vec![],
+            false,
+        ),
+        (
+            "recover_output",
+            "Reconoce fallo de salida únicamente cuando terminó; conserva recuperación de fuentes y no reinicia automáticamente.",
+            json!({}),
+            vec![],
+            false,
+        ),
+    ] {
+        result.push(tool(op, description, properties, &required, readonly));
+    }
     let id = json!({"type":"string","minLength":1,"maxLength":48});
     let name = json!({"type":"string","minLength":1,"maxLength":80});
     let variant = json!({"type":"string","enum":["horizontal","vertical"]});
@@ -347,19 +465,19 @@ pub fn tools() -> Vec<Value> {
         ),
         (
             "snapshot",
-            "Guarda un PNG de la composición en la ubicación local fija; MCP no devuelve video.",
+            "Desarrollo: guarda un PNG de la composición en la ubicación local fija; MCP no devuelve video.",
             json!({}),
             vec![],
         ),
         (
             "shutdown",
-            "Cierra el estudio solo cuando la salida ha finalizado.",
+            "Desarrollo: cierra el estudio solo cuando la salida ha finalizado.",
             json!({}),
             vec![],
         ),
         (
             "set_test_window",
-            "Abre/cierra la ventana nativa controlada para pruebas locales.",
+            "Desarrollo: abre/cierra la ventana nativa controlada para pruebas locales.",
             json!({"open":{"type":"boolean"}}),
             vec!["open"],
         ),
@@ -406,7 +524,7 @@ pub fn rpc(request: Value, initialized: &mut bool) -> Option<Value> {
             object.insert("op".into(), json!(name));
             let response = match parse_command(args.clone()) {
                 Ok(_) => send(args, "mcp"),
-                Err(e) => error("INVALID_ARGUMENT", e),
+                Err(_) => error("INVALID_ARGUMENT", "Invalid command fields or values"),
             };
             json!({"content":[{"type":"text","text":response.to_string()}],"isError":response["ok"]!=true})
         }

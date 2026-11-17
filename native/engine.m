@@ -26,6 +26,9 @@ typedef struct {
     obs_source_t *audio;
     atomic_uint_fast64_t preview_copies;
     obs_output_t *output;
+    obs_service_t *service;
+    bool rtmp_loaded,network_output;
+    atomic_bool output_started;
     obs_encoder_t *video_encoder, *audio_encoder;
     atomic_int output_code;
     atomic_bool output_stopped;
@@ -117,6 +120,7 @@ static int reset_video(motive_engine *e) {
     return obs_reset_video(&v);
 }
 static struct obs_source_info watch_info;
+#include "local-service.inc"
 static void discover_encoders(motive_engine *e);
 void motive_destroy(motive_engine *e);
 motive_engine *motive_create(const char *base) {
@@ -146,6 +150,8 @@ motive_engine *motive_create(const char *base) {
         }
     }
     obs_post_load_modules();
+    obs_register_service(&local_service_info);
+    e->rtmp_loaded=obs_get_output_flags("rtmp_output")!=0;
     discover_encoders(e);
     obs_register_source(&pattern_info);
     obs_register_source(&watch_info);
@@ -168,9 +174,13 @@ uint32_t motive_total_frames(void) { return obs_get_total_frames(); }
 uint32_t motive_lagged_frames(void) { return obs_get_lagged_frames(); }
 uint64_t motive_busy_drops(motive_engine *e) { return atomic_load(&e->busy_drops); }
 
+static void output_started(void *data,calldata_t *cd) {
+    (void)cd;atomic_store(&((motive_engine *)data)->output_started,true);
+}
 static void output_stopped(void *data,calldata_t *cd);
 static void release_output(motive_engine *e) {
-    if (e->output) { signal_handler_disconnect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e); obs_output_release(e->output); e->output=NULL; }
+    if (e->output) { signal_handler_disconnect(obs_output_get_signal_handler(e->output),"start",output_started,e); signal_handler_disconnect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e); obs_output_release(e->output); e->output=NULL; }
+    if (e->service) {obs_service_release(e->service);e->service=NULL;}
     if (e->video_encoder) { obs_encoder_release(e->video_encoder); e->video_encoder=NULL; }
     if (e->audio_encoder) { obs_encoder_release(e->audio_encoder); e->audio_encoder=NULL; }
 }
@@ -182,6 +192,7 @@ static void output_stopped(void *data, calldata_t *cd) {
 int motive_output_state(motive_engine *e) {
     if (!e->output) return 0;
     if (atomic_load(&e->output_stopped)) return obs_output_active(e->output) ? 2:0;
+    if (e->network_output && !atomic_load(&e->output_started)) return 3;
     return obs_output_active(e->output) ? 1 : 2;
 }
 int motive_output_code(motive_engine *e) { return atomic_load(&e->output_code); }
@@ -189,15 +200,13 @@ uint64_t motive_output_bytes(motive_engine *e) { return e->output ? obs_output_g
 uint32_t motive_output_frames(motive_engine *e) { return e->output ? obs_output_get_total_frames(e->output) : 0; }
 int motive_output_drops(motive_engine *e) { return e->output ? obs_output_get_frames_dropped(e->output) : 0; }
 #include "encoding.inc"
-bool motive_start_output(motive_engine *e,const char *path,bool local_stream,const char *policy) {
+bool motive_start_output(motive_engine *e,const char *path,bool local_stream,const char *profile) {
     e->error[0]=0;
     if (motive_output_state(e)) { snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY"); return false; }
-    if (strcmp(policy,"auto") && strcmp(policy,"videotoolbox") && strcmp(policy,"x264")) {
-        snprintf(e->error,sizeof(e->error),"INVALID_ENCODER"); return false;
-    }
     release_output(e);
     e->selected_encoder[0]=0;e->fallback_reason[0]=0;e->selected_hardware=false;
-    if (!local_stream) return start_recording(e,path,policy);
+    if (!local_stream) return start_profile(e,path,profile,false);
+    e->network_output=false;
     obs_data_t *settings=obs_data_create();
     if (local_stream) {
         // Fixed loopback destination. No public destinations or keys in this prototype.
@@ -227,7 +236,14 @@ bool motive_start_output(motive_engine *e,const char *path,bool local_stream,con
     snprintf(e->selected_encoder,sizeof(e->selected_encoder),"libx264 (loopback)");
     return true;
 }
-void motive_stop_output(motive_engine *e) { if (e->output && !atomic_load(&e->output_stopped)) obs_output_stop(e->output); }
+void motive_stop_output(motive_engine *e) {
+    // OBS 33.0.1 force-stop during connect can race its detached connect thread.
+    // The core rejects explicit cancellation while connecting; health-triggered
+    // stops are deferred until the connection completes, never force-joined here.
+    if (e->output && !atomic_load(&e->output_stopped) && motive_output_state(e)!=3)
+        obs_output_stop(e->output);
+}
+
 bool motive_variant(motive_engine *e,bool vertical) {
     if (motive_output_state(e)) { snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY"); return false; }
     if (e->width==(vertical ? 540u:960u) && e->height==(vertical ? 960u:540u)) {

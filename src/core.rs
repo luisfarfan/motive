@@ -1,3 +1,5 @@
+#[path = "output.rs"]
+pub mod output;
 use crate::{
     engine::Engine,
     scene::{
@@ -5,6 +7,7 @@ use crate::{
         valid_name,
     },
 };
+use output::{LocalEndpoint, OutputProfile, OutputTarget, ProfileStore};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
@@ -32,6 +35,7 @@ pub enum RecordingEncoder {
     X264,
 }
 impl RecordingEncoder {
+    #[cfg(test)]
     fn as_str(self) -> &'static str {
         match self {
             Self::Auto => "auto",
@@ -46,6 +50,28 @@ pub enum Command {
     Status,
     Devices,
     Encoders,
+    OutputCapabilities,
+    OutputProfiles,
+    UpsertOutputProfile {
+        profile: OutputProfile,
+    },
+    RemoveOutputProfile {
+        id: String,
+    },
+    SelectOutputProfile {
+        target: OutputTarget,
+        profile_id: String,
+    },
+    SaveOutputProfiles,
+    LoadOutputProfiles,
+    ConfigureStream {
+        endpoint: LocalEndpoint,
+    },
+    PreflightOutput {
+        target: OutputTarget,
+    },
+    StartStream,
+    RecoverOutput,
     SetEncoder {
         encoder: RecordingEncoder,
     },
@@ -181,7 +207,10 @@ struct WindowBinding {
 }
 pub struct Production {
     pub engine: Engine,
-    pub recording_encoder: RecordingEncoder,
+    profiles: ProfileStore,
+    recording_profile: String,
+    streaming_profile: String,
+    stream_endpoint: Option<LocalEndpoint>,
     pub project: Project,
     pub revision: u64,
     pub last_action: String,
@@ -209,7 +238,10 @@ impl Production {
         create_tone()?;
         let mut p = Self {
             engine: Engine::new()?,
-            recording_encoder: RecordingEncoder::default(),
+            profiles: ProfileStore::default(),
+            recording_profile: "standard".into(),
+            streaming_profile: "standard".into(),
+            stream_endpoint: None,
             project: Project::default(),
             revision: 0,
             last_action: "Estudio iniciado".into(),
@@ -241,19 +273,67 @@ impl Production {
             "idle"
         } else if self.stopping {
             "stopping"
+        } else if state == 3 {
+            "connecting"
         } else {
             &self.output_kind
         };
-        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"encoding":self.encoding_status(),"issues":self.issues,
+        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"encoding":self.encoding_status(),"output_configuration":self.output_configuration(),"issues":self.issues,
             "recovery_required":self.recovery.required(),"recovery_sources":self.recovery.pending,"last_fault":self.last_fault,
             "sources":self.source_health,"window_id":self.window_id,"output":output,"output_code":self.engine.output_code(),
-            "output_path":self.output_path,"last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":30,"stats":self.engine.stats()})
+            "output_failure":output_failure(self.engine.output_code()),"output_path":self.output_path,"last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":30,"stats":self.engine.stats()})
     }
     fn encoding_status(&self) -> Value {
         let mut value = self.engine.encoding_info();
-        value["preference"] = json!(self.recording_encoder);
-        value["scope"] = json!("recording");
+        value["preference"] = json!(self.profile(OutputTarget::Recording).encoder);
+        value["scope"] = json!("selected_recording_profile");
         value
+    }
+    fn profile(&self, target: OutputTarget) -> &OutputProfile {
+        let id = match target {
+            OutputTarget::Recording => &self.recording_profile,
+            OutputTarget::Streaming => &self.streaming_profile,
+        };
+        self.profiles.get(id).expect("validated active profile")
+    }
+    fn output_configuration(&self) -> Value {
+        json!({"recording_profile":self.recording_profile,"streaming_profile":self.streaming_profile,
+            "recording":self.profile(OutputTarget::Recording),"streaming":self.profile(OutputTarget::Streaming),
+            "endpoint":self.stream_endpoint,"credentials_supported":false,"automatic_reconnect":false})
+    }
+    fn output_capabilities(&self) -> Value {
+        json!({"encoders":self.engine.encoding_info(),"rate_controls":["cbr"],"bitrate_kbps":{"min":250,"max":20000},
+            "keyframe_seconds":{"min":1,"max":10},"frame_reordering":[true,false],
+            "canvas":{"width":self.engine.width,"height":self.engine.height,"fps":30,
+                "variants":[{"width":960,"height":540},{"width":540,"height":960}],
+                "profile_resolution_configurable":false,"fps_configurable":false},
+            "audio":{"codec":"aac","bitrate_kbps":160,"sample_rate":48000,"channels":2},
+            "streaming":{"host":"127.0.0.1","port_min":1024,"path":"/live/motive","transport":["rtmp","rtmps"],
+                "rtmps_validation":"system_trust_required; trusted media delivery not yet verified",
+                "credentials_supported":false,"public_destinations":false},"simultaneous_outputs":1,"cancel_connecting_supported":false})
+    }
+    fn preflight(&self, target: OutputTarget) -> anyhow::Result<()> {
+        self.idle()?;
+        self.source_ready()?;
+        let p = self.profile(target);
+        p.validate()?;
+        if p.encoder == RecordingEncoder::Videotoolbox {
+            anyhow::ensure!(
+                self.engine.encoding_info()["videotoolbox_id"].is_string(),
+                "ENCODER_UNAVAILABLE"
+            );
+        }
+        if target == OutputTarget::Streaming {
+            self.stream_endpoint
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("ENDPOINT_REQUIRED"))?
+                .validate()?;
+            anyhow::ensure!(
+                self.engine.encoding_info()["rtmp_available"] == true,
+                "SERVICE_UNAVAILABLE"
+            );
+        }
+        Ok(())
     }
     fn faults(&self) -> Vec<(String, String)> {
         self.faults_from(&self.engine.graph_health())
@@ -294,6 +374,9 @@ impl Production {
                 "Fuente perdida: {}. Salida finalizando.",
                 self.issues.join(", ")
             );
+        }
+        if self.stopping && self.engine.output_state() == 1 {
+            self.engine.stop_output();
         }
         let output_error = self.engine.output_code();
         if output_error != 0 && output_error != self.seen_output_error {
@@ -729,6 +812,21 @@ impl Production {
         if matches!(command, Command::Encoders) {
             return json!({"ok":true,"encoders":self.encoding_status()});
         }
+        if matches!(command, Command::OutputCapabilities) {
+            return json!({"ok":true,"capabilities":self.output_capabilities()});
+        }
+        if matches!(command, Command::OutputProfiles) {
+            return json!({"ok":true,"store":self.profiles,"configuration":self.output_configuration()});
+        }
+        if let Command::PreflightOutput { target } = command {
+            return match self.preflight(target) {
+                Ok(()) => {
+                    json!({"ok":true,"preflight":{"ready":true,"target":target,"profile":self.profile(target),
+                    "configuration":self.output_configuration(),"network_tested":false,"encoder_initialized":false}})
+                }
+                Err(e) => command_error(e),
+            };
+        }
         let label = serde_json::to_value(&command).unwrap()["op"]
             .as_str()
             .unwrap()
@@ -743,7 +841,83 @@ impl Production {
                             "ENCODER_UNAVAILABLE: VideoToolbox hardware is not registered"
                         );
                     }
-                    self.recording_encoder = encoder;
+                    let mut p = self.profile(OutputTarget::Recording).clone();
+                    p.encoder = encoder;
+                    self.profiles.upsert(p)?;
+                }
+                Command::UpsertOutputProfile { profile } => {
+                    self.idle()?;
+                    self.profiles.upsert(profile)?;
+                }
+                Command::RemoveOutputProfile { id } => {
+                    self.idle()?;
+                    self.profiles.get(&id)?;
+                    anyhow::ensure!(
+                        id != self.recording_profile && id != self.streaming_profile,
+                        "PROFILE_IN_USE"
+                    );
+                    self.profiles.profiles.retain(|p| p.id != id);
+                }
+                Command::SelectOutputProfile { target, profile_id } => {
+                    self.idle()?;
+                    self.profiles.get(&profile_id)?;
+                    match target {
+                        OutputTarget::Recording => self.recording_profile = profile_id,
+                        OutputTarget::Streaming => self.streaming_profile = profile_id,
+                    };
+                }
+                Command::ConfigureStream { endpoint } => {
+                    self.idle()?;
+                    endpoint.validate()?;
+                    self.stream_endpoint = Some(endpoint);
+                }
+                Command::SaveOutputProfiles => {
+                    use std::{io::Write, os::unix::fs::OpenOptionsExt};
+                    let path = data_dir().join("output-profiles.json");
+                    let temp = path.with_extension("json.tmp");
+                    let mut f = fs::OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .truncate(true)
+                        .mode(0o600)
+                        .open(&temp)?;
+                    f.write_all(&serde_json::to_vec_pretty(&self.profiles)?)?;
+                    f.sync_all()?;
+                    fs::rename(temp, path)?;
+                }
+                Command::LoadOutputProfiles => {
+                    use std::io::Read;
+                    self.idle()?;
+                    let mut bytes = vec![];
+                    fs::File::open(data_dir().join("output-profiles.json"))?
+                        .take(65537)
+                        .read_to_end(&mut bytes)?;
+                    anyhow::ensure!(bytes.len() <= 65536, "PROFILES_TOO_LARGE");
+                    let profiles: ProfileStore = serde_json::from_slice(&bytes)
+                        .map_err(|_| anyhow::anyhow!("INVALID_PROFILES"))?;
+                    profiles.validate()?;
+                    if profiles.get(&self.recording_profile).is_err() {
+                        self.recording_profile = profiles.profiles[0].id.clone();
+                    }
+                    if profiles.get(&self.streaming_profile).is_err() {
+                        self.streaming_profile = profiles.profiles[0].id.clone();
+                    }
+                    self.profiles = profiles;
+                }
+                Command::StartStream => {
+                    self.preflight(OutputTarget::Streaming)?;
+                    self.engine.start_stream(
+                        &self.stream_endpoint.as_ref().unwrap().url(),
+                        &serde_json::to_string(self.profile(OutputTarget::Streaming))?,
+                    )?;
+                    self.output_kind = "streaming".into();
+                    self.output_path = None;
+                    self.stopping = false;
+                }
+                Command::RecoverOutput => {
+                    self.idle()?;
+                    self.engine.reset_output()?;
+                    self.recovery.resolve("output");
                 }
                 Command::SetOverlay { visible } => {
                     let mut graph = self.graph().clone();
@@ -810,7 +984,7 @@ impl Production {
                 }
                 Command::StartRecording => {
                     self.idle()?;
-                    self.source_ready()?;
+                    self.preflight(OutputTarget::Recording)?;
                     let stamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros();
                     let path = data_dir()
                         .join("recordings")
@@ -822,7 +996,7 @@ impl Production {
                     if let Err(e) = self.engine.start_output(
                         &path.to_string_lossy(),
                         false,
-                        self.recording_encoder.as_str(),
+                        &serde_json::to_string(self.profile(OutputTarget::Recording))?,
                     ) {
                         if fs::metadata(&path).is_ok_and(|m| m.len() == 0) {
                             let _ = fs::remove_file(&path);
@@ -836,13 +1010,20 @@ impl Production {
                 Command::StartLocalStream => {
                     self.idle()?;
                     self.source_ready()?;
-                    self.engine
-                        .start_output("", true, self.recording_encoder.as_str())?;
+                    self.engine.start_output(
+                        "",
+                        true,
+                        &serde_json::to_string(self.profile(OutputTarget::Recording))?,
+                    )?;
                     self.output_kind = "local_stream".into();
                     self.output_path = None;
                     self.stopping = false;
                 }
                 Command::StopOutput => {
+                    anyhow::ensure!(
+                        self.engine.output_state() != 3,
+                        "OUTPUT_CONNECTING: OBS 33.0.1 cannot safely cancel its handshake; wait for connection result, then stop or recover"
+                    );
                     self.engine.stop_output();
                     self.stopping = self.engine.output_state() != 0;
                 }
@@ -885,7 +1066,12 @@ impl Production {
                 Command::SetTestWindow { open } => {
                     self.test_window_request = Some(open);
                 }
-                Command::Status | Command::Devices | Command::Encoders => unreachable!(),
+                Command::Status
+                | Command::Devices
+                | Command::Encoders
+                | Command::OutputCapabilities
+                | Command::OutputProfiles
+                | Command::PreflightOutput { .. } => unreachable!(),
                 graph_command => self.graph_command(graph_command)?,
             }
             Ok(())
@@ -897,20 +1083,36 @@ impl Production {
                 self.last_action = format!("{origin} · {label} · revisión {}", self.revision);
                 json!({"ok":true,"state":self.status()})
             }
-            Err(e) => {
-                let msg = e.to_string();
-                let prefix = msg.split(':').next().unwrap_or("");
-                let code = if !prefix.is_empty()
-                    && prefix.chars().all(|c| c.is_ascii_uppercase() || c == '_')
-                {
-                    prefix
-                } else {
-                    "OPERATION_FAILED"
-                };
-                error(code, &msg)
-            }
+            Err(e) => command_error(e),
         }
     }
+}
+fn output_failure(code: i32) -> Value {
+    if code == 0 {
+        return Value::Null;
+    }
+    let name = match code {
+        -1 => "OUTPUT_BAD_PATH",
+        -2 => "OUTPUT_CONNECT_FAILED",
+        -3 => "OUTPUT_INVALID_STREAM",
+        -5 => "OUTPUT_DISCONNECTED",
+        -6 => "OUTPUT_UNSUPPORTED",
+        -7 => "OUTPUT_NO_SPACE",
+        -8 => "OUTPUT_ENCODE_ERROR",
+        -9 => "OUTPUT_HDR_DISABLED",
+        _ => "OUTPUT_FAILED",
+    };
+    json!({"code":name,"native_code":code,"recovery":"explicit"})
+}
+fn command_error(e: anyhow::Error) -> Value {
+    let msg = e.to_string();
+    let prefix = msg.split(':').next().unwrap_or("");
+    let code = if !prefix.is_empty() && prefix.chars().all(|c| c.is_ascii_uppercase() || c == '_') {
+        prefix
+    } else {
+        "OPERATION_FAILED"
+    };
+    error(code, msg.as_str())
 }
 fn parse_project(bytes: &[u8]) -> anyhow::Result<Project> {
     let value: Value = serde_json::from_slice(bytes)?;

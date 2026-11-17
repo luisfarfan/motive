@@ -1,5 +1,9 @@
 # Apple Silicon hardware encoding
 
+Follow-up: [H7 output verification](h7-output-verification.md) extends encoder
+selection into profiles and reports the bounded frame-reordering experiment.
+The measurements below are retained as the original H6 evidence.
+
 Date: 2026-11-16. Base: `a046049` on `main`. Apple M5 Pro, macOS 27.2,
 OBS 33.0.1, Rust development build. This increment changes the multimedia
 core and its adapters; it does not modify GPUI, visual tokens or design files.

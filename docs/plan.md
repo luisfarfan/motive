@@ -13,6 +13,7 @@ para esta fase y REA no bloqueó los hitos.
 | 4 — Streaming | libobs → MPEG-TS UDP loopback → FFmpeg, 5.021333 s/150 frames, H.264/AAC y overlay | Receptor local verificado; plataformas públicas y RTMP/SRT pendientes |
 | 5 — Primer editor | Ventana + webcam + overlay; transformaciones y orden por MCP; persistencia v3 y reapertura; UI refleja el núcleo | Ver [verificación de escenas](scene-graph-verification.md); una composición/output activo, cambios de recursos solo detenido |
 | 6 — Encoder Apple Silicon | Módulo oficial VideoToolbox, selección compartida y fallback x264; comparación de archivos y recursos | Ver [verificación VideoToolbox](videotoolbox-verification.md); alcance inicial H.264, misma resolución/FPS, sin cambiar UI ni UDP local |
+| 7 — Salidas configurables | Perfiles v1 separados de escenas v3; RTMP local H.264/AAC, preflight y recuperación por CLI/MCP; rechazo TLS no confiable | Ver [verificación H7](h7-output-verification.md); sin claves ni destinos públicos, RTMPS positivo y cancelación inmediata de handshake pendientes |
 
 ## Reproducir y consultar evidencia
 
@@ -87,6 +88,6 @@ Las grabaciones y los inventarios de dispositivos permanecen fuera de Git.
 
 El formato v3 añade escenas, recursos reutilizables y capas con IDs estables y
 transformaciones horizontal/vertical independientes. UI, CLI y MCP usan
-Production (28 herramientas con la selección de encoder). Se conservan las pruebas anteriores y se añaden pruebas
+Production (39 herramientas con perfiles y RTMP local). Se conservan las pruebas anteriores y se añaden pruebas
 reales de composición y recuperación del muxer. La evidencia y las limitaciones
 actuales están en [scene-graph-verification.md](scene-graph-verification.md).

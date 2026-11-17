@@ -33,6 +33,8 @@ unsafe extern "C" {
         local_stream: bool,
         policy: *const c_char,
     ) -> bool;
+    fn motive_start_stream(engine: *mut c_void, url: *const c_char, profile: *const c_char)
+    -> bool;
     fn motive_encoding_info(engine: *mut c_void) -> *mut c_char;
     fn motive_encoded_frames(engine: *mut c_void) -> u32;
     fn motive_video_skipped_frames() -> u32;
@@ -152,6 +154,11 @@ impl Engine {
         self.checked(unsafe {
             motive_start_output(self.raw, path.as_ptr(), stream, policy.as_ptr())
         })
+    }
+    pub fn start_stream(&mut self, url: &str, profile: &str) -> anyhow::Result<()> {
+        let url = CString::new(url)?;
+        let profile = CString::new(profile)?;
+        self.checked(unsafe { motive_start_stream(self.raw, url.as_ptr(), profile.as_ptr()) })
     }
     pub fn stop_output(&mut self) {
         unsafe { motive_stop_output(self.raw) };

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Programa de Motive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 100%; aspect-ratio: 16 / 9; container-type: inline-size; overflow: hidden; background: #000000; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif; color: #ffffff;">
+  <sc-if value="{{hasPause}}" hint-placeholder-val="{{ false }}">
+    <img src="/_blob/b49cc6b63c19c125b93831da7d833ece" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;">
+  </sc-if>
+  <sc-if value="{{winBottom}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; {{win}} container-type: size; overflow: hidden; background: #1c1d21;">
+      <div style="position: relative; height: 5.2cqh; display: flex; align-items: center; gap: 1.1cqh; padding-left: 2cqh; background: #25262b; box-shadow: inset 0 -0.5px 0 rgba(0,0,0,0.45);">
+        <span style="width: 1.9cqh; height: 1.9cqh; border-radius: 50%; background: #ff5f57; opacity: 0.85;"></span>
+        <span style="width: 1.9cqh; height: 1.9cqh; border-radius: 50%; background: #febc2e; opacity: 0.85;"></span>
+        <span style="width: 1.9cqh; height: 1.9cqh; border-radius: 50%; background: #28c840; opacity: 0.85;"></span>
+        <span style="position: absolute; left: 0; right: 0; text-align: center; font-size: 2.1cqh; font-weight: 500; color: #9a9fa8;">Luz y materia</span>
+      </div>
+      <img src="/_blob/ee49ac08863b402f91c6ac71d524e5db" alt="" style="display: block; width: 100%; height: 94.8cqh; object-fit: cover;">
+    </div>
+  </sc-if>
+  <sc-if value="{{hasCam}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; {{cam}} overflow: hidden; background: #141518;">
+      <sc-if value="{{camOk}}" hint-placeholder-val="{{ true }}">
+        <img src="/_blob/59e35133f1a0541ebc6b2174968e116e" alt="" style="display: block; width: 100%; height: 100%; object-fit: cover;">
+      </sc-if>
+      <sc-if value="{{lost}}" hint-placeholder-val="{{ false }}">
+        <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5cqw; background: repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 12px), #141518;">
+          <span style="font-size: 1.9cqw; font-weight: 600; color: #FFB547;">Sin señal de la cámara</span>
+          <span style="font-size: 1.4cqw; color: rgba(241,242,244,0.6);">Última imagen hace 2 s</span>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{winTop}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; {{win}} container-type: size; overflow: hidden; background: #1c1d21;">
+      <div style="position: relative; height: 5.2cqh; display: flex; align-items: center; gap: 1.1cqh; padding-left: 2cqh; background: #25262b;">
+        <span style="width: 1.9cqh; height: 1.9cqh; border-radius: 50%; background: #ff5f57; opacity: 0.85;"></span>
+        <span style="width: 1.9cqh; height: 1.9cqh; border-radius: 50%; background: #febc2e; opacity: 0.85;"></span>
+        <span style="width: 1.9cqh; height: 1.9cqh; border-radius: 50%; background: #28c840; opacity: 0.85;"></span>
+      </div>
+      <img src="/_blob/ee49ac08863b402f91c6ac71d524e5db" alt="" style="display: block; width: 100%; height: 94.8cqh; object-fit: cover;">
+    </div>
+  </sc-if>
+  <sc-if value="{{hasTitle}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; {{titlePos}} display: flex; align-items: stretch; gap: {{titleGap}}; text-shadow: 0 0.2cqw 1.6cqw rgba(0,0,0,0.5);">
+      <span style="flex: none; width: {{titleBar}}; margin: {{titleBarM}} 0; background: {{accent}};"></span>
+      <span style="display: flex; flex-direction: column; justify-content: center; min-width: 0;">
+        <span style="font-size: {{titleSize}}; font-weight: 650; line-height: 1.15; letter-spacing: -0.01em; white-space: nowrap; color: #ffffff;">{{titleText}}</span>
+        <span style="font-size: {{subSize}}; line-height: 1.35; white-space: nowrap; color: rgba(255,255,255,0.82);">{{subText}}</span>
+      </span>
+    </div>
+  </sc-if>
+  <sc-if value="{{ghost}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 67.083%; top: 57.037%; width: 29.583%; height: 37.037%; box-sizing: border-box; border: 1.5px dashed #A3A1FF; border-radius: 2px; background: repeating-linear-gradient(135deg, rgba(163,161,255,0.2) 0 1px, transparent 1px 7px);"></div>
+  </sc-if>
+  <sc-if value="{{marks}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; {{cam}} pointer-events: none;">
+      <span style="position: absolute; left: -3px; top: -3px; width: 14px; height: 14px; border-left: 2px solid #ffffff; border-top: 2px solid #ffffff;"></span>
+      <span style="position: absolute; right: -3px; top: -3px; width: 14px; height: 14px; border-right: 2px solid #ffffff; border-top: 2px solid #ffffff;"></span>
+      <span style="position: absolute; left: -3px; bottom: -3px; width: 14px; height: 14px; border-left: 2px solid #ffffff; border-bottom: 2px solid #ffffff;"></span>
+      <span style="position: absolute; right: -3px; bottom: -3px; width: 14px; height: 14px; border-right: 2px solid #ffffff; border-bottom: 2px solid #ffffff;"></span>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scene":{"editor":"enum","options":["inicio","taller","detalle","pausa"],"default":"taller"},"camState":{"editor":"enum","options":["idle","applied"],"default":"idle"},"lost":{"editor":"boolean","default":false},"ghost":{"editor":"boolean","default":false},"marks":{"editor":"boolean","default":false},"accent":{"editor":"color","default":"#FF8A3D","options":["#FF8A3D","#F2C94C","#5BD1C0","#F1F2F4"]},"$preview":{"width":960,"height":540}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const scene = p.scene ?? 'taller';
+    const applied = p.camState === 'applied';
+    const lost = !!p.lost;
+    const P = (x, y, w, h) => 'left: ' + (x / 9.6).toFixed(3) + '%; top: ' + (y / 5.4).toFixed(3) + '%; width: ' + (w / 9.6).toFixed(3) + '%; height: ' + (h / 5.4).toFixed(3) + '%;';
+    const titles = {
+      inicio: { pos: P(56, 392, 560, 92), h: 92, t: 'Luz y materia', s: 'Taller en vivo con Ana Ruiz' },
+      taller: { pos: P(32, 436, 380, 72), h: 72, t: 'Ana Ruiz', s: 'Ilustradora, taller de luz y materia' },
+      pausa: { pos: P(56, 234, 560, 80), h: 80, t: 'Volvemos en cinco minutos', s: 'Luz y materia' }
+    };
+    const tt = titles[scene];
+    const cqw = (v) => (v / 9.6).toFixed(3) + 'cqw';
+    let cam = P(0, 0, 960, 540);
+    if (scene === 'taller') cam = applied ? P(644, 308, 284, 200) : P(618, 296, 284, 200);
+    return {
+      hasPause: scene === 'pausa',
+      winBottom: scene === 'inicio' || scene === 'taller',
+      winTop: scene === 'detalle',
+      win: scene === 'detalle' ? P(640, 32, 288, 162) : P(0, 0, 960, 540),
+      hasCam: scene === 'taller' || scene === 'detalle',
+      cam,
+      camOk: !lost,
+      lost,
+      hasTitle: !!tt,
+      titlePos: tt ? tt.pos : '',
+      titleGap: tt ? cqw(tt.h * 0.22) : '0',
+      titleBar: tt ? cqw(Math.max(3, tt.h * 0.06)) : '0',
+      titleBarM: tt ? cqw(tt.h * 0.08) : '0',
+      titleSize: tt ? cqw(tt.h * 0.4) : '0',
+      subSize: tt ? cqw(tt.h * 0.235) : '0',
+      titleText: tt ? tt.t : '',
+      subText: tt ? tt.s : '',
+      ghost: !!p.ghost && scene === 'taller',
+      marks: !!p.marks && (scene === 'taller' || scene === 'detalle'),
+      accent: p.accent ?? '#FF8A3D'
+    };
+  }
+}
+</script>
+</body>
+</html>

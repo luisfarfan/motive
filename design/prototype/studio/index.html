@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motive Studio</title>
+<meta name="description" content="Motive — Fase 1: dirección artística y pantalla principal del estudio (prototipo interactivo).">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="scope-vision">
+
+<!-- Icon set: 16 px grid, 1.5 px stroke, round caps. Original, GPL-3.0-or-later. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="mintGrad" x2="1" y2="1"><stop stop-color="#96ffe0"/><stop offset="1" stop-color="#45d8bb"/></linearGradient>
+  </defs>
+  <symbol id="i-mark" viewBox="0 0 18 18"><rect width="18" height="18" rx="5" fill="url(#mintGrad)"/><path d="M4.5 13V5.2L9 9.8l4.5-4.6V13" fill="none" stroke="#0f2a2e" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  <symbol id="i-window" viewBox="0 0 16 16"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2"/><path d="M1.75 5.75h12.5"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 16 16"><rect x="1.75" y="4.25" width="9" height="7.5" rx="2"/><path d="M10.75 7.1l3.5-1.85v5.5l-3.5-1.85"/></symbol>
+  <symbol id="i-title" viewBox="0 0 16 16"><path d="M2.25 10.25v3M5 11.75h8.75M5 9h5.5"/><path d="M3 2.75h10M8 2.75v4"/></symbol>
+  <symbol id="i-overlay" viewBox="0 0 16 16"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2"/><circle cx="5.5" cy="6.5" r="1.25"/><path d="M14 10.5l-3.25-3-5 5"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 16 16"><path d="M1.5 8S3.9 3.5 8 3.5 14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 16 16"><path d="M6.2 3.75A6.4 6.4 0 018 3.5C12.1 3.5 14.5 8 14.5 8a11 11 0 01-1.6 2.2M10.3 11.9A6 6 0 018 12.5C3.9 12.5 1.5 8 1.5 8a11.6 11.6 0 012.9-3.4"/><path d="M2.25 2.25l11.5 11.5"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 16 16"><rect x="5.75" y="1.75" width="4.5" height="7.5" rx="2.25"/><path d="M3.5 7.75a4.5 4.5 0 009 0M8 12.25v2"/></symbol>
+  <symbol id="i-display" viewBox="0 0 16 16"><rect x="1.75" y="2.25" width="12.5" height="8.75" rx="1.75"/><path d="M5.5 14h5M8 11v3"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 16 16"><path d="M2 6.1v3.8h2.5L7.75 13V3L4.5 6.1z"/><path d="M10.5 5.75a3.25 3.25 0 010 4.5M12.4 3.9a6 6 0 010 8.2"/></symbol>
+  <symbol id="i-speaker-off" viewBox="0 0 16 16"><path d="M2 6.1v3.8h2.5L7.75 13V3L4.5 6.1z"/><path d="M10.5 6l4 4M14.5 6l-4 4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 16 16"><path d="M4.5 6.25L8 9.75l3.5-3.5"/></symbol>
+  <symbol id="i-agent" viewBox="0 0 16 16"><circle cx="7" cy="9" r="5"/><circle cx="12.6" cy="3.4" r="1.6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-safe" viewBox="0 0 16 16"><rect x="1.75" y="3.25" width="12.5" height="9.5" rx="1.5"/><path d="M4.5 6.25v-.5h1M10.5 5.75h1v.5M11.5 9.75v.5h-1M5.5 10.25h-1v-.5"/></symbol>
+  <symbol id="i-landscape" viewBox="0 0 16 16"><rect x="1.75" y="4" width="12.5" height="8" rx="1.5"/></symbol>
+  <symbol id="i-portrait" viewBox="0 0 16 16"><rect x="4.5" y="1.75" width="7" height="12.5" rx="1.5"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 16 16"><path d="M5.5 3.75L2.5 6.75l3 3"/><path d="M2.75 6.75h7a3.5 3.5 0 010 7H8"/></symbol>
+  <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1.1" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="1.1" fill="currentColor" stroke="none"/><circle cx="12.5" cy="8" r="1.1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 16 16"><path d="M8 2.25l6.25 11H1.75z"/><path d="M8 6.5v3M8 11.4v.1"/></symbol>
+  <symbol id="i-reconnect" viewBox="0 0 16 16"><path d="M13.25 8a5.25 5.25 0 11-1.6-3.78"/><path d="M12 1.75v2.75H9.25"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 8 14"><circle cx="2" cy="2" r="1.1"/><circle cx="6" cy="2" r="1.1"/><circle cx="2" cy="7" r="1.1"/><circle cx="6" cy="7" r="1.1"/><circle cx="2" cy="12" r="1.1"/><circle cx="6" cy="12" r="1.1"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 16 16"><path d="M2.5 4.5h6M11.5 4.5h2M2.5 11.5h2M7.5 11.5h6"/><circle cx="10" cy="4.5" r="1.5"/><circle cx="6" cy="11.5" r="1.5"/></symbol>
+  <symbol id="i-broadcast" viewBox="0 0 16 16"><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/><path d="M5.2 5.2a4 4 0 000 5.6M10.8 5.2a4 4 0 010 5.6M3.1 3.1a7 7 0 000 9.8M12.9 3.1a7 7 0 010 9.8"/></symbol>
+</svg>
+
+<div class="app" id="app">
+  <header class="titlebar">
+    <div class="tb-start">
+      <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="wordmark"><svg aria-hidden="true"><use href="#i-mark"/></svg>motive</div>
+      <span class="tb-divider" aria-hidden="true"></span>
+      <button class="project-btn" id="projectBtn" aria-haspopup="menu">Luz y materia<svg class="i"><use href="#i-chevron"/></svg></button>
+    </div>
+
+    <div class="status ann-host" id="status" role="status" aria-live="polite"
+         data-ann="partial" data-ann-label="Grabación y RTMP local reales · una salida a la vez">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="label" id="statusLabel">En directo</span>
+      <span class="tc num" id="statusTime">00:18:42</span>
+      <span class="sub" id="statusSub" data-scope="vision">Grabando</span>
+    </div>
+
+    <div class="tb-end">
+      <button class="agent-pill ann-host" id="agentBtn" aria-haspopup="dialog"
+              data-ann="now" data-ann-label="Agente vía MCP local">
+        <svg class="i"><use href="#i-agent"/></svg><span class="label">Agente</span><span class="count" id="agentCount" data-scope="vision">1</span>
+      </button>
+      <span class="tb-divider" aria-hidden="true"></span>
+      <button class="btn" id="recordBtn" aria-pressed="false"><span class="rec-glyph" aria-hidden="true"></span><span class="t">Grabar</span></button>
+      <button class="btn" id="streamBtn" aria-pressed="false"><svg class="i"><use href="#i-broadcast"/></svg><span class="t">Emitir</span></button>
+      <button class="btn" id="endBtn"><span class="stop-glyph" aria-hidden="true"></span>Finalizar</button>
+    </div>
+  </header>
+
+  <main class="studio">
+    <section class="main-col" aria-label="Programa">
+      <div class="stage-head">
+        <h1 id="sceneTitle">Taller</h1>
+        <div class="seg ann-host" role="radiogroup" aria-label="Orientación del lienzo" id="variantSeg"
+             data-ann="now" data-ann-label="Variantes reales">
+          <button role="radio" aria-checked="true" data-variant="h"><svg class="i"><use href="#i-landscape"/></svg>16:9</button>
+          <button role="radio" aria-checked="false" data-variant="v"><svg class="i"><use href="#i-portrait"/></svg>9:16</button>
+        </div>
+        <div class="facts num"><span id="canvasSize">960 × 540</span><span>30 fps</span></div>
+        <div class="spacer"></div>
+      </div>
+
+      <div class="stage" id="stage" data-live="true">
+        <div class="canvas-area ann-host" id="canvasArea" data-ann="partial" data-ann-label="Composición real · selección y arrastre en lienzo: siguiente hito">
+          <canvas id="program" aria-label="Vista del programa"></canvas>
+          <div class="overlay" id="overlay">
+            <div class="safe-area" id="safeArea"></div>
+            <div class="hover-outline" id="hoverOutline" hidden></div>
+            <div class="ghost-trail" id="ghostTrail"></div>
+            <div class="ghost" id="ghost"></div>
+            <div class="sel" id="sel" hidden>
+              <div class="frame"></div>
+              <span class="mark tl"></span><span class="mark tr"></span><span class="mark bl"></span><span class="mark br"></span>
+              <span class="handle" data-dir="nw"></span><span class="handle" data-dir="n"></span><span class="handle" data-dir="ne"></span>
+              <span class="handle" data-dir="e"></span><span class="handle" data-dir="se"></span><span class="handle" data-dir="s"></span>
+              <span class="handle" data-dir="sw"></span><span class="handle" data-dir="w"></span>
+              <span class="readout num" id="readout"></span>
+            </div>
+            <div class="proposal" id="proposal" role="dialog" aria-label="Cambio propuesto por el agente">
+              <div class="who"><svg class="i"><use href="#i-agent"/></svg>Agente local propone</div>
+              <p id="proposalText">Alinear la Webcam al margen seguro inferior derecho.</p>
+              <div class="diff num" id="proposalDiff"></div>
+              <div class="actions">
+                <button class="btn btn-ghost btn-sm" id="proposalReject">Descartar</button>
+                <button class="btn btn-agent btn-sm" id="proposalApply">Aplicar<kbd>↩</kbd></button>
+              </div>
+            </div>
+          </div>
+          <div class="stage-banner" id="banner" role="alert">
+            <svg class="i"><use href="#i-warn"/></svg>
+            <div class="txt" id="bannerText"></div>
+            <button class="btn btn-sm" id="reconnectBtn"><svg class="i i-12"><use href="#i-reconnect"/></svg>Reconectar fuentes</button>
+          </div>
+        </div>
+        <footer class="stage-foot">
+          <button class="zoom-btn" id="zoomBtn">Ajustar<svg class="i i-12"><use href="#i-chevron"/></svg></button>
+          <button class="icon-btn" id="safeBtn" aria-pressed="false" aria-label="Margen seguro" data-tip="Margen seguro" data-kbd="⇧S"><svg class="i"><use href="#i-safe"/></svg></button>
+          <div class="spacer"></div>
+          <div class="metrics num ann-host" data-ann="partial" data-ann-label="Contadores reales del motor">
+            <span><b>VideoToolbox</b> H.264</span>
+            <span class="opt"><b>6000</b> kb/s</span>
+            <span><b id="fps">30</b> fps</span>
+            <span>Perdidos <b class="ok" id="drops">0</b></span>
+            <span class="opt">CPU <b id="cpu">14 %</b></span>
+          </div>
+        </footer>
+      </div>
+
+      <section class="layers" aria-label="Capas">
+        <div class="layers-head">
+          <h2>Capas</h2><span class="muted" id="layersScene">en Taller</span>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost btn-sm" id="addSourceBtn" aria-haspopup="menu"><svg class="i i-12"><use href="#i-plus"/></svg>Añadir fuente</button>
+        </div>
+        <ul class="layer-list" id="layerList" role="listbox" aria-label="Capas de la escena"></ul>
+      </section>
+    </section>
+
+    <aside class="rail" aria-label="Escenas y audio">
+      <div class="rail-head">
+        <h2>Escenas<span class="muted num" id="sceneCount">4</span></h2>
+        <button class="icon-btn icon-btn-sm" id="addSceneBtn" aria-label="Nueva escena" data-tip="Nueva escena" data-kbd="⌘N"><svg class="i"><use href="#i-plus"/></svg></button>
+      </div>
+      <ol class="scenes ann-host" id="scenes" aria-label="Escenas" data-ann="partial" data-ann-label="Escenas reales · miniaturas en vivo por medir"></ol>
+      <section class="mixer" aria-label="Audio">
+        <div class="mixer-head"><h2>Audio</h2><button class="icon-btn icon-btn-sm" aria-label="Ajustes de audio" data-tip="Ajustes de audio"><svg class="i"><use href="#i-sliders"/></svg></button></div>
+        <div id="channels"></div>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<div class="toast-host" id="toastHost" aria-live="polite"></div>
+<div class="tooltip" id="tooltip" role="tooltip"></div>
+
+<aside class="proto" id="proto" aria-label="Controles del prototipo" data-collapsed="true">
+  <button class="proto-toggle" id="protoToggle">Prototipo<small>Fase 1</small></button>
+  <div class="proto-body">
+    <div class="proto-row"><span>Alcance</span>
+      <div class="seg" role="radiogroup" data-proto="scope"><button role="radio" aria-checked="true" data-v="vision">Visión</button><button role="radio" aria-checked="false" data-v="now">Hoy</button></div></div>
+    <div class="proto-row"><span>Apariencia</span>
+      <div class="seg" role="radiogroup" data-proto="theme"><button role="radio" aria-checked="true" data-v="light">Clara</button><button role="radio" aria-checked="false" data-v="dark">Oscura</button></div></div>
+    <div class="proto-row"><span>Estado</span>
+      <div class="seg" role="radiogroup" data-proto="ann"><button role="radio" aria-checked="true" data-v="off">Limpio</button><button role="radio" aria-checked="false" data-v="on">Anotado</button></div></div>
+    <div class="proto-row"><span>Ventana</span>
+      <div class="seg" role="radiogroup" data-proto="size"><button role="radio" aria-checked="true" data-v="full">Completa</button><button role="radio" aria-checked="false" data-v="small">1024×700</button></div></div>
+    <div class="proto-row"><span>Simular</span><button class="btn" id="simLoss">Perder la cámara</button></div>
+    <p class="hint">“Hoy” aplica los límites actuales del motor. “Anotado” marca qué existe, qué es parcial y qué es futuro.</p>
+  </div>
+</aside>
+
+<script src="art.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

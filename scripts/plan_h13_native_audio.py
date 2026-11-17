@@ -103,7 +103,7 @@ def read_prefix(path, pid, microphone, application):
 def signature(row):
     inputs = {role: ({k: value[k] for k in ('id', 'gain_db', 'muted', 'phase', 'issue', 'instance_id')}
                     if value else None) for role, value in row['inputs'].items()}
-    outputs = {target: {k: slot[k] for k in ('attempt_id', 'phase', 'native_busy')}
+    outputs = {target: {k: slot[k] for k in ('attempt_id', 'phase', 'native_busy', 'failure')}
                for target, slot in row['outputs'].items()}
     return json.dumps({'inputs': inputs, 'outputs': outputs, 'other_input_ids': row['other_input_ids']}, sort_keys=True)
 
@@ -187,11 +187,20 @@ def make_plan(rows, guard, minimum):
     for row in rows:
         action = row['last_action']
         transition = row['transition'] or {}
-        key = (action, transition.get('operation_id'), transition.get('phase'))
+        # A native output fault/cancel barrier can change without a new UI
+        # command. Preserve those observations as events in their own right.
+        key = (action, transition.get('operation_id'), transition.get('phase'), signature(row))
         if previous and key != previous[0]:
             before = previous[1]
+            output_changes = []
+            for target, slot in row['outputs'].items():
+                old = {k: before['outputs'][target][k] for k in ('attempt_id','phase','native_busy','failure')}
+                new = {k: slot[k] for k in ('attempt_id','phase','native_busy','failure')}
+                if old != new:
+                    output_changes.append({'target':target,'before':old,'after':new})
             events.append({'observed_interval_monotonic': [before['monotonic'], row['monotonic']],
                 'last_action': action, 'revision': row['revision'], 'transition': transition,
+                'output_changes': output_changes,
                 'outputs': row['outputs'], 'inputs': {role: ({k: v[k] for k in ('id', 'gain_db', 'muted',
                     'phase', 'issue', 'instance_id')} if v else None) for role, v in row['inputs'].items()},
                 'coverage': 'Observed state/action boundary; does not alone establish a GPUI gesture or media event.'})

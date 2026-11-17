@@ -195,17 +195,19 @@ def event_windows(item,plan,observed_rows,bounds,covered,path,directory,commands
         action=event.get('last_action') or ''
         slot=event['outputs'][item['target']]
         app=event['inputs']['application']
-        if (not any(f'· {op} ·' in action for op in operations) or slot['attempt_id']!=item['attempt_id']
+        changes=event.get('output_changes',[])
+        if ((not changes and not any(f'· {op} ·' in action for op in operations)) or slot['attempt_id']!=item['attempt_id']
             or slot['phase']!='active' or not app or app['muted'] or app['phase']!='ready'):
             continue
         transition=event.get('transition') or {}
-        key=(action,transition.get('operation_id'))
+        key=(action,transition.get('operation_id'),json.dumps(changes,sort_keys=True))
         if key in seen:continue
         seen.add(key)
         lo,hi=event['observed_interval_monotonic']
         extension=(transition.get('duration_ms',0)/1000 if '· select_scene ·' in action else 0)
         lo-=2;hi+=2+extension
         entry={'last_action':action,'transition':transition,'observed_interval':event['observed_interval_monotonic'],
+               'output_changes':changes,
                'checks':{},'attribution':'Final mixture continuity only; mixed997 does not independently identify the app path.'}
         results.append(entry)
         if lo<covered[0] or hi>covered[1]:

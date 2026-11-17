@@ -6,11 +6,13 @@ make a newly accepted peer reject a valid frame before its bytes arrive.
 """
 import json,pathlib,socket,time,hashlib
 ROOT=pathlib.Path(__file__).resolve().parents[1]
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 report={'ok':False,'cases':[]}
 try:
     for delay,fragmented in ((0,False),(.03,False),(.1,False),(.2,False),(.03,True),(.1,True)):
         with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as peer:
-            peer.settimeout(2);start=time.monotonic();peer.connect(str(ROOT/'var/run/motive.sock'))
+            peer.settimeout(2);start=time.monotonic();peer.connect(str(VERIFY.socket))
             payload=b'{"origin":"mcp","command":{"op":"status"}}\n';time.sleep(delay)
             if fragmented:
                 peer.sendall(payload[:12]);time.sleep(.05);peer.sendall(payload[12:-1]);time.sleep(.03);peer.sendall(payload[-1:])
@@ -19,7 +21,7 @@ try:
             assert response['ok'] and elapsed<1,response
             report['cases'].append({'delay':delay,'fragmented':fragmented,'elapsed':elapsed,'response':response})
     assert len({x['response']['state']['pid'] for x in report['cases']})==1
-    report['bundle_sha256']=hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+    report['bundle_sha256']=hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
     report['ok']=True
 except BaseException as e:report['error']=repr(e);raise
 finally:(ROOT/'var/evidence/h9-control-delivery.json').write_text(json.dumps(report,indent=2))

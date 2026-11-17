@@ -4,13 +4,15 @@ Uses only the owned window fixture, pattern and tone. Never streams publicly.
 """
 import os,signal
 from h7_support import *
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 c=Client();report={'ok':False};pid=None;a=None;w=None;empty=None;source=None
 
 def reopen(old):
     end=time.monotonic()+12
     while subprocess.run(['ps','-p',str(old)],capture_output=True).returncode==0:
         assert time.monotonic()<end,'Owner did not exit';time.sleep(.1)
-    subprocess.run(['open',str(ROOT/'target/Motive.app')],check=True);time.sleep(2)
+    subprocess.run(['open',str(VERIFY.app_bundle)],check=True);time.sleep(2)
     return c.state()
 try:
     project=setup_owned(c);a=project['graph']['active_scene'];assert len(project['graph']['scenes'])==1
@@ -66,7 +68,7 @@ try:
     assert shutdown['transition']['phase']=='cancelled' and shutdown['project']['graph']['active_scene']==a
     report['shutdown']={'started':second,'pending':pending,'requested':shutdown,'elapsed_command':time.monotonic()-start,'reopened':reopen(second['pid']),'media':media(second['output_path'],1)}
     empty=None;a=c.state()['project']['graph']['active_scene'];report['idle_fade']=idle_fade
-    report['bundle_sha256']=hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+    report['bundle_sha256']=hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
     report['ok']=True
 except BaseException as e:report['error']=repr(e);raise
 finally:

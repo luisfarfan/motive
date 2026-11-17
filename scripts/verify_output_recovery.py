@@ -13,7 +13,9 @@ import subprocess
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXE = ROOT/'target/debug/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+EXE = VERIFY.client_executable
 report = {'ok': False, 'operations': [], 'recordings': []}
 p = subprocess.Popen([str(EXE), 'mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
 

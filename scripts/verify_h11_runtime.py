@@ -31,6 +31,8 @@ import time
 
 from PIL import Image, ImageChops
 from h7_support import Client, EVIDENCE, ROOT, EXE, process_sample, assert_project_format
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 from verify_h10_audio import tonal_amplitude
 from verify_h11_visuals import png, shape_definition, sources
 
@@ -318,7 +320,7 @@ class Harness:
         raise AssertionError('Loopback receiver did not listen')
 
     def snapshot_disk(self):
-        path = ROOT / 'var/project.json'
+        path = VERIFY.data_root / 'project.json'
         assert not path.is_symlink()
         self.disk_snapshot = (path, path.read_bytes() if path.exists() else None,
                               path.stat().st_mode & 0o777 if path.exists() else 0o600)
@@ -851,7 +853,7 @@ def presets(h, _transports, args):
     before_profiles = h.c.call('output_profiles')['store']
     h.disk_touched = True
     saved = h.c.call('save_project')['state']['project']
-    persisted = json.loads((ROOT/'var/project.json').read_text())
+    persisted = json.loads((VERIFY.data_root / 'project.json').read_text())
     (h.directory/f"saved-presets-v{persisted['version']}.json").write_text(json.dumps(persisted, indent=2))
     h.report['persistence'] = {'saved': saved, 'persisted': persisted, 'output_profiles_before': before_profiles, 'presets': selected}
     assert saved == persisted
@@ -879,7 +881,7 @@ def main():
     run.mkdir(parents=True)
     summary = {'ok': False, 'run': str(run), 'arguments': vars(args), 'stages': []}
     try:
-        summary['app_sha256'] = hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+        summary['app_sha256'] = hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
         for name in dict.fromkeys(args.stage or ('animations', 'widgets', 'presets')):
             directory = run/name
             directory.mkdir()

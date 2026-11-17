@@ -12,6 +12,8 @@ import subprocess
 import time
 
 from verify_h10_regressions import ROOT, prepare
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 
 
 def main():
@@ -33,7 +35,7 @@ def main():
     args = parser.parse_args()
     run = ROOT/'var/evidence'/('h11-regressions-'+str(time.time_ns()))
     run.mkdir(parents=True)
-    app = ROOT/'target/Motive.app/Contents/MacOS/motive'
+    app = VERIFY.app_executable
     report = {'ok': False, 'app_sha256': hashlib.sha256(app.read_bytes()).hexdigest(), 'suites': []}
     try:
         suites = []

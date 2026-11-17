@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Bounded official B-frame experiment; preserve defaults, report every PTS gap."""
 from h7_support import *
-c=Client();report={'ok':False,'trials':[],'app_sha256':hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()}
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+c=Client();report={'ok':False,'trials':[],'app_sha256':hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()}
 try:
     project=setup_owned(c)
     for encoder in ('videotoolbox','x264'):

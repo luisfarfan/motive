@@ -4,7 +4,9 @@ Writes only under var; sends streaming traffic only to loopback UDP 19350.
 """
 import json, math, pathlib, statistics, struct, subprocess, time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXE = ROOT / 'target/debug/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+EXE = VERIFY.client_executable
 EVIDENCE = ROOT / 'var/evidence'
 report = {'checks': [], 'samples': []}
 

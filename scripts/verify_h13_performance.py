@@ -40,6 +40,8 @@ from verify_h11_visuals import import_asset
 from verify_h12_performance import Sampler
 from verify_h13_outputs import (APP, ROOT, DEFAULT_VIDEO, TARGETS, Client,
                                 Receiver, check, layer, run, sha, slots, write_json)
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 
 
 class BenchClient(Client):
@@ -300,7 +302,7 @@ class Benchmark:
                 'testsrc2=size=1920x1080:rate=60', '-t', '6', '-c:v', 'libx264', '-preset',
                 'ultrafast', '-crf', '24', '-pix_fmt', 'yuv420p', str(fixture), timeout=180)
             known = {a['id'] for a in self.c.call('list_assets')['result']['assets']}
-            self.inbox = ROOT/'var/imports'/fixture.name
+            self.inbox = VERIFY.data_root/'imports'/fixture.name
             self.asset = import_asset(self.c, fixture)['asset']
             self.owned_asset = self.asset['id'] not in known
             created = self.c.call('create_overlay', scene_id=self.scene, name='H13 owned H11 video',
@@ -314,7 +316,7 @@ class Benchmark:
 
     @staticmethod
     def store_hashes():
-        return {name: sha(ROOT/'var'/name) if (ROOT/'var'/name).exists() else None for name in
+        return {name: sha(VERIFY.data_root/name) if (VERIFY.data_root/name).exists() else None for name in
                 ('project.json', 'audio-mixer.json', 'output-profiles.json')}
 
     def transform(self, layer_id, x, y, width, height, order):

@@ -2,7 +2,9 @@
 """Exercise the real stdio MCP adapter and the running studio's Unix socket."""
 import json,pathlib,subprocess,time
 root=pathlib.Path(__file__).resolve().parents[1]
-exe=str(root/'target/debug/motive')
+from verification_paths import verification_paths
+VERIFY = verification_paths(root)
+exe=str(VERIFY.client_executable)
 def status():
     return json.loads(subprocess.check_output([exe,'ctl','{"op":"status"}'],text=True))['state']
 before=status()

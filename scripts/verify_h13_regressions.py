@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Serial, unchanged-media-gate H1–H12 regression manifest on the H13 bundle.
 
-Requires the caller's existing canonical H13 physical/bundle lock and an idle,
+Requires the caller's existing canonical H13 (portable: H14) physical/bundle lock and an idle,
 disposable pattern/legacy-overlay studio with an empty mixer. This runner does
 not build/sign Motive, change macOS permissions, or take/release another lock.
 The original suites may create their documented owned fixtures and restart the
@@ -34,8 +34,10 @@ import time
 import traceback
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-APP = ROOT/'target/Motive.app/Contents/MacOS/motive'
-CLIENT = ROOT/'target/debug/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+APP = VERIFY.app_executable
+CLIENT = VERIFY.client_executable
 EVIDENCE = ROOT/'var/evidence'
 STORES = ('project.json', 'audio-mixer.json', 'output-profiles.json')
 LEGACY = ('verify_control.py', 'verify_control_delivery.py', 'verify_h1.py',
@@ -167,7 +169,7 @@ def store_snapshot(directory):
     result = {}
     directory.mkdir()
     for name in STORES:
-        path = ROOT/'var'/name
+        path = VERIFY.data_root/name
         check(not path.is_symlink(), 'store must not be a symlink', name=name)
         if not path.exists():
             result[name] = None
@@ -183,7 +185,7 @@ def store_snapshot(directory):
 
 
 def replace_store(name, content, mode=0o600):
-    path = ROOT/'var'/name
+    path = VERIFY.data_root/name
     check(not path.is_symlink(), 'store must not become a symlink', name=name)
     if content is None:
         path.unlink(missing_ok=True)
@@ -209,7 +211,7 @@ def restore_stores(saved):
         if snapshot is not None:
             check(hashlib.sha256(content).hexdigest() == snapshot['sha256'], 'backup bytes unchanged', name=name)
         replace_store(name, content, 0o600 if snapshot is None else snapshot['mode'])
-        path = ROOT/'var'/name
+        path = VERIFY.data_root/name
         check(not path.exists() if snapshot is None else
               digest(path) == snapshot['sha256'] and stat.S_IMODE(path.stat().st_mode) == snapshot['mode'],
               'store bytes/mode restored', name=name)
@@ -249,6 +251,7 @@ def main():
     directory = EVIDENCE/('h13-regressions-'+str(time.time_ns()))
     directory.mkdir(parents=True)
     report = {'ok': False, 'run': str(directory), 'arguments': vars(args), 'suites': [],
+              'verification_paths': VERIFY.manifest(),
               'planned_suites': suites, 'cleanup_errors': [],
               'limits': ['Native GPUI gestures and H12 walkthrough are separate manual gates.',
                          'No physical hot-unplug or simulated permission denial.',
@@ -262,7 +265,7 @@ def main():
         common = common if common.is_absolute() else ROOT/common
         lock = common.resolve().parent/'var/run/physical-test.lock/OWNER'
         lock_owner = lock.read_text()
-        check('H13' in lock_owner and str(ROOT) in lock_owner, 'canonical lock belongs to this H13 worktree')
+        check(VERIFY.lock_matches(lock_owner), 'canonical lock belongs to this verification worktree')
         report['shared_lock'] = {'path': str(lock), 'owner': lock_owner}
         verified = subprocess.run(['codesign', '--verify', '--verbose=2', str(APP.parents[2])],
                                   capture_output=True, text=True, timeout=60)
@@ -285,6 +288,13 @@ def main():
         check(all(source['spec']['kind'] in ('pattern', 'overlay') and source.get('overlay') is None
                   for source in initial['project']['graph']['sources']), 'disposable controlled sources only')
         check(initial['output_configuration']['credential_ref'] is None, 'no existing credential reference')
+        if VERIFY.portable:
+            check(initial['destinations']['selected'] is None
+                  and not initial['destinations']['credential_busy']
+                  and not initial['destinations']['reconciliation_pending'],
+                  'portable regression owner has no selected destination or pending credentials')
+            check(not initial['show_control']['configured'],
+                  'portable regression owner has no configured Show Control session')
         report['initial'], report['devices'] = initial, device_requirements(args, suites)
         profiles = ctl('output_profiles')['store']
         report['initial_profiles'] = profiles

@@ -13,8 +13,10 @@ import subprocess
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXE = ROOT / 'target/debug/motive'
-BUNDLE = ROOT / 'target/Motive.app'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+EXE = VERIFY.client_executable
+BUNDLE = VERIFY.app_bundle
 OUT = ROOT / 'var/evidence/ui/regressions'
 
 
@@ -38,7 +40,7 @@ def restart(name):
     subprocess.run(['open', '-n', '--stdout', str(OUT / (name + '-runtime.log')),
                     '--stderr', str(OUT / (name + '-stderr.log')), str(BUNDLE)], check=True)
     deadline = time.monotonic() + 15
-    while not (ROOT / 'var/run/motive.sock').exists():
+    while not (VERIFY.socket).exists():
         assert time.monotonic() < deadline, 'Control socket did not appear'
         time.sleep(.1)
     ctl('status')

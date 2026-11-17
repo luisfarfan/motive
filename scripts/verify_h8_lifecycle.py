@@ -4,6 +4,8 @@ receiver failure and deferred shutdown. Loopback only; no mock libobs calls.
 """
 import os,select,socket,threading
 from h7_support import *
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 c=Client();report={'ok':False,'cycles':[]};owned=[]
 def silent(hold):
     listener=socket.socket();listener.bind(('127.0.0.1',0));listener.listen();listener.settimeout(8)
@@ -106,7 +108,7 @@ except BaseException as e:report['error']=repr(e);raise
 finally:
     for release,thread in owned:release.set();thread.join(4)
     report['operations']=c.ops;c.close();(EVIDENCE/'h8-lifecycle.json').write_text(json.dumps(report,indent=2))
-    subprocess.run(['open','-a',str(ROOT/'target/Motive.app')],check=True)
+    subprocess.run(['open','-a',str(VERIFY.app_bundle)],check=True)
     # LaunchServices returns before the socket/core exists. Hand off to the next
     # regression only after the real reopened instance answers.
     deadline=time.monotonic()+15

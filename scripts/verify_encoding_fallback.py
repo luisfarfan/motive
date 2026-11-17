@@ -14,8 +14,10 @@ import time
 from h7_support import assert_project_format
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
-EXE=ROOT/'target/debug/motive'
-APP=ROOT/'target/Motive.app'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+EXE=VERIFY.client_executable
+APP=VERIFY.app_bundle
 OUT=ROOT/'var/evidence'
 report={'ok':False,'responses':[]}
 
@@ -52,7 +54,7 @@ def restart(disabled):
     subprocess.run(['open','--env',f'MOTIVE_DISABLE_VIDEOTOOLBOX={int(disabled)}',
                     '--stdout',str(OUT/(name+'.log')),'--stderr',str(OUT/(name+'-stderr.log')),str(APP)],check=True)
     until=time.monotonic()+15
-    while not (ROOT/'var/run/motive.sock').exists():
+    while not (VERIFY.socket).exists():
         assert time.monotonic()<until,'Studio did not start'
         time.sleep(.2)
     opened=state();assert opened['pid']!=s['pid']

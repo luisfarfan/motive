@@ -7,6 +7,8 @@ stay in ignored var/. Production is controlled exclusively by shared commands.
 """
 import argparse, os, signal, socket
 from h7_support import *
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--camera-id',required=True)
@@ -208,13 +210,13 @@ try:
     end=time.monotonic()+10
     while subprocess.run(['ps','-p',str(pid)],capture_output=True).returncode==0:
         assert time.monotonic()<end;time.sleep(.1)
-    subprocess.run(['open',str(ROOT/'target/Motive.app')],check=True);time.sleep(2)
+    subprocess.run(['open',str(VERIFY.app_bundle)],check=True);time.sleep(2)
     restored=c.call('load_project')['state'];assert restored['project']==saved
     assert restored['pid']!=pid and restored['transition_configuration']=={'kind':'cut','duration_ms':0}
     c.wait(lambda s:not s['issues']);report['restore']={'saved':saved,'restored':restored}
     cli=json.loads(subprocess.check_output([str(EXE),'ctl','{"op":"scenes"}']));mcp=c.call('scenes')
     assert cli==mcp;report['cli_mcp_shared']=cli
-    report['bundle_sha256']=hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+    report['bundle_sha256']=hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
     report['checks']=['continuous VT H264/AAC recording and RTMP','Cut has no blended decoded frame','Fade has multiple decoded intermediate colors','same production PID, monotonic encoder frames and unchanged native scene/resource counts','shared physical camera frame counter continues','cold window prepared off-air','unavailable window preserves program and output','busy/idempotent/repeated/cancel/stale-token contracts','CLI/MCP shared revision and state','project v3 save/close/open/load']
     report['ok']=True
 except BaseException as e:report['error']=repr(e);raise

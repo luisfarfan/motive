@@ -16,7 +16,9 @@ import subprocess
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXE = ROOT / 'target/debug/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+EXE = VERIFY.client_executable
 EVIDENCE = ROOT / 'var/evidence'
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--camera-id', required=True)
@@ -107,7 +109,7 @@ def stop():
 
 try:
     deadline = time.monotonic()+10
-    while not (ROOT/'var/run/motive.sock').exists():
+    while not (VERIFY.socket).exists():
         assert time.monotonic() < deadline, 'Open the signed Motive app before testing'
         time.sleep(.25)
     rpc('initialize', {'protocolVersion': '2025-06-18', 'capabilities': {}, 'clientInfo': {'name': 'scene-acceptance', 'version': '1'}})
@@ -216,7 +218,7 @@ try:
     old_pid = state()['pid']
     command('shutdown')
     deadline = time.monotonic()+15
-    while (ROOT/'var/run/motive.sock').exists():
+    while (VERIFY.socket).exists():
         assert time.monotonic() < deadline, 'Core did not close its socket'
         time.sleep(.25)
     while True:
@@ -224,9 +226,9 @@ try:
         except ProcessLookupError: break
         assert time.monotonic() < deadline, 'Native resources did not finish shutting down'
         time.sleep(.25)
-    subprocess.run(['open', str(ROOT/'target/Motive.app')], check=True)
+    subprocess.run(['open', str(VERIFY.app_bundle)], check=True)
     deadline = time.monotonic()+15
-    while not (ROOT/'var/run/motive.sock').exists():
+    while not (VERIFY.socket).exists():
         assert time.monotonic() < deadline, 'Studio did not restart'
         time.sleep(.25)
     restored = command('load_project')['state']

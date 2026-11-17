@@ -4,7 +4,9 @@ stdin, report, fixture files or MCP. Enrollment uses a controlling PTY.
 """
 import os,pty,re,secrets,select,shutil,socket,ssl,threading
 from h7_support import *
-HELPER=ROOT/'target/Motive.app/Contents/MacOS/motive-credentials'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+HELPER=VERIFY.app_bundle / 'Contents/MacOS/motive-credentials'
 c=Client();report={'ok':False};refs=[];dummy_values=[]
 def local(args,answer):
     pid,fd=pty.fork()
@@ -98,7 +100,7 @@ try:
         response=c.call(op,expect=False,**args);assert marker not in json.dumps(response)
     for dummy in dummy_values:
         assert dummy.decode() not in json.dumps(c.ops)
-        for path in [ROOT/'var/project.json',ROOT/'var/output-profiles.json',*EVIDENCE.glob('h8*runtime.log'), EVIDENCE/'encoding-restored.log', EVIDENCE/'encoding-restored-stderr.log']:
+        for path in [VERIFY.data_root / 'project.json',VERIFY.data_root / 'output-profiles.json',*EVIDENCE.glob('h8*runtime.log'), EVIDENCE/'encoding-restored.log', EVIDENCE/'encoding-restored-stderr.log']:
             if path.exists():assert dummy not in path.read_bytes(),str(path)
     report.update({'ok':True,'secret_export_tools':False,'plaintext_files_or_responses':False,'replace_rebind_revoke':True})
 except BaseException as e:report['error']=repr(e);raise

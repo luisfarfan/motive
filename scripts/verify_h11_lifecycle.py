@@ -11,6 +11,8 @@ import subprocess
 import time
 
 from h7_support import Client, EVIDENCE, EXE, ROOT, media, assert_project_format
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 from verify_h11_visuals import fixture_png, import_asset, sources
 
 
@@ -35,7 +37,7 @@ def stop_app(c):
 def launch(run):
     start = time.monotonic()
     subprocess.run(['open', '-n', '--stdout', str(run/'restore.runtime.log'),
-                    '--stderr', str(run/'restore.stderr.log'), str(ROOT/'target/Motive.app')], check=True)
+                    '--stderr', str(run/'restore.stderr.log'), str(VERIFY.app_bundle)], check=True)
     while True:
         state = ctl('status')
         if state['ok']:
@@ -69,16 +71,16 @@ def main():
         assert all(s.get('overlay') is None and s['spec']['kind'] in ('pattern', 'overlay')
                    for s in original['project']['graph']['sources'])
         for name in ('project.json', 'audio-mixer.json', 'output-profiles.json'):
-            path = ROOT/'var'/name
+            path = VERIFY.data_root/name
             saved[name] = path.read_bytes() if path.exists() else None
-        project_path = ROOT/'var/project.json'
+        project_path = VERIFY.data_root / 'project.json'
         fixture = run/('restore-'+run.name+'.png')
         fixture_png(fixture)
         before_assets = {a['id'] for a in c.call('list_assets')['result']['assets']}
         asset = import_asset(c, fixture)['asset']
         if asset['id'] not in before_assets:
             owned_asset = asset['id']
-        asset_path = ROOT/'var/assets'/(asset['id']+'.png')
+        asset_path = VERIFY.data_root/'assets'/(asset['id']+'.png')
         asset_backup = asset_path.read_bytes()
         scene = c.call('create_scene', name='H11 lifecycle')['state']['project']['graph']['active_scene']
         image_id = c.call('create_overlay', scene_id=scene, name='Restored managed image',
@@ -216,7 +218,7 @@ def main():
             if recording:
                 cleanup(c.stop)
             if original:
-                cleanup(lambda: (ROOT/'var/project.json').write_text(json.dumps(original['project'])))
+                cleanup(lambda: (VERIFY.data_root / 'project.json').write_text(json.dumps(original['project'])))
                 cleanup(lambda: c.call('load_project'))
                 for entry in c.state()['audio_mixer']['store']['inputs']:
                     cleanup(lambda: c.call('remove_audio_input', input_id=entry['id']))
@@ -225,12 +227,12 @@ def main():
             report['operations_after_restart'] = c.ops
             cleanup(c.close)
         for name, contents in saved.items():
-            path = ROOT/'var'/name
+            path = VERIFY.data_root/name
             cleanup(lambda: path.write_bytes(contents) if contents is not None else path.unlink(missing_ok=True))
         if errors:
             report['cleanup_errors'] = errors
             report['ok'] = False
-        report['app_sha256'] = hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+        report['app_sha256'] = hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
         (run/'report.json').write_text(json.dumps(report, indent=2))
         print(json.dumps({'ok': report['ok'], 'report': str(run/'report.json')}), flush=True)
     assert report['ok'], report.get('cleanup_errors')

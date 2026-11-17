@@ -391,6 +391,194 @@ permanecen. Si el endpoint inicial era nulo, el loopback queda seleccionado por
 falta de operación para borrarlo; se declara en el informe. Un timeout de
 limpieza no autoriza liberar un slot vivo ni salir forzosamente de Motive.
 
+## Repetición H12 de fuentes creativas en el bundle final H13
+
+El coordinador ejecutó `verify_h12_performance.py` en el binario firmado
+`d9b8d7026e301330d62f2f541af90c1dd245a86f79ad1fd8a35e81b08e0e2d93`.
+Informe preservado:
+`var/evidence/h13-regressions-1794939397028955000/reports/verify_h12_performance.py/h12-performance-1794939548383519000/report.json`
+(SHA-256 `d41937f2faf2d81a3f2e9f1a9e80c7ad9a97c80bdd0285417ddbbd787e01747c`).
+El manifest de esa regresión acredita exit 0, `ok:true` y 154,18 s de suite.
+Esta sección analiza exclusivamente metadata existente; no repite decodes ni
+pruebas físicas.
+
+La app se abrió con PID 72693, canvas **960×540/30**, mixer vacío y salidas idle.
+El archivo propio es un video 1920×1080/30 de 6 s en loop, creado e importado
+antes del muestreo. Las fases usan 0, 1 o 4 fuentes independientes, la UI/preview
+siguen incluidos en CPU/RSS y **no hay encoder de salida activo**. Este ensayo
+no mide cuatro decodificadores junto con producción dual 1080p60.
+
+Medianas de toda cada fase; CPU 100% = un núcleo. Se conservan por separado
+las medianas estables tras 2 s, muestras completas y picos en el JSON:
+
+| Fase | Duración | CPU mediana | RSS mediana | RSS máximo |
+| --- | ---: | ---: | ---: | ---: |
+| 0 videos | 8,10 s | 35,46% | 179,80 MiB | 181,95 MiB |
+| 1 visible | 8,15 s | 43,57% | 303,14 MiB | 322,70 MiB |
+| 1 oculto | 8,19 s | 47,01% | 330,16 MiB | 332,41 MiB |
+| 4 visibles | 8,26 s | 58,57% | 691,91 MiB | 726,75 MiB |
+| 4 ocultos | 8,17 s | 56,18% | 741,28 MiB | 748,14 MiB |
+| 4 después de reemplazar IDs | 8,25 s | 59,79% | 984,95 MiB | 1009,33 MiB |
+| Primera liberación, 0 videos | 8,23 s | 42,26% | 1008,39 MiB | 1010,53 MiB |
+| Reposo final, 0 videos | 20,54 s | 43,28% | 1028,50 MiB | 1033,36 MiB |
+
+Los tres ciclos posteriores dieron medianas activas de
+**1039,11 / 1062,06 / 1046,11 MiB** y después de liberar de
+**1029,13 / 1048,75 / 1031,23 MiB**. El mínimo del reposo final fue
+**996,06 MiB**: no se observó retorno al baseline de 179,80 MiB dentro de esa
+espera. El pico RSS global muestreado fue **1065,80 MiB**. No hay crecimiento
+monótono en los tres ciclos, pero esto no descarta una retención o fuga; tampoco
+identifica al allocator, decoder, libobs o renderer como causa.
+
+Crear el primer video tardó 481,87 ms y los siguientes 37,83–39,38 ms.
+Reemplazar cuatro IDs tardó **472,42 ms**, con pico RSS de **983,63 MiB** en la
+ventana de la operación; el pico posterior de la tabla es distinto. Las
+reaperturas tardaron 472,10–478,11 ms y las liberaciones 29,91–34,24 ms.
+El máximo CPU global observado fue 405,65% en una muestra corta; no es CPU
+sostenida ni una medida exclusiva de la operación de reconcile.
+
+Hubo **cero delta de render lag en las 17 fases**. Los snapshots conservaron
+un hijo creado por fuente de video y `audio_mixers:0`; todos los IDs originales
+se reemplazaron por instancias distintas al reconciliar. En fases ocultas se
+observaron 11–15 posiciones distintas de reproducción por fuente: ocultar
+conservó el reloj y no equivalió a pausar/liberar. Tras restaurar el proyecto
+quedaron cero fuentes video y cero bytes estimados de framebuffer/atlas H11,
+aunque RSS siguió alto. Esos contadores no instrumentan todas las asignaciones
+de decodificadores/GPU. Cancelación y finalización de Scale de 10 s cumplieron
+sus estados/operation IDs; proyecto y assets temporales se limpiaron.
+
+Se recogieron 2844 muestras, **18,66 Hz efectivos**, separación máxima
+57,46 ms. La discrepancia máxima de CPU acumulada frente a `ps TIME` fue
+0,0644 s, dentro del gate de 0,3 s. Los contadores dieron 29,74–29,96 renders/s
+y 28,03–29,13 copias de preview/s en las fases; no son una medición de FPS
+presentados ni de latencia. Picos menores que el intervalo de muestreo pueden
+escapar al instrumento.
+
+### Comparación con H12 y límite del PASS
+
+El informe anterior `h12-performance-1794924031260448000/report.json`, binario
+`ebd94821f51ee4d1236eb1910282d982197cfa857654b851956cb943b72fb9ac`, también usó
+canvas 960×540/30 y el mismo protocolo de fuentes. Sus medianas fueron:
+
+| Fase | H12 CPU / RSS | H13 final CPU / RSS |
+| --- | ---: | ---: |
+| 0 videos | 34,60% / 255,81 MiB | 35,46% / 179,80 MiB |
+| 4 visibles | 64,40% / 633,41 MiB | 58,57% / 691,91 MiB |
+| 4 ocultos | 60,39% / 662,06 MiB | 56,18% / 741,28 MiB |
+| 4 reconciliados | 64,65% / 885,31 MiB | 59,79% / 984,95 MiB |
+| Reposo final tras liberar | 38,35% / 263,08 MiB | 43,28% / 1028,50 MiB |
+
+La retención final es una **diferencia material pendiente de aislar**, no una
+mejora ni estabilidad de memoria acreditada. El reposo H13 supera al H12 en
+765,42 MiB; además, los baselines iniciales son distintos. Son dos ejecuciones
+de builds diferentes, no un A/B intercalado bajo carga externa/condiciones
+térmicas controladas. No atribuir la CPU menor de cuatro videos a una
+optimización ni el RSS mayor a una fuga concreta. El siguiente experimento
+defendible es repetir el mismo protocolo con apps frescas H12/H13 y conservar
+la curva de liberación, sin cambiar a la vez canvas, fuentes, outputs o preview.
+
+`ok:true` cubre invariantes funcionales, animaciones, identidad de fuentes,
+limpieza lógica y checks de muestreo. **La suite no tiene un gate de presupuesto
+RSS**, y su PASS no resuelve esta diferencia. Tampoco el presupuesto estimado
+de texturas de H11 representa todo RSS. Esta repetición cubre visibilidad y
+reconcile/liberación a 540p30 idle; permanecen pendientes sus variantes de
+producción a 1080p60 y la comparación explícita de preview visible/minimizado.
+
+## Probe dirigido de memoria y destrucción de fuentes
+
+`scripts/probe_h13_video_memory.py` se ejecutó una vez, serialmente, con el mismo
+bundle final `d9b8d702…e0e2d93`, owner fresco PID 86471, 540p30, mixer vacío y
+ningún intento de output. Informe:
+`var/evidence/h13-video-memory-1794940705116187000/report.json`.
+Runtime del owner conservado aparte:
+`var/evidence/h13-build/final-memory-runtime.runtime.log`.
+Resultado **`PROBE_COMPLETED_NOT_A_MEMORY_BUDGET_PASS`**, proyecto runtime y
+bytes/permisos del proyecto restaurados, stores de audio/perfiles sin cambios,
+asset/inbox propios eliminados y sin errores de limpieza.
+
+Se generó antes de medir el mismo patrón de video H12: testsrc2 1920×1080/30,
+6 s, H.264 ultrafast CRF24, looping visual sin audio. El protocolo fue
+baseline → cuatro visibles → reemplazar cuatro IDs → restaurar cero y esperar
+20 s, sin fases ocultas, animaciones ni ciclos repetidos. No es una repetición
+equivalente de toda la secuencia H12 de 154 s.
+
+| Fase medida | Duración | CPU mediana | RSS mediana | RSS mínimo–máximo |
+| --- | ---: | ---: | ---: | ---: |
+| Baseline, 0 videos | 8,13 s | 34,93% | 178,41 MiB | 178,31–180,61 MiB |
+| 4 visibles | 8,19 s | 63,59% | 673,55 MiB | 650,73–733,97 MiB |
+| 4 reconciliados | 8,12 s | 61,69% | 1030,91 MiB | 1022,84–1144,63 MiB |
+| Restaurados a 0 | 20,39 s | 36,32% | 1141,38 MiB | 992,03–1150,48 MiB |
+
+Hubo cero lag en las cuatro fases, un hijo por video, audio del video desactivado,
+sin errores de fuente y 12–15 posiciones distintas del reloj por video/fase.
+Reconcile tardó 498,74 ms y restaurar el proyecto 36,74 ms. Las 956 muestras
+incluyen operaciones y fronteras: 18,59 Hz efectivos, separación máxima
+60,77 ms y máximo RSS global 1250,69 MiB. Ese máximo global no se confunde con
+los máximos de fases ni con physical footprint.
+
+### Snapshots comparables de vmmap
+
+Cada `vmmap -summary` se tomó al terminar su fase, fuera de los intervalos
+CPU/RSS de la tabla; duró 1,16 / 0,71 / 1,20 / 0,95 s. Se guardaron stdout,
+stderr, timestamps y estado anterior/posterior. La inspección puede perturbar
+residencia y fases posteriores; no es una medición libre de observador. Las
+unidades **M/G y sus redondeos** siguientes son las impresas por vmmap, no
+conversiones de las medianas MiB anteriores.
+
+| Métrica vmmap | Baseline | 4 visibles | 4 reconciliados | 0 tras 20 s |
+| --- | ---: | ---: | ---: | ---: |
+| Physical footprint | 271,8M | 906,2M | 1,3G | 1,3G |
+| DefaultMallocZone: bytes allocated | 33,5M | 525,8M | 528,8M | 35,4M |
+| DefaultMallocZone: resident | 44,9M | 576,9M | 871,5M | 835,5M |
+| DefaultMallocZone: dirty+swap fragmentation | 11,4M / 26% | 51,1M / 9% | 386,6M / 43% | 852,0M / 97% |
+| Malloc Small (empty): resident | 752K | 9,9M | 178,5M | 709,2M |
+| Malloc Large (empty): resident | 21,0M | 21,0M | 22,1M | 43,3M |
+| Owned unmapped (graphics): resident | 157,1M | 223,2M | 223,2M | 157,5M |
+| IOAccelerator (graphics): resident | 14,6M | 45,2M | 45,2M | 15,6M |
+| IOSurface: resident | 16,6M | 16,6M | 16,6M | 16,6M |
+| __TEXT: resident | 562,0M | 564,8M | 564,8M | 564,8M |
+
+Tras liberar, vmmap también registra 44,2M swapped en `Malloc Small (empty)` y
+146,7M en `Malloc Large (empty)`. La zona malloc vuelve a **35,4M de asignaciones
+activas frente a 33,5M iniciales**, pero conserva mucha memoria residente y
+fragmentación contable. Los recursos etiquetados graphics de la tabla se acercan
+al baseline; no desaparece toda memoria gráfica porque la app/preview siguen
+abiertos. El footprint final elevado muestra que este caso no se explica solo
+por páginas compartidas de código. No sumar categorías de vmmap ni equiparar su
+TOTAL de regiones con `PROC_PIDTASKINFO.resident` o con physical footprint.
+
+La evidencia es **compatible con retención de páginas en zonas malloc después
+de liberar asignaciones**, según la clasificación del instrumento. No prueba
+una fuga de objetos de video ni identifica qué subsistema originó todas esas
+asignaciones. Tampoco permite atribuir a vmmap la diferencia completa: el probe
+anterior sin vmmap ya había observado RSS alto. Sigue faltando un A/B H12/H13
+con idéntico protocolo/observación para atribuir una regresión al cambio de build.
+No se añadió ningún purge, cambio de allocator ni optimización de producto.
+
+### Ownership contrastado con el runtime
+
+El log del probe contiene **8 `ffmpeg_source` creados y 8 destruidos**, más
+8 wrappers `motive_visual` creados/destruidos. Las 23 escenas creadas tienen 22
+destrucciones: permanece la escena original del estudio abierto, además de los
+dos patrones y Cut/Fade esperados. Los cuatro hijos de reemplazo se destruyen
+al restaurar; no esperan a salir del proceso. El ensayo H12 completo en d9b8
+también equilibró 20/20 hijos ffmpeg y 20/20 wrappers.
+
+En OBS 33.0.1, `libobs/obs-source.c:obs_source_destroy_defer` imprime
+`destroyed` **después** de `source->info.destroy`. Para ffmpeg, eso incluye
+`ffmpeg_source_destroy` → `media_playback_destroy` → `mp_media_free`, join del
+hilo decoder y liberación de contexto/paquetes FFmpeg. El log precede la
+liberación restante de caches/texturas async de OBS; no acredita por sí solo
+que toda página haya vuelto al sistema.
+
+La comparación con H12 `6fe6c00` no encontró nuevas referencias retenedoras en
+el alcance revisado: `native/overlays/sources.inc`, `native/scene-switch.inc`
+y Cargo.lock son idénticos; graph/animación añaden escala/capture FPS sin nuevos
+addrefs de videos. La cadena de preview conserva reemplazo de un `Arc<RenderImage>`
+y `drop_image` anteriores; el handle de ventana de lifecycle contiene IDs y es
+Copy, no una colección de frames. Es una revisión acotada, no una demostración
+de ausencia de fugas en toda la app o sus dependencias.
+
 ## Matriz mínima adicional tras este benchmark
 
 H12 ya midió cuatro videos 1080p visibles/ocultos, reemplazo de cuatro IDs y tres
@@ -417,7 +605,9 @@ adicionales acotados antes de ampliar:
    sus guards existentes deben seguir rechazándolo. No hace falta repetir toda
    la matriz H12 ni introducir un nuevo mecanismo de caché para medirlo.
 
-Estas tres filas son propuestas pendientes, no están implementadas por el
-benchmark ni se contabilizan como PASS. Si el benchmark muestra una regresión,
+Estas variantes a 1080p60 y de preview son propuestas pendientes, no están
+implementadas por el benchmark ni se contabilizan como PASS. El control idle
+540p30 de visibilidad/reconcile sí se repitió arriba y expuso retención de RSS.
+Si el benchmark muestra una regresión,
 primero repetir su par bajo condiciones iguales y conservar ambos informes;
 optimizar únicamente después de aislar la causa.

@@ -63,27 +63,27 @@ Ad-hoc rebuilds change the code identity and can require macOS permissions again
 
 ### Make your first recording
 
-1. Start with the built-in pattern, or click **Abrir fuente de prueba** and **Capturar fuente de prueba** for a controlled window.
-2. Use **Elegir ventana**, **Elegir cámara** or **Elegir micrófono** to select a source. Complete any normal macOS permission prompts. Only select content you intend to capture.
-3. Check that the preview is ready and the audio level responds. If Stage Manager hides the selected window, show that window to let capture receive its first frame. **Audio: tono de prueba** supplies an owned 440 Hz test fixture when a physical microphone is unnecessary.
-4. Click **Grabar**, then **Finalizar salida**. Wait for `idle`; recordings are saved under `var/recordings/`.
-5. Switch canvas orientation while idle. **Guardar proyecto** and **Restaurar proyecto** use `var/project.json`.
+1. Start with the built-in pattern. For an owned capture fixture, open **Mi producción → Abrir ventana controlada**, then select it from **Añadir fuente → Ventana**.
+2. Add a window or webcam from **Añadir fuente**. Use the settings icon beside **Audio** to add a physical microphone or **Añadir tono de prueba**. Complete normal macOS permissions and select only content you intend to capture.
+3. Check the live preview, channel peak/RMS and master meters. Gain applies on fader release; **Silenciar** keeps the input meter visible while removing its contribution to the master. If Stage Manager hides a selected window, show it so capture receives its first frame.
+4. Click **Grabar**, then **Finalizar → Confirmar**. Wait for the ready state; recordings are saved under `var/recordings/`. **Preferencias y diagnóstico** shows the last file. **Perfiles de salida** manages the recording/streaming encoding settings.
+5. Switch **16:9 / 9:16** while idle. Use **Mi producción → Guardar proyecto / Restaurar proyecto guardado** for the composition; use **Guardar mixer / Restaurar mixer** in Audio for its separate store.
 
-Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No source is selected automatically at launch. The global Audio Mixer has its own version-1 store (`save_audio_mixer` / `load_audio_mixer`), separate from project v3 and output profiles.
+Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No capture device is selected automatically at launch. The global Audio Mixer has its own version-1 store (`save_audio_mixer` / `load_audio_mixer`), separate from project v3 and output profiles.
 
 Recording defaults to **Apple VideoToolbox hardware H.264** when available, with x264 fallback before output starts. Recording and local RTMP share validated encoder/bitrate/CBR/keyframe/reordering profiles, stored separately from project v3 with explicit save/load. Canvas dimensions and 30 FPS remain fixed. `encoders`, `output_capabilities` and `output_profiles` report the effective configuration; `set_encoder` edits the selected recording profile (also used by RTMP when it selects that profile). See [hardware measurements](docs/videotoolbox-verification.md) and [H7 output verification](docs/h7-output-verification.md) for contracts, reproduction and limits.
 
 ### When a source disappears
 
-The core checks source health once per second, and before commands. Audio Mixer inputs isolate a failed capture and keep the remaining mix/output running until explicit `reconnect_audio_input`; inspect `audio_mixer.issues`. The legacy single-input selector retains the controlled-stop policy described below. A missing window/device, revoked permission or stalled microphone data produces a structured issue. If an output is active, Motive requests a controlled stop and retains the reason. **Reconectar fuentes** retries the selected sources while idle; it never starts recording automatically. A closed window must be opened and selected again.
+The core checks source health once per second, and before commands. Audio Mixer inputs isolate a failed capture and keep the remaining mix/output running until explicit `reconnect_audio_input`; inspect `audio_mixer.issues`. The legacy single-input selector retains the controlled-stop policy described below. A missing window/device, revoked permission or stalled microphone data produces a structured issue. If an output is active, Motive requests a controlled stop and retains the reason. **Reconectar** retries the selected visual sources while idle; it never starts recording automatically. A closed window must be opened and selected again.
 
 Silence is distinct from missing audio packets. Camera health also watches actual incoming frames; a static image is not itself a stall. Recovery is tracked per source, so changing audio cannot acknowledge a failed window. See [scene verification](docs/scene-graph-verification.md) for tested behavior and hardware limits.
 
 ### Build a composition
 
-Use **Añadir fuente** to add a window, webcam, overlay or existing source. Select a layer on the canvas or in the layer list; drag, resize or edit its numeric transform. The eye toggles visibility and the layer menu changes order. Command+Z / Shift+Command+Z undo and redo compatible transform edits; a concurrent CLI/MCP change invalidates that local history. Removing a layer does not implicitly delete its shared source; release unused sources with the shared `remove_source` command.
+Use **Añadir fuente** to add a window, webcam, overlay or existing source. Select a layer on the canvas or in the layer list; drag, resize or edit its numeric transform. The eye toggles visibility and the layer menu changes order. Command+Z / Shift+Command+Z undo and redo compatible transform edits; a concurrent CLI/MCP change invalidates that local history. Removing a layer does not implicitly delete its shared source; release unused sources from **Añadir fuente → Fuentes sin capas** (the shared `remove_source` command).
 
-The native studio has light/dark themes, compact layout, real audio level and explicit capture/output recovery. Gesture previews commit once on release to avoid rebuilding scenes for every pointer event. See [native UI verification and shortcuts](docs/ui-native-verification.md) for evidence and current limits.
+The modular native studio includes scene naming and Cut/Fade controls, reusable visual sources, exact layer editing, output-profile management, loopback RTMP configuration, and H10 channel gain/mute with real stereo peak/RMS meters. Light/dark appearance and safe guides have a separate local preference file. Gesture previews commit once on release; revision guards preserve newer MCP changes. See [UI evolution verification](docs/ui-evolution-verification.md), [architecture and capability map](docs/ui-architecture.md), and [editor shortcuts](docs/ui-native-verification.md).
 
 Geometry, layer order and overlay color can change during recording. Scene selection now supports official OBS **Cut and Fade** during recording/local RTMP, with target preparation, shared capture resources and explicit cancellation. Graph edits wait for the transition to finish; adding/removing capture resources and changing visibility still require a stopped output. Each orientation has its own transforms. The overlay is an original animated graphic with an editable accent color; text, images and advanced effects remain future increments. See [H9 contracts and real verification](docs/h9-scene-transitions-verification.md).
 
@@ -205,9 +205,9 @@ See [H1 verification](docs/h1-verification.md) and [scene-graph verification](do
 
 ## 🗺️ Direction and boundaries
 
-- **Now:** a working scene graph, a simple native editor, explicit recovery and one shared production core.
-- **Next:** direct numeric property editing, tested removable-device recovery and longer recording sessions.
-- **Later:** transitions, richer overlays/effects, a distributable bundle, simultaneous variants and platform streaming.
+- **Now:** native scene editing, Cut/Fade, H10 mixer, output profiles, loopback streaming and explicit recovery through one shared production core.
+- **Next:** approved recording-library and agent-proposal contracts, secure native credential entry, removable-device recovery and longer sessions.
+- **Later:** richer overlays/effects, a distributable bundle, simultaneous variants and authorized platform streaming.
 
 The preview copies new BGRA frames through CPU memory into GPUI; it is not zero-copy. This first editor supports up to 8 scenes, 16 visual sources and 32 layers in a project, with one active canvas and one output. There are no cloud services, payments or marketplace features.
 

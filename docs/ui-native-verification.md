@@ -1,5 +1,8 @@
 # Native studio UI — UI-0 through UI-3
 
+Historical checkpoint (7280c5c). Current UI modules, H10 integration and native
+configuration are documented in [UI evolution verification](ui-evolution-verification.md).
+
 This increment translates the approved Phase 1 studio into GPUI Kit 0.10. It
 starts from H9 (`bd23c63`), with `design/direction.md` as the provisional token
 source. Claude's files, the multimedia engine, project v3 and the CLI/MCP

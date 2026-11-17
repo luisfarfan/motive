@@ -25,3 +25,5 @@ pub fn window_options(cx: &App) -> WindowOptions {
 pub fn init(cx: &mut App) {
     theme::Palette::apply(false, None, cx);
 }
+
+mod preferences;

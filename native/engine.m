@@ -13,12 +13,22 @@
  * OBS owns render/audio/output threads. No GPUI object crosses that boundary. */
 typedef struct visual_source visual_source;
 typedef struct visual_scene visual_scene;
+enum scene_phase { SCENE_IDLE, SCENE_PREPARING, SCENE_RUNNING, SCENE_COMPLETED, SCENE_CANCELLED, SCENE_FAILED };
+typedef struct { atomic_uint_fast64_t stops; } transition_events;
 typedef struct {
     pthread_mutex_t lock;
     uint8_t *pixels;
     uint32_t width, height;
     char audio_id[512];
     visual_source *visuals[16];visual_scene *scenes[8];size_t visual_count,scene_count;
+    obs_source_t *transitions[2];unsigned transition_index;
+    transition_events transition_events[2];uint64_t transition_stop_baseline;
+    enum scene_phase scene_phase;uint64_t scene_operation,visual_instances,scenes_built;
+    char scene_current[64],scene_from[64],scene_target[64],scene_error[64];
+    char *scene_blocked;
+    unsigned scene_kind,scene_duration_ms;float scene_progress;
+    uint64_t scene_prepare_ns,scene_ready_frame;bool scene_needs_warmup,scene_target_held;
+    visual_scene *scene_from_native,*scene_target_native;
     atomic_uint_fast64_t audio_seen_ns, audio_frames;
     atomic_uint audio_peak;
     uint64_t sequence, timestamp;
@@ -271,6 +281,7 @@ void motive_stop_output(motive_engine *e) {
 }
 
 bool motive_variant(motive_engine *e,bool vertical) {
+    if (e->scene_phase==SCENE_PREPARING || e->scene_phase==SCENE_RUNNING) {snprintf(e->error,sizeof(e->error),"TRANSITION_BUSY");return false;}
     if (motive_output_state(e)) { snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY"); return false; }
     if (e->width==(vertical ? 540u:960u) && e->height==(vertical ? 960u:540u)) {
         return true;

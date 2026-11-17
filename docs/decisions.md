@@ -335,3 +335,21 @@ una carrera nativa al trasladar esa espera a un worker. Se descartó el worker:
 No se reinicia automáticamente tras rechazo o desconexión. Ver
 [informe H7](h7-output-verification.md) para evidencia, límites TLS, anotaciones
 MCP y experimentos de B-frames sin alterar silenciosamente la calidad.
+
+## D7 — Transiciones oficiales y escenas nativas retenidas (H9)
+
+Seleccionar escena deja de reconciliar el grafo. Cut/Fade son fuentes oficiales
+OBS conectadas a output 0; reutilizan escenas y recursos existentes, sin reiniciar
+encoder, conexión ni reloj. El propietario prepara el destino fuera de programa,
+balancea activación/referencias y confirma el ID actual tras la señal nativa de
+finalización. Los callbacks solo publican un contador atómico. Audio sigue global
+en canal 1; no hay segundo renderer ni cambios al parche RTMP H8.
+
+Un destino fallido conserva la escena anterior. Cancelar un Fade corta de vuelta;
+destinos distintos mientras está ocupado se rechazan, sin cola implícita.
+Ediciones del grafo esperan a que termine. Configuración de transición es una
+preferencia de sesión separada de proyecto v3 y perfiles v1. La selección Cut
+detenida conserva el recorrido de edición de escenas vacías/frías.
+
+Contratos, evidencia de video/RTMP, carreras de control, límites de readiness y
+siguiente incremento de audio: [verificación H9](h9-scene-transitions-verification.md).

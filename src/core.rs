@@ -3,8 +3,8 @@ pub mod output;
 use crate::{
     engine::Engine,
     scene::{
-        Graph, Layer, Layouts, Recovery, Scene, SourceInput, SourceKind, Transform, VisualSource,
-        valid_name,
+        Graph, Layer, Layouts, Recovery, Scene, SourceInput, SourceKind, Transform,
+        TransitionConfig, TransitionPhase, VisualSource, valid_name,
     },
 };
 use output::{LocalEndpoint, OutputProfile, OutputTarget, ProfileStore};
@@ -48,6 +48,13 @@ impl RecordingEncoder {
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Command {
     Status,
+    Scenes,
+    ConfigureTransition {
+        transition: TransitionConfig,
+    },
+    CancelTransition {
+        operation_id: u64,
+    },
     Devices,
     Encoders,
     OutputCapabilities,
@@ -237,6 +244,8 @@ pub struct Production {
     pub shutdown_requested: bool,
     shutdown_pending: bool,
     pub test_window_request: Option<bool>,
+    transition: TransitionConfig,
+    observed_transition: Option<(u64, TransitionPhase)>,
 }
 pub fn error(code: &str, message: impl ToString) -> Value {
     json!({"ok":false,"error":{"code":code,"message":message.to_string()}})
@@ -270,6 +279,8 @@ impl Production {
             shutdown_requested: false,
             shutdown_pending: false,
             test_window_request: None,
+            transition: TransitionConfig::default(),
+            observed_transition: None,
         };
         p.sync(p.graph().clone(), p.bindings.clone(), "")?;
         Ok(p)
@@ -295,6 +306,7 @@ impl Production {
         json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"encoding":self.encoding_status(),"output_configuration":self.output_configuration(),"issues":self.issues,
             "recovery_required":self.recovery.required(),"recovery_sources":self.recovery.pending,"last_fault":self.last_fault,
             "sources":self.source_health,"window_id":self.window_id,"output":output,"output_code":self.engine.output_code(),
+            "transition_configuration":self.transition,"transition":self.engine.scene_state(),
             "output_lifecycle":{"native_busy":state!=0,"cancel_requested":self.stopping,"cancel_deferred":self.stopping && state==3,"shutdown_pending":self.shutdown_pending},
             "output_failure":output_failure(self.engine.output_code()),"output_path":self.output_path,"last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":30,"stats":self.engine.stats()})
     }
@@ -385,6 +397,21 @@ impl Production {
         result
     }
     pub fn poll_health(&mut self) {
+        self.engine.poll_scene();
+        let transition = self.engine.scene_state();
+        let observed = (transition.operation_id, transition.phase);
+        if self.observed_transition != Some(observed) {
+            self.observed_transition = Some(observed);
+            if self.graph().active_scene != transition.current_scene {
+                self.project.graph.as_mut().unwrap().active_scene = transition.current_scene;
+                self.update_legacy();
+                self.retain_active_recovery();
+            }
+            self.revision += 1;
+            if let Some(error) = transition.error {
+                self.last_action = format!("{error}: se conserva la escena anterior");
+            }
+        }
         self.source_health = self.engine.graph_health();
         let faults = self.faults_from(&self.source_health);
         self.issues = faults.iter().map(|(_, c)| c.clone()).collect();
@@ -430,9 +457,17 @@ impl Production {
         }
     }
     fn idle(&self) -> anyhow::Result<()> {
+        self.scene_quiescent()?;
         anyhow::ensure!(
             self.engine.output_state() == 0,
             "OUTPUT_BUSY: espera la finalización de la salida"
+        );
+        Ok(())
+    }
+    fn scene_quiescent(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !self.engine.scene_state().busy(),
+            "TRANSITION_BUSY: espera o cancela la transición"
         );
         Ok(())
     }
@@ -679,6 +714,13 @@ impl Production {
         Ok(())
     }
     fn graph_command(&mut self, command: Command) -> anyhow::Result<()> {
+        if let Command::SelectScene { scene_id } = &command {
+            self.graph().scene(scene_id)?;
+            // Select existing native scenes; do not reconcile capture resources,
+            // reset video or touch the running output/encoders.
+            return self.engine.switch_scene(scene_id, self.transition);
+        }
+        self.scene_quiescent()?;
         let mut graph = self.graph().clone();
         let mut bindings = self.bindings.clone();
         match command {
@@ -705,11 +747,6 @@ impl Production {
                 if graph.active_scene == scene_id {
                     graph.active_scene = graph.scenes[0].id.clone();
                 }
-            }
-            Command::SelectScene { scene_id } => {
-                self.idle()?;
-                graph.scene(&scene_id)?;
-                graph.active_scene = scene_id;
             }
             Command::AddSource {
                 scene_id,
@@ -817,9 +854,14 @@ impl Production {
             _ => unreachable!(),
         }
         self.sync(graph, bindings, "")?;
+        self.retain_active_recovery();
+        Ok(())
+    }
+    fn retain_active_recovery(&mut self) {
         let relevant: BTreeSet<_> = self
             .graph()
-            .scene(&self.graph().active_scene)?
+            .scene(&self.graph().active_scene)
+            .expect("validated active scene")
             .layers
             .iter()
             .filter(|l| l.layouts.get(self.project.variant).visible)
@@ -828,12 +870,15 @@ impl Production {
         self.recovery
             .pending
             .retain(|id| id == "audio" || id == "output" || relevant.contains(id));
-        Ok(())
     }
     pub fn apply(&mut self, command: Command, origin: &str) -> Value {
         self.poll_health();
         if matches!(command, Command::Status) {
             return json!({"ok":true,"state":self.status()});
+        }
+        if matches!(command, Command::Scenes) {
+            return json!({"ok":true,"revision":self.revision,"scenes":self.graph().scenes,
+                "current_scene":self.graph().active_scene,"configuration":self.transition,"transition":self.engine.scene_state()});
         }
         if matches!(command, Command::Devices) {
             return json!({"ok":true,"devices":self.engine.devices()});
@@ -876,6 +921,14 @@ impl Production {
                 "SHUTDOWN_PENDING: native output must finish before exit"
             );
             match command {
+                Command::ConfigureTransition { transition } => {
+                    self.scene_quiescent()?;
+                    transition.validate()?;
+                    self.transition = transition;
+                }
+                Command::CancelTransition { operation_id } => {
+                    self.engine.cancel_scene(operation_id)?
+                }
                 Command::SetEncoder { encoder } => {
                     self.idle()?;
                     if encoder == RecordingEncoder::Videotoolbox {
@@ -1094,6 +1147,10 @@ impl Production {
                 }
                 Command::CancelOutput | Command::RequestShutdown => {
                     self.shutdown_pending |= matches!(command, Command::RequestShutdown);
+                    if self.shutdown_pending {
+                        self.engine
+                            .cancel_scene(self.engine.scene_state().operation_id)?;
+                    }
                     // Only the existing owner calls libobs. A pending handshake
                     // is left running; poll_health stops after worker completion.
                     self.engine.stop_output();
@@ -1103,6 +1160,7 @@ impl Production {
                     }
                 }
                 Command::SaveProject => {
+                    self.scene_quiescent()?;
                     let path = data_dir().join("project.json");
                     let temp = path.with_extension("json.tmp");
                     let bytes = serde_json::to_vec_pretty(&self.project)?;
@@ -1142,6 +1200,7 @@ impl Production {
                     self.test_window_request = Some(open);
                 }
                 Command::Status
+                | Command::Scenes
                 | Command::Devices
                 | Command::Encoders
                 | Command::OutputCapabilities
@@ -1159,7 +1218,14 @@ impl Production {
                 self.last_action = format!("{origin} · {label} · revisión {}", self.revision);
                 json!({"ok":true,"state":self.status()})
             }
-            Err(e) => command_error(e),
+            Err(e) => {
+                // Failed preparation still has an observable operation/result.
+                self.poll_health();
+                let mut response = command_error(e);
+                response["revision"] = json!(self.revision);
+                response["transition"] = json!(self.engine.scene_state());
+                response
+            }
         }
     }
 }
@@ -1278,6 +1344,10 @@ mod tests {
             r#"{"op":"set_encoder","encoder":"arbitrary_plugin"}"#,
             r#"{"op":"set_encoder","encoder":"x264","path":"/tmp/output"}"#,
             r#"{"op":"encoders","encoder":"x264"}"#,
+            r#"{"op":"configure_transition","transition":{"kind":"fade","duration_ms":500,"queue":true}}"#,
+            r#"{"op":"configure_transition","transition":{"kind":"fade"}}"#,
+            r#"{"op":"cancel_transition","operation_id":-1}"#,
+            r#"{"op":"select_scene","scene_id":"scene-1","duration_ms":500}"#,
             r#"{"op":"add_source","scene_id":"scene-1","name":"Invalid","source":{"kind":"pattern","url":"https://example.invalid"}}"#,
             r#"{"op":"set_transform","scene_id":"scene-1","layer_id":"main-layer","variant":"horizontal","transform":{"x":0,"y":0,"width":960,"height":540,"visible":true,"order":0,"secret":"rejected"}}"#,
         ] {

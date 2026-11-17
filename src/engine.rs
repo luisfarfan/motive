@@ -18,6 +18,15 @@ unsafe extern "C" {
         reconnect: *const c_char,
     ) -> bool;
     fn motive_graph_health(engine: *mut c_void) -> *mut c_char;
+    fn motive_poll_scene(engine: *mut c_void);
+    fn motive_switch_scene(
+        engine: *mut c_void,
+        id: *const c_char,
+        kind: u32,
+        duration: u32,
+    ) -> bool;
+    fn motive_cancel_scene(engine: *mut c_void, operation: u64) -> bool;
+    fn motive_scene_state(engine: *mut c_void) -> *mut c_char;
     fn motive_reset_output(engine: *mut c_void) -> bool;
     fn motive_total_frames() -> u32;
     fn motive_lagged_frames() -> u32;
@@ -111,6 +120,34 @@ impl Engine {
             serde_json::from_slice(unsafe { CStr::from_ptr(raw) }.to_bytes()).unwrap_or_default();
         unsafe { motive_free(raw) };
         value
+    }
+    pub fn poll_scene(&mut self) {
+        unsafe { motive_poll_scene(self.raw) };
+    }
+    pub fn scene_state(&self) -> crate::scene::TransitionState {
+        let raw = unsafe { motive_scene_state(self.raw) };
+        assert!(!raw.is_null(), "native scene state unavailable");
+        let value = serde_json::from_slice(unsafe { CStr::from_ptr(raw) }.to_bytes());
+        unsafe { motive_free(raw) };
+        value.expect("native scene state contract")
+    }
+    pub fn switch_scene(
+        &mut self,
+        id: &str,
+        config: crate::scene::TransitionConfig,
+    ) -> anyhow::Result<()> {
+        config.validate()?;
+        let id = CString::new(id)?;
+        let kind = match config.kind {
+            crate::scene::TransitionKind::Cut => 0,
+            crate::scene::TransitionKind::Fade => 1,
+        };
+        self.checked(unsafe {
+            motive_switch_scene(self.raw, id.as_ptr(), kind, config.duration_ms)
+        })
+    }
+    pub fn cancel_scene(&mut self, operation: u64) -> anyhow::Result<()> {
+        self.checked(unsafe { motive_cancel_scene(self.raw, operation) })
     }
     pub fn reset_output(&mut self) -> anyhow::Result<()> {
         self.checked(unsafe { motive_reset_output(self.raw) })

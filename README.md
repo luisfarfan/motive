@@ -83,7 +83,7 @@ Silence is distinct from missing audio packets. Camera health also watches actua
 
 Use **Añadir ventana**, **Añadir webcam** and **Añadir overlay** in the scene editor. Select a layer to adjust its position, size, visibility and order. **Reutilizar** adds another layer referencing an existing source; **Liberar fuente** releases an unused source and its capture resources. Removing a layer does not implicitly delete a shared source.
 
-Geometry, layer order and overlay color can change during recording. Adding/removing capture resources, changing visibility or switching scenes requires a stopped output in this first editor. Each orientation has its own transforms. The overlay is an original animated graphic with an editable accent color; text, images, effects and transitions are future increments.
+Geometry, layer order and overlay color can change during recording. Scene selection now supports official OBS **Cut and Fade** during recording/local RTMP, with target preparation, shared capture resources and explicit cancellation. Graph edits wait for the transition to finish; adding/removing capture resources and changing visibility still require a stopped output. Each orientation has its own transforms. The overlay is an original animated graphic with an editable accent color; text, images and advanced effects remain future increments. See [H9 contracts and real verification](docs/h9-scene-transitions-verification.md).
 
 ## 🧠 One production, three controls
 
@@ -138,7 +138,7 @@ For an MCP client, use an absolute path to your checkout:
 
 `status` · `devices` · `set_overlay` · `set_variant` · `select_source` · `select_camera` · `select_audio` · `reconnect_sources` · `start_recording` · `stop_output` · `save_project` · `load_project`
 
-`create_scene` · `rename_scene` · `remove_scene` · `select_scene` · `add_source` · `remove_source` · `add_layer` · `remove_layer` · `set_transform` · `set_overlay_color` · `reconnect_source` · `snapshot` · `shutdown` · `set_test_window`
+`scenes` · `configure_transition` · `cancel_transition` · `create_scene` · `rename_scene` · `remove_scene` · `select_scene` · `add_source` · `remove_source` · `add_layer` · `remove_layer` · `set_transform` · `set_overlay_color` · `reconnect_source` · `snapshot` · `shutdown` · `set_test_window`
 
 `encoders` · `set_encoder`
 

@@ -2,6 +2,66 @@ use crate::core::{Variant, WindowIdentity};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
+/// Runtime controls; project v3 continues to describe compositions only.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TransitionKind {
+    #[default]
+    Cut,
+    Fade,
+}
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TransitionConfig {
+    pub kind: TransitionKind,
+    pub duration_ms: u32,
+}
+impl TransitionConfig {
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            match self.kind {
+                TransitionKind::Cut => self.duration_ms == 0,
+                TransitionKind::Fade => (100..=5000).contains(&self.duration_ms),
+            },
+            "INVALID_TRANSITION: Cut requires 0 ms; Fade requires 100–5000 ms"
+        );
+        Ok(())
+    }
+}
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TransitionPhase {
+    Idle,
+    Preparing,
+    Running,
+    Completed,
+    Cancelled,
+    Failed,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TransitionState {
+    pub operation_id: u64,
+    pub phase: TransitionPhase,
+    pub current_scene: String,
+    pub from_scene: Option<String>,
+    pub target_scene: Option<String>,
+    pub kind: TransitionKind,
+    pub duration_ms: u32,
+    pub progress: f32,
+    pub error: Option<String>,
+    pub blocked_sources: Vec<serde_json::Value>,
+    pub source_instances_created: u64,
+    pub scenes_built: u64,
+}
+impl TransitionState {
+    pub fn busy(&self) -> bool {
+        matches!(
+            self.phase,
+            TransitionPhase::Preparing | TransitionPhase::Running
+        )
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Transform {
@@ -274,6 +334,30 @@ impl Recovery {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn transitions_have_bounded_official_semantics() {
+        assert!(TransitionConfig::default().validate().is_ok());
+        for (kind, duration_ms, valid) in [
+            (TransitionKind::Cut, 1, false),
+            (TransitionKind::Fade, 0, false),
+            (TransitionKind::Fade, 99, false),
+            (TransitionKind::Fade, 100, true),
+            (TransitionKind::Fade, 5000, true),
+            (TransitionKind::Fade, 5001, false),
+        ] {
+            assert_eq!(
+                TransitionConfig { kind, duration_ms }.validate().is_ok(),
+                valid
+            );
+        }
+        for value in [
+            serde_json::json!({"kind":"stinger","duration_ms":500}),
+            serde_json::json!({"kind":"fade","duration_ms":-1}),
+            serde_json::json!({"kind":"fade","duration_ms":500,"queue":true}),
+        ] {
+            assert!(serde_json::from_value::<TransitionConfig>(value).is_err());
+        }
+    }
     #[test]
     fn unrelated_audio_cannot_acknowledge_video_failure() {
         let mut r = Recovery::default();

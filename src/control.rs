@@ -70,8 +70,17 @@ impl Server {
             while !shutdown.load(Ordering::Relaxed) {
                 match listener.accept() {
                     Ok((mut stream, _)) => {
-                        let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
-                        let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
+                        // Darwin accepts inherit the listener's nonblocking flag.
+                        // A valid frame may arrive after accept or in fragments;
+                        // use bounded blocking IO on this control worker only.
+                        if stream
+                            .set_nonblocking(false)
+                            .and_then(|_| stream.set_read_timeout(Some(Duration::from_secs(5))))
+                            .and_then(|_| stream.set_write_timeout(Some(Duration::from_secs(5))))
+                            .is_err()
+                        {
+                            continue;
+                        }
                         let result = match read_message(&mut BufReader::new(&stream)) {
                             Ok(Some(value)) => {
                                 let origin = if value["origin"] == "mcp" {
@@ -140,6 +149,7 @@ pub fn send(command: Value, origin: &str) -> Value {
         command["op"].as_str(),
         Some(
             "status"
+                | "scenes"
                 | "devices"
                 | "encoders"
                 | "output_capabilities"
@@ -189,6 +199,7 @@ fn tool(
             | "stop_output"
             | "cancel_output"
             | "request_shutdown"
+            | "cancel_transition"
     );
     let development = matches!(
         name,
@@ -200,6 +211,27 @@ fn tool(
 }
 pub fn tools() -> Vec<Value> {
     let mut result = vec![
+        tool(
+            "scenes",
+            "Escenas, revisión, configuración y transición nativa: preparar/running/completed/cancelled/failed. El progreso sigue el reloj de OBS.",
+            json!({}),
+            &[],
+            true,
+        ),
+        tool(
+            "configure_transition",
+            "Configura Cut (0 ms) o Fade (100–5000 ms). Preferencia de sesión, fuera de proyecto v3. Rechaza cambios durante una transición.",
+            json!({"transition":{"type":"object","properties":{"kind":{"type":"string","enum":["cut","fade"]},"duration_ms":{"type":"integer","minimum":0,"maximum":5000}},"required":["kind","duration_ms"],"additionalProperties":false}}),
+            &["transition"],
+            false,
+        ),
+        tool(
+            "cancel_transition",
+            "Cancela la operación indicada. Preparación conserva programa; Fade en marcha corta a la escena anterior. No altera la salida. Repetir el mismo token finalizado es inocuo; token antiguo se rechaza.",
+            json!({"operation_id":{"type":"integer","minimum":0}}),
+            &["operation_id"],
+            false,
+        ),
         tool(
             "encoders",
             "Encoders H.264 registrados, capacidad hardware y selección efectiva de grabación.",
@@ -428,7 +460,7 @@ pub fn tools() -> Vec<Value> {
         ),
         (
             "select_scene",
-            "Activa una escena mientras idle.",
+            "Cambia de escena durante grabación/RTMP sin reiniciar la salida. Preparación acotada a 8 s; fallo conserva programa. Mismo destino pendiente es idempotente; otro devuelve TRANSITION_BUSY. Consultar scenes/status para resultado. Cut idle permite editar escenas vacías/frías.",
             json!({"scene_id":id}),
             vec!["scene_id"],
         ),

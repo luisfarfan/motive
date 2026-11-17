@@ -16,9 +16,9 @@ static struct obs_source_info watch_info={.id="motive_frame_watch",.type=OBS_SOU
 struct visual_source {
     obs_source_t *source,*watch;
     char id[64],kind[16],device[512];
-    uint32_t window; pid_t owner; uint64_t active_since; bool desired_active;
+    uint32_t window; pid_t owner; uint64_t active_since,instance_id; bool desired_active,warming;
 };
-struct visual_scene { obs_scene_t *scene; char id[64]; };
+struct visual_scene { obs_scene_t *scene; char id[64]; uint32_t visible_mask; };
 static bool visual_equal(visual_source *s,NSDictionary *d) {
     if (!s->source) return false;
     NSString *kind=d[@"spec"][@"kind"];
@@ -80,6 +80,7 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
     } else if (![kind isEqualToString:@"pattern"]) {snprintf(e->error,sizeof(e->error),"INVALID_SOURCE_KIND");goto fail;}
     s->source=obs_source_create_private(type,s->id,settings);obs_data_release(settings);
     if (!s->source) {snprintf(e->error,sizeof(e->error),"SOURCE_CREATE_FAILED");visual_destroy(s);return NULL;}
+    s->instance_id=++e->visual_instances;
     obs_source_set_muted(s->source,true);
     if ([kind isEqualToString:@"camera"]) {
         s->watch=obs_source_create_private("motive_frame_watch","Camera frame monitor",NULL);
@@ -90,13 +91,32 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
 fail:
     obs_data_release(settings);free(s);return NULL;
 }
+static const char *visual_health(visual_source *s) {
+    if(!s->source) return "CAMERA_UNAVAILABLE";
+    if (!strcmp(s->kind,"window")) {
+        if (!CGPreflightScreenCaptureAccess()) return "SCREEN_PERMISSION_DENIED";
+        NSDictionary *w=find_window(s->window);
+        if (!w || [w[@"pid"] intValue]!=s->owner) return "SOURCE_UNAVAILABLE";
+    } else if (!strcmp(s->kind,"camera")) {
+        if ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]!=AVAuthorizationStatusAuthorized) return "CAMERA_PERMISSION_DENIED";
+        if (!find_camera(s->device)) return "CAMERA_UNAVAILABLE";
+        frame_watch *w=obs_obj_get_data(s->watch);uint64_t seen=atomic_load(&w->seen_ns),now=os_gettime_ns();
+        if (now-s->active_since>4000000000ULL && (!seen || now-seen>3000000000ULL)) return "CAMERA_STALLED";
+        if (!seen) return "CAPTURE_NOT_READY";
+    }
+    return obs_source_get_width(s->source) ? "":"CAPTURE_NOT_READY";
+}
+#include "scene-switch.inc"
 static void graph_release(motive_engine *e) {
+    scene_controls_release(e);
     for (size_t i=0;i<e->scene_count;i++) {obs_scene_release(e->scenes[i]->scene);free(e->scenes[i]);}
     for (size_t i=0;i<e->visual_count;i++) visual_destroy(e->visuals[i]);
     e->scene_count=0;e->visual_count=0;
 }
 bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_id) {
     e->error[0]=0;
+    if (scene_busy(e)) {snprintf(e->error,sizeof(e->error),"TRANSITION_BUSY");return false;}
+    if (!scene_controls_init(e)) return false;
     NSDictionary *graph=[NSJSONSerialization JSONObjectWithData:[@(json) dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil];
     NSArray *sources=graph[@"sources"], *scenes=graph[@"scenes"];
     if (!graph || sources.count>16 || scenes.count<1 || scenes.count>8) {snprintf(e->error,sizeof(e->error),"INVALID_GRAPH");return false;}
@@ -109,12 +129,13 @@ bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_i
         if (!s) goto fail;
         next[source_count++]=s;
     }
-    obs_scene_t *active=NULL;
+    visual_scene *active=NULL;
     for (NSDictionary *d in scenes) {
         visual_scene *s=calloc(1,sizeof(*s));snprintf(s->id,sizeof(s->id),"%s",[d[@"id"] UTF8String]);
         s->scene=obs_scene_create_private(s->id);built[scene_count++]=s;
         if (!s->scene) {snprintf(e->error,sizeof(e->error),"SCENE_CREATE_FAILED");goto fail;}
-        if ([d[@"id"] isEqual:graph[@"active_scene"]]) active=s->scene;
+        e->scenes_built++;
+        if ([d[@"id"] isEqual:graph[@"active_scene"]]) active=s;
         NSString *orientation=e->width>e->height ? @"horizontal":@"vertical";
         NSArray *layers=[d[@"layers"] sortedArrayUsingComparator:^NSComparisonResult(NSDictionary *a,NSDictionary *b){
             NSComparisonResult order=[a[@"layouts"][orientation][@"order"] compare:b[@"layouts"][orientation][@"order"]];
@@ -127,8 +148,11 @@ bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_i
             obs_sceneitem_t *item=obs_scene_add(s->scene,source->source);
             if (!item) {snprintf(e->error,sizeof(e->error),"LAYER_CREATE_FAILED");goto fail;}
             NSDictionary *t=layer[@"layouts"][orientation];struct vec2 pos,bounds,scale;
-            if ([d[@"id"] isEqual:graph[@"active_scene"]] && [t[@"visible"] boolValue])
-                for(size_t i=0;i<source_count;i++) if(next[i]==source) enabled[i]=true;
+            if ([t[@"visible"] boolValue])
+                for(size_t i=0;i<source_count;i++) if(next[i]==source) {
+                    s->visible_mask|=1u<<i;
+                    if ([d[@"id"] isEqual:graph[@"active_scene"]]) enabled[i]=true;
+                }
             vec2_set(&pos,[t[@"x"] floatValue],[t[@"y"] floatValue]);vec2_set(&bounds,[t[@"width"] floatValue],[t[@"height"] floatValue]);vec2_set(&scale,1,1);
             obs_sceneitem_defer_update_begin(item);
             obs_sceneitem_set_scale(item,&scale);obs_sceneitem_set_alignment(item,OBS_ALIGN_TOP|OBS_ALIGN_LEFT);
@@ -148,7 +172,7 @@ bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_i
         if(!enabled[i]) next[i]->active_since=0;
         next[i]->desired_active=enabled[i];
     }
-    obs_set_output_source(0,obs_scene_get_source(active));
+    scene_controls_sync(e,active);
     for (size_t i=0;i<e->scene_count;i++) {obs_scene_release(e->scenes[i]->scene);free(e->scenes[i]);}
     for (size_t i=0;i<e->visual_count;i++) if (!reused[i]) visual_destroy(e->visuals[i]);
     memcpy(e->visuals,next,sizeof(next));memcpy(e->scenes,built,sizeof(built));e->visual_count=source_count;e->scene_count=scene_count;
@@ -157,21 +181,6 @@ fail:
     for (size_t i=0;i<scene_count;i++) {if (built[i]->scene) obs_scene_release(built[i]->scene);free(built[i]);}
     for (size_t i=0;i<source_count;i++) {bool old=false;for(size_t j=0;j<e->visual_count;j++) if(next[i]==e->visuals[j]) old=true;if(!old) visual_destroy(next[i]);}
     return false;
-}
-static const char *visual_health(visual_source *s) {
-    if(!s->source) return "CAMERA_UNAVAILABLE";
-    if (!strcmp(s->kind,"window")) {
-        if (!CGPreflightScreenCaptureAccess()) return "SCREEN_PERMISSION_DENIED";
-        NSDictionary *w=find_window(s->window);
-        if (!w || [w[@"pid"] intValue]!=s->owner) return "SOURCE_UNAVAILABLE";
-    } else if (!strcmp(s->kind,"camera")) {
-        if ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]!=AVAuthorizationStatusAuthorized) return "CAMERA_PERMISSION_DENIED";
-        if (!find_camera(s->device)) return "CAMERA_UNAVAILABLE";
-        frame_watch *w=obs_obj_get_data(s->watch);uint64_t seen=atomic_load(&w->seen_ns),now=os_gettime_ns();
-        if (now-s->active_since>4000000000ULL && (!seen || now-seen>3000000000ULL)) return "CAMERA_STALLED";
-        if (!seen) return "CAPTURE_NOT_READY";
-    }
-    return obs_source_get_width(s->source) ? "":"CAPTURE_NOT_READY";
 }
 char *motive_graph_health(motive_engine *e) {
     NSMutableArray *states=[NSMutableArray array];
@@ -183,7 +192,7 @@ char *motive_graph_health(motive_engine *e) {
         frame_watch *w=s->watch ? obs_obj_get_data(s->watch):NULL;uint64_t seen=w ? atomic_load(&w->seen_ns):0;
         uint64_t now=os_gettime_ns();
         [states addObject:@{@"id":@(s->id),@"active":@(active),@"issue":@(issue),
-            @"width":@(s->source ? obs_source_get_width(s->source):0),@"frames":@(w ? atomic_load(&w->frames):0),
+            @"warming":@(s->warming),@"instance_id":@(s->instance_id),@"width":@(s->source ? obs_source_get_width(s->source):0),@"frames":@(w ? atomic_load(&w->frames):0),
             @"frame_age_ms":seen ? @((now-seen)/1000000):[NSNull null]}];
     }
     NSData *data=[NSJSONSerialization dataWithJSONObject:states options:0 error:nil];

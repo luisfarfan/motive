@@ -126,3 +126,11 @@ MCP para documentar operaciones realizadas en GPUI. `verify_h12_performance.py`
 mide CPU/RSS de proceso y mantiene separados los presupuestos estimados. Todas
 las pruebas físicas requieren el lock compartido y un bundle firmado exclusivo.
 No hay Browser Source/CEF, filtros de audio ni reloj multimedia por MCP en H12.
+
+`verify_h12_native_media.py` analiza el recorrido controlado documentado: no envía
+comandos ni captura contenido. Contrasta las revisiones UI con archivos VT/RTMP,
+op IDs, instancias, píxeles, paquetes y PCM. Los resultados y limitaciones de
+muestreo se conservan en el informe. Los formularios generales de escenas/salida
+también usan una revisión: si cambia el núcleo, reabrir el panel y confirmar el
+resultado antes de encadenar otra acción. La UI no debe saltarse esa validación
+ni tratar un click como confirmación del comando.

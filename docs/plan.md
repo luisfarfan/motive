@@ -154,7 +154,7 @@ de composición y recuperación están en
 [scene-graph-verification.md](scene-graph-verification.md); la repetición actual
 sobre H11 y sus fallos quedan en el [informe H11](h11-overlay-verification.md).
 
-## H12 — integración y estabilización en curso
+## H12 — integración funcional verificada
 
 Worktree separado sobre `d2fb22e`. Los cinco grupos de regresión H11 abiertos
 pasan en el baseline integrado exacto, con cámara preparada, sesión desbloqueada
@@ -164,8 +164,12 @@ Detalle y hashes: [H12 verificación](h12-creative-studio-verification.md).
 
 Implementados en GPUI: biblioteca, selector nativo seguro, definición tipada por
 tipo, eventos, presets, Fade/Slide/Scale con op IDs y persistencia existente v4.
-[Contrato de integración](h12-creative-studio-contract.md). El primer flujo nativo
-ya produjo texto creado/editado y animaciones visibles en una grabación VT real;
-la aceptación completa requiere también la producción conjunta y suites del
-bundle final. No se cambia el estado histórico del informe H11 ni se declara
-aceptación mediante tests unitarios. Browser/CEF permanece restringido.
+[Contrato de integración](h12-creative-studio-contract.md). Producción conjunta
+operada desde GPUI y decodificada en grabación VT/RTMP local: texto editado,
+transparencia, video, ventana propia, widgets, animaciones y mixer. Restauración
+v4/mixer y recuperación desde picker verificadas; CPU/RSS de cuatro videos medidos.
+Las 22 suites del bundle final pasan en sus últimas ejecuciones. Se preserva el
+fallo inicial de encoding con 2 lag frames: ABBA posterior pasa con gates intactos,
+pero su causa sigue abierta. No se declara eliminada esa intermitencia ni se
+reescribe el informe histórico H11. Browser/CEF permanece restringido.
+Revisión de tamaños, temas y límites accesibles: [auditoría nativa](h12-native-ui-audit.md).

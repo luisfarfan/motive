@@ -1,8 +1,16 @@
-# H12 — integración creativa (en curso)
+# H12 — integración creativa y verificación
 
 Rama local `codex/h12-creative-studio`, worktree `motive-h12`; base integrada
 `d2fb22e574dcb8d9cccb8b8409fceda93d81fa43`. Sin push, merge ni release.
 La evidencia privada vive en `var/evidence/`; no se publica contenido capturado.
+
+**Resultado al 17 de noviembre de 2026:** integración funcional verificada desde
+GPUI, incluyendo medios reales de grabación y RTMP local. Las 22 suites H1–H11
+tienen PASS en su ejecución más reciente sobre el bundle H12. Se conserva una
+reserva de estabilidad: el primer ABBA final falló con 2 frames de render lag;
+el ABBA completo posterior pasó sin cambios al producto. Su causa sigue sin
+aislarse; no se declara corregida ni se elimina ese fallo. Ver resultados finales,
+matriz de aceptación y [auditoría visual](h12-native-ui-audit.md) al final.
 
 ## Baseline integrado exacto
 
@@ -106,7 +114,7 @@ un hijo FT2 después de editar. ROI fija decodificada: 986/0/1126 píxeles claro
 antes/oculto/editado; 2721 píxeles cambiaron entre los dos textos. Este clip
 contiene silencio AAC: no verifica el mixer ni sustituye la producción conjunta.
 
-**Implementado, pendiente de prueba nativa:** resto de tipos, importación video,
+**Estado al cerrar este incremento, antes del ensayo final:** resto de tipos, importación video,
 controles widgets/presets, cancelación, RTMP conjunto y recuperación desde picker.
 55 tests Rust y Clippy PASS. La revisión visual de este flujo identificó acciones
 al final de formularios largos: el siguiente build mueve Aplicar arriba y pone
@@ -217,7 +225,8 @@ antes de devolver el ensayo. No añade polling ni I/O durante la grabación y
 conserva el gate de cero lag, las duraciones y la decodificación originales.
 La primera batería H12 registró 2 frames de render lag en el tercer ensayo VT;
 el fallo y medios se mantienen en `h11-regressions-1794924688808193000`. No hubo
-frames omitidos por encoder ni drops de salida. Investigación posterior pendiente.
+frames omitidos por encoder ni drops de salida. El resultado de la investigación
+y repetición se conserva en la sección final siguiente.
 
 Para observar un recorrido realizado íntegramente desde GPUI:
 
@@ -230,3 +239,176 @@ configura mixer y controla salidas con los controles nativos. Un receptor FFmpeg
 externo escucha únicamente loopback. El informe debe vincular sus medios con
 las revisiones de origen UI y decodificar píxeles, audio y timestamps; no basta
 con una captura del preview o una respuesta de comando aceptado.
+
+## Bundle final y regresiones
+
+SHA-256 del ejecutable firmado probado:
+`dfbfc6527caa21a45f3eb9cce4a0cf3ed1fe9a7468b9bde56be3e906f8d5126f`.
+Fuente de producto en `93a4cd6`; commits posteriores añaden documentación e
+instrumentos de verificación, sin cambiar ese binario. Manifiestos de fuente,
+scripts, suite e informes en `var/evidence/h12-final/`.
+
+| Grupo | Resultado final | Evidencia |
+| --- | --- | --- |
+| H1–H10, 19 suites | 18 PASS iniciales; encoding PASS en repetición íntegra | `h11-regressions-1794924688808193000/manifest.json` |
+| H11 runtime, visuales con video, lifecycle | 3 PASS, 101,5 / 36,2 / 11,3 s | `h12-regressions-1794925449612917000/manifest.json` |
+| Encoding ABBA, cuatro clips de 60 s | PASS, 251,8 s; cero lag/skips/drops en los cuatro | `h11-regressions-1794925643060010000/manifest.json` |
+| Rust / Clippy / formato | 55 PASS / all-targets `-D warnings` PASS / PASS | build y logs incrementales; sin cambios Rust posteriores |
+| Verificador del medidor | 3 PASS; error real final <2 dB | `meter-statistic-tests.log`, informe H10 final |
+
+El primer ensayo final de encoding **falló**: 2 frames de render lag en el tercer
+clip VideoToolbox, sin frames omitidos por el encoder ni pérdida de salida. Su
+archivo decodifica completo (1819 frames, PTS interior máximo 34 ms y cola 66 ms),
+pero eso **no** satisface el gate de cero lag: libobs puede repetir contenido sin
+romper PTS. `h12-final/encoding-failed-media.json` conserva ese diagnóstico.
+No hay muestras granulares del ensayo original; se añadió su retención al
+verificador antes del ABBA aislado. No cambió el producto, los umbrales ni los
+tiempos. Temperatura/swap observados no establecen causalidad. El resultado
+posterior PASS cierra la ejecución del gate; queda riesgo intermitente sin causa
+demostrada y no una promesa de cero lag en cualquier sesión.
+
+## Producción operada desde GPUI
+
+Se crearon tres escenas, texto UTF-8, PNG transparente, video 1080p de seis
+segundos en loop, los tres presets originales, countdown y alerta. La fuente
+física visual final fue exclusivamente **Motive — Fuente controlada**, una ventana
+propia con contador. Se retiró la cámara antes de grabar. Dos entradas globales:
+micrófono integrado oyendo un WAV propio de 997 Hz y tono libobs de 440 Hz;
+monitoreo desactivado. El video local no aporta audio.
+
+Todas las operaciones de composición, importación, edición, presets, widgets,
+animaciones, mixer, inicio/parada de salidas y persistencia de este recorrido
+proceden de **UI**. La terminal preparó fixtures/receptor, observó estado y analizó
+medios; no controló esos pasos de producción. El receptor escuchó solamente
+`rtmp://127.0.0.1:19412/live/motive`. El cierre de procesos al terminar la prueba
+usó el comando de shutdown del núcleo después de finalizar las salidas.
+
+Trazas pasivas a 4 Hz:
+
+- `h12-native-1794927491610528000/`: creación final, primera grabación y RTMP.
+- `h12-native-1794928693132835000/`: grabación adicional con Fade confirmado.
+- `h12-native-1794925951992544000/`: creación inicial de texto/PNG y diagnóstico
+  del selector. No contiene una salida final.
+
+La primera grabación (`motive-1794927882107801.mkv`, unos 389 s) conserva composición
+completa, edición, alertas, contador, Slide/Fade de texto, Scale y cancelación de
+Scale de 10 s por operation ID #4 a los 4599 ms. El análisis detectó que sus tres
+cambios de escena fueron **Cut**, aunque se había intentado aplicar Fade. El panel
+no dejó esa configuración aplicada; no se acepta el click como prueba. Se conserva
+el fallo en `h12-native-media/report.json`. La protección de revisión de los
+formularios puede rechazar un borrador si el núcleo cambió; este mecanismo existe
+y no basta por sí solo para atribuirle la causa de cada click no aplicado.
+
+Se hizo una toma adicional verificando configuración y finalización reales antes
+de continuar. No se cambió el código ni se rebajó el gate. La reparación de un asset
+entre tomas reconstruyó fuentes y ocultó el lower third: este evento se verifica
+visible en la primera toma y en RTMP, no se atribuye a la toma adicional.
+
+| Métrica decodificada | Grabación adicional | RTMP recibido |
+| --- | --- | --- |
+| Archivo | `var/recordings/motive-1794928698236478.mkv` | `var/evidence/h12-ui/native-rtmp.mkv` |
+| Último PTS video / frames | 138,900 s / 4165 | 104,354 s / 3129 |
+| Encoder / audio | VT hardware H.264 / AAC 48 kHz estéreo | VT hardware H.264 / AAC 48 kHz estéreo |
+| Mayor intervalo PTS interior | 34 ms | 34 ms |
+| Mayor intervalo final, conservado | 133 ms | 67 ms |
+| Mayor intervalo de paquetes AAC | 22 ms | 22 ms |
+| Pico PCM | −26,160 dBFS | −6,079 dBFS |
+| Ganancia tono solicitada / medida | −12 / −11,721 dB | −12 / −11,180 dB |
+| Error RMS mic / tono aislados | +0,178 / +0,012 dB | +0,349 / +0,020 dB |
+| Píxeles cambiados por edición de texto | 15.008 | 10.814 |
+| Píxeles cambiados del countdown | 554 | 392 |
+| Movimiento video / ventana propia | 2464 / 1570 píxeles | 2405 / 1534 píxeles |
+| Lag / skips encoder / drops salida observados | 0 / 0 / 0 | 0 / 0 / 0 |
+
+Informe completo PASS: `var/evidence/h12-native-media-final/report.json`.
+Decodificación completa sin errores; DTS crecientes en ambos streams. Los huecos
+de cola se muestran y cumplen el límite previo de 150 ms; no se anuncian como
+cadencia perfecta. Muestreo de estado a 4 Hz y alineación por `output_frames/30`
+no equivalen a calibración sample-exact de captura/AAC.
+
+Fade de escena se comprueba además en píxeles: una franja fija pasa por luminancia
+intermedia entre ambos extremos. Cada cambio Cut/Fade modifica 12.288 píxeles de
+esa franja; el RMS mínimo por bloques de 100 ms durante transiciones permanece
+por encima de 0,0027, sin huecos de paquetes de audio. Se conserva el tono o el
+micrófono, según el mute vigente. La toma adicional incluye 17,4 s con **ambas
+entradas silenciadas** durante la secuencia de controles; PCM cero coincide con
+esos estados. No se cuenta ese tramo como audio audible continuo ni como corte
+del encoder. RTMP y la primera toma mantienen al menos una entrada activa.
+
+La transparencia decodificada muestra RGB `[13,21,35]` / `[22,123,66]` /
+`[31,223,95]` en las zonas transparente/semitransparente/opaca del PNG. RTMP muestra
+2591 píxeles claros del lower third y 32.555 píxeles cambiados al lanzar la alerta.
+Pause del video deja cero píxeles cambiados en su ROI entre dos segundos de muestra;
+Restart recupera `playing`. Countdown pausa/reanuda desde estado nativo (por
+ejemplo `remaining_ms=51392` durante pausa), sin reloj GPUI. Instancias visuales,
+hijos por overlay y ambas entradas de audio permanecen iguales dentro de cada
+salida. La reconstrucción explícita por recuperación ocurrió con salida detenida.
+
+Scale en la primera toma aumenta los píxeles de acento de 1574 a 2220 y 3180;
+durante Scale out baja a 3002 y cancelar devuelve 3180. Se comprueban los frames
+decodificados además del recibo nativo y se conserva el lower third visible allí.
+
+## Importación, recuperación y persistencia finales
+
+NSOpenPanel entregó el video original al worker #1: `completed`, asset
+`asset-efc472d4b1d258fc5d37612aae2c8e4659d9a5a62e4f54d5895ef05033a14ff9`.
+`h12-ui/native-video-import.json` y captura 05. Antes de ello, el panel había
+quedado en una miniatura de Stage Manager: captura blanca, confirmación sin
+callback y sin operación en el núcleo. Los intentos fallidos se preservan en
+logs; el mismo archivo funcionó cuando el usuario puso el estudio al frente.
+No se modificaron permisos ni Stage Manager. Una conexión SCK de la herramienta
+también devolvió −3811 y se recuperó al renovar la conexión de observación.
+
+Archivo propio inválido: worker #2 `ASSET_FORMAT_UNSUPPORTED`, error visible en
+biblioteca (captura 08), original intacto. Pérdida controlada del PNG normalizado:
+se movió a evidencia, conservando sus bytes; `ASSET_UNAVAILABLE` visible y Grabar
+desactivado (captura 09). Picker reimportó el original, worker #3 restauró el mismo
+ID; reconexión explícita devolvió estado listo. Cero `picked-*` después de ambos
+resultados; catálogos y stores no fueron reemplazados por fixtures de análisis.
+
+`h12-ui/lifecycle/` conserva estados y hashes: Guardar proyecto produce v4;
+Restaurar proyecto desde GPUI conserva exactamente su documento, el mixer y la
+configuración de salida. Restaurar mixer después de silenciar una entrada devuelve
+su store guardado sin cambiar proyecto/perfiles ni IDs de instancias de audio.
+Reapertura de proceso a tamaño compacto arranca sin capturas seleccionadas. Allí
+se creó y editó un círculo (borde blanco de 8 px), sin sobrescribir el proyecto v4
+guardado. Reapertura repetida de proyectos y recuperación de assets también pasan
+las suites H11 lifecycle y el probe de rendimiento descritos arriba.
+
+## Reproducción del análisis nativo
+
+El verificador es específico del fixture de este recorrido (IDs, posiciones y
+etapas descritos arriba), no un generador de producción ni una prueba con mocks.
+Para repetir el recorrido, operar la UI, conservar su traza y pasar los archivos
+resultantes. El archivo inicial que carece de Fade no satisface sus aserciones.
+
+```sh
+var/verify-python/bin/python scripts/verify_h12_native_media.py \
+  --observer var/evidence/h12-native-1794927491610528000/observations.jsonl \
+  --recording-observer var/evidence/h12-native-1794928693132835000/observations.jsonl \
+  --recording var/recordings/motive-1794928698236478.mkv \
+  --scale-recording var/recordings/motive-1794927882107801.mkv \
+  --stream var/evidence/h12-ui/native-rtmp.mkv \
+  --out var/evidence/h12-native-media-recheck
+```
+
+## Matriz de aceptación y límites
+
+| Estado | Alcance |
+| --- | --- |
+| **Verificado** | 22 suites H1–H11 en últimas ejecuciones; cinco grupos originales sobre main exacto; UI creativa/importación/presets/widgets/animaciones; composición real, VT y RTMP local; recuperación PNG; v4 y mixer independientes; CPU/RSS reales y cuatro videos; UI clara/oscura 1440×980 y 1024×780 |
+| **Implementado, sin cobertura nativa exhaustiva** | Todas las combinaciones de fuente/color/alineación/contorno, importación JPEG/WebP/VP8/VP9 desde picker, catálogo de miles de recursos, recorrido completo con VoiceOver; los límites del núcleo sí conservan sus tests |
+| **Bloqueado / fuera del incremento** | RTMPS positivo requiere destino/certificado autorizado ya pendiente en H8; Browser/CEF permanece restringido; no se añade audio de sistema ni de medios |
+| **Fallido conservado** | Encoding inicial con 2 lag frames (causa abierta); RMS antiguo comparaba estadísticas distintas (verificador corregido y repetido); primera toma UI sin Fade (repetida con estado confirmado); bloqueos de observación/picker resueltos con foreground |
+
+Permanecen USB hot-unplug físico, sleep/wake, sesiones de muchas horas y matriz
+de macOS. RSS de tres ciclos no demuestra ausencia formal de fugas. Ocultar
+video no detiene el decoder. No se limpian huérfanos tras crash automáticamente.
+La UI conserva límites visuales/accesibles documentados en la auditoría; no se
+declara conformidad de accesibilidad. Ninguna emisión pública, cambio global,
+merge, push ni release. Procesos de prueba cerrados y lock físico propio liberado.
+
+Índice de entrega con hashes de medios, capturas, informes, scripts y commit:
+`var/evidence/h12-final/delivery-manifest.json`. La evidencia multimedia permanece
+local e ignorada por Git; el código, los verificadores y estos informes sí se
+conservan en commits de la rama H12.

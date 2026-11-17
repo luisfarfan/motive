@@ -27,7 +27,7 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 
 > **Experimental developer preview.** Recording and local loopback streaming work. This is not yet a packaged release or a full replacement for OBS Studio. The current interface is in Spanish; this README is in English.
 
-**Status — November 17, 2026:** H11 adds native overlays and widgets to the shared core and CLI/MCP. Its real-media checks pass; acceptance remains conditional on the open H1–H10 regression checks. GPUI integration uses the [overlay contract](docs/h11-overlay-ui-contract.md) and is separate from this core increment.
+**Status — November 17, 2026:** H12 integrates the creative library, native file picker, typed inspectors, widgets and animations into GPUI. Native editing is verified in VideoToolbox recordings and local RTMP. All 22 H1–H11 suites pass on their latest runs; an earlier two-frame render-lag failure remains documented with its cause unresolved. See the [H12 evidence and limits](docs/h12-creative-studio-verification.md).
 
 ## ✨ What is taking shape
 
@@ -38,7 +38,7 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 | 🎙️ | Global audio mixer | Reusable microphone UIDs + controlled tone, independent gain/mute, peak/RMS and explicit per-input recovery |
 | 🎬 | Local recording | H.264 + AAC in MKV, encoded and muxed by libobs |
 | 🎨 | Scene editor | Multiple scenes and reusable sources; layer position, size, visibility and order; editable original overlays |
-| 🧩 | Overlay engine | Native text, managed images/video, shapes, widgets and original presets; per-layer fade/slide/scale through CLI/MCP |
+| 🧩 | Overlay engine | Native text, managed images/video, shapes, widgets and original presets; per-layer fade/slide/scale through GPUI, CLI and MCP |
 | ↔️ | Canvas variants | Independent landscape/portrait layer layouts at 960 × 540 and 540 × 960, with aspect-preserving fit |
 | 🔌 | Source recovery | Availability checks, controlled output stop and explicit reconnection |
 | 🤖 | Agent control | Local MCP and CLI commands, shared state and structured errors |
@@ -226,14 +226,14 @@ python3 scripts/verify_profiles_restart.py
 
 The integration scripts require the app to be open and idle. `verify.py` also requires the owned test window and normal screen-capture permission. It validates decoded video/audio, source pixels outside the overlay, overlay motion, portrait layout and a loopback receiver. It records for at least 65 seconds.
 
-H11 has 49 passing Rust tests, clean Clippy and 13 decoded clips covering native overlays, recording/RTMP, CLI/MCP and lifecycle. The current regression manifests record 14 distinct suites passing and five still failing: H1 camera content, VideoToolbox lag, window preparation in scenes and two H9 suites. Causes remain under investigation; these results do not close H11 acceptance. Follow [H11 reproduction and evidence](docs/h11-overlay-verification.md), including its local Python requirements and exclusive device/bundle lock. Never run physical suites simultaneously in different worktrees.
+H12 has 55 passing Rust tests, clean Clippy and real native workflows decoded from recording and RTMP. The five open H11 regression groups pass on the exact integrated baseline; all 22 suites also pass on their latest H12 runs. Original failures remain preserved, including an intermittent two-frame render-lag failure before the passing final ABBA run. Follow [H12 reproduction and evidence](docs/h12-creative-studio-verification.md) for hashes, CPU/RSS, media and limits. Historical [H11 evidence](docs/h11-overlay-verification.md) is unchanged. Never run physical suites simultaneously in different worktrees.
 
 See [H1 verification](docs/h1-verification.md) and [scene-graph verification](docs/scene-graph-verification.md) for device tests, recovery behavior, prerequisites and evidence. The output-recovery test deliberately terminates only Motive's own mux helper. Captures, device inventories and runtime logs stay under ignored `var/`; they are not published with this repository.
 
 ## 🗺️ Direction and boundaries
 
-- **Now:** native scene editing, Cut/Fade, H10 mixer, output profiles, loopback streaming and native overlay/widget controls through one shared production core; H11 acceptance remains conditional on open regressions.
-- **Next:** close those regressions, integrate the GPUI overlay contract, define recording-library and agent-proposal contracts, add secure native credential entry, and test removable-device recovery and longer sessions.
+- **Now:** native scene editing, Cut/Fade, H10 mixer, output profiles, loopback streaming and the H12 creative library through one shared production core; measured behavior and remaining stability limits are documented.
+- **Next:** investigate intermittent render lag, improve accessibility and inactive-scene previews, define recording-library and agent-proposal contracts, add secure native credential entry, and test removable-device recovery and longer sessions.
 - **Later:** isolated browser overlays, richer typography/effects, a distributable bundle, simultaneous variants and authorized platform streaming.
 
 The preview copies new BGRA frames through CPU memory into GPUI; it is not zero-copy. The core supports up to 8 scenes, 16 visual sources, 32 layers and 4 video sources, with one active canvas and one output. The 256 MiB visual allocation estimate is not an RSS cap: hidden decoders and resource-replacement peaks still consume memory. There are no cloud services, payments or marketplace features.

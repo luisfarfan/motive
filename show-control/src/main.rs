@@ -27,6 +27,7 @@ fn run(args: &[String]) -> Result<serde_json::Value, Error> {
         [cmd, name] if cmd == "simulate" => json(simulation::scenario(name)?),
         [cmd, name, pack] if cmd == "simulate" => {
             let pack = CreatorPack::from_json(&read(pack, 262144)?)?;
+            simulation::validate_pack_rules(&pack, &simulation::demo_config())?;
             json(simulation::scenario_with_snapshot(
                 name,
                 simulation::pack_snapshot(&pack)?,
@@ -66,9 +67,28 @@ fn run(args: &[String]) -> Result<serde_json::Value, Error> {
                 simulation::fixture_snapshot(),
             )?)
         }
+        [cmd, config, events, pack] if cmd == "run" => {
+            let config = Config::from_json(&read(config, 1048576)?)?;
+            let pack = CreatorPack::from_json(&read(pack, 262144)?)?;
+            simulation::validate_pack_rules(&pack, &config)?;
+            let events = read(events, 1048576)?
+                .lines()
+                .filter(|s| !s.trim().is_empty())
+                .map(Event::from_json)
+                .collect::<Result<Vec<_>, _>>()?;
+            if events.len() > 1000 {
+                return Err(Error::new("LIMIT", "at most 1000 events per run"));
+            }
+            json(simulation::run_events(
+                "custom-pack",
+                config,
+                events,
+                simulation::pack_snapshot(&pack)?,
+            )?)
+        }
         _ => Err(Error::new(
             "USAGE",
-            "motive-show simulate <goal|donation|chat|burst> [pack.json] | example-config | validate-config <path> | validate-event <path> | validate-pack <path> | plan-pack <path> | run <config.json> <events.jsonl> | deck-press <deck.json> <pack.json> <button> [--confirm]",
+            "motive-show simulate <goal|donation|chat|burst> [pack.json] | example-config | validate-config <path> | validate-event <path> | validate-pack <path> | plan-pack <path> | run <config.json> <events.jsonl> [pack.json] | deck-press <deck.json> <pack.json> <button> [--confirm]",
         )),
     }
 }

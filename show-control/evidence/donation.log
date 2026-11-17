@@ -1,0 +1,121 @@
+{
+  "admissions": [
+    {
+      "error": null,
+      "event_id": "donation-1",
+      "jobs": [
+        1
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "at_ms": 0,
+      "code": "QUEUED",
+      "event_id": "donation-1",
+      "rule_id": "donation-alert"
+    }
+  ],
+  "jobs": [
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "community-alert",
+          "type": "widget"
+        },
+        {
+          "text": "Thank you for supporting this local demo. Speech is not synthesized.",
+          "type": "prepare_speech"
+        }
+      ],
+      "busy_policy": "reject",
+      "correlation_id": "donation-1",
+      "cursor": 2,
+      "deadline_ms": 5000,
+      "event_id": "donation-1",
+      "expected": {
+        "pid": 0,
+        "revision": 1
+      },
+      "failure_policy": "stop",
+      "id": 1,
+      "lineage": [
+        "donation-alert"
+      ],
+      "priority": 5,
+      "records": [
+        {
+          "code": null,
+          "index": 0,
+          "operation_id": null,
+          "plan": {
+            "action": {
+              "event": "trigger",
+              "source_id": "community-alert",
+              "type": "widget"
+            },
+            "commands": [
+              {
+                "event": "trigger",
+                "op": "overlay_event",
+                "source_id": "community-alert"
+              }
+            ],
+            "local": false,
+            "requires_completion": true
+          },
+          "stage": "simulated"
+        },
+        {
+          "code": null,
+          "index": 1,
+          "operation_id": null,
+          "plan": {
+            "action": {
+              "text": "Thank you for supporting this local demo. Speech is not synthesized.",
+              "type": "prepare_speech"
+            },
+            "commands": [],
+            "local": true,
+            "requires_completion": false
+          },
+          "stage": "simulated"
+        }
+      ],
+      "rule_id": "donation-alert",
+      "simulated": true,
+      "state": "simulated"
+    }
+  ],
+  "live_commands_sent": 0,
+  "mode": "simulation_only",
+  "planned_dispatches": [
+    {
+      "idempotency_key": "donation-1:1:0",
+      "prepared": {
+        "action": {
+          "event": "trigger",
+          "source_id": "community-alert",
+          "type": "widget"
+        },
+        "commands": [
+          {
+            "event": "trigger",
+            "op": "overlay_event",
+            "source_id": "community-alert"
+          }
+        ],
+        "local": false,
+        "requires_completion": true
+      }
+    }
+  ],
+  "scenario": "donation",
+  "variables": {
+    "goals": {
+      "type": "int",
+      "value": 0
+    }
+  }
+}

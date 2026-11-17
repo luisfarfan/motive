@@ -94,6 +94,67 @@ pub fn pack_snapshot(pack: &CreatorPack) -> Result<ProductionSnapshot, Error> {
     }
     Ok(snapshot)
 }
+/// Resolve declarative rule references offline; never binds symbolic IDs to a real core.
+pub fn validate_pack_rules(pack: &CreatorPack, config: &Config) -> Result<(), Error> {
+    pack.validate()?;
+    config.validate()?;
+    let snapshot = pack_snapshot(pack)?;
+    for id in &pack.rule_ids {
+        let rule = config.rules.iter().find(|r| r.id == *id).ok_or_else(|| {
+            Error::new(
+                "PACK_RULE_MISSING",
+                "declared rule is not in the loaded configuration",
+            )
+        })?;
+        if !pack.events.contains(&rule.event_kind) {
+            return Err(Error::new(
+                "PACK_EVENT_MISSING",
+                "rule uses an undeclared event kind",
+            ));
+        }
+        for action in &rule.actions {
+            for leaf in action.flattened()? {
+                match leaf {
+                    Action::ShowOverlay { source_id }
+                    | Action::HideOverlay { source_id }
+                    | Action::Widget { source_id, .. }
+                    | Action::CountdownStart { source_id }
+                    | Action::CountdownReset { source_id }
+                    | Action::UpdateText { source_id, .. }
+                        if !snapshot.sources.contains_key(&source_id) =>
+                    {
+                        return Err(Error::new(
+                            "PACK_SOURCE_MISSING",
+                            "rule target is absent from the pack",
+                        ));
+                    }
+                    Action::SelectScene { scene_id, .. }
+                        if !snapshot.scenes.contains_key(&scene_id) =>
+                    {
+                        return Err(Error::new(
+                            "PACK_SCENE_MISSING",
+                            "rule target scene is absent from the pack",
+                        ));
+                    }
+                    Action::Animate {
+                        scene_id, layer_id, ..
+                    } if snapshot
+                        .layers
+                        .get(&layer_id)
+                        .is_none_or(|layer| layer.scene_id != scene_id) =>
+                    {
+                        return Err(Error::new(
+                            "PACK_LAYER_MISSING",
+                            "rule target layer is absent from the pack scene",
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    Ok(())
+}
 pub fn fixture_snapshot() -> ProductionSnapshot {
     let mut s = ProductionSnapshot {
         pid: 0,
@@ -527,7 +588,15 @@ pub fn scenario_with_snapshot(name: &str, snapshot: ProductionSnapshot) -> Resul
                 let mut r = rule(
                     id,
                     "manual.button_pressed",
-                    vec![Action::Notify { message: id.into() }],
+                    vec![Action::Widget {
+                        source_id: if id == "urgent" {
+                            "goal-celebration"
+                        } else {
+                            "community-alert"
+                        }
+                        .into(),
+                        event: WidgetEvent::Trigger,
+                    }],
                 );
                 r.priority = p;
                 r.conditions = vec![Condition::Equals {
@@ -563,6 +632,20 @@ pub fn scenario_with_snapshot(name: &str, snapshot: ProductionSnapshot) -> Resul
                     }),
                 }
             }
+            let duplicate = event(
+                "burst-1",
+                Payload::ManualButtonPressed {
+                    button_id: "urgent".into(),
+                },
+            );
+            let error = runtime
+                .submit(duplicate, &trust(), &backend.snapshot())
+                .err();
+            admissions.push(Admission {
+                event_id: "burst-1".into(),
+                jobs: vec![],
+                error,
+            });
             runtime.cancel(1, &mut backend)?;
             for _ in 0..4 {
                 runtime.tick(&mut backend);

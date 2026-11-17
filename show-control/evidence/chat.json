@@ -1,0 +1,145 @@
+{
+  "admissions": [
+    {
+      "error": null,
+      "event_id": "chat-1",
+      "jobs": []
+    },
+    {
+      "error": null,
+      "event_id": "chat-2",
+      "jobs": [
+        1
+      ]
+    },
+    {
+      "error": null,
+      "event_id": "chat-3",
+      "jobs": []
+    }
+  ],
+  "decisions": [
+    {
+      "at_ms": 0,
+      "code": "CONDITIONS_FALSE",
+      "event_id": "chat-1",
+      "rule_id": "brb-authorized"
+    },
+    {
+      "at_ms": 0,
+      "code": "QUEUED",
+      "event_id": "chat-2",
+      "rule_id": "brb-authorized"
+    },
+    {
+      "at_ms": 0,
+      "code": "COOLDOWN",
+      "event_id": "chat-3",
+      "rule_id": "brb-authorized"
+    }
+  ],
+  "jobs": [
+    {
+      "actions": [
+        {
+          "scene_id": "match-brb",
+          "transition": {
+            "duration_ms": 400,
+            "kind": "fade"
+          },
+          "type": "select_scene"
+        }
+      ],
+      "busy_policy": "reject",
+      "correlation_id": "chat-2",
+      "cursor": 1,
+      "deadline_ms": 5000,
+      "event_id": "chat-2",
+      "expected": {
+        "pid": 0,
+        "revision": 1
+      },
+      "failure_policy": "stop",
+      "id": 1,
+      "lineage": [
+        "brb-authorized"
+      ],
+      "priority": 5,
+      "records": [
+        {
+          "code": null,
+          "index": 0,
+          "operation_id": null,
+          "plan": {
+            "action": {
+              "scene_id": "match-brb",
+              "transition": {
+                "duration_ms": 400,
+                "kind": "fade"
+              },
+              "type": "select_scene"
+            },
+            "commands": [
+              {
+                "op": "configure_transition",
+                "transition": {
+                  "duration_ms": 400,
+                  "kind": "fade"
+                }
+              },
+              {
+                "op": "select_scene",
+                "scene_id": "match-brb"
+              }
+            ],
+            "local": false,
+            "requires_completion": true
+          },
+          "stage": "simulated"
+        }
+      ],
+      "rule_id": "brb-authorized",
+      "simulated": true,
+      "state": "simulated"
+    }
+  ],
+  "live_commands_sent": 0,
+  "mode": "simulation_only",
+  "planned_dispatches": [
+    {
+      "idempotency_key": "chat-2:1:0",
+      "prepared": {
+        "action": {
+          "scene_id": "match-brb",
+          "transition": {
+            "duration_ms": 400,
+            "kind": "fade"
+          },
+          "type": "select_scene"
+        },
+        "commands": [
+          {
+            "op": "configure_transition",
+            "transition": {
+              "duration_ms": 400,
+              "kind": "fade"
+            }
+          },
+          {
+            "op": "select_scene",
+            "scene_id": "match-brb"
+          }
+        ],
+        "local": false,
+        "requires_completion": true
+      }
+    }
+  ],
+  "scenario": "chat",
+  "variables": {
+    "goals": {
+      "type": "int",
+      "value": 0
+    }
+  }
+}

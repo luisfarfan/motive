@@ -1,0 +1,134 @@
+{
+  "admissions": [
+    {
+      "error": null,
+      "event_id": "goal-fixture",
+      "jobs": [
+        1
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "at_ms": 0,
+      "code": "QUEUED",
+      "event_id": "goal-fixture",
+      "rule_id": "goal-celebration"
+    }
+  ],
+  "jobs": [
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "goal-celebration",
+          "type": "widget"
+        },
+        {
+          "resource": "stadium-cheer",
+          "type": "sound"
+        },
+        {
+          "amount": 1,
+          "name": "goals",
+          "type": "increment_counter"
+        }
+      ],
+      "busy_policy": "reject",
+      "correlation_id": "goal-fixture",
+      "cursor": 3,
+      "deadline_ms": 5000,
+      "event_id": "goal-fixture",
+      "expected": {
+        "pid": 0,
+        "revision": 1
+      },
+      "failure_policy": "continue_unavailable",
+      "id": 1,
+      "lineage": [
+        "goal-celebration"
+      ],
+      "priority": 5,
+      "records": [
+        {
+          "code": null,
+          "index": 0,
+          "operation_id": null,
+          "plan": {
+            "action": {
+              "event": "trigger",
+              "source_id": "goal-celebration",
+              "type": "widget"
+            },
+            "commands": [
+              {
+                "event": "trigger",
+                "op": "overlay_event",
+                "source_id": "goal-celebration"
+              }
+            ],
+            "local": false,
+            "requires_completion": true
+          },
+          "stage": "simulated"
+        },
+        {
+          "code": "CAPABILITY_UNAVAILABLE",
+          "index": 1,
+          "operation_id": null,
+          "plan": null,
+          "stage": "rejected"
+        },
+        {
+          "code": null,
+          "index": 2,
+          "operation_id": null,
+          "plan": {
+            "action": {
+              "amount": 1,
+              "name": "goals",
+              "type": "increment_counter"
+            },
+            "commands": [],
+            "local": true,
+            "requires_completion": false
+          },
+          "stage": "simulated"
+        }
+      ],
+      "rule_id": "goal-celebration",
+      "simulated": true,
+      "state": "simulated"
+    }
+  ],
+  "live_commands_sent": 0,
+  "mode": "simulation_only",
+  "planned_dispatches": [
+    {
+      "idempotency_key": "goal-fixture:1:0",
+      "prepared": {
+        "action": {
+          "event": "trigger",
+          "source_id": "goal-celebration",
+          "type": "widget"
+        },
+        "commands": [
+          {
+            "event": "trigger",
+            "op": "overlay_event",
+            "source_id": "goal-celebration"
+          }
+        ],
+        "local": false,
+        "requires_completion": true
+      }
+    }
+  ],
+  "scenario": "custom",
+  "variables": {
+    "goals": {
+      "type": "int",
+      "value": 1
+    }
+  }
+}

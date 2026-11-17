@@ -1,0 +1,992 @@
+{
+  "estimated_texture_bytes": 16856640,
+  "executable": false,
+  "limitations": [
+    "Offline proposal only; no Production importer or live acceptance has been implemented.",
+    "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+    "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+    "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+    "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+  ],
+  "pack_id": "matchday",
+  "pack_version": "0.1.0",
+  "requires_idle": true,
+  "schema_version": 1,
+  "steps": [
+    {
+      "name": "01 \u2014 Match Live",
+      "operation": "create_scene",
+      "scene_ref": "match-live"
+    },
+    {
+      "definition": {
+        "border_color": null,
+        "border_width": 0,
+        "color": 465430,
+        "height": 540,
+        "kind": "shape",
+        "opacity": 1.0,
+        "shape": "rectangle",
+        "width": 960
+      },
+      "first_layer_ref": "live-background",
+      "name": "Pitch black",
+      "operation": "create_overlay",
+      "scene_ref": "match-live",
+      "source_ref": "pitch"
+    },
+    {
+      "layer_ref": "live-background",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 540.0,
+        "order": 0,
+        "visible": true,
+        "width": 960.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "live-background",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 960.0,
+        "order": 0,
+        "visible": true,
+        "width": 540.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "border_color": null,
+        "border_width": 0,
+        "color": 14286691,
+        "height": 540,
+        "kind": "shape",
+        "opacity": 1.0,
+        "shape": "rectangle",
+        "width": 8
+      },
+      "first_layer_ref": "live-touchline",
+      "name": "Touchline",
+      "operation": "create_overlay",
+      "scene_ref": "match-live",
+      "source_ref": "touchline"
+    },
+    {
+      "layer_ref": "live-touchline",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 540.0,
+        "order": 1,
+        "visible": true,
+        "width": 8.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "live-touchline",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 960.0,
+        "order": 1,
+        "visible": true,
+        "width": 8.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "border_color": 2114103,
+        "border_width": 2,
+        "color": 465430,
+        "height": 200,
+        "kind": "shape",
+        "opacity": 1.0,
+        "shape": "circle",
+        "width": 200
+      },
+      "first_layer_ref": "live-circle",
+      "name": "Pitch ring",
+      "operation": "create_overlay",
+      "scene_ref": "match-live",
+      "source_ref": "center-circle"
+    },
+    {
+      "layer_ref": "live-circle",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 200.0,
+        "order": 2,
+        "visible": true,
+        "width": 200.0,
+        "x": 740.0,
+        "y": 300.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "live-circle",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 200.0,
+        "order": 2,
+        "visible": true,
+        "width": 200.0,
+        "x": 300.0,
+        "y": 700.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "align": "left",
+        "background": null,
+        "background_opacity": 0.0,
+        "color": 14286691,
+        "font": "Menlo",
+        "height": 48,
+        "kind": "text",
+        "opacity": 1.0,
+        "outline": false,
+        "size": 22,
+        "text": "MATCHDAY  /  FRIENDLY",
+        "width": 560
+      },
+      "first_layer_ref": "live-match-label",
+      "name": "Match label",
+      "operation": "create_overlay",
+      "scene_ref": "match-live",
+      "source_ref": "match-label"
+    },
+    {
+      "layer_ref": "live-match-label",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 48.0,
+        "order": 3,
+        "visible": true,
+        "width": 560.0,
+        "x": 32.0,
+        "y": 24.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "live-match-label",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 42.0,
+        "order": 3,
+        "visible": true,
+        "width": 470.0,
+        "x": 32.0,
+        "y": 32.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "align": "left",
+        "background": null,
+        "background_opacity": 0.0,
+        "color": 15988201,
+        "font": "Menlo",
+        "height": 90,
+        "kind": "text",
+        "opacity": 1.0,
+        "outline": false,
+        "size": 40,
+        "text": "HOME   0 : 0   AWAY",
+        "width": 640
+      },
+      "first_layer_ref": "live-scoreboard",
+      "name": "Editable scoreboard",
+      "operation": "create_overlay",
+      "scene_ref": "match-live",
+      "source_ref": "scoreboard"
+    },
+    {
+      "layer_ref": "live-scoreboard",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 90.0,
+        "order": 4,
+        "visible": true,
+        "width": 640.0,
+        "x": 32.0,
+        "y": 80.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "live-scoreboard",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 67.0,
+        "order": 4,
+        "visible": true,
+        "width": 476.0,
+        "x": 32.0,
+        "y": 90.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 14286691,
+          "background": 730912,
+          "color": 15988201,
+          "duration_ms": 300000,
+          "height": 140,
+          "kind": "countdown",
+          "opacity": 1.0,
+          "subtitle": "",
+          "title": "KICKOFF IN",
+          "width": 360
+        }
+      },
+      "first_layer_ref": "live-clock",
+      "name": "Production countdown",
+      "operation": "create_overlay",
+      "scene_ref": "match-live",
+      "source_ref": "match-clock"
+    },
+    {
+      "layer_ref": "live-clock",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 90.0,
+        "order": 5,
+        "visible": true,
+        "width": 200.0,
+        "x": 728.0,
+        "y": 20.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "live-clock",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 113.0,
+        "order": 5,
+        "visible": true,
+        "width": 290.0,
+        "x": 32.0,
+        "y": 190.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 465430,
+          "background": 14286691,
+          "color": 465430,
+          "duration_ms": 4500,
+          "height": 180,
+          "kind": "alert",
+          "opacity": 1.0,
+          "subtitle": "HOME  /  24\u2032",
+          "title": "GOOOAL!",
+          "width": 720
+        }
+      },
+      "first_layer_ref": "live-goal",
+      "name": "Goal celebration",
+      "operation": "create_overlay",
+      "scene_ref": "match-live",
+      "source_ref": "goal-celebration"
+    },
+    {
+      "layer_ref": "live-goal",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 180.0,
+        "order": 6,
+        "visible": true,
+        "width": 720.0,
+        "x": 120.0,
+        "y": 180.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "live-goal",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 120.0,
+        "order": 6,
+        "visible": true,
+        "width": 480.0,
+        "x": 30.0,
+        "y": 370.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 14286691,
+          "background": 730912,
+          "color": 15988201,
+          "duration_ms": 0,
+          "height": 120,
+          "kind": "lower_third",
+          "opacity": 1.0,
+          "subtitle": "MATCHDAY ANALYSIS",
+          "title": "ALEX RIVERA",
+          "width": 640
+        }
+      },
+      "first_layer_ref": "live-lower-third",
+      "name": "Sport lower third",
+      "operation": "create_overlay",
+      "scene_ref": "match-live",
+      "source_ref": "match-lower-third"
+    },
+    {
+      "layer_ref": "live-lower-third",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 120.0,
+        "order": 7,
+        "visible": true,
+        "width": 640.0,
+        "x": 32.0,
+        "y": 388.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "live-lower-third",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 90.0,
+        "order": 7,
+        "visible": true,
+        "width": 476.0,
+        "x": 32.0,
+        "y": 740.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 14286691,
+          "background": 730912,
+          "color": 15988201,
+          "duration_ms": 5000,
+          "height": 140,
+          "kind": "alert",
+          "opacity": 1.0,
+          "subtitle": "Thanks for backing the local game",
+          "title": "THE STANDS ARE GROWING",
+          "width": 640
+        }
+      },
+      "first_layer_ref": "live-alert",
+      "name": "Community alert",
+      "operation": "create_overlay",
+      "scene_ref": "match-live",
+      "source_ref": "community-alert"
+    },
+    {
+      "layer_ref": "live-alert",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 140.0,
+        "order": 8,
+        "visible": true,
+        "width": 640.0,
+        "x": 32.0,
+        "y": 204.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "live-alert",
+      "operation": "set_transform",
+      "scene_ref": "match-live",
+      "transform": {
+        "height": 104.0,
+        "order": 8,
+        "visible": true,
+        "width": 476.0,
+        "x": 32.0,
+        "y": 530.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "name": "02 \u2014 Starting Soon",
+      "operation": "create_scene",
+      "scene_ref": "match-starting"
+    },
+    {
+      "layer_ref": "start-background",
+      "operation": "add_layer",
+      "scene_ref": "match-starting",
+      "source_ref": "pitch"
+    },
+    {
+      "layer_ref": "start-background",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 540.0,
+        "order": 0,
+        "visible": true,
+        "width": 960.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "start-background",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 960.0,
+        "order": 0,
+        "visible": true,
+        "width": 540.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "layer_ref": "start-touchline",
+      "operation": "add_layer",
+      "scene_ref": "match-starting",
+      "source_ref": "touchline"
+    },
+    {
+      "layer_ref": "start-touchline",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 540.0,
+        "order": 1,
+        "visible": true,
+        "width": 8.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "start-touchline",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 960.0,
+        "order": 1,
+        "visible": true,
+        "width": 8.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "layer_ref": "start-circle",
+      "operation": "add_layer",
+      "scene_ref": "match-starting",
+      "source_ref": "center-circle"
+    },
+    {
+      "layer_ref": "start-circle",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 200.0,
+        "order": 2,
+        "visible": true,
+        "width": 200.0,
+        "x": 740.0,
+        "y": 300.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "start-circle",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 200.0,
+        "order": 2,
+        "visible": true,
+        "width": 200.0,
+        "x": 300.0,
+        "y": 700.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "layer_ref": "start-label",
+      "operation": "add_layer",
+      "scene_ref": "match-starting",
+      "source_ref": "match-label"
+    },
+    {
+      "layer_ref": "start-label",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 48.0,
+        "order": 3,
+        "visible": true,
+        "width": 560.0,
+        "x": 32.0,
+        "y": 24.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "start-label",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 42.0,
+        "order": 3,
+        "visible": true,
+        "width": 476.0,
+        "x": 32.0,
+        "y": 32.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "align": "left",
+        "background": null,
+        "background_opacity": 0.0,
+        "color": 15988201,
+        "font": "Helvetica",
+        "height": 260,
+        "kind": "text",
+        "opacity": 1.0,
+        "outline": false,
+        "size": 92,
+        "text": "THE GAME\nSTARTS HERE.",
+        "width": 840
+      },
+      "first_layer_ref": "start-title",
+      "name": "Starting soon",
+      "operation": "create_overlay",
+      "scene_ref": "match-starting",
+      "source_ref": "starting-title"
+    },
+    {
+      "layer_ref": "start-title",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 260.0,
+        "order": 4,
+        "visible": true,
+        "width": 840.0,
+        "x": 32.0,
+        "y": 100.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "start-title",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 260.0,
+        "order": 4,
+        "visible": true,
+        "width": 476.0,
+        "x": 32.0,
+        "y": 140.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "layer_ref": "start-clock",
+      "operation": "add_layer",
+      "scene_ref": "match-starting",
+      "source_ref": "match-clock"
+    },
+    {
+      "layer_ref": "start-clock",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 140.0,
+        "order": 5,
+        "visible": true,
+        "width": 360.0,
+        "x": 32.0,
+        "y": 370.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "start-clock",
+      "operation": "set_transform",
+      "scene_ref": "match-starting",
+      "transform": {
+        "height": 140.0,
+        "order": 5,
+        "visible": true,
+        "width": 360.0,
+        "x": 32.0,
+        "y": 480.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "name": "03 \u2014 Half-time",
+      "operation": "create_scene",
+      "scene_ref": "match-brb"
+    },
+    {
+      "layer_ref": "brb-background",
+      "operation": "add_layer",
+      "scene_ref": "match-brb",
+      "source_ref": "pitch"
+    },
+    {
+      "layer_ref": "brb-background",
+      "operation": "set_transform",
+      "scene_ref": "match-brb",
+      "transform": {
+        "height": 540.0,
+        "order": 0,
+        "visible": true,
+        "width": 960.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "brb-background",
+      "operation": "set_transform",
+      "scene_ref": "match-brb",
+      "transform": {
+        "height": 960.0,
+        "order": 0,
+        "visible": true,
+        "width": 540.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "layer_ref": "brb-touchline",
+      "operation": "add_layer",
+      "scene_ref": "match-brb",
+      "source_ref": "touchline"
+    },
+    {
+      "layer_ref": "brb-touchline",
+      "operation": "set_transform",
+      "scene_ref": "match-brb",
+      "transform": {
+        "height": 540.0,
+        "order": 1,
+        "visible": true,
+        "width": 8.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "brb-touchline",
+      "operation": "set_transform",
+      "scene_ref": "match-brb",
+      "transform": {
+        "height": 960.0,
+        "order": 1,
+        "visible": true,
+        "width": 8.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "layer_ref": "brb-circle",
+      "operation": "add_layer",
+      "scene_ref": "match-brb",
+      "source_ref": "center-circle"
+    },
+    {
+      "layer_ref": "brb-circle",
+      "operation": "set_transform",
+      "scene_ref": "match-brb",
+      "transform": {
+        "height": 200.0,
+        "order": 2,
+        "visible": true,
+        "width": 200.0,
+        "x": 740.0,
+        "y": 300.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "brb-circle",
+      "operation": "set_transform",
+      "scene_ref": "match-brb",
+      "transform": {
+        "height": 200.0,
+        "order": 2,
+        "visible": true,
+        "width": 200.0,
+        "x": 300.0,
+        "y": 700.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "align": "left",
+        "background": null,
+        "background_opacity": 0.0,
+        "color": 15988201,
+        "font": "Helvetica",
+        "height": 260,
+        "kind": "text",
+        "opacity": 1.0,
+        "outline": false,
+        "size": 92,
+        "text": "HALF-TIME.\nBACK SOON.",
+        "width": 840
+      },
+      "first_layer_ref": "brb-title",
+      "name": "Break title",
+      "operation": "create_overlay",
+      "scene_ref": "match-brb",
+      "source_ref": "brb-title"
+    },
+    {
+      "layer_ref": "brb-title",
+      "operation": "set_transform",
+      "scene_ref": "match-brb",
+      "transform": {
+        "height": 260.0,
+        "order": 3,
+        "visible": true,
+        "width": 840.0,
+        "x": 32.0,
+        "y": 130.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "brb-title",
+      "operation": "set_transform",
+      "scene_ref": "match-brb",
+      "transform": {
+        "height": 260.0,
+        "order": 3,
+        "visible": true,
+        "width": 476.0,
+        "x": 32.0,
+        "y": 260.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "name": "04 \u2014 Full Time",
+      "operation": "create_scene",
+      "scene_ref": "match-ending"
+    },
+    {
+      "layer_ref": "end-background",
+      "operation": "add_layer",
+      "scene_ref": "match-ending",
+      "source_ref": "pitch"
+    },
+    {
+      "layer_ref": "end-background",
+      "operation": "set_transform",
+      "scene_ref": "match-ending",
+      "transform": {
+        "height": 540.0,
+        "order": 0,
+        "visible": true,
+        "width": 960.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "end-background",
+      "operation": "set_transform",
+      "scene_ref": "match-ending",
+      "transform": {
+        "height": 960.0,
+        "order": 0,
+        "visible": true,
+        "width": 540.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "layer_ref": "end-touchline",
+      "operation": "add_layer",
+      "scene_ref": "match-ending",
+      "source_ref": "touchline"
+    },
+    {
+      "layer_ref": "end-touchline",
+      "operation": "set_transform",
+      "scene_ref": "match-ending",
+      "transform": {
+        "height": 540.0,
+        "order": 1,
+        "visible": true,
+        "width": 8.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "end-touchline",
+      "operation": "set_transform",
+      "scene_ref": "match-ending",
+      "transform": {
+        "height": 960.0,
+        "order": 1,
+        "visible": true,
+        "width": 8.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "layer_ref": "end-circle",
+      "operation": "add_layer",
+      "scene_ref": "match-ending",
+      "source_ref": "center-circle"
+    },
+    {
+      "layer_ref": "end-circle",
+      "operation": "set_transform",
+      "scene_ref": "match-ending",
+      "transform": {
+        "height": 200.0,
+        "order": 2,
+        "visible": true,
+        "width": 200.0,
+        "x": 740.0,
+        "y": 300.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "end-circle",
+      "operation": "set_transform",
+      "scene_ref": "match-ending",
+      "transform": {
+        "height": 200.0,
+        "order": 2,
+        "visible": true,
+        "width": 200.0,
+        "x": 300.0,
+        "y": 700.0
+      },
+      "variant": "vertical"
+    },
+    {
+      "definition": {
+        "align": "left",
+        "background": null,
+        "background_opacity": 0.0,
+        "color": 15988201,
+        "font": "Helvetica",
+        "height": 260,
+        "kind": "text",
+        "opacity": 1.0,
+        "outline": false,
+        "size": 82,
+        "text": "FULL TIME.\nGOOD COMPANY.",
+        "width": 900
+      },
+      "first_layer_ref": "end-title",
+      "name": "Ending title",
+      "operation": "create_overlay",
+      "scene_ref": "match-ending",
+      "source_ref": "ending-title"
+    },
+    {
+      "layer_ref": "end-title",
+      "operation": "set_transform",
+      "scene_ref": "match-ending",
+      "transform": {
+        "height": 260.0,
+        "order": 3,
+        "visible": true,
+        "width": 900.0,
+        "x": 32.0,
+        "y": 130.0
+      },
+      "variant": "horizontal"
+    },
+    {
+      "layer_ref": "end-title",
+      "operation": "set_transform",
+      "scene_ref": "match-ending",
+      "transform": {
+        "height": 260.0,
+        "order": 3,
+        "visible": true,
+        "width": 476.0,
+        "x": 32.0,
+        "y": 260.0
+      },
+      "variant": "vertical"
+    }
+  ],
+  "unavailable": []
+}

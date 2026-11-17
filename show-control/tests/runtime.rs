@@ -57,9 +57,28 @@ fn scenarios_are_simulation_with_duplicate_cooldown_and_unsupported_sound_eviden
         burst
             .admissions
             .iter()
-            .filter(|a| a.error.is_some())
+            .filter(|a| a.error.as_ref().is_some_and(|e| e.code == "QUEUE_FULL"))
             .count(),
         4
+    );
+    assert_eq!(
+        burst
+            .admissions
+            .last()
+            .unwrap()
+            .error
+            .as_ref()
+            .unwrap()
+            .code,
+        "DUPLICATE"
+    );
+    assert_eq!(
+        burst
+            .planned_dispatches
+            .iter()
+            .map(|p| p.idempotency_key.as_str())
+            .collect::<Vec<_>>(),
+        vec!["burst-1:2:0", "burst-3:4:0", "burst-2:3:0"]
     );
 }
 #[test]
@@ -388,4 +407,32 @@ fn json_event_cannot_inject_origin_trust_or_native_commands() {
     .unwrap();
     assert!(r.jobs.is_empty());
     assert!(r.planned_dispatches.is_empty());
+}
+
+#[test]
+fn pack_rule_bindings_fail_on_missing_rules_sources_or_event_declarations() {
+    let mut pack = motive_show_control::packs::CreatorPack::from_json(include_str!(
+        "../examples/packs/matchday.json"
+    ))
+    .unwrap();
+    let mut config = demo_config();
+    validate_pack_rules(&pack, &config).unwrap();
+    config.rules.remove(0);
+    assert_eq!(
+        validate_pack_rules(&pack, &config).unwrap_err().code,
+        "PACK_RULE_MISSING"
+    );
+    let mut config = demo_config();
+    config.rules[0].actions = vec![Action::ShowOverlay {
+        source_id: "not-in-pack".into(),
+    }];
+    assert_eq!(
+        validate_pack_rules(&pack, &config).unwrap_err().code,
+        "PACK_SOURCE_MISSING"
+    );
+    pack.events.retain(|s| s != "voice.keyword_detected");
+    assert_eq!(
+        validate_pack_rules(&pack, &demo_config()).unwrap_err().code,
+        "PACK_EVENT_MISSING"
+    );
 }

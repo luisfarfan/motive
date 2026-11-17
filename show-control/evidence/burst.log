@@ -1,0 +1,433 @@
+{
+  "admissions": [
+    {
+      "error": null,
+      "event_id": "burst-0",
+      "jobs": [
+        1
+      ]
+    },
+    {
+      "error": null,
+      "event_id": "burst-1",
+      "jobs": [
+        2
+      ]
+    },
+    {
+      "error": null,
+      "event_id": "burst-2",
+      "jobs": [
+        3
+      ]
+    },
+    {
+      "error": null,
+      "event_id": "burst-3",
+      "jobs": [
+        4
+      ]
+    },
+    {
+      "error": {
+        "code": "QUEUE_FULL",
+        "message": "atomic event admission rejected; queue full"
+      },
+      "event_id": "burst-4",
+      "jobs": []
+    },
+    {
+      "error": {
+        "code": "QUEUE_FULL",
+        "message": "atomic event admission rejected; queue full"
+      },
+      "event_id": "burst-5",
+      "jobs": []
+    },
+    {
+      "error": {
+        "code": "QUEUE_FULL",
+        "message": "atomic event admission rejected; queue full"
+      },
+      "event_id": "burst-6",
+      "jobs": []
+    },
+    {
+      "error": {
+        "code": "QUEUE_FULL",
+        "message": "atomic event admission rejected; queue full"
+      },
+      "event_id": "burst-7",
+      "jobs": []
+    },
+    {
+      "error": {
+        "code": "DUPLICATE",
+        "message": "event already consumed"
+      },
+      "event_id": "burst-1",
+      "jobs": []
+    }
+  ],
+  "decisions": [
+    {
+      "at_ms": 0,
+      "code": "CONDITIONS_FALSE",
+      "event_id": "burst-0",
+      "rule_id": "urgent"
+    },
+    {
+      "at_ms": 0,
+      "code": "QUEUED",
+      "event_id": "burst-0",
+      "rule_id": "normal"
+    },
+    {
+      "at_ms": 0,
+      "code": "CONDITIONS_FALSE",
+      "event_id": "burst-1",
+      "rule_id": "normal"
+    },
+    {
+      "at_ms": 0,
+      "code": "QUEUED",
+      "event_id": "burst-1",
+      "rule_id": "urgent"
+    },
+    {
+      "at_ms": 0,
+      "code": "CONDITIONS_FALSE",
+      "event_id": "burst-2",
+      "rule_id": "urgent"
+    },
+    {
+      "at_ms": 0,
+      "code": "QUEUED",
+      "event_id": "burst-2",
+      "rule_id": "normal"
+    },
+    {
+      "at_ms": 0,
+      "code": "CONDITIONS_FALSE",
+      "event_id": "burst-3",
+      "rule_id": "normal"
+    },
+    {
+      "at_ms": 0,
+      "code": "QUEUED",
+      "event_id": "burst-3",
+      "rule_id": "urgent"
+    },
+    {
+      "at_ms": 0,
+      "code": "CONDITIONS_FALSE",
+      "event_id": "burst-4",
+      "rule_id": "urgent"
+    },
+    {
+      "at_ms": 0,
+      "code": "QUEUE_FULL",
+      "event_id": "burst-4",
+      "rule_id": null
+    },
+    {
+      "at_ms": 0,
+      "code": "CONDITIONS_FALSE",
+      "event_id": "burst-5",
+      "rule_id": "normal"
+    },
+    {
+      "at_ms": 0,
+      "code": "QUEUE_FULL",
+      "event_id": "burst-5",
+      "rule_id": null
+    },
+    {
+      "at_ms": 0,
+      "code": "CONDITIONS_FALSE",
+      "event_id": "burst-6",
+      "rule_id": "urgent"
+    },
+    {
+      "at_ms": 0,
+      "code": "QUEUE_FULL",
+      "event_id": "burst-6",
+      "rule_id": null
+    },
+    {
+      "at_ms": 0,
+      "code": "CONDITIONS_FALSE",
+      "event_id": "burst-7",
+      "rule_id": "normal"
+    },
+    {
+      "at_ms": 0,
+      "code": "QUEUE_FULL",
+      "event_id": "burst-7",
+      "rule_id": null
+    },
+    {
+      "at_ms": 0,
+      "code": "DUPLICATE",
+      "event_id": "burst-1",
+      "rule_id": null
+    },
+    {
+      "at_ms": 0,
+      "code": "CANCEL_REQUESTED",
+      "event_id": "local",
+      "rule_id": null
+    }
+  ],
+  "jobs": [
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "community-alert",
+          "type": "widget"
+        }
+      ],
+      "busy_policy": "reject",
+      "correlation_id": "burst-0",
+      "cursor": 0,
+      "deadline_ms": 5000,
+      "event_id": "burst-0",
+      "expected": {
+        "pid": 0,
+        "revision": 1
+      },
+      "failure_policy": "stop",
+      "id": 1,
+      "lineage": [
+        "normal"
+      ],
+      "priority": 2,
+      "records": [],
+      "rule_id": "normal",
+      "simulated": true,
+      "state": "cancelled"
+    },
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "goal-celebration",
+          "type": "widget"
+        }
+      ],
+      "busy_policy": "reject",
+      "correlation_id": "burst-1",
+      "cursor": 1,
+      "deadline_ms": 5000,
+      "event_id": "burst-1",
+      "expected": {
+        "pid": 0,
+        "revision": 1
+      },
+      "failure_policy": "stop",
+      "id": 2,
+      "lineage": [
+        "urgent"
+      ],
+      "priority": 9,
+      "records": [
+        {
+          "code": null,
+          "index": 0,
+          "operation_id": null,
+          "plan": {
+            "action": {
+              "event": "trigger",
+              "source_id": "goal-celebration",
+              "type": "widget"
+            },
+            "commands": [
+              {
+                "event": "trigger",
+                "op": "overlay_event",
+                "source_id": "goal-celebration"
+              }
+            ],
+            "local": false,
+            "requires_completion": true
+          },
+          "stage": "simulated"
+        }
+      ],
+      "rule_id": "urgent",
+      "simulated": true,
+      "state": "simulated"
+    },
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "community-alert",
+          "type": "widget"
+        }
+      ],
+      "busy_policy": "reject",
+      "correlation_id": "burst-2",
+      "cursor": 1,
+      "deadline_ms": 5000,
+      "event_id": "burst-2",
+      "expected": {
+        "pid": 0,
+        "revision": 1
+      },
+      "failure_policy": "stop",
+      "id": 3,
+      "lineage": [
+        "normal"
+      ],
+      "priority": 2,
+      "records": [
+        {
+          "code": null,
+          "index": 0,
+          "operation_id": null,
+          "plan": {
+            "action": {
+              "event": "trigger",
+              "source_id": "community-alert",
+              "type": "widget"
+            },
+            "commands": [
+              {
+                "event": "trigger",
+                "op": "overlay_event",
+                "source_id": "community-alert"
+              }
+            ],
+            "local": false,
+            "requires_completion": true
+          },
+          "stage": "simulated"
+        }
+      ],
+      "rule_id": "normal",
+      "simulated": true,
+      "state": "simulated"
+    },
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "goal-celebration",
+          "type": "widget"
+        }
+      ],
+      "busy_policy": "reject",
+      "correlation_id": "burst-3",
+      "cursor": 1,
+      "deadline_ms": 5000,
+      "event_id": "burst-3",
+      "expected": {
+        "pid": 0,
+        "revision": 1
+      },
+      "failure_policy": "stop",
+      "id": 4,
+      "lineage": [
+        "urgent"
+      ],
+      "priority": 9,
+      "records": [
+        {
+          "code": null,
+          "index": 0,
+          "operation_id": null,
+          "plan": {
+            "action": {
+              "event": "trigger",
+              "source_id": "goal-celebration",
+              "type": "widget"
+            },
+            "commands": [
+              {
+                "event": "trigger",
+                "op": "overlay_event",
+                "source_id": "goal-celebration"
+              }
+            ],
+            "local": false,
+            "requires_completion": true
+          },
+          "stage": "simulated"
+        }
+      ],
+      "rule_id": "urgent",
+      "simulated": true,
+      "state": "simulated"
+    }
+  ],
+  "live_commands_sent": 0,
+  "mode": "simulation_only",
+  "planned_dispatches": [
+    {
+      "idempotency_key": "burst-1:2:0",
+      "prepared": {
+        "action": {
+          "event": "trigger",
+          "source_id": "goal-celebration",
+          "type": "widget"
+        },
+        "commands": [
+          {
+            "event": "trigger",
+            "op": "overlay_event",
+            "source_id": "goal-celebration"
+          }
+        ],
+        "local": false,
+        "requires_completion": true
+      }
+    },
+    {
+      "idempotency_key": "burst-3:4:0",
+      "prepared": {
+        "action": {
+          "event": "trigger",
+          "source_id": "goal-celebration",
+          "type": "widget"
+        },
+        "commands": [
+          {
+            "event": "trigger",
+            "op": "overlay_event",
+            "source_id": "goal-celebration"
+          }
+        ],
+        "local": false,
+        "requires_completion": true
+      }
+    },
+    {
+      "idempotency_key": "burst-2:3:0",
+      "prepared": {
+        "action": {
+          "event": "trigger",
+          "source_id": "community-alert",
+          "type": "widget"
+        },
+        "commands": [
+          {
+            "event": "trigger",
+            "op": "overlay_event",
+            "source_id": "community-alert"
+          }
+        ],
+        "local": false,
+        "requires_completion": true
+      }
+    }
+  ],
+  "scenario": "burst",
+  "variables": {
+    "goals": {
+      "type": "int",
+      "value": 0
+    }
+  }
+}

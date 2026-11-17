@@ -1,0 +1,137 @@
+{
+  "history": [
+    {
+      "button_id": "community",
+      "request_id": 1,
+      "state": {
+        "request_id": 1,
+        "state": "pending"
+      },
+      "timestamp_ms": 0
+    },
+    {
+      "button_id": "community",
+      "request_id": 1,
+      "state": {
+        "state": "simulated"
+      },
+      "timestamp_ms": 1
+    }
+  ],
+  "press": {
+    "button_id": "community",
+    "event_kind": "manual.button_pressed",
+    "request_id": 1,
+    "simulated": true,
+    "target": {
+      "kind": "rule",
+      "rule_id": "deck-community"
+    }
+  },
+  "simulation": {
+    "admissions": [
+      {
+        "error": null,
+        "event_id": "deck-1",
+        "jobs": [
+          1
+        ]
+      }
+    ],
+    "decisions": [
+      {
+        "at_ms": 0,
+        "code": "QUEUED",
+        "event_id": "deck-1",
+        "rule_id": "deck-community"
+      }
+    ],
+    "jobs": [
+      {
+        "actions": [
+          {
+            "event": "trigger",
+            "source_id": "community-alert",
+            "type": "widget"
+          }
+        ],
+        "busy_policy": "reject",
+        "correlation_id": "deck-1",
+        "cursor": 1,
+        "deadline_ms": 5000,
+        "event_id": "deck-1",
+        "expected": {
+          "pid": 0,
+          "revision": 1
+        },
+        "failure_policy": "stop",
+        "id": 1,
+        "lineage": [
+          "deck-community"
+        ],
+        "priority": 5,
+        "records": [
+          {
+            "code": null,
+            "index": 0,
+            "operation_id": null,
+            "plan": {
+              "action": {
+                "event": "trigger",
+                "source_id": "community-alert",
+                "type": "widget"
+              },
+              "commands": [
+                {
+                  "event": "trigger",
+                  "op": "overlay_event",
+                  "source_id": "community-alert"
+                }
+              ],
+              "local": false,
+              "requires_completion": true
+            },
+            "stage": "simulated"
+          }
+        ],
+        "rule_id": "deck-community",
+        "simulated": true,
+        "state": "simulated"
+      }
+    ],
+    "live_commands_sent": 0,
+    "mode": "simulation_only",
+    "planned_dispatches": [
+      {
+        "idempotency_key": "deck-1:1:0",
+        "prepared": {
+          "action": {
+            "event": "trigger",
+            "source_id": "community-alert",
+            "type": "widget"
+          },
+          "commands": [
+            {
+              "event": "trigger",
+              "op": "overlay_event",
+              "source_id": "community-alert"
+            }
+          ],
+          "local": false,
+          "requires_completion": true
+        }
+      }
+    ],
+    "scenario": "deck",
+    "variables": {
+      "goals": {
+        "type": "int",
+        "value": 0
+      }
+    }
+  },
+  "state": {
+    "remaining_ms": 2999,
+    "state": "cooling_down"
+  }
+}

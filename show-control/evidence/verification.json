@@ -1,0 +1,401 @@
+{
+  "schema_version": 1,
+  "scope": "independent_simulation_only",
+  "started_utc": "2026-11-17T17:13:10.311411+00:00",
+  "core_baseline": "b52d135",
+  "native_tests_executed": false,
+  "live_commands_sent": 0,
+  "tests_passed": 93,
+  "checks": [
+    {
+      "name": "tests",
+      "command": [
+        "cargo",
+        "test",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 3.559
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.681
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.083
+    },
+    {
+      "name": "build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.086
+    },
+    {
+      "name": "goal",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "simulate",
+        "goal",
+        "examples/packs/matchday.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.188
+    },
+    {
+      "name": "donation",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "simulate",
+        "donation",
+        "examples/packs/matchday.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.005
+    },
+    {
+      "name": "chat",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "simulate",
+        "chat",
+        "examples/packs/matchday.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.005
+    },
+    {
+      "name": "burst",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "simulate",
+        "burst"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "pack-matchday",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "plan-pack",
+        "examples/packs/matchday.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "pack-creator-tech",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "plan-pack",
+        "examples/packs/creator-tech.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.003
+    },
+    {
+      "name": "pack-neon-arena",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "plan-pack",
+        "examples/packs/neon-arena.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "deck-goal",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "deck-press",
+        "examples/decks/matchday.json",
+        "examples/packs/matchday.json",
+        "goal",
+        "--confirm"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "deck-countdown",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "deck-press",
+        "examples/decks/matchday.json",
+        "examples/packs/matchday.json",
+        "countdown",
+        "--confirm"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "deck-lower-third",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "deck-press",
+        "examples/decks/matchday.json",
+        "examples/packs/matchday.json",
+        "lower-third",
+        "--confirm"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "deck-lower-entry",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "deck-press",
+        "examples/decks/matchday.json",
+        "examples/packs/matchday.json",
+        "lower-entry",
+        "--confirm"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "deck-brb",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "deck-press",
+        "examples/decks/matchday.json",
+        "examples/packs/matchday.json",
+        "brb",
+        "--confirm"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "deck-live",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "deck-press",
+        "examples/decks/matchday.json",
+        "examples/packs/matchday.json",
+        "live",
+        "--confirm"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "deck-community",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "deck-press",
+        "examples/decks/matchday.json",
+        "examples/packs/matchday.json",
+        "community",
+        "--confirm"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "deck-celebrate",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "deck-press",
+        "examples/decks/matchday.json",
+        "examples/packs/matchday.json",
+        "celebrate",
+        "--confirm"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "deck-confirmation-required",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "deck-press",
+        "examples/decks/matchday.json",
+        "examples/packs/matchday.json",
+        "brb"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "loaded-definition",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "run",
+        "examples/rules/matchday.json",
+        "examples/events/goal.jsonl"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.003
+    },
+    {
+      "name": "loaded-pack-definition",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "run",
+        "examples/rules/matchday.json",
+        "examples/events/goal.jsonl",
+        "examples/packs/matchday.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.004
+    },
+    {
+      "name": "schema-chat",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "validate-event",
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/examples/events/chat.jsonl"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.003
+    },
+    {
+      "name": "schema-donation",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "validate-event",
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/examples/events/donation.jsonl"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.003
+    },
+    {
+      "name": "schema-goal",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "validate-event",
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/examples/events/goal.jsonl"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.003
+    },
+    {
+      "name": "schema-rules",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-show-control/show-control/target/debug/motive-show",
+        "validate-config",
+        "examples/rules/matchday.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.003
+    },
+    {
+      "name": "design-previews",
+      "command": [
+        "python3",
+        "design/render_preview.py"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "elapsed_seconds": 0.026
+    }
+  ],
+  "source_sha256": {
+    "Cargo.lock": "22b65d82a92a3026f175f3291a88b326a070323d09e7b789b78d203bd705fa17",
+    "Cargo.toml": "026f0a944325ec437cef17dc250de60d3073d78f463329ef920fef8383ba8a5e",
+    "examples/decks/matchday.json": "88cd567c0ca05739efd49f25df4d5c1dd811992af4620de1bd27af3b1f520686",
+    "examples/events/chat.jsonl": "9c1f78cb151cca007c62f448d0a449ca60001d11169021f7c47e0f5424bac151",
+    "examples/events/donation.jsonl": "8a9cd0ce74c16537365b4cc7c02d517f2513ba5d85875cfde80f7f0bd0dc156b",
+    "examples/events/goal.jsonl": "eef571498a1d70059fa66748f425465db8daeb24d2f850e652155087a39babd5",
+    "examples/packs/creator-tech.json": "ff82c722110dc90a78f8ec9ac4fa12a754e72ee91ac507f82a68f88c63e90e48",
+    "examples/packs/matchday.json": "caa9bc69d1bfaa70563c3b5b6ae47453ebba36e4a26081ee80a46bb4beeba45b",
+    "examples/packs/neon-arena.json": "7fe1a6ceb4e34ebbfff983b8b7c0f5df0aa113ebca0d4097aed60910460008c3",
+    "examples/rules/matchday.json": "c4d6839cbb4c47f83eedbd0644ceb51b0a3236407492fde41d6186e88d3f2652",
+    "src/actions.rs": "a7c03b5def90d131f44f735ec05920a582d42a24e23de461d11a87a6ef18c0ff",
+    "src/deck.rs": "0c554d212b77377456cfcb4352e5a00af25a27172f0a613dc632b09d6b806119",
+    "src/lib.rs": "eaaf09dab8f208dbc0c55d3ce32077a767a8d68fcae881d1ab532f3d0b6e9abd",
+    "src/main.rs": "049d9bb3485f39ba562cdf6d013144ab3c31cc52f5238d7312d6396703cc08b1",
+    "src/model.rs": "e8242e149d819cc49ffa48c3c67ec3908d554ecf2b4fd5cb978896a61dc620f8",
+    "src/packs.rs": "f9d0ca8fb48aad21b2cb2cecb0627b1e6018dea5063490351afffcdb6996ede0",
+    "src/persistence.rs": "b00bb125449ff0ebae38d6d3f11d8a47a4bf5b30bf1d71c21034cc6110e8ae71",
+    "src/providers.rs": "319f545e364b441a1c2073707be320bda69a8609e68f5efe27d8ff5e8446cca1",
+    "src/runtime.rs": "08083d8bb17366971d9826b4ecd3e4cf3d303061b5ff9b59c89eb2a3f287fca6",
+    "src/simulation.rs": "051eed74ef432af405de5bad2d8979ae2896fb8098b23819476cc527894a4f02",
+    "tests/cli.rs": "99dbcf1fa2ba460d91be55b249f55b4d1dae8f5e6bd4ed2fdae94cc18059fd61",
+    "tests/contracts.rs": "33a4379e29d59b8b00be2cfe367d7fb2c640836c6d89faa441dd0690e990d9b5",
+    "tests/deck.rs": "b95c0bdb94018ab1c8784f2597e74e8ac91c06551b14f50e4925830a45055a30",
+    "tests/packs.rs": "fbf23403bf7a33dabe141231f047e6050d41e912c3d19b2add34ad29e1e4bddc",
+    "tests/providers.rs": "705966c968b98a35c20f31f669d9dfd6c5e3e59516b8c57f9ac2284c34806598",
+    "tests/runtime.rs": "7c19a045cc1b543642e6ba0a96e659c78be4ffb00e3feb96388a82553179fec4",
+    "tests/runtime_adversarial.rs": "d0fea0a7237a2b9411b5ec97e63c92b24de72bdfd81b332cb2d1148c427296a6"
+  },
+  "caveat": "Durations are test command elapsed time, not production CPU, memory or media performance benchmarks."
+}

@@ -1,0 +1,134 @@
+{
+  "history": [
+    {
+      "button_id": "lower-third",
+      "request_id": 1,
+      "state": {
+        "request_id": 1,
+        "state": "pending"
+      },
+      "timestamp_ms": 0
+    },
+    {
+      "button_id": "lower-third",
+      "request_id": 1,
+      "state": {
+        "state": "simulated"
+      },
+      "timestamp_ms": 1
+    }
+  ],
+  "press": {
+    "button_id": "lower-third",
+    "event_kind": "manual.button_pressed",
+    "request_id": 1,
+    "simulated": true,
+    "target": {
+      "kind": "overlay",
+      "show": true,
+      "source_ref": "match-lower-third"
+    }
+  },
+  "simulation": {
+    "admissions": [
+      {
+        "error": null,
+        "event_id": "deck-1",
+        "jobs": [
+          1
+        ]
+      }
+    ],
+    "decisions": [
+      {
+        "at_ms": 0,
+        "code": "QUEUED",
+        "event_id": "deck-1",
+        "rule_id": "deck-direct"
+      }
+    ],
+    "jobs": [
+      {
+        "actions": [
+          {
+            "source_id": "match-lower-third",
+            "type": "show_overlay"
+          }
+        ],
+        "busy_policy": "reject",
+        "correlation_id": "deck-1",
+        "cursor": 1,
+        "deadline_ms": 5000,
+        "event_id": "deck-1",
+        "expected": {
+          "pid": 0,
+          "revision": 1
+        },
+        "failure_policy": "stop",
+        "id": 1,
+        "lineage": [
+          "deck-direct"
+        ],
+        "priority": 5,
+        "records": [
+          {
+            "code": null,
+            "index": 0,
+            "operation_id": null,
+            "plan": {
+              "action": {
+                "source_id": "match-lower-third",
+                "type": "show_overlay"
+              },
+              "commands": [
+                {
+                  "event": "show",
+                  "op": "overlay_event",
+                  "source_id": "match-lower-third"
+                }
+              ],
+              "local": false,
+              "requires_completion": true
+            },
+            "stage": "simulated"
+          }
+        ],
+        "rule_id": "deck-direct",
+        "simulated": true,
+        "state": "simulated"
+      }
+    ],
+    "live_commands_sent": 0,
+    "mode": "simulation_only",
+    "planned_dispatches": [
+      {
+        "idempotency_key": "deck-1:1:0",
+        "prepared": {
+          "action": {
+            "source_id": "match-lower-third",
+            "type": "show_overlay"
+          },
+          "commands": [
+            {
+              "event": "show",
+              "op": "overlay_event",
+              "source_id": "match-lower-third"
+            }
+          ],
+          "local": false,
+          "requires_completion": true
+        }
+      }
+    ],
+    "scenario": "deck",
+    "variables": {
+      "goals": {
+        "type": "int",
+        "value": 0
+      }
+    }
+  },
+  "state": {
+    "state": "ready"
+  }
+}

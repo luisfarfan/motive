@@ -81,7 +81,9 @@ Silence is distinct from missing audio packets. Camera health also watches actua
 
 ### Build a composition
 
-Use **Añadir ventana**, **Añadir webcam** and **Añadir overlay** in the scene editor. Select a layer to adjust its position, size, visibility and order. **Reutilizar** adds another layer referencing an existing source; **Liberar fuente** releases an unused source and its capture resources. Removing a layer does not implicitly delete a shared source.
+Use **Añadir fuente** to add a window, webcam, overlay or existing source. Select a layer on the canvas or in the layer list; drag, resize or edit its numeric transform. The eye toggles visibility and the layer menu changes order. Command+Z / Shift+Command+Z undo and redo compatible transform edits; a concurrent CLI/MCP change invalidates that local history. Removing a layer does not implicitly delete its shared source; release unused sources with the shared `remove_source` command.
+
+The native studio has light/dark themes, compact layout, real audio level and explicit capture/output recovery. Gesture previews commit once on release to avoid rebuilding scenes for every pointer event. See [native UI verification and shortcuts](docs/ui-native-verification.md) for evidence and current limits.
 
 Geometry, layer order and overlay color can change during recording. Scene selection now supports official OBS **Cut and Fade** during recording/local RTMP, with target preparation, shared capture resources and explicit cancellation. Graph edits wait for the transition to finish; adding/removing capture resources and changing visibility still require a stopped output. Each orientation has its own transforms. The overlay is an original animated graphic with an editable accent color; text, images and advanced effects remain future increments. See [H9 contracts and real verification](docs/h9-scene-transitions-verification.md).
 
@@ -197,7 +199,8 @@ Start with [AGENTS.md](AGENTS.md), [the plan](docs/plan.md) and [architecture de
 
 | Directory | Responsibility |
 |---|---|
-| `src/main.rs` | Native GPUI interface |
+| `src/main.rs` | Application startup and CLI/MCP dispatch |
+| `src/ui/` | Native studio, theme, components and guarded canvas editor |
 | `src/core.rs` | Shared commands, health policy and project state |
 | `src/output.rs` | Typed output profiles and loopback endpoint validation, separate from scene v3 |
 | `src/scene.rs` | Stable scene graph, independent layouts and validation |

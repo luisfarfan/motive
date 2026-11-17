@@ -6,9 +6,11 @@ para esta fase y REA no bloqueó los hitos.
 
 **H13 implementado; aceptación final EN CURSO.** Canvas configurable, audio del
 sistema y salidas MKV/RTMP independientes ya comparten núcleo, CLI/MCP y GPUI.
-Las pruebas incrementales no sustituyen las regresiones del bundle final, la
-producción operada por GPUI ni la sesión prolongada. Estado y hashes:
-[verificación H13](h13-production-verification.md).
+Las 23 suites H1–H12 pasan en sus últimas ejecuciones del bundle G; también
+pasan la matriz dual de cuatro casos/doce medios y el A/V visible. Producción
+operada por GPUI y sesión prolongada siguen pendientes. La exclusión propia
+final conserva FAIL con atribución INCONCLUSIVE. Estado y hashes:
+[índice de evidencia](h13-evidence-index.md) y [verificación H13](h13-production-verification.md).
 
 La tabla conserva el alcance y los límites de cada bundle histórico; las
 ampliaciones posteriores se registran en su propio hito.
@@ -28,7 +30,7 @@ ampliaciones posteriores se registran en su propio hito.
 | 10 — Audio Mixer | Micrófono + tono, ganancia/mute, medidores, recuperación por entrada, persistencia v1 y Cut/Fade durante grabación/RTMP reales | [H10](h10-audio-verification.md): CLI/MCP reales y 17 suites H1–H9 aprobadas; USB hot-unplug/permisos/sleep y sesiones largas pendientes |
 | 11 — Overlay Engine y widgets | Texto, imagen alpha, formas, video visual, seis animaciones por capa, widgets y tres presets en dos layouts; CLI/MCP, grabación/RTMP y persistencia reales | [H11](h11-overlay-verification.md): 13 clips y 49 tests; aceptación condicionada a regresiones H1–H10 abiertas. Browser bloqueado; GPUI integra el [contrato](h11-overlay-ui-contract.md) por separado |
 | 12 — Creative Studio integrado | Biblioteca, picker, inspectores tipados, eventos, animaciones y persistencia desde GPUI; grabación VT/RTMP decodificada; 22 suites en sus últimas ejecuciones | [H12](h12-creative-studio-verification.md): 55 tests y Clippy; se conserva el fallo previo de render lag sin causa resuelta, sin certificar bundles posteriores |
-| 13 — Live Production Engine | Composición 540p/720p/1080p a 30/60 FPS, audio SCK y dos salidas con encoders independientes; siete casos de canvas, mezcla/recuperación y matriz dual de doce medios | [H13](h13-production-verification.md): implementado; aceptación final **EN CURSO**. Regresiones finales ejecutándose, recorrido GPUI de producción y sesión prolongada pendientes |
+| 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12 en sus últimas ejecuciones | [H13](h13-production-verification.md): implementado; aceptación final **EN CURSO**. Recorrido GPUI y sesión prolongada pendientes; exclusión propia final FAIL, atribución INCONCLUSIVE |
 
 Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
 bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión
@@ -43,8 +45,8 @@ El diagnóstico B7 de encoding conserva 6 frames de lag al arranque y cadencia
 estable posterior. No se rebajó su criterio; la causa sigue abierta.
 Estos pendientes impedían aceptar aquel bundle H11; el detalle y hashes están
 en el [informe H11](h11-overlay-verification.md). H12 repitió los grupos con
-éxito en su propio bundle, sin borrar los fallos históricos. La nueva aceptación
-H13 debe producir su propia evidencia.
+éxito en su propio bundle, sin borrar los fallos históricos. H13 conserva su
+propia evidencia G y mantiene abiertos los gates específicos indicados abajo.
 
 ## Reproducir y consultar evidencia
 
@@ -204,8 +206,9 @@ Proyecto v5 persiste la configuración explícita y las versiones anteriores
 conservan 540p30. No se promete la cadencia del compositor para cada captura.
 
 `system_audio_sources` permite seleccionar una aplicación por bundle ID único
-o el escritorio principal por UUID. La identidad reutiliza canal y controles,
-excluye Motive y rechaza escritorio junto con aplicaciones por solapamiento.
+o el escritorio principal por UUID. La identidad reutiliza canal y controles;
+el módulo OBS solicita excluir el audio de Motive y el núcleo rechaza escritorio
+junto con aplicaciones por solapamiento. La exclusión final sigue sin acreditar.
 Mixer v1 sigue válido; las nuevas fuentes requieren v2. Se mantienen ganancia,
 mute, medidores post-fader/pre-mute, master post-mute/pre-clamp, monitoreo apagado
 y recuperación explícita por entrada. [Contrato canvas/audio](h13-video-audio-contract.md).
@@ -218,14 +221,34 @@ heredados siguen exclusivos y stop ambiguo devuelve `OUTPUT_TARGET_REQUIRED`.
 La barrera RTMP H8 permanece por slot. [Contrato de salidas](h13-output-contract.md)
 y [decisión de arquitectura](h13-production-architecture.md).
 
-Los incrementos reales verifican siete configuraciones de canvas; aplicación,
-micrófono y tono mezclados; exclusión del propio proceso; A/V con ventana
-visible; y cuatro escenarios duales con doce archivos decodificados, incluidos
-fallos de receptor y helper muxer. El bundle `d9b8d702…e0e2d93` verifica además
-H8 con cierre pendiente y rechazo de nuevos trabajos, y cierre durante una
+El bundle G (`d9b8d702…e0e2d93`) tiene 71 tests, Clippy y formato PASS, y
+**23/23 suites H1–H12 distintas PASS en sus últimas ejecuciones**. El conteo
+del [índice de evidencia](h13-evidence-index.md) incorpora nuevas grabaciones
+con [referencias aisladas H10](h13-h10-metrology.md); conserva los fallos y
+manifiestos previos sin convertirlos en PASS.
+
+En G pasan siete configuraciones de canvas, siete etapas de audio del sistema
+y la matriz dual: **4/4 casos y 12/12 medios**, incluidos fallos de receptor y
+helper muxer; dos archivos son parciales intencionales. A/V con ventana visible
+pasa con siete pares de pulsos, mediana audio−video **+24,27 ms** y rango
+**33 ms**, sin acreditar latencia cero. Se verifica además H8 con cierre
+pendiente y rechazo de nuevos trabajos, y cierre durante una
 importación 1080p de 20,27 s: 29 consultas del worker activo, máximo 88,9 ms,
 petición de cierre 30,7 ms y salida del owner en 3,271 s. Esta evidencia de
 núcleo no sustituye el flujo nativo de confirmación/cancelación.
+
+La [exclusión propia final](h13-system-audio-exclusion-final.md) permanece
+**FAIL; atribución INCONCLUSIVE**: supresión −16,41 dB frente al gate <−45 dB,
+con fondo adicional de banda ancha. No acredita exclusión ni demuestra por sí
+sola una regresión concreta de SCK; el PASS del bundle C queda separado.
+
+El [probe dirigido de memoria](h13-encoder-tail-investigation.md) observa la
+destrucción de ocho fuentes ffmpeg y sus wrappers, y asignaciones malloc activas
+cercanas al baseline: 35,4M frente a 33,5M según `vmmap`. Persisten páginas
+residentes: 835,5M en esa zona, y RSS mediana de 1141,38 MiB tras liberar y
+esperar 20 s frente a 178,41 MiB iniciales. No es un PASS de presupuesto de
+memoria ni prueba causal de fuga o de su ausencia; `vmmap` puede perturbar la
+residencia y este protocolo es más corto que H12.
 
 Los siguientes gates siguen abiertos hasta contar con sus informes completos:
 
@@ -233,12 +256,12 @@ Los siguientes gates siguen abiertos hasta contar con sus informes completos:
   Cut/Fade, edición/widgets, stop/recovery por destino y persistencia.
 - Confirmación, cancelación y cierre desde ventana, menú y Cmd+Q con salidas
   activas/conectando; inspección de estados y tamaños nativos.
-- Matriz serial H1–H12 del bundle final: H8 ya pasó; las restantes suites están
-  en ejecución. Conservar todos los fallos y restaurar stores/estado al terminar.
+- Exclusión del audio propio del bundle final, con condiciones de audio
+  controladas que permitan atribuir el resultado; conservar el FAIL actual.
 - Sesión prolongada y análisis completo de sus medios, recursos y cadencia.
 
 El [informe H13](h13-production-verification.md) separa cada hash y resultado;
-el [checklist nativo](h13-native-acceptance.md) no declara ejecutados sus pasos.
+el [checklist nativo](h13-native-acceptance.md) distingue observaciones y pasos pendientes.
 No se ocultan las congelaciones anteriores de ventanas ni los huecos finales
 de video. La corrección del tono determinista tiene su
 [investigación de entrega](h13-audio-startup-investigation.md), y los costes

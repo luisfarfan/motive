@@ -5,7 +5,9 @@ La decisión D11 amplía el canvas fijo, el único output y el mixer v1 de fases
 anteriores. Las entradas D1–D10 conservan su contexto histórico; no son una
 lista de límites actuales. Contratos vigentes: [canvas/audio](h13-video-audio-contract.md)
 y [salidas](h13-output-contract.md). Resultados y gates pendientes:
-[verificación H13](h13-production-verification.md).
+[verificación H13](h13-production-verification.md). Las últimas ejecuciones
+G pasan las 23 suites H1–H12; siguen abiertos GPUI de producción, sesión
+prolongada y exclusión propia final. [Índice de evidencia](h13-evidence-index.md).
 
 ## Inspección inicial — 2026-11-16
 
@@ -505,8 +507,9 @@ El módulo oficial `sck_audio_capture` aporta aplicación por bundle ID único
 y escritorio principal por UUID. Se revalida identidad al crear/reconectar;
 PIDs efímeros no se persisten. Escritorio junto a cualquier aplicación se
 rechaza por solapamiento incluso si un canal está silenciado/desconectado.
-El propio proceso queda excluido. Mixer v1 sigue cargando; las fuentes SCK
-requieren v2, separado de proyecto y perfiles. Ganancia, mute y recuperación
+El módulo OBS solicita excluir el audio del propio proceso; esa configuración
+no sustituye su aceptación medida, todavía abierta. Mixer v1 sigue cargando;
+las fuentes SCK requieren v2, separado de proyecto y perfiles. Ganancia, mute y recuperación
 reutilizan H10; `ready` significa paquetes, `awaiting_audio` ausencia reciente
 de muestras y un fallo retenido exige reconexión explícita. Medidores mantienen
 post-fader/pre-mute por entrada y post-mute/pre-clamp en master. No se activa
@@ -522,13 +525,25 @@ de overlays que antes entraban por una ruta temprana. Las consultas siguen
 disponibles. Ventana, menú y Cmd+Q pasan por la confirmación/ciclo compartidos;
 su matriz final de aceptación GPUI sigue abierta.
 
-El bundle `d9b8d702…e0e2d93` tiene 71 tests, Clippy y formato PASS. El ensayo H8
+El bundle G (`d9b8d702…e0e2d93`) tiene 71 tests, Clippy y formato PASS, y
+**23/23 suites H1–H12 distintas PASS en sus últimas ejecuciones**. El
+[índice de evidencia](h13-evidence-index.md) conserva los manifiestos fallidos;
+H10 aporta nuevas grabaciones con [referencias aisladas](h13-h10-metrology.md),
+sin borrar los resultados anteriores. El ensayo H8
 comprueba rechazos `SHUTDOWN_PENDING` y cierre tras liberar el peer; otro ensayo
 observa 29 consultas durante un import real y el resultado `completed` antes
-de salir. La matriz dual y el audio/video tienen evidencia incremental con
-sus propios hashes. Regresiones finales, producción GPUI integrada y sesión
-prolongada no están completas: [informe y evidencia](h13-production-verification.md),
+de salir. En G la matriz dual pasa **4/4 casos y 12/12 medios** (diez completos
+y dos parciales intencionales), con recuperación independiente; A/V visible
+pasa con siete pares de pulsos, mediana audio−video **+24,27 ms** y rango
+**33 ms**. Producción GPUI integrada y sesión prolongada siguen pendientes:
+[informe y evidencia](h13-production-verification.md),
 [runner de regresiones](h13-regressions.md), [aceptación nativa](h13-native-acceptance.md).
+
+La [exclusión propia final](h13-system-audio-exclusion-final.md) conserva
+**FAIL y atribución INCONCLUSIVE**: −16,41 dB frente al gate <−45 dB, con
+fondo adicional de banda ancha. No se atribuye el residuo exclusivamente a
+Motive ni se declara una regresión concreta de SCK. El PASS anterior en C y
+las 23 regresiones de G no cierran este gate específico de H13.
 
 Se conserva el fallo de audio inicial de 1024 muestras y su
 [investigación](h13-audio-startup-investigation.md): adelantar 20 ms la entrega
@@ -537,6 +552,13 @@ Persisten límites de [colas de video](h13-encoder-tail-investigation.md) y
 congelamientos previos de captura cuya causa no está demostrada. A/V pasó bajo
 las condiciones visibles documentadas, sin acreditar latencia cero. Preview
 sigue copiando BGRA por CPU; presupuestos visuales no son límites de RSS.
+El probe dirigido en G observa destrucción de ocho fuentes ffmpeg y sus
+wrappers, y asignaciones malloc activas próximas al baseline
+(35,4M frente a 33,5M en `vmmap`), mientras permanecen páginas residentes
+(835,5M en esa zona). Tras liberar videos y esperar 20 s, RSS mediana es
+1141,38 MiB frente a 178,41 MiB inicialmente. Se documenta como observación,
+sin PASS de presupuesto ni atribución causal de fuga o prueba de su ausencia;
+el probe es más corto que H12 y `vmmap` puede alterar la residencia.
 USB hot-unplug, permisos revocados, display físico, sleep/wake, otros macOS,
 RTMPS positivo confiable, sesión prolongada y bundle portable siguen pendientes.
 No se habilitan destinos públicos, multistream, dos canvases simultáneos,

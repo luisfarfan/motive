@@ -27,7 +27,7 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 
 > **Experimental developer preview.** Recording and local loopback streaming work. This is not yet a packaged release or a full replacement for OBS Studio. The current interface is in Spanish; this README is in English.
 
-**Status — November 17, 2026:** H13 implements configurable production video, application/desktop audio and simultaneous MKV recording + local RTMP, with independent controls in the shared core and GPUI. Real incremental recordings verify canvas presets, audio mixing and recovery, and both output lifecycles. **Final acceptance is in progress:** the final GPUI production walkthrough, prolonged session and H1–H12 regression matrix are not complete. See the [H13 evidence and limits](docs/h13-production-verification.md); the [H12 results](docs/h12-creative-studio-verification.md) remain historical evidence for their own bundles.
+**Status — November 17, 2026:** H13 implements configurable production video, application/desktop audio and simultaneous MKV recording + local RTMP, with independent controls in the shared core and GPUI. The current bundle passes the latest runs of all 23 H1–H12 regression suites, the four dual-output scenarios and visible A/V alignment. **H13 acceptance remains in progress:** native GPUI production and a prolonged session are pending; the final self-audio exclusion test failed with inconclusive attribution. See the [H13 evidence index](docs/h13-evidence-index.md) and [measured limits](docs/h13-production-verification.md); the [H12 results](docs/h12-creative-studio-verification.md) remain historical evidence for their own bundles.
 
 ## ✨ What is taking shape
 
@@ -162,8 +162,9 @@ H13 adds `system_audio_sources` for explicit discovery. Add an application with
 or the selectable primary desktop with
 `source: {"kind":"system_desktop","display_uuid":"UUID_FROM_INVENTORY"}`.
 The same identity reuses its channel. Desktop and application captures cannot
-coexist because their audio overlaps; Motive itself is excluded. Silence with
-packets is healthy, while `awaiting_audio` reports missing samples. Application
+coexist because their audio overlaps. The OBS module requests exclusion of
+Motive's own audio; [final measured acceptance remains open](docs/h13-system-audio-exclusion-final.md).
+Silence with packets is healthy, while `awaiting_audio` reports missing samples. Application
 loss remains latched until explicit recovery. See [H13 audio semantics and
 limits](docs/h13-video-audio-contract.md).
 
@@ -258,13 +259,17 @@ The integration scripts require the app to be open and idle. `verify.py` also re
 
 H12 has 55 passing Rust tests, clean Clippy and real native workflows decoded from recording and RTMP. The five open H11 regression groups pass on the exact integrated baseline; all 22 suites also pass on their latest H12 runs. Original failures remain preserved, including an intermittent two-frame render-lag failure before the passing final ABBA run. Follow [H12 reproduction and evidence](docs/h12-creative-studio-verification.md) for hashes, CPU/RSS, media and limits. Historical [H11 evidence](docs/h11-overlay-verification.md) is unchanged. Never run physical suites simultaneously in different worktrees.
 
-H13 incremental evidence includes seven real canvas cases, system-audio mixing/recovery and visible A/V pulses, and all four dual-output scenarios with twelve decoded media files. The final `d9b8d702…e0e2d93` bundle has 71 passing Rust tests, clean Clippy/format, real H8 shutdown-gate checks and responsive shutdown during an active import. **Final H1–H12 regressions are running; GPUI production acceptance and a prolonged session remain open.** Read [H13 verification](docs/h13-production-verification.md), [regression preparation](docs/h13-regressions.md), and [encoder-tail measurements](docs/h13-encoder-tail-investigation.md). Earlier failed takes remain preserved, including source-window freezes, the corrected tone-start discontinuity and nonuniform final video intervals. A passing incremental test on one hash does not certify another bundle.
+The current H13 bundle G (`d9b8d702…e0e2d93`) has 71 passing Rust tests, clean Clippy/format and **23/23 distinct H1–H12 suites passing in their latest runs**. H10 uses [isolated measurement references](docs/h13-h10-metrology.md) and new real recordings; earlier failures and failed manifests remain preserved. The [evidence index](docs/h13-evidence-index.md) maps each result to its bundle and report.
+
+On G, all seven canvas cases and seven system-audio stages pass. Dual outputs pass **4/4 scenarios and 12/12 media**, including independent recovery; two intentionally partial files are distinguished from the ten complete files. Visible A/V passes with seven pulse pairs, median audio−video **+24.27 ms** and a **33 ms range**. This measures end-to-end alignment, not zero latency. H8 shutdown gates and closure during an active import also pass. See [H13 verification](docs/h13-production-verification.md).
+
+**H13 remains in progress.** The final [self-audio exclusion test is FAIL, with attribution INCONCLUSIVE](docs/h13-system-audio-exclusion-final.md): additional broadband background prevents attributing the residue to Motive alone. A directed memory probe observes active malloc allocations returning near baseline while pages remain resident: after releasing the videos and waiting 20 seconds, median RSS is 1141.38 MiB versus 178.41 MiB initially. This is no memory-budget pass or proof about leaks; [memory and encoder-tail measurements](docs/h13-encoder-tail-investigation.md) retain the limits and nonuniform final video intervals. Native GPUI production acceptance and a prolonged session remain pending; previous capture freezes remain unexplained.
 
 See [H1 verification](docs/h1-verification.md) and [scene-graph verification](docs/scene-graph-verification.md) for device tests, recovery behavior, prerequisites and evidence. The output-recovery test deliberately terminates only Motive's own mux helper. Captures, device inventories and runtime logs stay under ignored `var/`; they are not published with this repository.
 
 ## 🗺️ Direction and boundaries
 
-- **Now:** H13 implementation with configurable composition, system audio and two independent output destinations; final native production, regression and prolonged-session acceptance is in progress.
+- **Now:** H13 implementation with configurable composition, system audio and two independent output destinations; final native production, prolonged-session and self-audio exclusion acceptance is in progress. All 23 regression suites pass in their latest runs on the current bundle.
 - **Next:** close those acceptance gates, investigate retained capture/cadence failures, improve accessibility and inactive-scene previews, define recording-library and agent-proposal contracts, and add secure native credential entry and removable-device recovery tests.
 - **Later:** isolated browser overlays, richer typography/effects, a distributable bundle, simultaneous variants and authorized platform streaming.
 

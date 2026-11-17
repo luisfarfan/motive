@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Motive · Creator Library</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+  <header class="topbar">
+    <a class="brand" href="#library" aria-label="Motive, biblioteca"><svg class="brand-mark" width="25" height="25" viewBox="0 0 18 18" aria-hidden="true"><rect width="18" height="18" rx="5" fill="#5FE3C6"></rect><path d="M4.5 13V5.2L9 9.8l4.5-4.6V13" fill="none" stroke="#0F2A2E" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"></path></svg>motive<span class="brand-divider"></span><span class="brand-section">Creator Studio</span></a>
+    <div class="prototype-label">Prototipo local <span aria-hidden="true">·</span> Sin conexión a Production</div>
+    <span class="version">Estudio de diseño / 01</span>
+  </header>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegación principal">
+      <div class="sidebar-section">Tu espacio creativo</div>
+      <nav>
+        <a href="#library" data-nav="library">Biblioteca <span>02</span></a>
+        <a href="#deck" data-nav="deck">Live Deck <span>Ensayo</span></a>
+        <a href="#motion" data-nav="motion">Movimiento <span>6</span></a>
+      </nav>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section">Colecciones originales</div>
+      <a class="collection-link" href="#pack/creator-tech"><span class="collection-line tech-line"></span>Creator Tech</a>
+      <a class="collection-link" href="#pack/neon-arena"><span class="collection-line arena-line"></span>Neon Arena</a>
+      <div class="sidebar-note"><strong>Tu producción.<br>Tu identidad.</strong><p>Recursos locales y editables. Sin cuenta. Sin suscripción.</p><span>GPL-3.0-or-later</span></div>
+    </aside>
+    <main id="main" tabindex="-1"><div class="loading" role="status">Cargando colecciones locales…</div></main>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="confirm-dialog" aria-labelledby="dialog-title"><form method="dialog"><div class="eyebrow">Ensayo local</div><h2 id="dialog-title">Confirmar acción</h2><p id="dialog-description"></p><pre id="dialog-target"></pre><div class="dialog-actions"><button value="cancel" class="button">Cancelar</button><button id="dialog-confirm" value="confirm" class="button primary">Confirmar ensayo</button></div></form></dialog>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -62,7 +62,7 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 | Integridad/finalización de salidas | PARTIAL | Matriz A/B ejecutada; reordering falla al cerrar, mitigación por defecto sin reordering; repetir final |
 | Memoria y sesión prolongada | PARTIAL | Instrumento y self-test PASS; runner y fixture listos, owner/soak pendientes |
 | Bundle autocontenido | PARTIAL | B1/B2 ejecutados fuera del checkout, firma/closure/tools PASS; segunda Mac, notarización y reconstrucción pendientes |
-| RTMPS externo seguro | PARTIAL | Persistencia revisada; destino privado YouTube aprobado localmente; pegado corregido en B2, entrada segura y emisión pendientes |
+| RTMPS externo seguro | PARTIAL | B2 emitió 104,837 s a YouTube privado; usuario confirmó video/audio; MKV decodificado; copia remota y contabilidad completa siguen pendientes |
 | Show Control real | PARTIAL | B1 aceptó evento real de GPUI y completó animación; harness falló durante espera, repetición B2 pendiente |
 | Live Deck y MATCHDAY | PARTIAL | Instalación GPUI 73/73 y celebración visibles en B1; comprobación completa de medios y repetición B2 pendientes |
 | Voz opcional | PARTIAL | Benchmark offline ejecutado, recall 50% falla fiabilidad; voz en vivo NOT IMPLEMENTED |
@@ -132,10 +132,31 @@ La firma estricta, closure ARM64/rpaths y smoke de ffmpeg/ffprobe dan PASS en
 `var/evidence/h14-portable-b2-1794953837847861000`. El nuevo arranque no restauró
 ni inició automáticamente proyectos o salidas. El destino aprobado permaneció
 sin selección ni clave. El botón Pegar del campo seguro se observó por
-accesibilidad; el pegado real por el usuario todavía está pendiente.
+accesibilidad y el usuario confirmó pegado/guardado exitosos; el owner verificó
+asociación y recibo persistido. Cmd+V físico sigue sin prueba independiente.
 
 Sobre estas fuentes: 111 tests raíz + 111 Show Control, ambos Clippy
 `--all-targets -D warnings`, formato, prueba de routing nativo de pegado y
 3 tests de harness pasan. Logs `var/evidence/h14-build/*-b2.log` y
 `secure-paste-native-test.log`. Estas pruebas no sustituyen aceptación multimedia
 sobre B2 ni prueban entrega a YouTube.
+
+La [prueba privada RTMPS B2](h14-rtmps-b2-verification.md) posterior conserva
+autorización explícita, confirmación GPUI y observación de YouTube Studio por
+el usuario. El MKV se decodifica y sigue 21,698 s tras parar streaming. El
+reinicio PID 93493 restauró el destino aprobado y la referencia opaca, sin
+seleccionar destino ni iniciar salidas (`initial-state.json` bajo
+`var/evidence/h14-memory-b2-owner30-1794954833415580000`).
+
+El lifecycle de memoria B2 1080p30 terminó tres ciclos visibles/ocultos/retirados
+y cleanup sin errores, conservado en `var/evidence/h14-memory-b2-30-01`.
+Las asignaciones activas vuelven cerca del baseline después de retirar fuentes;
+RSS y footprint retienen páginas. Esas observaciones no certifican ausencia de
+fuga. La reproducción continúa oculta por configuración explícita de FFmpeg;
+la siguiente prueba compara pausa manual sin cambiar comportamiento automático.
+La sesión prolongada todavía está pendiente.
+
+La revisión de los cuadros B1 detectó un frame a escala completa antes del
+ScaleIn de la celebración: Trigger y Animate eran acciones separadas. B3 está
+en construcción para admitir una acción nativa compuesta y recibos exactos;
+ningún resultado B2 certifica esa corrección hasta repetir medios.

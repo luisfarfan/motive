@@ -21,18 +21,22 @@ import traceback
 import verify_h13_outputs as support
 from verify_h13_outputs import Client, Receiver, check, profile, run, sha, slots, write_json
 from verify_h14_memory import canonical_lock
+from h14_show_helpers import composite_receipt, counter_value, native_animation_id, native_cancel_outcome
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TERMINAL = {'completed', 'rejected', 'failed', 'cancelled', 'timed_out', 'needs_reconciliation'}
 
 
 def plan():
-    return {'version': 1, 'requires': ['canonical H14 physical lock', 'already-open signed app',
+    return {'version': 2, 'requires': ['canonical H14 physical lock', 'already-open signed B3 app',
             'MATCHDAY installed through GPUI', 'idle healthy outputs', 'empty or controlled tone mixer'],
             'cases': ['MCP goal with own revision receipts', 'immediate cooldown rejection',
                       'same event ID rejected after cooldown', 'MCP/CLI concurrent edit fencing',
                       'CLI countdown start/reset', 'MCP disconnect during native animation',
-                      'owner continues and CLI observes completion', 'simultaneous MKV and loopback RTMP'],
+                      'owner continues and CLI observes completion', 'simultaneous MKV and loopback RTMP',
+                      'single composite action and exact two-step cursor/receipts',
+                      'native cancellation before/after first tick, races remain NOT_OBSERVED',
+                      'early packet traces after three frames and final traces before cleanup'],
             'never': ['pack installation bypass', 'external RTMPS start', 'store save', 'device capture',
                       'automatic replay', 'fake UI origin'],
             'separate_gates': ['GPUI click/confirmation evidence', 'real UI concurrent edit',
@@ -125,6 +129,7 @@ class Suite:
         self.started = set()
         self.attempts = {}
         self.harness_events = set()
+        self.native_operations = set()
         self.owner_text = None
         self.lock = canonical_lock()
         self.tone = None
@@ -167,6 +172,83 @@ class Suite:
         return self.call('press_show_control', transport=transport, expect=expect,
                          session=self.session, button_id=button, event_id=event)
 
+    def native_job(self, state, operation):
+        return next((job for job in state['overlays']['runtime']['animations']['jobs']
+                     if job['operation_id'] == operation), None)
+
+    def goal_source(self, state):
+        return next(s for s in state['overlays']['runtime']['sources']
+                    if s['id'] == self.bindings['sources']['goal-celebration'])
+
+    def assert_outputs(self, state):
+        check(all(slots(state)[target]['phase'] == 'active'
+                  and slots(state)[target]['attempt_id'] == self.attempts[target]
+                  for target in self.attempts), 'same two output attempts continue')
+
+    def capture_trace(self, target, label, early=False):
+        deadline = time.monotonic() + 5
+        while True:
+            value = self.call('output_diagnostics', target=target)
+            trace = value['packet_trace']
+            check(value['output']['attempt_id'] == self.attempts[target], 'trace belongs to owned attempt')
+            check(trace['version'] == 1 and trace['scope'] == 'before_output_plugin', 'packet trace schema')
+            packets = trace['packets']
+            enough = (not early or (sum(p['media_type'] == 'video' for p in packets) >= 3
+                                    and any(p['media_type'] == 'audio' for p in packets)))
+            if not trace['snapshot_busy'] and enough:
+                break
+            check(time.monotonic() < deadline, 'bounded trace collection', trace_label=label, target=target)
+            time.sleep(.025)
+        path = self.directory / (label + '-' + target + '-packet-trace.json')
+        write_json(path, {'monotonic': time.monotonic(), 'label': label, **value})
+        sequences = [packet['sequence'] for packet in packets]
+        complete_prefix = (bool(sequences) and sequences[0] == 1
+                           and all(b == a + 1 for a, b in zip(sequences, sequences[1:]))
+                           and trace['summary']['trace_missed_records'] == 0
+                           and trace['summary']['trace_overwritten_records'] == 0)
+        self.report.setdefault('packet_traces', {}).setdefault(label, {})[target] = {
+            'path': str(path), 'sha256': sha(path), 'attempt_id': self.attempts[target],
+            'first_retained_sequence': packets[0]['sequence'] if packets else None,
+            'retained_packets': len(packets), 'summary': trace['summary'],
+            'prefix_status': ('COMPLETE_PREFIX_OBSERVED' if complete_prefix else 'INCONCLUSIVE') if early else 'NOT_APPLICABLE',
+            'delivery_status': 'NOT_EVALUATED'}
+        return value
+
+    def wait_alert_hidden(self, label):
+        def hidden(state):
+            self.assert_outputs(state)
+            source = self.goal_source(state)
+            return source['phase'] == 'hidden' and source['visible'] is False
+        return self.wait(hidden, label, seconds=8)
+
+    def complete_goal(self, identifier, label):
+        goal = self.job(identifier, label)
+        proof = composite_receipt(goal, self.session, self.initial['pid'])
+        operation = proof['operation_id']
+        self.native_operations.add(operation)
+        state = self.wait(lambda s: (job := self.native_job(s, operation)) is not None
+                          and job['phase'] == 'completed' and not job['pending_ack'],
+                          label + ' native terminal')
+        native = self.native_job(state, operation)
+        check(native['widget_triggered'] is True
+              and native['trigger_source_id'] == self.bindings['sources']['goal-celebration']
+              and native['progress'] == 1 and native['elapsed_ms'] >= native['duration_ms'],
+              'complete native composite duration observed', native=native)
+        self.assert_outputs(state)
+        # Preserve the complete source hold and exit in both files, without
+        # claiming that control state proves rendered pixels.
+        hidden = self.wait_alert_hidden(label + ' full widget lifecycle retained')
+        return {'job': goal, 'proof': proof, 'native_terminal': native,
+                'hidden_monotonic': time.monotonic(), 'counter': counter_value(hidden),
+                'visual_status': 'NOT_EVALUATED'}
+
+    def pending_job(self, identifier, label):
+        """A short animation may finish before observation; that is not a fake race PASS."""
+        state = self.wait(lambda s: any(j['id'] == identifier and
+            (j['state'] == 'awaiting_completion' or j['state'] in TERMINAL)
+            for j in s['show_control']['jobs']), label)
+        return next(j for j in state['show_control']['jobs'] if j['id'] == identifier)
+
     def open(self):
         self.owner_text = self.lock.read_text()
         check(str(ROOT) in self.owner_text and 'H14' in self.owner_text, 'canonical H14 lock for this checkout')
@@ -188,6 +270,8 @@ class Suite:
         check(sc['configured'] and sc['armed'] and sc['bindings_current'], 'armed matching live owner deck')
         check(all(j['state'] in TERMINAL and j['state'] != 'needs_reconciliation' for j in sc['jobs']), 'no unresolved prior show jobs')
         self.session = sc['session']
+        check(all(next(r for r in sc['rules'] if r['id'] == rule)['actions'] == 2
+                  for rule in ('deck-goal', 'deck-celebrate')), 'new B3 MATCHDAY two-step bindings required')
         inputs = self.initial['audio_mixer']['store']['inputs']
         check(len(inputs) <= 1 and all(i['source']['kind'] == 'tone' for i in inputs), 'only controlled tone or empty mixer')
         self.report['stores_before'] = stores(self.args.data_dir)
@@ -232,6 +316,7 @@ class Suite:
                     if target == 'recording' and observed.get('path'):
                         self.report['recording_path'] = observed['path']
             self.wait(lambda s: slots(s)[target]['phase'] == 'active', target + ' active')
+            self.capture_trace(target, 'initial', early=True)
         state = self.snapshot('both outputs active')
         self.report['recording_path'] = slots(state)['recording']['path']
         check(set(self.attempts) == {'recording', 'streaming'}, 'two observed owned output attempts')
@@ -264,9 +349,10 @@ class Suite:
             time.sleep(.2)
         self.report['ui_goal'].update(status='OBSERVED', detected_monotonic=time.monotonic(),
                                       accepted=candidate)
-        completed = self.job(candidate['id'], 'external GPUI goal completed')
-        self.report['ui_goal'].update(completed=completed, completed_monotonic=time.monotonic())
-        check(completed['state'] == 'completed', 'external goal sequence completes', job=completed)
+        complete = self.complete_goal(candidate['id'], 'external GPUI goal completed')
+        self.report['ui_goal'].update(completed=complete['job'], complete=complete,
+                                      completed_monotonic=time.monotonic())
+        check(complete['counter'] == counter_value(initial) + 1, 'UI goal increments counter once')
         state = self.wait(lambda s: any(button['id'] == 'goal'
                     and (button.get('state') or {}).get('state') == 'ready'
                     for button in s['show_control']['buttons']),
@@ -279,39 +365,122 @@ class Suite:
                                       button_state='ready')
         write_json(self.directory / 'report.json', self.report)
 
+    def button_ready(self, identifier):
+        return self.wait(lambda s: any(button['id'] == identifier
+                         and (button.get('state') or {}).get('state') == 'ready'
+                         for button in s['show_control']['buttons']),
+                         identifier + ' real cooldown ready', seconds=15)
+
+    def cancel_native(self, after_started):
+        """Exercise the public composite operation, never a forged scheduler clock."""
+        trials = []
+        for index in range(1 if after_started else 2):
+            self.wait_alert_hidden('clean widget baseline before native cancellation')
+            state = self.wait(lambda s: not s['overlays']['runtime']['animations']['busy'],
+                              'native animation barrier before cancellation')
+            response = self.call('trigger_animated_widget', transport='cli' if after_started else 'mcp',
+                source_id=self.bindings['sources']['goal-celebration'],
+                scene_id=self.bindings['scenes']['match-live'], layer_id=self.bindings['layers']['live-goal'],
+                animation={'kind': 'scale_in', 'easing': 'ease_out', 'duration_ms': 1200,
+                           'distance': 120, 'scale_from': .8})
+            operation = response['result']['operation_id']
+            self.native_operations.add(operation)
+            before = self.native_job(response['state'], operation)
+            trial = {'operation_id': operation, 'admitted': before, 'requested_after_started': after_started,
+                     'source_before': self.goal_source(state), 'counter_before': counter_value(state),
+                     'boundary': 'direct owner API; not a Show Control dispatch/journal intent'}
+            trials.append(trial)
+            if after_started:
+                state = self.wait(lambda s: (j := self.native_job(s, operation)) is not None
+                    and ((j['phase'] == 'running' and j['widget_triggered'])
+                         or j['phase'] in ('completed', 'cancelled', 'failed')),
+                    'native first tick before cancellation')
+                before = self.native_job(state, operation)
+                trial['before_cancel'] = before
+                if before['phase'] != 'running' or not before['widget_triggered']:
+                    trial['status'] = 'NOT_OBSERVED'
+                    final = self.wait_alert_hidden('late cancellation observation widget lifecycle')
+                    trial.update(source_after_lifecycle=self.goal_source(final), counter_after=counter_value(final))
+                    break
+            trial['cancel_reply'] = self.call('cancel_overlay_animation', operation_id=operation)
+            state = self.wait(lambda s: (j := self.native_job(s, operation)) is not None
+                and j['phase'] in ('completed', 'cancelled', 'failed') and not j['pending_ack'],
+                'native cancellation terminal barrier')
+            terminal = self.native_job(state, operation)
+            trial.update(terminal=terminal, status=native_cancel_outcome(terminal, after_started),
+                         source_after_terminal=self.goal_source(state))
+            check(trial['status'] != 'FAIL', 'native cancellation did not fail', trial=trial)
+            self.assert_outputs(state)
+            final = self.wait_alert_hidden('widget lifecycle after native cancellation')
+            trial.update(source_after_lifecycle=self.goal_source(final), counter_after=counter_value(final))
+            check(trial['counter_after'] == trial['counter_before'], 'direct cancellation never changes show counter')
+            if trial['status'] == 'PASS':
+                break
+        return {'status': 'PASS' if any(t['status'] == 'PASS' for t in trials) else 'NOT_OBSERVED',
+                'trials': trials, 'pixel_restoration': 'NOT_EVALUATED'}
+
+    def cancel_show_job(self, event):
+        before = self.button_ready('celebrate')
+        response = self.press('celebrate', event)
+        identifier = response['result']['job_ids'][0]
+        observed = self.pending_job(identifier, 'show cancellation operation admission')
+        record = next((r for r in observed['records'] if r.get('operation_id')), None)
+        result = {'event_id': event, 'before': observed, 'status': 'NOT_OBSERVED',
+                  'source_before': self.goal_source(before), 'counter_before': counter_value(before)}
+        if observed['state'] != 'awaiting_completion' or not record:
+            final = self.wait_alert_hidden('show cancellation race already terminal')
+            result.update(source_after_lifecycle=self.goal_source(final), counter_after=counter_value(final))
+            return result
+        operation = native_animation_id(record['operation_id'], self.session)
+        self.native_operations.add(operation)
+        state = self.snapshot('before show cancellation')
+        native = self.native_job(state, operation)
+        result['native_before'] = native
+        if not native or native['phase'] != 'running' or not native['widget_triggered']:
+            self.job(identifier, 'show cancellation missed running observation')
+            final = self.wait_alert_hidden('missed show cancellation full lifecycle')
+            result.update(source_after_lifecycle=self.goal_source(final), counter_after=counter_value(final))
+            return result
+        result['cancel_reply'] = self.call('cancel_show_control', session=self.session, job_id=identifier)
+        replied = next(j for j in result['cancel_reply']['show_control']['jobs'] if j['id'] == identifier)
+        if replied['state'] == 'completed':
+            result.update(job=replied, reason='Owner completion won before cancellation request')
+            final = self.wait_alert_hidden('show cancellation arrived after job completion')
+            result.update(source_after_lifecycle=self.goal_source(final), counter_after=counter_value(final))
+            return result
+        state = self.wait(lambda s: (j := self.native_job(s, operation)) is not None
+            and j['phase'] in ('completed', 'cancelled', 'failed') and not j['pending_ack'],
+            'show cancellation actual native terminal')
+        terminal = self.native_job(state, operation)
+        result['native_terminal'] = terminal
+        result['source_after_terminal'] = self.goal_source(state)
+        result['reconcile'] = self.call('reconcile_show_control', session=self.session, job_id=identifier)
+        result['job'] = self.job(identifier, 'show cancellation reconciled')
+        result['status'] = native_cancel_outcome(terminal, True)
+        check(result['status'] != 'FAIL', 'show cancellation native result', result=result)
+        check(counter_value(self.snapshot('counter after show cancel')) == counter_value(before),
+              'cancelled/reconciled show job never runs following counter')
+        if result['status'] == 'PASS':
+            check(result['job']['state'] == 'cancelled', 'native cancelled reconciles to cancelled')
+        final = self.wait_alert_hidden('source lifecycle after show cancel')
+        result.update(source_after_lifecycle=self.goal_source(final), counter_after=counter_value(final))
+        return result
+
     def exercise(self):
         event = 'h14-goal-' + str(time.time_ns())
-        began = time.monotonic()
+        baseline = self.snapshot('counter before MCP goal')
         response = self.press('goal', event)
         goal_id = response['result']['job_ids'][0]
         blocked = self.press('goal', event + '-cooldown', expect=False)
         check(blocked['error']['code'] in ('DECK_COOLDOWN', 'DECK_PENDING'), 'real cooldown/pending rejection')
-        goal = self.job(goal_id, 'first goal completed')
-        self.report['goal'] = goal
-        check(goal['state'] == 'completed', 'real goal sequence completes', job=goal)
-        receipts = [receipt for record in goal['records'] for receipt in record['revision_receipts']]
-        check(len(receipts) >= 2 and any(r['after']['revision'] > r['before']['revision'] for r in receipts), 'own revision acknowledgments retained')
+        complete = self.complete_goal(goal_id, 'first B3 goal completed')
+        self.report['goal'] = complete
+        check(complete['counter'] == counter_value(baseline) + 1, 'MCP goal increments counter exactly once')
         self.report['cooldown'] = blocked
-        # This is a real MCP submission followed by a real CLI edit. It is not
-        # labelled a UI test, nor are races forced by changing the runtime clock.
-        trials = []
-        for index in range(3):
-            self.wait(lambda s: not s['overlays']['runtime']['animations']['busy'], 'animation barrier before race')
-            response = self.press('lower-entry', event + '-race-' + str(index))
-            self.call('set_audio_gain', transport='cli', input_id=self.tone, gain_db=-11)
-            job = self.job(response['result']['job_ids'][0], 'MCP CLI race terminal')
-            self.call('set_audio_gain', transport='cli', input_id=self.tone, gain_db=-12)
-            trials.append(job)
-            if any(record.get('code') == 'STALE_REVISION' for record in job['records']):
-                break
-            time.sleep(.5)
-        self.report['concurrent_mcp_cli'] = {'trials': trials, 'status': 'PASS' if any(
-            record.get('code') == 'STALE_REVISION' for job in trials for record in job['records']) else 'NOT_OBSERVED'}
-        self.report['concurrent_ui'] = {'status': 'NOT_EVALUATED', 'reason': 'requires actual native UI action; origin is never forged'}
-        # Waiting for cooldown is wall time only; libobs still owns media timing.
-        while time.monotonic() - began < 10.5:
-            self.snapshot('waiting real goal cooldown')
-            time.sleep(.2)
+        self.report['cancel_before_tick'] = self.cancel_native(False)
+        self.report['cancel_after_tick'] = self.cancel_native(True)
+        self.report['cancel_show_control'] = self.cancel_show_job(event + '-cancel')
+        self.button_ready('goal')
         duplicate = self.press('goal', event, transport='cli', expect=False)
         check(duplicate['error']['code'] == 'DUPLICATE', 'same event cannot replay after cooldown', response=duplicate)
         self.report['duplicate'] = duplicate
@@ -320,35 +489,96 @@ class Suite:
         check(timer['state'] == 'completed', 'countdown start acknowledged')
         self.call('overlay_event', transport='cli', source_id=self.bindings['sources']['match-clock'], event='timer_reset')
         self.report['countdown'] = timer
+        # A real accepted composite is followed by a CLI mutation. A scheduling
+        # race that finishes first remains NOT_OBSERVED, never a forced PASS.
+        baseline = self.button_ready('goal')
+        response = self.press('goal', event + '-race')
+        identifier = response['result']['job_ids'][0]
+        observed = self.pending_job(identifier, 'composite admission before real CLI edit')
+        race = {'before': observed, 'status': 'NOT_OBSERVED'}
+        self.report['concurrent_mcp_cli'] = race
+        if observed['state'] == 'awaiting_completion':
+            race['edit'] = self.call('set_audio_gain', transport='cli', input_id=self.tone, gain_db=-11)
+            job = self.job(identifier, 'composite concurrent edit terminal')
+            race['job'] = job
+            codes = {record.get('code') for record in job['records']}
+            if job['state'] == 'needs_reconciliation' and 'MISSING_MUTATION_RECEIPT' in codes:
+                race['status'] = 'PASS'
+                state = self.snapshot('counter fenced after external edit')
+                check(counter_value(state) == counter_value(baseline), 'concurrent edit prevents following counter')
+                record = next(r for r in job['records'] if r.get('operation_id'))
+                operation = native_animation_id(record['operation_id'], self.session)
+                self.native_operations.add(operation)
+                self.wait(lambda s: (j := self.native_job(s, operation)) is not None
+                          and j['phase'] in ('completed', 'cancelled', 'failed') and not j['pending_ack'],
+                          'concurrent composite actual native terminal')
+                race['reconcile'] = self.call('reconcile_show_control', session=self.session, job_id=identifier)
+                check(race['reconcile']['result']['state'] == 'needs_reconciliation',
+                      'reconcile never invents missing receipt')
+                self.report['retained_changes'].append('Observed concurrent goal remains needs_reconciliation; no replay or invented receipt.')
+            else:
+                check(job['state'] == 'completed', 'unexpected composite concurrency failure', job=job)
+            self.call('set_audio_gain', transport='cli', input_id=self.tone, gain_db=-12)
+        else:
+            check(observed['state'] == 'completed', 'unexpected admission failure before race', job=observed)
+        self.wait_alert_hidden('concurrent goal source lifecycle complete')
+        self.report['concurrent_ui'] = {'status': 'NOT_EVALUATED', 'reason': 'requires actual native UI action; origin is never forged'}
+        self.button_ready('celebrate')
+        baseline = self.snapshot('before disconnect celebration')
         response = self.press('celebrate', event + '-disconnect')
         disconnect_id = response['result']['job_ids'][0]
-        accepted = self.job(disconnect_id, 'native animation before MCP disconnect', terminal=False)
-        check(any(r.get('operation_id') for r in accepted['records']), 'real native operation token before disconnect')
+        accepted = self.pending_job(disconnect_id, 'native animation before MCP disconnect')
+        record = next((r for r in accepted['records'] if r.get('operation_id')), None)
+        state = self.snapshot('actual native phase at MCP disconnect')
+        native = self.native_job(state, native_animation_id(record['operation_id'], self.session)) if record else None
+        in_flight = bool(accepted['state'] == 'awaiting_completion' and native
+                         and native['phase'] == 'running' and native['widget_triggered'])
         self.client.process.stdin.close()
-        self.client.process.wait(timeout=8)
+        exit_code = self.client.process.wait(timeout=8)
         self.mcp_connected = False
-        completed = self.job(disconnect_id, 'owner completes after MCP disconnect')
-        check(completed['state'] == 'completed', 'owner continues without MCP client', job=completed)
+        closed_at = time.monotonic()
+        disconnected = self.snapshot('CLI observes owner after MCP process exited')
+        native_after_exit = self.native_job(disconnected, native['operation_id']) if native else None
+        still_running = bool(native_after_exit and native_after_exit['phase'] == 'running'
+                             and native_after_exit['widget_triggered'])
+        complete = self.complete_goal(disconnect_id, 'owner completes after MCP disconnect')
+        check(complete['counter'] == counter_value(baseline) + 1, 'disconnect celebration increments once')
         state = self.snapshot('both outputs survive client disconnect')
-        check(all(slots(state)[t]['phase'] == 'active' and slots(state)[t]['attempt_id'] == self.attempts[t]
-                  for t in self.attempts), 'same outputs stay active after client disconnect')
-        self.report['disconnect'] = {'accepted': accepted, 'completed': completed, 'owner_pid': state['pid']}
-        for _ in range(10):
-            self.snapshot('post-celebration steady output')
-            time.sleep(.2)
-        self.report['control_status'] = ('PASS' if self.report['concurrent_mcp_cli']['status'] == 'PASS' else 'PARTIAL')
+        self.assert_outputs(state)
+        self.report['disconnect'] = {'accepted': accepted, 'native_at_disconnect': native,
+            'native_after_client_exit': native_after_exit, 'client_exit_code': exit_code,
+            'client_closed_monotonic': closed_at, 'complete': complete, 'owner_pid': state['pid'],
+            'status': 'PASS' if in_flight and still_running else 'NOT_OBSERVED'}
+        for target in self.attempts:
+            self.capture_trace(target, 'after-events')
+        gates = ('concurrent_mcp_cli', 'cancel_before_tick', 'cancel_after_tick', 'cancel_show_control', 'disconnect')
+        self.report['control_status'] = 'PASS' if all(self.report[key]['status'] == 'PASS' for key in gates) else 'PARTIAL'
 
     def stop(self):
         if not self.client or not self.started:
             return
+        try:
+            self.wait(lambda s: not s['overlays']['runtime']['animations']['busy'],
+                      'native animation barrier before output stop')
+        except Exception as exc:
+            self.report['pre_stop_animation_barrier_error'] = str(exc)
         state = self.snapshot('before controlled output stop')
-        for target in self.started:
+        for target in sorted(self.started):
             slot = slots(state)[target]
             check(slot['attempt_id'] == self.attempts[target], 'never stop another output attempt')
+            try:
+                self.capture_trace(target, 'pre-stop')
+            except Exception as exc:
+                self.report.setdefault('trace_errors', []).append({'target': target, 'phase': 'pre-stop', 'error': str(exc)})
             if slot['native_busy']:
                 self.call('stop_output_target', target=target)
         final = self.wait(lambda s: all(not slots(s)[t]['native_busy'] for t in self.started), 'native output finalization', seconds=40)
         self.report['final_outputs'] = slots(final)
+        for target in sorted(self.started):
+            try:
+                self.capture_trace(target, 'final')
+            except Exception as exc:
+                self.report.setdefault('trace_errors', []).append({'target': target, 'phase': 'final', 'error': str(exc)})
         self.started.clear()
         if self.receiver:
             self.report['receiver_returncode'] = self.receiver.wait()
@@ -399,7 +629,7 @@ class Suite:
         except Exception as exc:
             errors.append(str(exc))
 
-    def journal(self):
+    def journal(self, require_cases=True):
         source = self.args.data_dir / 'show-control' / ('session-' + self.session + '.jsonl')
         check(source.is_file() and not source.is_symlink() and source.stat().st_size <= 16*1024*1024, 'bounded current owner journal')
         target = self.directory / 'owner-journal.jsonl'
@@ -413,6 +643,36 @@ class Suite:
                 check(entry['action_key'] in intents and intents[entry['action_key']] < index, 'durable intent precedes dispatch result')
         self.report['journal'] = {'path': str(target), 'sha256': sha(target), 'entries': len(entries),
                                   'owner_session': self.session, 'intent_order_verified': True}
+        proofs = []
+        for complete in (self.report.get('goal'), self.report.get('disconnect', {}).get('complete')):
+            if complete and complete.get('proof'):
+                proofs.append(complete['proof'])
+        if require_cases:
+            check(len(proofs) == 2, 'successful main and disconnect composite proofs retained')
+        if self.report.get('ui_goal', {}).get('complete'):
+            proofs.append(self.report['ui_goal']['complete']['proof'])
+        for proof in proofs:
+            intent = entries[intents[proof['action_key']]]['intent']
+            prepared = intent['prepared']
+            check(prepared['action']['type'] == 'trigger_animated_widget'
+                  and len(prepared['commands']) == 1
+                  and prepared['commands'][0]['op'] == 'trigger_animated_widget',
+                  'durable journal proves one composite dispatch', action_key=proof['action_key'])
+        self.report['journal']['composite_intents_verified'] = len(proofs)
+        cancellation = self.report.get('cancel_show_control', {})
+        if cancellation.get('status') == 'PASS':
+            record = next(r for r in cancellation['before']['records'] if r.get('operation_id'))
+            token = record['operation_id']
+            dispatches = [i for i, entry in enumerate(entries) if entry['entry'] == 'dispatch'
+                          and entry['report']['outcome'].get('operation_id') == token]
+            cancels = [i for i, entry in enumerate(entries) if entry['entry'] == 'cancel_intent'
+                       and entry['operation_id'] == token]
+            completions = [i for i, entry in enumerate(entries) if entry['entry'] == 'completion'
+                           and entry['operation_id'] == token]
+            check(len(dispatches) == len(cancels) == len(completions) == 1
+                  and dispatches[0] < cancels[0] < completions[0],
+                  'one durable cancel intent follows acceptance and precedes native completion', token=token)
+            self.report['journal']['cancel_intent_verified'] = True
 
 
 def main():
@@ -435,14 +695,15 @@ def main():
     directory = args.output.resolve()
     check(not directory.exists(), 'fresh evidence directory')
     directory.mkdir(parents=True, mode=0o700)
-    report = {'version': 1, 'status': 'FAIL', 'control_status': 'NOT_EVALUATED',
+    report = {'version': 2, 'status': 'FAIL', 'control_status': 'NOT_EVALUATED',
               'plan': plan(), 'app': str(support.APP), 'app_sha256': sha(support.APP),
-              'script_sha256': sha(__file__), 'media': [], 'cleanup_errors': [],
+              'script_sha256': sha(__file__), 'helper_sha256': sha(pathlib.Path(__file__).with_name('h14_show_helpers.py')),
+              'media': [], 'cleanup_errors': [],
               'retained_changes': ['Show Control history, consumed event IDs and legitimate goal counters are retained; no reset/replay.'],
               'visual_review_required': ['Review goal entry in both decoded contact sheets and full-resolution MKVs.',
                   'Correlate event/operation timeline against actual media; wall clock alone is not a video timestamp.',
                   'Exercise real GPUI controls and a concurrent UI edit separately.',
-                  'Use H14 output-integrity harness for exact encoded/dispatched/container tail accounting.']}
+                  'Use retained initial/final packet traces with actual container PTS for tail accounting; trace alone proves dispatch only.']}
     suite = Suite(args, directory, report)
     print(directory, flush=True)
     try:
@@ -458,6 +719,11 @@ def main():
         report['traceback'] = traceback.format_exc()
     finally:
         suite.cleanup()
+        if hasattr(suite, 'session') and 'journal' not in report:
+            try:
+                suite.journal(require_cases=False)
+            except Exception as exc:
+                report['journal_preservation_error'] = str(exc)
         if suite.receiver and suite.receiver.process.poll() is None:
             try: suite.receiver.terminate()
             except Exception as exc: report['cleanup_errors'].append(str(exc))

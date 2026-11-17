@@ -53,6 +53,10 @@ uint32_t motive_video_skipped_frames(void) { return video_output_get_skipped_fra
  * auto fallback specific to video initialization, before a mux helper starts.
  * A disk/mux/audio error must never silently retry or overwrite a partial file. */
 static bool prepare_encoded_video(motive_engine *e,const char *path,const char *id,obs_data_t *profile,bool stream,const char *credential) {
+    /* Encoder initialization also overlaps the live OBS render clock. Acquire
+     * before it starts; release_output closes this scope on every failure and
+     * an automatic fallback enters here again with a fresh activity. */
+    begin_output_activity(e);
     obs_data_t *settings=obs_data_create();
     obs_data_set_string(settings,"path",path);
     if (stream) {
@@ -127,7 +131,6 @@ static bool start_encoded(motive_engine *e,const char *path,obs_data_t *profile,
     e->network_output=stream;
     signal_handler_connect(obs_output_get_signal_handler(e->output),"start",output_started,e);
     signal_handler_connect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e);
-    begin_output_activity(e);
     if (!obs_output_start(e->output)) {
         snprintf(e->error,sizeof(e->error),"OUTPUT_START_FAILED");
         release_output(e);atomic_store(&e->output_stopped,true);return false;

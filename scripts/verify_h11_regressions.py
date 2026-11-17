@@ -19,6 +19,17 @@ def main():
     parser.add_argument('--camera-id', required=True)
     parser.add_argument('--microphone-id', required=True)
     parser.add_argument('--group', choices=('all', 'legacy', 'mixer'), default='all')
+    parser.add_argument('--suite', action='append', choices=(
+        'verify_control.py', 'verify_control_delivery.py', 'verify_h1.py',
+        'verify_scenes.py', 'verify.py', 'verify_encoding.py',
+        'verify_encoding_fallback.py', 'verify_output_recovery.py',
+        'verify_rtmp.py', 'verify_rtmps.py', 'verify_connect_stop.py',
+        'verify_vt_stop.py', 'verify_profiles_restart.py', 'verify_h8_lifecycle.py',
+        'verify_h8_keychain.py', 'verify_h9_transitions.py', 'verify_h9_faults.py',
+        'verify_h10_audio.py', 'verify_h10_mixer.py'),
+        help='Run selected unchanged suites, each with its original prerequisites.')
+    parser.add_argument('--keep-going', action='store_true',
+                        help='Retain every failure and finish independent suites; final exit still fails.')
     args = parser.parse_args()
     run = ROOT/'var/evidence'/('h11-regressions-'+str(time.time_ns()))
     run.mkdir(parents=True)
@@ -32,6 +43,15 @@ def main():
         if args.group in ('all', 'mixer'):
             suites.extend((name, ['--microphone-id', args.microphone_id], 360)
                           for name in ('verify_h10_audio.py', 'verify_h10_mixer.py'))
+        if args.suite:
+            suites = []
+            for name in dict.fromkeys(args.suite):
+                options = []
+                if name in ('verify_h1.py', 'verify_scenes.py', 'verify_h9_transitions.py'):
+                    options += ['--camera-id', args.camera_id]
+                if name in ('verify_h1.py', 'verify_h10_audio.py', 'verify_h10_mixer.py'):
+                    options += ['--microphone-id', args.microphone_id]
+                suites.append((name, options, 420))
         for name, options, timeout in suites:
             start = time.monotonic()
             pid = prepare(name, run)
@@ -55,12 +75,14 @@ def main():
                     entry['legacy'] = json.loads(manifest.read_text())
             (run/'manifest.json').write_text(json.dumps(report, indent=2))
             print(name, 'exit', result.returncode, 'seconds', round(entry['seconds'], 1), flush=True)
-            assert result.returncode == 0, f'{name} failed; original evidence retained in {run}'
+            if not args.keep_going:
+                assert result.returncode == 0, f'{name} failed; original evidence retained in {run}'
             assert hashlib.sha256(app.read_bytes()).hexdigest() == report['app_sha256']
-        report['ok'] = True
+        report['ok'] = all(entry['exit_code'] == 0 for entry in report['suites'])
     finally:
         (run/'manifest.json').write_text(json.dumps(report, indent=2))
         print(run/'manifest.json', flush=True)
+    assert report['ok'], f'Failures retained in {run}; no acceptance criteria changed'
 
 
 if __name__ == '__main__':

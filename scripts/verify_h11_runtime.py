@@ -159,13 +159,13 @@ def green_box(image):
     return [min(xs)*2, min(ys)*2, (max(xs)-min(xs)+1)*2, (max(ys)-min(ys)+1)*2]
 
 
-def white_mask(image, box):
+def white_mask(image, box, tight=True):
     crop = image.crop(box)
     mask = Image.new('L', crop.size)
     mask.putdata([255 if min(p) > 185 and max(p)-min(p) < 55 else 0 for p in crop.getdata()])
     bounds = mask.getbbox()
     assert bounds, ('No white glyph pixels', box)
-    return mask.crop(bounds)
+    return mask.crop(bounds) if tight else mask
 
 
 def mask_error(left, right, same_glyphs=True):
@@ -829,13 +829,19 @@ def presets(h, _transports, args):
                 early = output.frame('decoration-early', decoration_event['seconds']+.2)
                 final = output.frame('decoration-final', decoration_event['final_seconds'])
                 early_box, final_box = green_box(early.crop(target_box)), green_box(final.crop(target_box))
-                text_error = mask_error(white_mask(early, box), white_mask(final, box))
+                # This widget must remain at identical scene coordinates. Use
+                # its fixed box: codec rounding can change a tight glyph bound
+                # by one pixel, and normalizing that bound would rescale every
+                # letter instead of measuring the actual decoded difference.
+                text_error = mask_error(white_mask(early, box, tight=False),
+                                        white_mask(final, box, tight=False))
                 progress = .2/(decoration['recipe']['animation']['duration_ms']/1000)
                 eased = 2*progress*progress  # ease_in_out, first half
                 expected_early = target['width']*(.7+.3*eased)
                 output.report['decoration_animation'] = {'event': decoration_event, 'target_bounds': target_box,
                     'early_green_bounds': early_box, 'final_green_bounds': final_box,
-                    'expected_early_diameter': expected_early, 'text_mask_error': text_error}
+                    'expected_early_diameter': expected_early, 'text_mask_error': text_error,
+                    'text_mask_space': 'fixed_widget_bounds'}
                 assert early_box and final_box, (early_box, final_box)
                 assert abs(early_box[2]-expected_early) <= 8 and abs(early_box[3]-expected_early) <= 8, early_box
                 assert abs(final_box[2]-target['width']) <= 4 and abs(final_box[3]-target['height']) <= 4, final_box

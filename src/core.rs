@@ -1,3 +1,5 @@
+#[path = "audio.rs"]
+pub mod audio;
 #[path = "output.rs"]
 pub mod output;
 use crate::{
@@ -7,6 +9,7 @@ use crate::{
         TransitionConfig, TransitionPhase, VisualSource, valid_name,
     },
 };
+use audio::{AudioSource, AudioStore};
 use output::{LocalEndpoint, OutputProfile, OutputTarget, ProfileStore};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -48,6 +51,22 @@ impl RecordingEncoder {
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Command {
     Status,
+    AudioMixer,
+    AddAudioInput {
+        name: String,
+        source: AudioSource,
+    },
+    RemoveAudioInput {
+        input_id: String,
+    },
+    SetAudioGain {
+        input_id: String,
+        gain_db: f32,
+    },
+    SetAudioMute {
+        input_id: String,
+        muted: bool,
+    },
     Scenes,
     ConfigureTransition {
         transition: TransitionConfig,
@@ -222,6 +241,7 @@ struct WindowBinding {
 }
 pub struct Production {
     pub engine: Engine,
+    audio_mixer: AudioStore,
     profiles: ProfileStore,
     recording_profile: String,
     streaming_profile: String,
@@ -257,6 +277,7 @@ impl Production {
         create_tone()?;
         let mut p = Self {
             engine: Engine::new()?,
+            audio_mixer: AudioStore::default(),
             profiles: ProfileStore::default(),
             recording_profile: "standard".into(),
             streaming_profile: "standard".into(),
@@ -303,7 +324,7 @@ impl Production {
         } else {
             &self.output_kind
         };
-        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"encoding":self.encoding_status(),"output_configuration":self.output_configuration(),"issues":self.issues,
+        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"encoding":self.encoding_status(),"output_configuration":self.output_configuration(),"issues":self.issues,
             "recovery_required":self.recovery.required(),"recovery_sources":self.recovery.pending,"last_fault":self.last_fault,
             "sources":self.source_health,"window_id":self.window_id,"output":output,"output_code":self.engine.output_code(),
             "transition_configuration":self.transition,"transition":self.engine.scene_state(),
@@ -495,17 +516,75 @@ impl Production {
         );
         Ok(())
     }
-    fn audio(&mut self, id: &str) -> anyhow::Result<()> {
+    pub fn audio_mixer_status(&self) -> Value {
+        json!({"store":self.audio_mixer,"runtime":self.engine.audio_state(),
+            "meter_point":"post_fader_pre_mute","meter_kind":"sample_peak_and_rms",
+            "mix_meter_point":"post_fader_post_mute_pre_clamp","monitoring":"off","mix_index":0})
+    }
+    fn add_audio(&mut self, name: String, source: AudioSource) -> anyhow::Result<String> {
+        let mut candidate = self.audio_mixer.clone();
+        let id = candidate.add(name, source)?;
+        candidate.validate()?;
+        if !self.audio_mixer.inputs.iter().any(|i| i.id == id) {
+            self.engine.audio_add(
+                candidate.input(&id)?,
+                &data_dir().join("tone.wav").to_string_lossy(),
+            )?;
+            self.audio_mixer = candidate;
+        }
+        Ok(id)
+    }
+    fn remove_audio(&mut self, id: &str) -> anyhow::Result<()> {
+        let input = self.audio_mixer.input(id)?;
+        let legacy = input.source.device() == self.project.audio;
+        self.engine.audio_remove(id)?;
+        self.audio_mixer.inputs.retain(|i| i.id != id);
+        if legacy {
+            self.project.audio = "none".into();
+            self.engine.audio_legacy("none")?;
+            self.awaiting_recovery.insert("audio".into());
+        }
+        Ok(())
+    }
+    fn audio(&mut self, device: &str) -> anyhow::Result<()> {
         anyhow::ensure!(
-            !id.is_empty() && id.len() < 512 && !id.contains('\0'),
+            !device.is_empty() && device.len() < 512 && !device.contains('\0'),
             "INVALID_ARGUMENT: audio inválido"
         );
-        if id != self.project.audio || self.engine.audio_health() != 0 {
-            self.engine
-                .audio(id, &data_dir().join("tone.wav").to_string_lossy())?;
-            self.project.audio = id.into();
+        if device == self.project.audio && self.engine.audio_health() == 0 {
+            return Ok(());
         }
-        // A changed microphone cannot acknowledge a failed visual source.
+        // Compatibility selector changes only its previous channel. Other mixer
+        // inputs survive project restoration and legacy UI operations.
+        if let Some(previous) = self
+            .audio_mixer
+            .inputs
+            .iter()
+            .find(|i| i.source.device() == self.project.audio)
+            .map(|i| i.id.clone())
+        {
+            self.remove_audio(&previous)?;
+        }
+        if device != "none" {
+            let source = if device == "tone" {
+                AudioSource::Tone
+            } else {
+                AudioSource::Microphone {
+                    device_id: device.into(),
+                }
+            };
+            let id = self.add_audio("Audio principal".into(), source)?;
+            let input = self
+                .audio_mixer
+                .inputs
+                .iter_mut()
+                .find(|i| i.id == id)
+                .unwrap();
+            input.gain_db = 0.0;
+            self.engine.audio_control(input)?;
+        }
+        self.project.audio = device.into();
+        self.engine.audio_legacy(device)?;
         self.awaiting_recovery.insert("audio".into());
         Ok(())
     }
@@ -876,6 +955,9 @@ impl Production {
         if matches!(command, Command::Status) {
             return json!({"ok":true,"state":self.status()});
         }
+        if matches!(command, Command::AudioMixer) {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"audio_mixer":self.audio_mixer_status()});
+        }
         if matches!(command, Command::Scenes) {
             return json!({"ok":true,"revision":self.revision,"scenes":self.graph().scenes,
                 "current_scene":self.graph().active_scene,"configuration":self.transition,"transition":self.engine.scene_state()});
@@ -1069,6 +1151,37 @@ impl Production {
                 Command::SelectCamera { id } => {
                     self.legacy_source(SourceInput::Camera { device_id: id })?
                 }
+                Command::AddAudioInput { name, source } => {
+                    self.idle()?;
+                    self.add_audio(name, source)?;
+                }
+                Command::RemoveAudioInput { input_id } => {
+                    self.idle()?;
+                    self.remove_audio(&input_id)?;
+                }
+                Command::SetAudioGain { input_id, gain_db } => {
+                    audio::validate_gain(gain_db)?;
+                    let mut input = self.audio_mixer.input(&input_id)?.clone();
+                    input.gain_db = gain_db;
+                    self.engine.audio_control(&input)?;
+                    *self
+                        .audio_mixer
+                        .inputs
+                        .iter_mut()
+                        .find(|i| i.id == input_id)
+                        .unwrap() = input;
+                }
+                Command::SetAudioMute { input_id, muted } => {
+                    let mut input = self.audio_mixer.input(&input_id)?.clone();
+                    input.muted = muted;
+                    self.engine.audio_control(&input)?;
+                    *self
+                        .audio_mixer
+                        .inputs
+                        .iter_mut()
+                        .find(|i| i.id == input_id)
+                        .unwrap() = input;
+                }
                 Command::SelectAudio { id } => {
                     self.idle()?;
                     self.audio(&id)?;
@@ -1085,10 +1198,9 @@ impl Production {
                 Command::ReconnectSources => {
                     self.idle()?;
                     self.sync(self.graph().clone(), self.bindings.clone(), "*")?;
-                    self.engine.audio(
-                        &self.project.audio,
-                        &data_dir().join("tone.wav").to_string_lossy(),
-                    )?;
+                    let selected = self.project.audio.clone();
+                    self.project.audio = "none".into();
+                    self.audio(&selected)?;
                     self.engine.reset_output()?;
                     self.recovery.resolve("output");
                     self.awaiting_recovery.extend(
@@ -1200,6 +1312,7 @@ impl Production {
                     self.test_window_request = Some(open);
                 }
                 Command::Status
+                | Command::AudioMixer
                 | Command::Scenes
                 | Command::Devices
                 | Command::Encoders
@@ -1339,6 +1452,11 @@ mod tests {
     fn rejects_unbounded_remote_controls() {
         for input in [
             r#"{"op":"start_local_stream","url":"rtmp://example.com/key"}"#,
+            r#"{"op":"audio_mixer","path":"/tmp/audio"}"#,
+            r#"{"op":"add_audio_input","name":"Tone","source":{"kind":"tone","device_id":"extra"}}"#,
+            r#"{"op":"add_audio_input","name":"Mic","source":{"kind":"microphone","device_id":"uid","monitor":true}}"#,
+            r#"{"op":"set_audio_mute","input_id":"audio-1","muted":"yes"}"#,
+            r#"{"op":"set_audio_gain","input_id":"audio-1","gain_db":null}"#,
             r#"{"op":"set_variant","variant":"stretch"}"#,
             r#"{"op":"set_overlay","visible":"yes"}"#,
             r#"{"op":"set_encoder","encoder":"arbitrary_plugin"}"#,

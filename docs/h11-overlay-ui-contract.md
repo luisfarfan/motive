@@ -63,8 +63,9 @@ definición editada desde otra superficie.
 Una respuesta `ok:true` a una animación o importación significa aceptación. Guardar
 su `operation_id` y observar el estado terminal. Importación y animación tienen
 contadores independientes: no pasar un token de importación a cancelación de
-animación. No hay comando para cancelar una importación; su worker tiene límites
-y timeout. Si se pierde la respuesta, consultar
+animación. No hay comando para cancelar una importación. Los subprocesos
+FFmpeg/ffprobe tienen límites y timeout; la decodificación de imágenes ocurre
+en el worker del proceso sin deadline ni cancelación temporal. Si se pierde la respuesta, consultar
 estado antes de decidir la siguiente acción: nunca reintentar automáticamente una
 mutación. La capa de transporte solo reintenta consultas. `TIMEOUT` no demuestra
 que la operación no haya ocurrido.
@@ -315,7 +316,9 @@ Formatos admitidos: PNG, JPEG, WebP, MP4, MOV, WebM. Imágenes se decodifican y
 normalizan a PNG, hasta 2048×2048. Video: un stream de video, como máximo uno de
 audio, H.264/VP8/VP9 y AAC/Opus/Vorbis; hasta 1920×1080, 60fps, 60s y 3600 frames.
 Se valida la decodificación y se crea MKV administrado conservando solo tracks
-admitidos, sin metadata/capítulos. No se ofrecen GIF, SVG, APNG animado, playlists,
+admitidos, descartando tags originales de contenedor/streams y capítulos. El remux copia los
+codecs: puede conservar metadatos embebidos en su bitstream, como SEI; no garantiza
+eliminar toda información auxiliar del contenido. No se ofrecen GIF, SVG, APNG animado, playlists,
 URLs, archivos externos referenciados ni una biblioteca de paquetes ejecutables.
 
 Límites: 64MiB por archivo, 128 assets, 512MiB administrados. El índice v1 se guarda
@@ -339,8 +342,9 @@ como si fuera otro canal H10. La mezcla global y sus controles siguen el
 
 PNG alfa está verificado. No anunciar transparencia de video, HDR, emoji ni
 fuentes multimedia externas: no están verificados en este alcance. La
-normalización conserva solo las pistas locales admitidas y elimina metadatos;
-no es un contrato de preservación de todos los canales auxiliares de un formato.
+normalización conserva solo las pistas locales admitidas y descarta sus tags originales y capítulos;
+los metadatos embebidos en codecs pueden permanecer. Tampoco
+es un contrato de preservación de todos los canales auxiliares de un formato.
 
 El decoder conserva instancias, timestamps y reproducción entre escenas:
 `close_when_inactive=false`, `restart_on_activate=false`, `clear_on_media_end=false`.

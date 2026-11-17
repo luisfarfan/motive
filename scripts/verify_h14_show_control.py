@@ -46,6 +46,34 @@ def stores(directory):
                          'show-control/configuration.json', 'streaming/destinations.json')}
 
 
+def media_evidence(paths):
+    """Retain known artifacts even when analysis/cleanup failed; never imply decode."""
+    evidence = []
+    for label, value in paths:
+        if value is None:
+            continue
+        path = pathlib.Path(value)
+        item = {'label': label, 'path': str(path), 'exists': False,
+                'sha256': None, 'decode_status': 'NOT_EVALUATED',
+                'hash_stable_observation': False}
+        try:
+            item['exists'] = path.is_file()
+            if item['exists']:
+                before = path.stat()
+                item['sha256'] = sha(path)
+                after = path.stat()
+                item.update(bytes=after.st_size, bytes_before_hash=before.st_size,
+                            mtime_ns=after.st_mtime_ns,
+                            hash_stable_observation=(before.st_size, before.st_mtime_ns,
+                                                     before.st_dev, before.st_ino) ==
+                                                    (after.st_size, after.st_mtime_ns,
+                                                     after.st_dev, after.st_ino))
+        except Exception as exc:
+            item['evidence_error'] = str(exc)
+        evidence.append(item)
+    return evidence
+
+
 def analyze(path, directory, label):
     """Decode actual media, retain every timestamp, and make review contact sheets."""
     path = pathlib.Path(path)
@@ -125,7 +153,7 @@ class Suite:
             state = self.snapshot(label)
             if predicate(state):
                 return state
-            check(time.monotonic() < deadline, 'bounded real owner wait', label=label)
+            check(time.monotonic() < deadline, 'bounded real owner wait', wait_label=label)
             time.sleep(.08)
 
     def job(self, identifier, label, terminal=True):
@@ -187,6 +215,7 @@ class Suite:
             self.call('upsert_output_profile', profile=value)
             self.profiles.append(value['id'])
             self.call('select_output_profile', target=target, profile_id=value['id'])
+        self.report['loopback_path'] = str(self.directory / 'loopback.mkv')
         self.receiver = Receiver(self.directory, 'loopback', port)
         for target in ('recording', 'streaming'):
             self.call('preflight_output', target=target)
@@ -200,6 +229,8 @@ class Suite:
                 if observed['attempt_id'] != baseline:
                     self.started.add(target)
                     self.attempts[target] = observed['attempt_id']
+                    if target == 'recording' and observed.get('path'):
+                        self.report['recording_path'] = observed['path']
             self.wait(lambda s: slots(s)[target]['phase'] == 'active', target + ' active')
         state = self.snapshot('both outputs active')
         self.report['recording_path'] = slots(state)['recording']['path']
@@ -434,6 +465,11 @@ def main():
             try: suite.client.close()
             except Exception as exc: report['cleanup_errors'].append(str(exc))
         suite.snapshots.close()
+        report['media_evidence'] = media_evidence([
+            ('recording', report.get('recording_path')),
+            ('loopback', report.get('loopback_path'))])
+        report['media_hash_scope'] = ('Observed files after cleanup attempt; hash stability is '
+                                     'not proof of native finalization, decode or visible animation.')
         write_json(directory / 'report.json', report)
     print(json.dumps({'status': report['status'], 'control_status': report['control_status'],
                       'report': str(directory / 'report.json'), 'cleanup_errors': report['cleanup_errors']}))

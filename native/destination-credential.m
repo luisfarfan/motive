@@ -107,10 +107,36 @@ static bool destination_signed_identity(void) {
 @property(nonatomic) uint32_t phase;
 @property(nonatomic) int code;
 @property(nonatomic) BOOL cancelRequested;
+- (void)pasteCredential:(id)sender;
 @end
 @implementation MotiveDestinationEnrollment
+- (void)pasteCredential:(id)sender {
+    // GPUI's application menu need not contain Edit/Paste. Route this local
+    // button/key equivalent straight to this secure field's AppKit editor.
+    // AppKit owns clipboard access; never fetch/copy clipboard text here.
+    if(!NSThread.isMainThread || self.phase!=MOTIVE_CREDENTIAL_AWAITING_USER
+        || self.cancelRequested || !self.field || self.field.window!=self.alert.window)return;
+    NSText *editor=self.field.currentEditor;
+    if(!editor && [self.alert.window makeFirstResponder:self.field])editor=self.field.currentEditor;
+    if(editor.isFieldEditor)[editor paste:sender];
+}
 @end
 static MotiveDestinationEnrollment *enrollment;
+
+static NSView *destination_secure_accessory(MotiveDestinationEnrollment *state) {
+    NSView *accessory=[[NSView alloc] initWithFrame:NSMakeRect(0,0,400,66)];
+    state.field=[[NSSecureTextField alloc] initWithFrame:NSMakeRect(0,36,400,28)];
+    state.field.placeholderString=@"Clave de transmisión";
+    state.field.accessibilityLabel=@"Clave de transmisión segura";
+    [accessory addSubview:state.field];
+    NSButton *paste=[NSButton buttonWithTitle:@"Pegar" target:state action:@selector(pasteCredential:)];
+    paste.frame=NSMakeRect(300,0,100,28);
+    paste.keyEquivalent=@"v";paste.keyEquivalentModifierMask=NSEventModifierFlagCommand;
+    paste.accessibilityLabel=@"Pegar en la clave de transmisión segura";
+    paste.toolTip=@"Pegar desde el portapapeles (⌘V)";
+    [accessory addSubview:paste];
+    return accessory;
+}
 
 static void destination_release_ui(MotiveDestinationEnrollment *state) {
     state.field.stringValue = @"";
@@ -191,10 +217,7 @@ int motive_destination_credential_begin(void *opaqueWindow, const char *requestJ
         NSString *authority = [host containsString:@":"] ? [NSString stringWithFormat:@"[%@]", host] : host;
         state.alert.informativeText = [NSString stringWithFormat:@"%@\nDestino: %@ · rtmps://%@:%@%@\nLa clave se guarda únicamente en el llavero de macOS. Esta acción no inicia una transmisión.", name, destination[@"destination_id"], authority, destination[@"port"], destination[@"application"]];
         [state.alert addButtonWithTitle:@"Guardar en Llavero"]; [state.alert addButtonWithTitle:@"Cancelar"];
-        state.field = [[NSSecureTextField alloc] initWithFrame:NSMakeRect(0, 0, 400, 28)];
-        state.field.placeholderString = @"Clave de transmisión";
-        state.field.accessibilityLabel = @"Clave de transmisión segura";
-        state.alert.accessoryView = state.field;
+        state.alert.accessoryView = destination_secure_accessory(state);
         enrollment = state; last_request_id = requestID; atomic_store(&destination_credential_work, true);
         [state.alert beginSheetModalForWindow:window completionHandler:^(NSModalResponse response) {
             if (state.cancelRequested || response != NSAlertFirstButtonReturn) {

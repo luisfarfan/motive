@@ -174,7 +174,7 @@ def execute(args):
             row = sample(label); rows.append(row)
             if video_count is not None:
                 videos = [v for v in row['overlays_runtime']['sources'] if v['kind'] == 'video']
-                check(len(videos) == video_count, 'expected video child count', label=label)
+                check(len(videos) == video_count, 'expected video child count', sample_label=label)
                 check(all(v['audio_mixers'] == 0 and v['child_instances_created'] == 1 for v in videos), 'one silent child per video')
             if outputs_active:
                 check(all(row['outputs'][t]['phase'] == 'active' for t in ('recording', 'streaming')), 'dual outputs remain active')

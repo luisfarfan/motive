@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "variables": {},
+  "max_actions_per_event": 16,
+  "queue_capacity": 8,
+  "rate_limit": 20,
+  "rate_window_ms": 1000,
+  "rules": [
+    {
+      "id": "arena-deck-alert",
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "conditions": [
+        {
+          "type": "equals",
+          "field": "button_id",
+          "value": {
+            "type": "string",
+            "value": "alert"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "widget",
+          "source_id": "arena-alert",
+          "event": "trigger"
+        }
+      ],
+      "priority": 5,
+      "cooldown_ms": 2500,
+      "debounce_ms": 0,
+      "timeout_ms": 5000,
+      "busy_policy": "reject",
+      "failure_policy": "stop"
+    },
+    {
+      "id": "arena-deck-chapter",
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "conditions": [
+        {
+          "type": "equals",
+          "field": "button_id",
+          "value": {
+            "type": "string",
+            "value": "chapter"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "show_overlay",
+          "source_id": "arena-label"
+        }
+      ],
+      "priority": 5,
+      "cooldown_ms": 2500,
+      "debounce_ms": 0,
+      "timeout_ms": 5000,
+      "busy_policy": "reject",
+      "failure_policy": "stop"
+    },
+    {
+      "id": "arena-provider-follow",
+      "enabled": false,
+      "event_kind": "viewer.follow",
+      "conditions": [],
+      "actions": [
+        {
+          "type": "widget",
+          "source_id": "arena-alert",
+          "event": "trigger"
+        }
+      ],
+      "priority": 5,
+      "cooldown_ms": 2500,
+      "debounce_ms": 0,
+      "timeout_ms": 5000,
+      "busy_policy": "reject",
+      "failure_policy": "stop"
+    },
+    {
+      "id": "arena-deck-celebrate",
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "conditions": [
+        {
+          "type": "equals",
+          "field": "button_id",
+          "value": {
+            "type": "string",
+            "value": "celebrate"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "sequence",
+          "actions": [
+            {
+              "type": "widget",
+              "source_id": "arena-reward",
+              "event": "trigger"
+            },
+            {
+              "type": "increment_counter",
+              "name": "community_rewards",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "priority": 5,
+      "cooldown_ms": 2500,
+      "debounce_ms": 0,
+      "timeout_ms": 5000,
+      "busy_policy": "reject",
+      "failure_policy": "stop"
+    },
+    {
+      "id": "arena-provider-reward",
+      "enabled": false,
+      "event_kind": "viewer.reward_redeemed",
+      "conditions": [],
+      "actions": [
+        {
+          "type": "widget",
+          "source_id": "arena-reward",
+          "event": "trigger"
+        }
+      ],
+      "priority": 5,
+      "cooldown_ms": 2500,
+      "debounce_ms": 0,
+      "timeout_ms": 5000,
+      "busy_policy": "reject",
+      "failure_policy": "stop"
+    }
+  ]
+}

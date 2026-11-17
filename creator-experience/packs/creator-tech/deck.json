@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "id": "tech-creator-deck",
+  "name": "CREATOR TECH — Build in Public · independent rehearsal",
+  "groups": [
+    {
+      "id": "show",
+      "label": "Show",
+      "order": 0
+    },
+    {
+      "id": "community",
+      "label": "Community",
+      "order": 1
+    }
+  ],
+  "buttons": [
+    {
+      "id": "presenter",
+      "group_id": "show",
+      "label": "Show name",
+      "icon": "text",
+      "order": 0,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 0,
+      "sensitive": false,
+      "target": {
+        "kind": "overlay",
+        "source_ref": "tech-lower-third",
+        "show": true
+      }
+    },
+    {
+      "id": "chapter",
+      "group_id": "show",
+      "label": "Show chapter",
+      "icon": "text",
+      "order": 1,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 0,
+      "sensitive": false,
+      "target": {
+        "kind": "rule",
+        "rule_id": "tech-deck-chapter"
+      }
+    },
+    {
+      "id": "countdown",
+      "group_id": "show",
+      "label": "Start countdown",
+      "icon": "timer",
+      "order": 2,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 0,
+      "sensitive": false,
+      "target": {
+        "kind": "countdown",
+        "source_ref": "tech-timer",
+        "reset": false
+      }
+    },
+    {
+      "id": "countdown-reset",
+      "group_id": "show",
+      "label": "Reset countdown",
+      "icon": "timer",
+      "order": 3,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 0,
+      "sensitive": true,
+      "target": {
+        "kind": "countdown",
+        "source_ref": "tech-timer",
+        "reset": true
+      }
+    },
+    {
+      "id": "live",
+      "group_id": "show",
+      "label": "Live Coding",
+      "icon": "play",
+      "order": 4,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 1000,
+      "sensitive": true,
+      "target": {
+        "kind": "scene",
+        "scene_ref": "tech-live",
+        "transition": {
+          "kind": "cut"
+        }
+      }
+    },
+    {
+      "id": "brb",
+      "group_id": "show",
+      "label": "Pause",
+      "icon": "pause",
+      "order": 5,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 1000,
+      "sensitive": true,
+      "target": {
+        "kind": "scene",
+        "scene_ref": "tech-brb",
+        "transition": {
+          "kind": "fade",
+          "duration_ms": 350
+        }
+      }
+    },
+    {
+      "id": "alert",
+      "group_id": "community",
+      "label": "Community alert",
+      "icon": "bell",
+      "order": 0,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 2500,
+      "sensitive": false,
+      "target": {
+        "kind": "rule",
+        "rule_id": "tech-deck-alert"
+      }
+    },
+    {
+      "id": "provider-follow",
+      "group_id": "community",
+      "label": "Automatic follow · disabled",
+      "icon": "bell",
+      "order": 1,
+      "enabled": false,
+      "shortcut": null,
+      "cooldown_ms": 0,
+      "sensitive": false,
+      "target": {
+        "kind": "rule",
+        "rule_id": "tech-provider-follow"
+      }
+    }
+  ]
+}

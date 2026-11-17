@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "scope": "Capture recipes only; the manifest never opens devices or adds captures.",
+  "capture_sources": [
+    "One user-selected camera",
+    "One user-selected window or game capture"
+  ],
+  "remaining_capacity": {
+    "scenes": 2,
+    "sources": 4,
+    "layers": 5
+  },
+  "slots": [
+    {
+      "scene_id": "tech-live",
+      "frame_layer_id": "tech-live-screen-frame",
+      "source_role": "window",
+      "horizontal": {
+        "x": 32,
+        "y": 108,
+        "width": 640,
+        "height": 360,
+        "visible": true,
+        "order": 1
+      },
+      "vertical": {
+        "x": 32,
+        "y": 150,
+        "width": 476,
+        "height": 267.75,
+        "visible": true,
+        "order": 1
+      },
+      "instructions": "Add a user-selected source at order 1. Frame remains order >=2. Match 16:9; nonmatching capture aspect uses contain, never implied crop. These slots add layers against the whole-project limit."
+    },
+    {
+      "scene_id": "tech-live",
+      "frame_layer_id": "tech-live-camera-frame",
+      "source_role": "camera",
+      "horizontal": {
+        "x": 704,
+        "y": 108,
+        "width": 224,
+        "height": 126,
+        "visible": true,
+        "order": 1
+      },
+      "vertical": {
+        "x": 32,
+        "y": 480,
+        "width": 476,
+        "height": 267.75,
+        "visible": true,
+        "order": 1
+      },
+      "instructions": "Add a user-selected source at order 1. Frame remains order >=2. Match 16:9; nonmatching capture aspect uses contain, never implied crop. These slots add layers against the whole-project limit."
+    },
+    {
+      "scene_id": "tech-camera",
+      "frame_layer_id": "tech-camera-frame",
+      "source_role": "camera",
+      "horizontal": {
+        "x": 64,
+        "y": 38,
+        "width": 832,
+        "height": 468,
+        "visible": true,
+        "order": 1
+      },
+      "vertical": {
+        "x": 24,
+        "y": 185,
+        "width": 492,
+        "height": 276.75,
+        "visible": true,
+        "order": 1
+      },
+      "instructions": "Add a user-selected source at order 1. Frame remains order >=2. Match 16:9; nonmatching capture aspect uses contain, never implied crop. These slots add layers against the whole-project limit."
+    },
+    {
+      "scene_id": "tech-presentation",
+      "frame_layer_id": "tech-presentation-frame",
+      "source_role": "window",
+      "horizontal": {
+        "x": 32,
+        "y": 92,
+        "width": 672,
+        "height": 378,
+        "visible": true,
+        "order": 1
+      },
+      "vertical": {
+        "x": 32,
+        "y": 160,
+        "width": 476,
+        "height": 267.75,
+        "visible": true,
+        "order": 1
+      },
+      "instructions": "Add a user-selected source at order 1. Frame remains order >=2. Match 16:9; nonmatching capture aspect uses contain, never implied crop. These slots add layers against the whole-project limit."
+    }
+  ],
+  "notes": [
+    "Do not install two complete collections in one project. Their combined graph exceeds limits.",
+    "Frame interiors are transparent PNG. Empty previews show background, not a simulated camera.",
+    "Count all selected capture slots before adding them; reserve is not a promise for a pre-existing project.",
+    "The same camera/window may be reused across scenes with distinct layer transforms.",
+    "Optional native-only adaptation: omit image motif/frame layers, draw a native rectangle border around the capture; this is a manual recipe, not a second manifest/importer."
+  ]
+}

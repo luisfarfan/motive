@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "id": "podcast-example-deck",
+  "name": "Podcast — disconnected rehearsal",
+  "groups": [
+    {
+      "id": "conversation",
+      "label": "Conversation",
+      "order": 0
+    }
+  ],
+  "buttons": [
+    {
+      "id": "show-names",
+      "group_id": "conversation",
+      "label": "Show both names",
+      "icon": "text",
+      "order": 0,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 1000,
+      "sensitive": false,
+      "target": {
+        "kind": "composite",
+        "rule_id": "podcast-show-identities"
+      }
+    },
+    {
+      "id": "hide-names",
+      "group_id": "conversation",
+      "label": "Hide both names",
+      "icon": "text",
+      "order": 1,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 1000,
+      "sensitive": false,
+      "target": {
+        "kind": "composite",
+        "rule_id": "podcast-hide-identities"
+      }
+    },
+    {
+      "id": "host-entry",
+      "group_id": "conversation",
+      "label": "Host entry after Show",
+      "icon": "layers",
+      "order": 2,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 1000,
+      "sensitive": false,
+      "target": {
+        "kind": "animation",
+        "animation_id": "podcast-host-enter"
+      }
+    },
+    {
+      "id": "pause",
+      "group_id": "conversation",
+      "label": "Pause conversation",
+      "icon": "pause",
+      "order": 3,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 1000,
+      "sensitive": true,
+      "target": {
+        "kind": "rule",
+        "rule_id": "podcast-pause"
+      }
+    },
+    {
+      "id": "resume",
+      "group_id": "conversation",
+      "label": "Return to conversation",
+      "icon": "play",
+      "order": 4,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 1000,
+      "sensitive": true,
+      "target": {
+        "kind": "rule",
+        "rule_id": "podcast-resume"
+      }
+    }
+  ]
+}

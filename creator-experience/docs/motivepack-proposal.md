@@ -28,6 +28,11 @@ deck.json                      # bindings simbólicos, no IDs de una Mac
 `total_uncompressed_bytes`, `compatibility_notes`. Son metadatos de un futuro
 contenedor; **no añadirlos al manifest v1**. `author` no prueba identidad.
 
+Hay [ejemplos concretos de ambos envoltorios](motivepack-examples/README.md) con
+hashes y tamaños calculados de los archivos actuales. El conteo incluye los dos
+documentos del contenedor; checksums excluye solo a sí mismo. Los ejemplos
+proyectan un payload lógico; no emiten ZIP ni instalan contenido.
+
 `checksums.json` propuesto: objeto estricto `{ "version": 1, "algorithm":
 "sha256", "files": [{"path": "manifest.json", "bytes": 123, "sha256":
 "64 dígitos hex"}] }`. Lista todos los archivos regulares salvo a sí mismo.

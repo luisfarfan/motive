@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "id": "podcast-two-camera-example",
+  "version": "0.1.0",
+  "name": "Podcast authoring example — two reserved cameras",
+  "author": "Motive contributors",
+  "license": "GPL-3.0-or-later",
+  "resources": [],
+  "scenes": [
+    {
+      "id": "podcast-live",
+      "name": "Conversation",
+      "layers": [
+        {
+          "id": "podcast-live-bg",
+          "overlay_id": "podcast-background",
+          "horizontal": {
+            "x": 0,
+            "y": 0,
+            "width": 960,
+            "height": 540,
+            "visible": true,
+            "order": 0
+          },
+          "vertical": {
+            "x": 0,
+            "y": 0,
+            "width": 540,
+            "height": 960,
+            "visible": true,
+            "order": 0
+          }
+        },
+        {
+          "id": "podcast-live-heading",
+          "overlay_id": "podcast-heading",
+          "horizontal": {
+            "x": 32,
+            "y": 40,
+            "width": 700,
+            "height": 42,
+            "visible": true,
+            "order": 3
+          },
+          "vertical": {
+            "x": 32,
+            "y": 40,
+            "width": 476,
+            "height": 29,
+            "visible": true,
+            "order": 3
+          }
+        },
+        {
+          "id": "podcast-host-layer",
+          "overlay_id": "podcast-host",
+          "horizontal": {
+            "x": 32,
+            "y": 390,
+            "width": 432,
+            "height": 103,
+            "visible": true,
+            "order": 4
+          },
+          "vertical": {
+            "x": 32,
+            "y": 390,
+            "width": 476,
+            "height": 113.34,
+            "visible": true,
+            "order": 4
+          }
+        },
+        {
+          "id": "podcast-guest-layer",
+          "overlay_id": "podcast-guest",
+          "horizontal": {
+            "x": 496,
+            "y": 390,
+            "width": 432,
+            "height": 103,
+            "visible": true,
+            "order": 5
+          },
+          "vertical": {
+            "x": 32,
+            "y": 796,
+            "width": 476,
+            "height": 113.34,
+            "visible": true,
+            "order": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "podcast-brb",
+      "name": "Be Right Back",
+      "layers": [
+        {
+          "id": "podcast-brb-bg",
+          "overlay_id": "podcast-background",
+          "horizontal": {
+            "x": 0,
+            "y": 0,
+            "width": 960,
+            "height": 540,
+            "visible": true,
+            "order": 0
+          },
+          "vertical": {
+            "x": 0,
+            "y": 0,
+            "width": 540,
+            "height": 960,
+            "visible": true,
+            "order": 0
+          }
+        },
+        {
+          "id": "podcast-brb-title",
+          "overlay_id": "podcast-pause-title",
+          "horizontal": {
+            "x": 64,
+            "y": 170,
+            "width": 510,
+            "height": 190,
+            "visible": true,
+            "order": 1
+          },
+          "vertical": {
+            "x": 40,
+            "y": 250,
+            "width": 460,
+            "height": 172,
+            "visible": true,
+            "order": 1
+          }
+        },
+        {
+          "id": "podcast-brb-detail",
+          "overlay_id": "podcast-pause-detail",
+          "horizontal": {
+            "x": 64,
+            "y": 400,
+            "width": 600,
+            "height": 48,
+            "visible": true,
+            "order": 2
+          },
+          "vertical": {
+            "x": 40,
+            "y": 510,
+            "width": 460,
+            "height": 37,
+            "visible": true,
+            "order": 2
+          }
+        }
+      ]
+    }
+  ],
+  "overlays": [
+    {
+      "id": "podcast-background",
+      "name": "Background",
+      "definition": {
+        "kind": "shape",
+        "shape": "rectangle",
+        "width": 960,
+        "height": 540,
+        "color": 1384477,
+        "opacity": 1.0,
+        "border_color": null,
+        "border_width": 0
+      }
+    },
+    {
+      "id": "podcast-heading",
+      "name": "Episode heading",
+      "definition": {
+        "kind": "text",
+        "text": "LOCAL SIGNAL / SOFTWARE PODCAST",
+        "font": "Menlo",
+        "size": 22,
+        "color": 12379853,
+        "opacity": 1.0,
+        "align": "left",
+        "width": 700,
+        "height": 42,
+        "background": null,
+        "background_opacity": 0.0,
+        "outline": false
+      }
+    },
+    {
+      "id": "podcast-host",
+      "name": "Host identity",
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "kind": "lower_third",
+          "title": "Alex Rivera",
+          "subtitle": "Host / Software design",
+          "width": 420,
+          "height": 100,
+          "background": 2438191,
+          "accent": 12379853,
+          "color": 16052711,
+          "opacity": 1.0,
+          "duration_ms": 0
+        }
+      }
+    },
+    {
+      "id": "podcast-guest",
+      "name": "Guest identity",
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "kind": "lower_third",
+          "title": "Jordan Lee",
+          "subtitle": "Guest / Local-first systems",
+          "width": 420,
+          "height": 100,
+          "background": 2438191,
+          "accent": 12379853,
+          "color": 16052711,
+          "opacity": 1.0,
+          "duration_ms": 0
+        }
+      }
+    },
+    {
+      "id": "podcast-pause-title",
+      "name": "Pause title",
+      "definition": {
+        "kind": "text",
+        "text": "A short pause.\nMore ideas soon.",
+        "font": "Helvetica",
+        "size": 60,
+        "color": 16052711,
+        "opacity": 1.0,
+        "align": "left",
+        "width": 510,
+        "height": 190,
+        "background": null,
+        "background_opacity": 0.0,
+        "outline": false
+      }
+    },
+    {
+      "id": "podcast-pause-detail",
+      "name": "Pause detail",
+      "definition": {
+        "kind": "text",
+        "text": "Thanks for joining the conversation.",
+        "font": "Helvetica",
+        "size": 22,
+        "color": 12379853,
+        "opacity": 1.0,
+        "align": "left",
+        "width": 600,
+        "height": 48,
+        "background": null,
+        "background_opacity": 0.0,
+        "outline": false
+      }
+    }
+  ],
+  "animations": [
+    {
+      "id": "podcast-host-enter",
+      "scene_id": "podcast-live",
+      "layer_id": "podcast-host-layer",
+      "kind": "slide_in",
+      "easing": "ease_out",
+      "duration_ms": 320,
+      "distance": 24,
+      "scale_from": 0.9
+    },
+    {
+      "id": "podcast-guest-enter",
+      "scene_id": "podcast-live",
+      "layer_id": "podcast-guest-layer",
+      "kind": "slide_in",
+      "easing": "ease_out",
+      "duration_ms": 320,
+      "distance": 24,
+      "scale_from": 0.9
+    },
+    {
+      "id": "podcast-pause-enter",
+      "scene_id": "podcast-brb",
+      "layer_id": "podcast-brb-title",
+      "kind": "fade_in",
+      "easing": "linear",
+      "duration_ms": 280,
+      "distance": 0,
+      "scale_from": 1.0
+    }
+  ],
+  "properties": [
+    {
+      "id": "heading",
+      "label": "Episode heading",
+      "overlay_id": "podcast-heading",
+      "target": "text_content",
+      "value": {
+        "type": "text",
+        "value": "LOCAL SIGNAL / SOFTWARE PODCAST"
+      }
+    },
+    {
+      "id": "host-name",
+      "label": "Host name",
+      "overlay_id": "podcast-host",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "Alex Rivera"
+      }
+    },
+    {
+      "id": "host-role",
+      "label": "Host role",
+      "overlay_id": "podcast-host",
+      "target": "widget_subtitle",
+      "value": {
+        "type": "text",
+        "value": "Host / Software design"
+      }
+    },
+    {
+      "id": "guest-name",
+      "label": "Guest name",
+      "overlay_id": "podcast-guest",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "Jordan Lee"
+      }
+    },
+    {
+      "id": "guest-role",
+      "label": "Guest role",
+      "overlay_id": "podcast-guest",
+      "target": "widget_subtitle",
+      "value": {
+        "type": "text",
+        "value": "Guest / Local-first systems"
+      }
+    },
+    {
+      "id": "pause-title",
+      "label": "Pause title",
+      "overlay_id": "podcast-pause-title",
+      "target": "text_content",
+      "value": {
+        "type": "text",
+        "value": "A short pause.\nMore ideas soon."
+      }
+    },
+    {
+      "id": "pause-detail",
+      "label": "Pause detail",
+      "overlay_id": "podcast-pause-detail",
+      "target": "text_content",
+      "value": {
+        "type": "text",
+        "value": "Thanks for joining the conversation."
+      }
+    },
+    {
+      "id": "background",
+      "label": "Background color",
+      "overlay_id": "podcast-background",
+      "target": "shape_color",
+      "value": {
+        "type": "color",
+        "value": 1384477
+      }
+    }
+  ],
+  "events": [
+    "manual.button_pressed"
+  ],
+  "rule_ids": [
+    "podcast-show-identities",
+    "podcast-hide-identities",
+    "podcast-pause",
+    "podcast-resume"
+  ],
+  "requires": [
+    "text",
+    "shape",
+    "widget",
+    "layer_animation",
+    "scene_transition"
+  ],
+  "budget": {
+    "max_resource_bytes": 0,
+    "max_estimated_texture_bytes": 67108864,
+    "max_simultaneous_animations": 2
+  }
+}

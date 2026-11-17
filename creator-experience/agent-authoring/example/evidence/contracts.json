@@ -1,0 +1,1265 @@
+{
+  "mode": "offline_contract_validation",
+  "production_connection": false,
+  "reports": [
+    {
+      "adversarial_checks": [
+        {
+          "case": "unknown_executable_field",
+          "rejected_with": "PACK_SCHEMA",
+          "status": "PASS"
+        },
+        {
+          "case": "future_schema",
+          "rejected_with": "PACK_VERSION",
+          "status": "PASS"
+        },
+        {
+          "case": "undeclared_capability",
+          "rejected_with": "PACK_CAPABILITY",
+          "status": "PASS"
+        },
+        {
+          "case": "missing_source",
+          "rejected_with": "PACK_REFERENCE",
+          "status": "PASS"
+        },
+        {
+          "case": "underbudget_texture",
+          "rejected_with": "PACK_BUDGET",
+          "status": "PASS"
+        },
+        {
+          "case": "zero_vertical_width",
+          "rejected_with": "PACK_LAYOUT",
+          "status": "PASS"
+        },
+        {
+          "case": "global_layer_overflow",
+          "rejected_with": "PACK_LIMIT",
+          "status": "PASS"
+        },
+        {
+          "case": "unsupported_fade_easing",
+          "rejected_with": "PACK_ANIMATION",
+          "status": "PASS"
+        },
+        {
+          "case": "typed_property_transaction",
+          "status": "PASS"
+        },
+        {
+          "case": "deck_confirmation_pending_cooldown_monotonic_clock",
+          "mode": "simulation_only",
+          "status": "PASS"
+        },
+        {
+          "case": "rule_cross_reference_missing",
+          "rejected_with": "PACK_SOURCE_MISSING",
+          "status": "PASS"
+        },
+        {
+          "case": "countdown_cannot_target_shape",
+          "rejected_with": "INVALID_OVERLAY_ACTION",
+          "status": "PASS"
+        }
+      ],
+      "counts": {
+        "animations": 3,
+        "buttons": 5,
+        "layers": 7,
+        "properties": 8,
+        "resources": 0,
+        "rules": 4,
+        "scenes": 2,
+        "sources": 6
+      },
+      "deck": [
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "podcast-host",
+                "type": "show_overlay"
+              },
+              "rule": "podcast-show-identities",
+              "status": "VALID_TYPED_INTENTION"
+            },
+            {
+              "action": {
+                "source_id": "podcast-guest",
+                "type": "show_overlay"
+              },
+              "rule": "podcast-show-identities",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "show-names",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-show-names",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-show-names",
+                "rule_id": "podcast-show-identities"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "podcast-host",
+                    "type": "show_overlay"
+                  },
+                  {
+                    "source_id": "podcast-guest",
+                    "type": "show_overlay"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-show-names",
+                "cursor": 2,
+                "deadline_ms": 5000,
+                "event_id": "check-show-names",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "podcast-show-identities"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "podcast-host",
+                        "type": "show_overlay"
+                      },
+                      "commands": [
+                        {
+                          "event": "show",
+                          "op": "overlay_event",
+                          "source_id": "podcast-host"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  },
+                  {
+                    "code": null,
+                    "index": 1,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "podcast-guest",
+                        "type": "show_overlay"
+                      },
+                      "commands": [
+                        {
+                          "event": "show",
+                          "op": "overlay_event",
+                          "source_id": "podcast-guest"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "podcast-show-identities",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-show-names:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "podcast-host",
+                    "type": "show_overlay"
+                  },
+                  "commands": [
+                    {
+                      "event": "show",
+                      "op": "overlay_event",
+                      "source_id": "podcast-host"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              },
+              {
+                "idempotency_key": "check-show-names:1:1",
+                "prepared": {
+                  "action": {
+                    "source_id": "podcast-guest",
+                    "type": "show_overlay"
+                  },
+                  "commands": [
+                    {
+                      "event": "show",
+                      "op": "overlay_event",
+                      "source_id": "podcast-guest"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "show-names",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "podcast-host",
+                "type": "hide_overlay"
+              },
+              "rule": "podcast-hide-identities",
+              "status": "VALID_TYPED_INTENTION"
+            },
+            {
+              "action": {
+                "source_id": "podcast-guest",
+                "type": "hide_overlay"
+              },
+              "rule": "podcast-hide-identities",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "hide-names",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-hide-names",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-hide-names",
+                "rule_id": "podcast-hide-identities"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "podcast-host",
+                    "type": "hide_overlay"
+                  },
+                  {
+                    "source_id": "podcast-guest",
+                    "type": "hide_overlay"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-hide-names",
+                "cursor": 2,
+                "deadline_ms": 5000,
+                "event_id": "check-hide-names",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "podcast-hide-identities"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "podcast-host",
+                        "type": "hide_overlay"
+                      },
+                      "commands": [
+                        {
+                          "event": "hide",
+                          "op": "overlay_event",
+                          "source_id": "podcast-host"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  },
+                  {
+                    "code": null,
+                    "index": 1,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "podcast-guest",
+                        "type": "hide_overlay"
+                      },
+                      "commands": [
+                        {
+                          "event": "hide",
+                          "op": "overlay_event",
+                          "source_id": "podcast-guest"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "podcast-hide-identities",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-hide-names:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "podcast-host",
+                    "type": "hide_overlay"
+                  },
+                  "commands": [
+                    {
+                      "event": "hide",
+                      "op": "overlay_event",
+                      "source_id": "podcast-host"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              },
+              {
+                "idempotency_key": "check-hide-names:1:1",
+                "prepared": {
+                  "action": {
+                    "source_id": "podcast-guest",
+                    "type": "hide_overlay"
+                  },
+                  "commands": [
+                    {
+                      "event": "hide",
+                      "op": "overlay_event",
+                      "source_id": "podcast-guest"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "hide-names",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "animation": {
+                  "distance": 24.0,
+                  "duration_ms": 320,
+                  "easing": "ease_out",
+                  "kind": "slide_in",
+                  "scale_from": 0.8999999761581421
+                },
+                "layer_id": "podcast-host-layer",
+                "scene_id": "podcast-live",
+                "type": "animate"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "host-entry",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-host-entry",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-host-entry",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "animation": {
+                      "distance": 24.0,
+                      "duration_ms": 320,
+                      "easing": "ease_out",
+                      "kind": "slide_in",
+                      "scale_from": 0.8999999761581421
+                    },
+                    "layer_id": "podcast-host-layer",
+                    "scene_id": "podcast-live",
+                    "type": "animate"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-host-entry",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-host-entry",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "animation": {
+                          "distance": 24.0,
+                          "duration_ms": 320,
+                          "easing": "ease_out",
+                          "kind": "slide_in",
+                          "scale_from": 0.8999999761581421
+                        },
+                        "layer_id": "podcast-host-layer",
+                        "scene_id": "podcast-live",
+                        "type": "animate"
+                      },
+                      "commands": [
+                        {
+                          "animation": {
+                            "distance": 24.0,
+                            "duration_ms": 320,
+                            "easing": "ease_out",
+                            "kind": "slide_in",
+                            "scale_from": 0.8999999761581421
+                          },
+                          "layer_id": "podcast-host-layer",
+                          "op": "animate_overlay",
+                          "scene_id": "podcast-live"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-host-entry:1:0",
+                "prepared": {
+                  "action": {
+                    "animation": {
+                      "distance": 24.0,
+                      "duration_ms": 320,
+                      "easing": "ease_out",
+                      "kind": "slide_in",
+                      "scale_from": 0.8999999761581421
+                    },
+                    "layer_id": "podcast-host-layer",
+                    "scene_id": "podcast-live",
+                    "type": "animate"
+                  },
+                  "commands": [
+                    {
+                      "animation": {
+                        "distance": 24.0,
+                        "duration_ms": 320,
+                        "easing": "ease_out",
+                        "kind": "slide_in",
+                        "scale_from": 0.8999999761581421
+                      },
+                      "layer_id": "podcast-host-layer",
+                      "op": "animate_overlay",
+                      "scene_id": "podcast-live"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "host-entry",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "scene_id": "podcast-brb",
+                "transition": {
+                  "duration_ms": 350,
+                  "kind": "fade"
+                },
+                "type": "select_scene"
+              },
+              "rule": "podcast-pause",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "pause",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-pause",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-pause",
+                "rule_id": "podcast-pause"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "scene_id": "podcast-brb",
+                    "transition": {
+                      "duration_ms": 350,
+                      "kind": "fade"
+                    },
+                    "type": "select_scene"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-pause",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-pause",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "podcast-pause"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "scene_id": "podcast-brb",
+                        "transition": {
+                          "duration_ms": 350,
+                          "kind": "fade"
+                        },
+                        "type": "select_scene"
+                      },
+                      "commands": [
+                        {
+                          "op": "configure_transition",
+                          "transition": {
+                            "duration_ms": 350,
+                            "kind": "fade"
+                          }
+                        },
+                        {
+                          "op": "select_scene",
+                          "scene_id": "podcast-brb"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "podcast-pause",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-pause:1:0",
+                "prepared": {
+                  "action": {
+                    "scene_id": "podcast-brb",
+                    "transition": {
+                      "duration_ms": 350,
+                      "kind": "fade"
+                    },
+                    "type": "select_scene"
+                  },
+                  "commands": [
+                    {
+                      "op": "configure_transition",
+                      "transition": {
+                        "duration_ms": 350,
+                        "kind": "fade"
+                      }
+                    },
+                    {
+                      "op": "select_scene",
+                      "scene_id": "podcast-brb"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "pause",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "scene_id": "podcast-live",
+                "transition": {
+                  "duration_ms": 0,
+                  "kind": "cut"
+                },
+                "type": "select_scene"
+              },
+              "rule": "podcast-resume",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "resume",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-resume",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-resume",
+                "rule_id": "podcast-resume"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "scene_id": "podcast-live",
+                    "transition": {
+                      "duration_ms": 0,
+                      "kind": "cut"
+                    },
+                    "type": "select_scene"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-resume",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-resume",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "podcast-resume"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "scene_id": "podcast-live",
+                        "transition": {
+                          "duration_ms": 0,
+                          "kind": "cut"
+                        },
+                        "type": "select_scene"
+                      },
+                      "commands": [
+                        {
+                          "op": "configure_transition",
+                          "transition": {
+                            "duration_ms": 0,
+                            "kind": "cut"
+                          }
+                        },
+                        {
+                          "op": "select_scene",
+                          "scene_id": "podcast-live"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "podcast-resume",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-resume:1:0",
+                "prepared": {
+                  "action": {
+                    "scene_id": "podcast-live",
+                    "transition": {
+                      "duration_ms": 0,
+                      "kind": "cut"
+                    },
+                    "type": "select_scene"
+                  },
+                  "commands": [
+                    {
+                      "op": "configure_transition",
+                      "transition": {
+                        "duration_ms": 0,
+                        "kind": "cut"
+                      }
+                    },
+                    {
+                      "op": "select_scene",
+                      "scene_id": "podcast-live"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "resume",
+            "variables": {}
+          }
+        }
+      ],
+      "events": [
+        {
+          "id": "podcast-example-1",
+          "kind": "manual.button_pressed",
+          "simulated": true
+        },
+        {
+          "id": "podcast-example-2",
+          "kind": "manual.button_pressed",
+          "simulated": true
+        },
+        {
+          "id": "podcast-example-3",
+          "kind": "manual.button_pressed",
+          "simulated": true
+        },
+        {
+          "id": "podcast-example-4",
+          "kind": "manual.button_pressed",
+          "simulated": true
+        }
+      ],
+      "live_commands_sent": 0,
+      "native_execution": false,
+      "pack_id": "podcast-two-camera-example",
+      "plan": {
+        "estimated_texture_bytes": 5278800,
+        "executable": false,
+        "limitations": [
+          "Offline proposal only; no Production importer or live acceptance has been implemented.",
+          "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+          "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+          "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+          "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+        ],
+        "pack_id": "podcast-two-camera-example",
+        "pack_version": "0.1.0",
+        "requires_idle": true,
+        "schema_version": 1,
+        "steps": [
+          {
+            "name": "Conversation",
+            "operation": "create_scene",
+            "scene_ref": "podcast-live"
+          },
+          {
+            "definition": {
+              "border_color": null,
+              "border_width": 0,
+              "color": 1384477,
+              "height": 540,
+              "kind": "shape",
+              "opacity": 1.0,
+              "shape": "rectangle",
+              "width": 960
+            },
+            "first_layer_ref": "podcast-live-bg",
+            "name": "Background",
+            "operation": "create_overlay",
+            "scene_ref": "podcast-live",
+            "source_ref": "podcast-background"
+          },
+          {
+            "layer_ref": "podcast-live-bg",
+            "operation": "set_transform",
+            "scene_ref": "podcast-live",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "podcast-live-bg",
+            "operation": "set_transform",
+            "scene_ref": "podcast-live",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 12379853,
+              "font": "Menlo",
+              "height": 42,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 22,
+              "text": "LOCAL SIGNAL / SOFTWARE PODCAST",
+              "width": 700
+            },
+            "first_layer_ref": "podcast-live-heading",
+            "name": "Episode heading",
+            "operation": "create_overlay",
+            "scene_ref": "podcast-live",
+            "source_ref": "podcast-heading"
+          },
+          {
+            "layer_ref": "podcast-live-heading",
+            "operation": "set_transform",
+            "scene_ref": "podcast-live",
+            "transform": {
+              "height": 42.0,
+              "order": 3,
+              "visible": true,
+              "width": 700.0,
+              "x": 32.0,
+              "y": 40.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "podcast-live-heading",
+            "operation": "set_transform",
+            "scene_ref": "podcast-live",
+            "transform": {
+              "height": 29.0,
+              "order": 3,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 40.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 12379853,
+                "background": 2438191,
+                "color": 16052711,
+                "duration_ms": 0,
+                "height": 100,
+                "kind": "lower_third",
+                "opacity": 1.0,
+                "subtitle": "Host / Software design",
+                "title": "Alex Rivera",
+                "width": 420
+              }
+            },
+            "first_layer_ref": "podcast-host-layer",
+            "name": "Host identity",
+            "operation": "create_overlay",
+            "scene_ref": "podcast-live",
+            "source_ref": "podcast-host"
+          },
+          {
+            "layer_ref": "podcast-host-layer",
+            "operation": "set_transform",
+            "scene_ref": "podcast-live",
+            "transform": {
+              "height": 103.0,
+              "order": 4,
+              "visible": true,
+              "width": 432.0,
+              "x": 32.0,
+              "y": 390.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "podcast-host-layer",
+            "operation": "set_transform",
+            "scene_ref": "podcast-live",
+            "transform": {
+              "height": 113.33999633789062,
+              "order": 4,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 390.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 12379853,
+                "background": 2438191,
+                "color": 16052711,
+                "duration_ms": 0,
+                "height": 100,
+                "kind": "lower_third",
+                "opacity": 1.0,
+                "subtitle": "Guest / Local-first systems",
+                "title": "Jordan Lee",
+                "width": 420
+              }
+            },
+            "first_layer_ref": "podcast-guest-layer",
+            "name": "Guest identity",
+            "operation": "create_overlay",
+            "scene_ref": "podcast-live",
+            "source_ref": "podcast-guest"
+          },
+          {
+            "layer_ref": "podcast-guest-layer",
+            "operation": "set_transform",
+            "scene_ref": "podcast-live",
+            "transform": {
+              "height": 103.0,
+              "order": 5,
+              "visible": true,
+              "width": 432.0,
+              "x": 496.0,
+              "y": 390.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "podcast-guest-layer",
+            "operation": "set_transform",
+            "scene_ref": "podcast-live",
+            "transform": {
+              "height": 113.33999633789062,
+              "order": 5,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 796.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Be Right Back",
+            "operation": "create_scene",
+            "scene_ref": "podcast-brb"
+          },
+          {
+            "layer_ref": "podcast-brb-bg",
+            "operation": "add_layer",
+            "scene_ref": "podcast-brb",
+            "source_ref": "podcast-background"
+          },
+          {
+            "layer_ref": "podcast-brb-bg",
+            "operation": "set_transform",
+            "scene_ref": "podcast-brb",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "podcast-brb-bg",
+            "operation": "set_transform",
+            "scene_ref": "podcast-brb",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 16052711,
+              "font": "Helvetica",
+              "height": 190,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 60,
+              "text": "A short pause.\nMore ideas soon.",
+              "width": 510
+            },
+            "first_layer_ref": "podcast-brb-title",
+            "name": "Pause title",
+            "operation": "create_overlay",
+            "scene_ref": "podcast-brb",
+            "source_ref": "podcast-pause-title"
+          },
+          {
+            "layer_ref": "podcast-brb-title",
+            "operation": "set_transform",
+            "scene_ref": "podcast-brb",
+            "transform": {
+              "height": 190.0,
+              "order": 1,
+              "visible": true,
+              "width": 510.0,
+              "x": 64.0,
+              "y": 170.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "podcast-brb-title",
+            "operation": "set_transform",
+            "scene_ref": "podcast-brb",
+            "transform": {
+              "height": 172.0,
+              "order": 1,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 250.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 12379853,
+              "font": "Helvetica",
+              "height": 48,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 22,
+              "text": "Thanks for joining the conversation.",
+              "width": 600
+            },
+            "first_layer_ref": "podcast-brb-detail",
+            "name": "Pause detail",
+            "operation": "create_overlay",
+            "scene_ref": "podcast-brb",
+            "source_ref": "podcast-pause-detail"
+          },
+          {
+            "layer_ref": "podcast-brb-detail",
+            "operation": "set_transform",
+            "scene_ref": "podcast-brb",
+            "transform": {
+              "height": 48.0,
+              "order": 2,
+              "visible": true,
+              "width": 600.0,
+              "x": 64.0,
+              "y": 400.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "podcast-brb-detail",
+            "operation": "set_transform",
+            "scene_ref": "podcast-brb",
+            "transform": {
+              "height": 37.0,
+              "order": 2,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 510.0
+            },
+            "variant": "vertical"
+          }
+        ],
+        "unavailable": []
+      },
+      "rules": [
+        {
+          "action": {
+            "source_id": "podcast-host",
+            "type": "show_overlay"
+          },
+          "rule": "podcast-show-identities",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "source_id": "podcast-guest",
+            "type": "show_overlay"
+          },
+          "rule": "podcast-show-identities",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "source_id": "podcast-host",
+            "type": "hide_overlay"
+          },
+          "rule": "podcast-hide-identities",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "source_id": "podcast-guest",
+            "type": "hide_overlay"
+          },
+          "rule": "podcast-hide-identities",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "scene_id": "podcast-brb",
+            "transition": {
+              "duration_ms": 350,
+              "kind": "fade"
+            },
+            "type": "select_scene"
+          },
+          "rule": "podcast-pause",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "scene_id": "podcast-live",
+            "transition": {
+              "duration_ms": 0,
+              "kind": "cut"
+            },
+            "type": "select_scene"
+          },
+          "rule": "podcast-resume",
+          "status": "VALID_TYPED_INTENTION"
+        }
+      ],
+      "status": "PASS",
+      "version": "0.1.0"
+    }
+  ],
+  "status": "PASS"
+}

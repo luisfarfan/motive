@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "variables": {},
+  "max_actions_per_event": 8,
+  "queue_capacity": 8,
+  "rate_limit": 10,
+  "rate_window_ms": 1000,
+  "rules": [
+    {
+      "id": "podcast-show-identities",
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "conditions": [
+        {
+          "type": "equals",
+          "field": "button_id",
+          "value": {
+            "type": "string",
+            "value": "show-names"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "sequence",
+          "actions": [
+            {
+              "type": "show_overlay",
+              "source_id": "podcast-host"
+            },
+            {
+              "type": "show_overlay",
+              "source_id": "podcast-guest"
+            }
+          ]
+        }
+      ],
+      "priority": 5,
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "timeout_ms": 5000,
+      "busy_policy": "reject",
+      "failure_policy": "stop"
+    },
+    {
+      "id": "podcast-hide-identities",
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "conditions": [
+        {
+          "type": "equals",
+          "field": "button_id",
+          "value": {
+            "type": "string",
+            "value": "hide-names"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "sequence",
+          "actions": [
+            {
+              "type": "hide_overlay",
+              "source_id": "podcast-host"
+            },
+            {
+              "type": "hide_overlay",
+              "source_id": "podcast-guest"
+            }
+          ]
+        }
+      ],
+      "priority": 5,
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "timeout_ms": 5000,
+      "busy_policy": "reject",
+      "failure_policy": "stop"
+    },
+    {
+      "id": "podcast-pause",
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "conditions": [
+        {
+          "type": "equals",
+          "field": "button_id",
+          "value": {
+            "type": "string",
+            "value": "pause"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "select_scene",
+          "scene_id": "podcast-brb",
+          "transition": {
+            "kind": "fade",
+            "duration_ms": 350
+          }
+        }
+      ],
+      "priority": 5,
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "timeout_ms": 5000,
+      "busy_policy": "reject",
+      "failure_policy": "stop"
+    },
+    {
+      "id": "podcast-resume",
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "conditions": [
+        {
+          "type": "equals",
+          "field": "button_id",
+          "value": {
+            "type": "string",
+            "value": "resume"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "select_scene",
+          "scene_id": "podcast-live",
+          "transition": {
+            "kind": "cut",
+            "duration_ms": 0
+          }
+        }
+      ],
+      "priority": 5,
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "timeout_ms": 5000,
+      "busy_policy": "reject",
+      "failure_policy": "stop"
+    }
+  ]
+}

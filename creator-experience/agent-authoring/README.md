@@ -47,10 +47,20 @@ cámara por escena donde aparezcan. Si el total supera 32 capas, reducir escenas
 o usar una receta alternativa. Dos cámaras en cinco escenas consumen diez capas;
 el espacio sobrante de un pack no garantiza esa composición. Presentar el cálculo.
 
-Usar `packs/creator-tech/manifest.json` como ejemplo de estructura y
-`packs/neon-arena/rules.json` como ejemplo de eventos manuales tipados. No copiar
-IDs de una instalación. El ejemplo de authoring es una receta, no un manifest
-extra que se declara validado sin pasar el harness.
+El [ejemplo mínimo reproducible](example/README.md) materializa el brief reducido
+a Conversation y BRB: manifest nativo v1, Deck, reglas, eventos simulados, dos
+slots de cámara y cuatro previews SVG. Se validó con el harness Rust real; sus
+[informes](example/evidence/verification.json) separan esquema/ensayo de integración.
+La [instantánea de capacidades](capabilities-baseline.json) identifica el baseline
+estático leído, sin fingir una consulta runtime.
+
+Generar con `python3 creator-experience/agent-authoring/generate_example.py`;
+verificar con `python3 creator-experience/agent-authoring/verify_example.py`. El
+ejemplo usa solo herramientas normales, sin proveedor de IA ni servidor adicional.
+Para una colección mayor, usar `packs/creator-tech/manifest.json` y las reglas de
+NEON ARENA como referencias. No copiar IDs de una instalación. La
+[cobertura por elemento](pack-elements-checklist.md) documenta qué está implementado
+y qué conducta sigue fuera del contrato.
 
 ## Fallos frecuentes
 
@@ -74,7 +84,7 @@ extra que se declara validado sin pasar el harness.
 - [ ] Licencia y procedencia por recurso; sin secretos ni rutas privadas.
 - [ ] JSON estricto validado por la versión declarada del contrato.
 - [ ] Todos los assets existen, decodifican y coinciden con tamaño/hash/dimensiones.
-- [ ] Seis composiciones y ambas variantes revisadas; capturas descritas como pendientes.
+- [ ] Todas las composiciones del brief y ambas variantes revisadas; las colecciones premium tienen seis, el ejemplo mínimo dos. Capturas descritas como pendientes.
 - [ ] Texto editable legible con saltos explícitos y valores largos probados.
 - [ ] Capas/recursos/capacidades/presupuesto y espacio para captura calculados.
 - [ ] Reglas/Deck resuelven referencias; ninguna acción o proveedor se activa al abrir.

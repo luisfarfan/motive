@@ -147,9 +147,12 @@ except BaseException as failure:
     raise
 finally:
     for player in tone_players:
-        if player.poll() is None:
-            player.terminate()
-            player.wait(timeout=5)
+        try:
+            if player.poll() is None:
+                player.terminate()
+                player.wait(timeout=5)
+        except Exception as cleanup_error:
+            report.setdefault('cleanup_errors', []).append({'scope':'owned afplay', 'error':repr(cleanup_error)})
     try:
         ctl('stop_output'); idle(); ctl('select_source', window_id=None); ctl('select_audio', id='none')
     except Exception as cleanup_error:

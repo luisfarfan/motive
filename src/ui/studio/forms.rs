@@ -211,6 +211,11 @@ impl Studio {
             Command::RemoveSource { source_id } => {
                 format!("Liberar fuente sin uso {source_id} y sus recursos.")
             }
+            Command::Overlay(crate::core::overlays::OverlayCommand::RemoveAsset { asset_id }) => {
+                format!(
+                    "Eliminar el recurso administrado {asset_id}. El archivo original no se modifica. Las escenas que lo utilicen impedirán eliminarlo."
+                )
+            }
             Command::RemoveOutputProfile { id } => {
                 format!("Eliminar perfil {id}. El núcleo rechazará un perfil en uso.")
             }

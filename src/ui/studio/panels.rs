@@ -15,6 +15,7 @@ impl Studio {
             "profiles" => "Perfiles de salida",
             "settings" => "Preferencias y diagnóstico",
             "scenes" => "Escenas y transiciones",
+            "creative" => "Biblioteca creativa",
             _ => "Estudio",
         };
         let mut content = col().gap(px(8.));
@@ -60,6 +61,9 @@ impl Studio {
             }
             "audio" => {
                 content = content.child(self.mixer_settings(cx));
+            }
+            "creative" => {
+                content = content.child(self.creative_library(cx));
             }
             "add-source" => {
                 content = content.child(self.device_picker(cx));
@@ -129,15 +133,9 @@ impl Studio {
                             },
                             cx,
                         ));
-                    if matches!(
-                        graph
-                            .sources
-                            .iter()
-                            .find(|s| s.id == l.source_id)
-                            .unwrap()
-                            .spec,
-                        SourceKind::Overlay { .. }
-                    ) {
+                    let source = graph.sources.iter().find(|s| s.id == l.source_id).unwrap();
+                    if source.overlay.is_none() && matches!(source.spec, SourceKind::Overlay { .. })
+                    {
                         let source_id = l.source_id.clone();
                         content = content
                             .child(forms::field(
@@ -216,12 +214,15 @@ impl Studio {
                             })),
                     ),
             )
-            .when(self.forms.revision != self.production.revision, |d| {
-                d.child(label(
-                    "El estado cambió. Reabre para actualizar los formularios.",
-                    p.warn,
-                ))
-            })
+            .when(
+                panel != "creative" && self.forms.revision != self.production.revision,
+                |d| {
+                    d.child(label(
+                        "El estado cambió. Reabre para actualizar los formularios.",
+                        p.warn,
+                    ))
+                },
+            )
             .child(content.id("panel-scroll").overflow_y_scroll())
             .child(label(self.message.clone(), p.secondary))
     }

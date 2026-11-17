@@ -17,6 +17,7 @@ impl Studio {
                     .child(div().font_weight(FontWeight::SEMIBOLD).child("Capas"))
                     .child(label(format!("en {}", scene.name), p.muted))
                     .child(div().flex_1())
+                    .child(self.panel_button(Panel::Creative, "Biblioteca", IconName::Layers, cx))
                     .child(self.panel_button(Panel::Sources, "Añadir fuente", IconName::Plus, cx)),
             )
             .child(col().border_t_1().border_color(p.line).children(

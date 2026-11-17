@@ -352,6 +352,10 @@ impl Production {
                     self.overlays.start_import(file_name)?;
                     Ok(json!({"import":self.overlays.import}))
                 }
+                OverlayCommand::AssetInventory => {
+                    anyhow::ensure!(!self.overlays.busy(), "ASSET_IMPORT_BUSY");
+                    Ok(json!({"assets":self.overlays.assets.inventory()?}))
+                }
                 OverlayCommand::RemoveAsset { asset_id } => {
                     self.idle()?;
                     let refs: BTreeSet<String> = self

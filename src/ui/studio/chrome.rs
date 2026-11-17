@@ -19,6 +19,7 @@ impl Studio {
                     | Command::RemoveOutputProfile { .. }
                     | Command::LoadProject
                     | Command::LoadOutputProfiles
+                    | Command::Overlay(crate::core::overlays::OverlayCommand::RemoveAsset { .. })
             ) {
                 v.confirm_command(command.clone(), w, cx);
             } else {
@@ -49,6 +50,9 @@ impl Studio {
                         v.selected_layer = Some(layer.clone());
                     }
                     v.prepare_forms(w, cx);
+                    if panel == Panel::Creative {
+                        v.refresh_assets();
+                    }
                     v.devices = v.production.engine.devices();
                 } else {
                     v.panel = None;

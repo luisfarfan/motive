@@ -256,7 +256,7 @@ pub fn tools() -> Vec<Value> {
         ),
         tool(
             "load_audio_mixer",
-            "Restaura explícitamente el mezclador v1 mientras idle; reutiliza capturas presentes y conserva entradas ausentes en estado failed.",
+            "Restaura explícitamente el mezclador v1/v2 mientras idle; reutiliza capturas presentes y conserva entradas ausentes en estado failed.",
             json!({}),
             &[],
             false,
@@ -270,8 +270,13 @@ pub fn tools() -> Vec<Value> {
         ),
         tool(
             "add_audio_input",
-            "Añade micrófono por UID o tono controlado; reutiliza el ID existente sin duplicar captura. Requiere salida detenida.",
-            json!({"name":{"type":"string","minLength":1,"maxLength":80},"source":{"oneOf":[{"type":"object","properties":{"kind":{"const":"tone"}},"required":["kind"],"additionalProperties":false},{"type":"object","properties":{"kind":{"const":"microphone"},"device_id":{"type":"string","minLength":1,"maxLength":511}},"required":["kind","device_id"],"additionalProperties":false}]}}),
+            "Añade micrófono por UID, tono o captura SCK explícita de aplicación/display principal del inventario. Reutiliza identidad; rechaza escritorio más aplicación. Requiere salidas detenidas y permisos existentes; no concede permisos.",
+            json!({"name":{"type":"string","minLength":1,"maxLength":80},"source":{"oneOf":[
+                {"type":"object","properties":{"kind":{"const":"tone"}},"required":["kind"],"additionalProperties":false},
+                {"type":"object","properties":{"kind":{"const":"microphone"},"device_id":{"type":"string","minLength":1,"maxLength":511}},"required":["kind","device_id"],"additionalProperties":false},
+                {"type":"object","properties":{"kind":{"const":"system_application"},"bundle_id":{"type":"string","minLength":1,"maxLength":255}},"required":["kind","bundle_id"],"additionalProperties":false},
+                {"type":"object","properties":{"kind":{"const":"system_desktop"},"display_uuid":{"type":"string","pattern":"^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"}},"required":["kind","display_uuid"],"additionalProperties":false}
+            ]}}),
             &["name", "source"],
             false,
         ),
@@ -350,6 +355,32 @@ pub fn tools() -> Vec<Value> {
             "Activa o desactiva el overlay del video.",
             json!({"visible":{"type":"boolean"}}),
             &["visible"],
+            false,
+        ),
+        tool(
+            "system_audio_sources",
+            "Consulta destinos de audio de sistema/aplicación e identidad estable con permisos actuales. No inicia captura ni concede permisos.",
+            json!({}),
+            &[],
+            true,
+        ),
+        tool(
+            "video_capabilities",
+            "Canvas de producción, espacio lógico estable y límites de captura. Presets nuevos son candidatos hasta verificación de medios decodificados.",
+            json!({}),
+            &[],
+            true,
+        ),
+        tool(
+            "configure_video",
+            "Configura el único reloj/canvas OBS en reposo. Conserva coordenadas de diseño, audio y perfiles; persiste en proyecto v5 mediante save_project. Cambiar FPS retira primero la fuente OBS anterior; el cierre SCStream es asíncrono. Cámara conserva preset720p y cadencia propia.",
+            json!({"video":{"type":"object","additionalProperties":false,
+                "properties":{"version":{"type":"integer","const":1},
+                    "resolution":{"type":"string","enum":["legacy540","hd720","full_hd1080"]},
+                    "fps":{"type":"integer","enum":[30,60]},
+                    "coordinate_space":{"type":"string","const":"design960"}},
+                "required":["version","resolution","fps","coordinate_space"]}}),
+            &["video"],
             false,
         ),
         tool(

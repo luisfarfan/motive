@@ -4,6 +4,8 @@ pub mod audio;
 pub mod output;
 #[path = "overlays/mod.rs"]
 pub mod overlays;
+#[path = "video.rs"]
+pub mod video;
 use crate::{
     engine::Engine,
     scene::{
@@ -21,6 +23,7 @@ use std::{
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
+use video::VideoConfig;
 pub fn data_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("var")
 }
@@ -54,6 +57,7 @@ impl RecordingEncoder {
 pub enum Command {
     Status,
     AudioMixer,
+    SystemAudioSources,
     DisconnectAudioInput {
         input_id: String,
     },
@@ -87,6 +91,10 @@ pub enum Command {
     Devices,
     Encoders,
     OutputCapabilities,
+    VideoCapabilities,
+    ConfigureVideo {
+        video: VideoConfig,
+    },
     OutputProfiles,
     UpsertOutputProfile {
         profile: OutputProfile,
@@ -209,6 +217,9 @@ pub fn parse_command(value: Value) -> anyhow::Result<Command> {
         same_shape(&value, &serde_json::to_value(&command)?),
         "Unexpected or missing command fields"
     );
+    if let Command::ConfigureVideo { video } = &command {
+        video.validate()?;
+    }
     Ok(command)
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -216,6 +227,8 @@ pub fn parse_command(value: Value) -> anyhow::Result<Command> {
 pub struct Project {
     pub version: u32,
     pub variant: Variant,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub video: Option<VideoConfig>,
     pub overlay: bool,
     pub audio: String,
     pub capture_window: bool,
@@ -237,6 +250,7 @@ impl Default for Project {
         Self {
             version: 3,
             variant: Variant::Horizontal,
+            video: None,
             overlay: true,
             audio: "none".into(),
             capture_window: false,
@@ -345,7 +359,58 @@ impl Production {
             "sources":self.source_health,"window_id":self.window_id,"output":output,"output_code":self.engine.output_code(),
             "transition_configuration":self.transition,"transition":self.engine.scene_state(),
             "output_lifecycle":{"native_busy":state!=0,"cancel_requested":self.stopping,"cancel_deferred":self.stopping && state==3,"shutdown_pending":self.shutdown_pending},
-            "output_failure":output_failure(self.engine.output_code()),"output_path":self.output_path,"last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":30,"stats":self.engine.stats()})
+            "output_failure":output_failure(self.engine.output_code()),"output_path":self.output_path,"last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":self.engine.fps,"video":self.video_status(),"stats":self.engine.stats()})
+    }
+    pub fn layout_dimensions(&self) -> (u32, u32) {
+        video::layout_dimensions(self.project.variant)
+    }
+    fn video_status(&self) -> Value {
+        let (width, height) = self.layout_dimensions();
+        let mut value = self.engine.video_info();
+        value["configuration"] = json!(self.project.video.unwrap_or_default());
+        value["layout"] = json!({"width":width,"height":height,"coordinate_space":"design960"});
+        value["capture_policy"] = video::capabilities()["capture_policy"].clone();
+        value["verification"] = json!("preset_configuration_is_not_decoded_media_verification");
+        value
+    }
+    fn configure_video(
+        &mut self,
+        configuration: Option<VideoConfig>,
+        variant: Variant,
+    ) -> anyhow::Result<()> {
+        self.idle()?;
+        let video = configuration.unwrap_or_default();
+        video.validate()?;
+        let old = self.project.clone();
+        self.engine.configure_video(video, variant)?;
+        self.project.video = configuration;
+        self.project.variant = variant;
+        if let Err(failure) = self.sync(self.graph().clone(), self.bindings.clone(), "") {
+            let rollback = (|| {
+                self.engine
+                    .configure_video(old.video.unwrap_or_default(), old.variant)?;
+                self.project = old.clone();
+                self.sync(self.graph().clone(), self.bindings.clone(), "")
+            })();
+            self.project = old;
+            if rollback.is_err() {
+                self.engine.invalidate_video();
+            }
+            return Err(match rollback {
+                Ok(()) => failure,
+                Err(e) => anyhow::anyhow!("ROLLBACK_FAILED: {failure}; {e}"),
+            });
+        }
+        // Window streams renewed at a different FPS must become ready again.
+        self.awaiting_recovery.extend(
+            self.graph()
+                .sources
+                .iter()
+                .filter(|s| matches!(s.spec, SourceKind::Window { .. }))
+                .map(|s| s.id.clone())
+                .collect::<Vec<_>>(),
+        );
+        Ok(())
     }
     fn encoding_status(&self) -> Value {
         let mut value = self.engine.encoding_info();
@@ -368,9 +433,9 @@ impl Production {
     fn output_capabilities(&self) -> Value {
         json!({"encoders":self.engine.encoding_info(),"rate_controls":["cbr"],"bitrate_kbps":{"min":250,"max":20000},
             "keyframe_seconds":{"min":1,"max":10},"frame_reordering":[true,false],
-            "canvas":{"width":self.engine.width,"height":self.engine.height,"fps":30,
-                "variants":[{"width":960,"height":540},{"width":540,"height":960}],
-                "profile_resolution_configurable":false,"fps_configurable":false},
+            "canvas":{"width":self.engine.width,"height":self.engine.height,"fps":self.engine.fps,
+                "configuration":self.project.video.unwrap_or_default(),"capabilities":video::capabilities(),
+                "profile_resolution_configurable":false,"production_resolution_configurable":true,"fps_configurable":true},
             "audio":{"codec":"aac","bitrate_kbps":160,"sample_rate":48000,"channels":2},
             "streaming":{"host":"127.0.0.1","port_min":1024,"path":"/live/motive","transport":["rtmp","rtmps"],
                 "rtmps_validation":"system_trust_required; trusted media delivery not yet verified",
@@ -423,6 +488,9 @@ impl Production {
                 (!code.is_empty()).then(|| (s["id"].as_str().unwrap_or("").into(), code.into()))
             })
             .collect();
+        if self.engine.video_info()["available"] != true {
+            result.push(("video".into(), "VIDEO_RECOVERY_REQUIRED".into()));
+        }
         // Preserve the old single-input stop policy for legacy UI/CLI. The new
         // mixer isolates a failed channel and keeps all other channels/output live.
         if let Some(code) = match if self.audio_mixer.inputs.len() <= 1 {
@@ -526,6 +594,10 @@ impl Production {
         Ok(())
     }
     fn source_ready(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.engine.video_info()["available"] == true,
+            "VIDEO_UNAVAILABLE"
+        );
         let audio = self.engine.audio_state();
         anyhow::ensure!(
             audio.ready(),
@@ -575,7 +647,7 @@ impl Production {
     }
     fn remove_audio(&mut self, id: &str) -> anyhow::Result<()> {
         let input = self.audio_mixer.input(id)?;
-        let legacy = input.source.device() == self.project.audio;
+        let legacy = input.source.legacy_device() == Some(self.project.audio.as_str());
         self.engine.audio_remove(id)?;
         self.audio_mixer.inputs.retain(|i| i.id != id);
         if legacy {
@@ -594,13 +666,13 @@ impl Production {
             .audio_mixer
             .inputs
             .iter()
-            .find(|i| i.source.device() == self.project.audio)
+            .find(|i| i.source.legacy_device() == Some(self.project.audio.as_str()))
             .map(|i| i.id.clone());
         let target = self
             .audio_mixer
             .inputs
             .iter()
-            .find(|i| i.source.device() == device)
+            .find(|i| i.source.legacy_device() == Some(device))
             .cloned();
         if device != "none" {
             if let Some(input) = target {
@@ -694,7 +766,7 @@ impl Production {
             .audio_mixer
             .inputs
             .iter()
-            .any(|i| i.source.device() == self.project.audio);
+            .any(|i| i.source.legacy_device() == Some(self.project.audio.as_str()));
         self.engine.audio_legacy(if legacy_exists {
             &self.project.audio
         } else {
@@ -735,7 +807,9 @@ impl Production {
         self.overlays.graph_replaced();
         self.project.graph = Some(graph);
         self.bindings = bindings;
-        self.project.version = if self.graph().sources.iter().any(|s| s.overlay.is_some()) {
+        self.project.version = if self.project.video.is_some() {
+            5
+        } else if self.graph().sources.iter().any(|s| s.overlay.is_some()) {
             4
         } else {
             3
@@ -845,7 +919,7 @@ impl Production {
     }
     fn apply_project(&mut self, mut p: Project) -> anyhow::Result<()> {
         self.idle()?;
-        anyhow::ensure!((1..=4).contains(&p.version), "PROJECT_VERSION_UNSUPPORTED");
+        validate_project_video(&p)?;
         self.overlays.invalidate();
         let devices = self.engine.devices();
         let mut bindings = BTreeMap::new();
@@ -894,22 +968,29 @@ impl Production {
         let old_audio = self.audio_mixer.clone();
         let old_bindings = self.bindings.clone();
         let result = (|| {
-            self.engine.variant(p.variant == Variant::Vertical)?;
+            self.engine
+                .configure_video(p.video.unwrap_or_default(), p.variant)?;
             self.audio(&p.audio)?;
             self.project.variant = p.variant;
+            self.project.video = p.video;
             self.sync(graph, bindings, "")?;
             Ok::<_, anyhow::Error>(())
         })();
         if let Err(failure) = result {
             let rollback = (|| {
-                self.engine.variant(old.variant == Variant::Vertical)?;
+                self.engine
+                    .configure_video(old.video.unwrap_or_default(), old.variant)?;
                 self.project.audio = old.audio.clone();
                 self.restore_audio(old_audio)?;
                 self.project.variant = old.variant;
+                self.project.video = old.video;
                 self.sync(old.graph.clone().unwrap(), old_bindings, "")?;
                 Ok::<_, anyhow::Error>(())
             })();
             self.project = old;
+            if rollback.is_err() {
+                self.engine.invalidate_video();
+            }
             return Err(match rollback {
                 Ok(()) => failure,
                 Err(e) => anyhow::anyhow!("ROLLBACK_FAILED: {failure}; {e}"),
@@ -1094,6 +1175,14 @@ impl Production {
         if matches!(command, Command::Status) {
             return json!({"ok":true,"state":self.status()});
         }
+        if matches!(command, Command::SystemAudioSources) {
+            return match self.engine.system_audio_sources() {
+                Ok(sources) => {
+                    json!({"ok":true,"pid":std::process::id(),"system_audio_sources":sources})
+                }
+                Err(e) => command_error(e),
+            };
+        }
         if matches!(command, Command::AudioMixer) {
             return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"audio_mixer":self.audio_mixer_status()});
         }
@@ -1106,6 +1195,9 @@ impl Production {
         }
         if matches!(command, Command::Encoders) {
             return json!({"ok":true,"encoders":self.encoding_status()});
+        }
+        if matches!(command, Command::VideoCapabilities) {
+            return json!({"ok":true,"pid":std::process::id(),"capabilities":video::capabilities(),"video":self.video_status()});
         }
         if matches!(command, Command::OutputCapabilities) {
             return json!({"ok":true,"capabilities":self.output_capabilities()});
@@ -1142,6 +1234,9 @@ impl Production {
                 "SHUTDOWN_PENDING: native output must finish before exit"
             );
             match command {
+                Command::ConfigureVideo { video } => {
+                    self.configure_video(Some(video), self.project.variant)?;
+                }
                 Command::ConfigureTransition { transition } => {
                     self.scene_quiescent()?;
                     transition.validate()?;
@@ -1271,16 +1366,7 @@ impl Production {
                     self.sync(graph, self.bindings.clone(), "")?;
                 }
                 Command::SetVariant { variant } => {
-                    self.idle()?;
-                    let old = self.project.variant;
-                    self.engine.variant(variant == Variant::Vertical)?;
-                    self.project.variant = variant;
-                    if let Err(e) = self.sync(self.graph().clone(), self.bindings.clone(), "") {
-                        self.engine.variant(old == Variant::Vertical)?;
-                        self.project.variant = old;
-                        self.sync(self.graph().clone(), self.bindings.clone(), "")?;
-                        return Err(e);
-                    }
+                    self.configure_video(self.project.video, variant)?;
                 }
                 Command::SelectSource { window_id } => {
                     self.legacy_source(window_id.map_or(SourceInput::Pattern, |window_id| {
@@ -1316,7 +1402,7 @@ impl Production {
                 Command::ReconnectAudioInput { input_id } => {
                     let input = self.audio_mixer.input(&input_id)?.clone();
                     self.engine.audio_reconnect(&input)?;
-                    if input.source.device() == self.project.audio {
+                    if input.source.legacy_device() == Some(self.project.audio.as_str()) {
                         self.awaiting_recovery.insert("audio".into());
                     }
                 }
@@ -1482,10 +1568,12 @@ impl Production {
                 }
                 Command::Status
                 | Command::AudioMixer
+                | Command::SystemAudioSources
                 | Command::Scenes
                 | Command::Devices
                 | Command::Encoders
                 | Command::OutputCapabilities
+                | Command::VideoCapabilities
                 | Command::OutputProfiles
                 | Command::CredentialStatus { .. }
                 | Command::PreflightOutput { .. } => unreachable!(),
@@ -1539,7 +1627,22 @@ fn command_error(e: anyhow::Error) -> Value {
     };
     error(code, msg.as_str())
 }
+fn validate_project_video(project: &Project) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        (1..=5).contains(&project.version),
+        "PROJECT_VERSION_UNSUPPORTED"
+    );
+    anyhow::ensure!(
+        (project.version == 5) == project.video.is_some(),
+        "PROJECT_VERSION_MISMATCH"
+    );
+    if let Some(video) = project.video {
+        video.validate()?;
+    }
+    Ok(())
+}
 fn serialize_project(project: &Project) -> anyhow::Result<Vec<u8>> {
+    validate_project_video(project)?;
     // Use the same JSON-number representation as status/CLI/MCP. Serializing
     // f32 directly chooses a different decimal spelling than Value's f64 and
     // would make a saved document differ from the acknowledged shared state.
@@ -1554,6 +1657,11 @@ fn parse_project(bytes: &[u8]) -> anyhow::Result<Project> {
     anyhow::ensure!(bytes.len() <= 262144, "PROJECT_TOO_LARGE");
     let value: Value = serde_json::from_slice(bytes)?;
     let project: Project = serde_json::from_value(value.clone())?;
+    validate_project_video(&project)?;
+    anyhow::ensure!(
+        project.version == 5 || value.get("video").is_none(),
+        "PROJECT_VERSION_MISMATCH"
+    );
     anyhow::ensure!(
         project.version >= 4 || bytes.len() <= 65536,
         "PROJECT_TOO_LARGE"
@@ -1642,6 +1750,87 @@ fn create_tone() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn video_projects_are_explicit_and_legacy_coordinates_roundtrip_unchanged() {
+        for version in 1..=4 {
+            let legacy = Project {
+                version,
+                ..Project::default()
+            };
+            let bytes = serialize_project(&legacy).unwrap();
+            let value: Value = serde_json::from_slice(&bytes).unwrap();
+            assert!(value.get("video").is_none());
+            let loaded = parse_project(&bytes).unwrap();
+            assert_eq!(loaded.video.unwrap_or_default(), VideoConfig::default());
+            assert_eq!(serialize_project(&loaded).unwrap(), bytes);
+            let mut extended = value.clone();
+            extended["video"] = json!(VideoConfig::default());
+            assert!(parse_project(&serde_json::to_vec(&extended).unwrap()).is_err());
+            extended["video"] = Value::Null;
+            assert!(parse_project(&serde_json::to_vec(&extended).unwrap()).is_err());
+        }
+        let original = Project::default();
+        let graph = serde_json::to_value(&original.graph).unwrap();
+        for resolution in [video::Resolution::Hd720, video::Resolution::FullHd1080] {
+            for variant in [Variant::Horizontal, Variant::Vertical] {
+                let project = Project {
+                    version: 5,
+                    variant,
+                    video: Some(VideoConfig {
+                        resolution,
+                        fps: 60,
+                        ..VideoConfig::default()
+                    }),
+                    ..original.clone()
+                };
+                let loaded = parse_project(&serialize_project(&project).unwrap()).unwrap();
+                assert_eq!(loaded.video, project.video);
+                assert_eq!(loaded.variant, variant);
+                assert_eq!(serde_json::to_value(&loaded.graph).unwrap(), graph);
+            }
+        }
+        assert!(
+            serialize_project(&Project {
+                version: 5,
+                ..Project::default()
+            })
+            .is_err()
+        );
+        assert!(
+            serialize_project(&Project {
+                version: 6,
+                ..Project::default()
+            })
+            .is_err()
+        );
+    }
+    #[test]
+    fn video_controls_reject_unsupported_or_implicit_configuration() {
+        let valid = json!({"op":"configure_video","video":VideoConfig::default()});
+        assert!(parse_command(valid.clone()).is_ok());
+        for invalid in [json!(true), json!(30.5), json!(59), json!(0), Value::Null] {
+            let mut command = valid.clone();
+            command["video"]["fps"] = invalid;
+            assert!(parse_command(command).is_err());
+        }
+        for (key, value) in [
+            ("version", json!(2)),
+            ("resolution", json!("4k")),
+            ("coordinate_space", json!("output_pixels")),
+            ("width", json!(1920)),
+        ] {
+            let mut command = valid.clone();
+            command["video"][key] = value;
+            assert!(parse_command(command).is_err());
+        }
+        let mut missing = valid;
+        missing["video"]
+            .as_object_mut()
+            .unwrap()
+            .remove("coordinate_space");
+        assert!(parse_command(missing).is_err());
+        assert!(parse_command(json!({"op":"video_capabilities","fps":60})).is_err());
+    }
     #[test]
     fn saved_overlay_numbers_equal_the_acknowledged_json_state() {
         let mut project = Project {

@@ -6,18 +6,51 @@ pub const MAX_INPUTS: usize = 8;
 pub const MIN_GAIN_DB: f32 = -60.0;
 pub const MAX_GAIN_DB: f32 = 24.0;
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum AudioSource {
     Tone,
     Microphone { device_id: String },
+    SystemApplication { bundle_id: String },
+    SystemDesktop { display_uuid: String },
 }
 impl AudioSource {
-    pub fn device(&self) -> &str {
+    /// System sources never impersonate a microphone UID.
+    pub fn legacy_device(&self) -> Option<&str> {
+        match self {
+            Self::Tone => Some("tone"),
+            Self::Microphone { device_id } => Some(device_id),
+            Self::SystemApplication { .. } | Self::SystemDesktop { .. } => None,
+        }
+    }
+    /// Stable FFI discriminants; these are not OBS plugin IDs.
+    pub fn native_kind(&self) -> u32 {
+        match self {
+            Self::Tone => 0,
+            Self::Microphone { .. } => 1,
+            Self::SystemApplication { .. } => 2,
+            Self::SystemDesktop { .. } => 3,
+        }
+    }
+    pub fn native_target(&self) -> &str {
         match self {
             Self::Tone => "tone",
             Self::Microphone { device_id } => device_id,
+            Self::SystemApplication { bundle_id } => bundle_id,
+            Self::SystemDesktop { display_uuid } => display_uuid,
         }
+    }
+    pub fn is_system(&self) -> bool {
+        matches!(
+            self,
+            Self::SystemApplication { .. } | Self::SystemDesktop { .. }
+        )
+    }
+    fn overlaps(&self, other: &Self) -> bool {
+        self.is_system()
+            && other.is_system()
+            && (matches!(self, Self::SystemDesktop { .. })
+                || matches!(other, Self::SystemDesktop { .. }))
     }
     pub fn validate(&self) -> anyhow::Result<()> {
         if let Self::Microphone { device_id } = self {
@@ -27,6 +60,31 @@ impl AudioSource {
                     && !device_id.chars().any(char::is_control)
                     && !["none", "tone", "default"].contains(&device_id.as_str()),
                 "INVALID_AUDIO_DEVICE: use an explicit microphone UID"
+            );
+        }
+        if let Self::SystemApplication { bundle_id } = self {
+            anyhow::ensure!(
+                !bundle_id.is_empty()
+                    && bundle_id.len() < 256
+                    && bundle_id.contains('.')
+                    && bundle_id.split('.').all(|part| !part.is_empty())
+                    && bundle_id
+                        .bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-'),
+                "INVALID_AUDIO_APPLICATION: use an explicit bundle identifier"
+            );
+        }
+        if let Self::SystemDesktop { display_uuid } = self {
+            anyhow::ensure!(
+                display_uuid.len() == 36
+                    && display_uuid.bytes().enumerate().all(|(i, b)| {
+                        if matches!(i, 8 | 13 | 18 | 23) {
+                            b == b'-'
+                        } else {
+                            b.is_ascii_digit() || (b'A'..=b'F').contains(&b)
+                        }
+                    }),
+                "INVALID_AUDIO_DISPLAY: use the canonical UUID from system_audio_sources"
             );
         }
         Ok(())
@@ -77,7 +135,7 @@ impl AudioStore {
         Ok(store)
     }
     pub fn validate(&self) -> anyhow::Result<()> {
-        anyhow::ensure!(self.version == 1, "AUDIO_VERSION_UNSUPPORTED");
+        anyhow::ensure!(matches!(self.version, 1 | 2), "AUDIO_VERSION_UNSUPPORTED");
         anyhow::ensure!(self.inputs.len() <= MAX_INPUTS, "AUDIO_INPUT_LIMIT");
         anyhow::ensure!(
             self.next_id > 0 && self.next_id < u64::MAX,
@@ -96,10 +154,19 @@ impl AudioStore {
             );
             anyhow::ensure!(crate::scene::valid_name(&input.name), "INVALID_AUDIO_NAME");
             input.source.validate()?;
-            validate_gain(input.gain_db)?;
             anyhow::ensure!(
-                devices.insert(input.source.device()),
-                "AUDIO_DEVICE_DUPLICATE"
+                self.version >= 2 || !input.source.is_system(),
+                "AUDIO_VERSION_UNSUPPORTED: system sources require mixer v2"
+            );
+            validate_gain(input.gain_db)?;
+            anyhow::ensure!(devices.insert(&input.source), "AUDIO_DEVICE_DUPLICATE");
+        }
+        for (index, input) in self.inputs.iter().enumerate() {
+            anyhow::ensure!(
+                !self.inputs[index + 1..]
+                    .iter()
+                    .any(|other| input.source.overlaps(&other.source)),
+                "AUDIO_CAPTURE_OVERLAP: desktop and application capture cannot coexist"
             );
         }
         Ok(())
@@ -117,9 +184,16 @@ impl AudioStore {
         if let Some(input) = self.inputs.iter().find(|i| i.source == source) {
             return Ok(input.id.clone());
         }
+        anyhow::ensure!(
+            !self.inputs.iter().any(|i| source.overlaps(&i.source)),
+            "AUDIO_CAPTURE_OVERLAP: desktop and application capture cannot coexist"
+        );
         anyhow::ensure!(self.inputs.len() < MAX_INPUTS, "AUDIO_INPUT_LIMIT");
         anyhow::ensure!(self.next_id < u64::MAX - 1, "AUDIO_INPUT_LIMIT");
         let id = format!("audio-{}", self.next_id);
+        if source.is_system() {
+            self.version = 2;
+        }
         self.next_id += 1;
         self.inputs.push(AudioInput {
             id: id.clone(),
@@ -136,6 +210,8 @@ impl AudioStore {
 #[serde(rename_all = "snake_case")]
 pub enum AudioPhase {
     Warming,
+    /// SCK stream exists, but recent packets have not been observed. Not silence.
+    AwaitingAudio,
     Ready,
     Disconnected,
     Failed,
@@ -153,6 +229,47 @@ pub enum AudioIssueCode {
     AudioInputClipping,
     AudioMixClipping,
     AudioHeadroomLow,
+    ScreenPermissionDenied,
+    SystemAudioUnavailable,
+    SystemAudioEnumerationFailed,
+    ApplicationUnavailable,
+    ApplicationAmbiguous,
+    DisplayUnavailable,
+    SystemAudioSelfCapture,
+    SystemAudioStreamStopped,
+    SystemAudioNoSamples,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SystemAudioPermission {
+    Authorized,
+    NotAuthorized,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SystemAudioApplication {
+    pub bundle_id: String,
+    pub name: String,
+    pub running_instances: u32,
+    pub selectable: bool,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SystemAudioDisplay {
+    pub display_uuid: String,
+    pub name: String,
+    pub is_main: bool,
+    pub selectable: bool,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SystemAudioSources {
+    pub available: bool,
+    pub permission: SystemAudioPermission,
+    pub issue: Option<AudioIssueCode>,
+    pub applications: Vec<SystemAudioApplication>,
+    pub displays: Vec<SystemAudioDisplay>,
+    pub excludes_current_process: bool,
+    pub desktop_main_display_only: bool,
+    pub overlap_policy: String,
 }
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AudioLevels {
@@ -204,12 +321,18 @@ impl AudioRuntime {
                 issues.push(AudioIssue {
                     input_id: Some(input.id.clone()),
                     code,
-                    severity: if input.phase == AudioPhase::Disconnected {
+                    severity: if matches!(
+                        input.phase,
+                        AudioPhase::Disconnected | AudioPhase::AwaitingAudio
+                    ) {
                         "info"
                     } else {
                         "error"
                     },
-                    recovery: if input.phase == AudioPhase::Warming {
+                    recovery: if matches!(
+                        input.phase,
+                        AudioPhase::Warming | AudioPhase::AwaitingAudio
+                    ) {
                         "wait_for_samples"
                     } else {
                         "reconnect_audio_input"
@@ -244,10 +367,12 @@ impl AudioRuntime {
     }
     pub fn ready(&self) -> bool {
         self.available
-            && self
-                .inputs
-                .iter()
-                .all(|i| matches!(i.phase, AudioPhase::Ready | AudioPhase::Disconnected))
+            && self.inputs.iter().all(|i| {
+                matches!(
+                    i.phase,
+                    AudioPhase::Ready | AudioPhase::AwaitingAudio | AudioPhase::Disconnected
+                )
+            })
     }
     pub fn lifecycle(&self) -> AudioLifecycle {
         self.inputs
@@ -305,7 +430,7 @@ mod tests {
             serde_json::from_slice::<AudioStore>(&serialized).unwrap(),
             store
         );
-        store.version = 2;
+        store.version = 3;
         assert!(store.validate().is_err());
         store.version = 1;
         store.next_id = 1;
@@ -351,5 +476,147 @@ mod tests {
         runtime.inputs[0].phase = AudioPhase::Disconnected;
         runtime.inputs[0].issue = Some(AudioIssueCode::AudioDisconnected);
         assert!(runtime.ready());
+    }
+    #[test]
+    fn system_capture_promotes_version_and_reuses_identity_without_controls_reset() {
+        let mut store = AudioStore::default();
+        store.add("Tone".into(), AudioSource::Tone).unwrap();
+        assert_eq!(store.version, 1);
+        let source = AudioSource::SystemApplication {
+            bundle_id: "local.motive.audiofixture".into(),
+        };
+        let id = store.add("Fixture".into(), source.clone()).unwrap();
+        assert_eq!(store.version, 2);
+        store.inputs[1].gain_db = -18.0;
+        store.inputs[1].muted = true;
+        let original = store.clone();
+        assert_eq!(store.add("Again".into(), source).unwrap(), id);
+        assert_eq!(store, original);
+        assert_eq!(
+            AudioStore::parse(&serde_json::to_vec(&store).unwrap()).unwrap(),
+            store
+        );
+        store.version = 1;
+        assert!(AudioStore::parse(&serde_json::to_vec(&store).unwrap()).is_err());
+    }
+    #[test]
+    fn rejects_overlap_in_both_orders_without_mutation_and_on_restore() {
+        let application = AudioSource::SystemApplication {
+            bundle_id: "local.motive.audiofixture".into(),
+        };
+        let desktop = AudioSource::SystemDesktop {
+            display_uuid: "00112233-4455-6677-8899-AABBCCDDEEFF".into(),
+        };
+        for (first, second) in [
+            (application.clone(), desktop.clone()),
+            (desktop, application),
+        ] {
+            let mut store = AudioStore::default();
+            store.add("First".into(), first).unwrap();
+            store.inputs[0].muted = true;
+            let original = store.clone();
+            assert!(
+                store
+                    .add("Second".into(), second.clone())
+                    .unwrap_err()
+                    .to_string()
+                    .contains("AUDIO_CAPTURE_OVERLAP")
+            );
+            assert_eq!(store, original);
+            store.inputs.push(AudioInput {
+                id: "audio-2".into(),
+                name: "Second".into(),
+                source: second,
+                gain_db: -6.0,
+                muted: true,
+            });
+            store.next_id = 3;
+            assert!(
+                AudioStore::parse(&serde_json::to_vec(&store).unwrap())
+                    .unwrap_err()
+                    .to_string()
+                    .contains("AUDIO_CAPTURE_OVERLAP")
+            );
+        }
+    }
+    #[test]
+    fn system_identity_is_typed_explicit_and_has_no_legacy_device() {
+        let mut store = AudioStore::default();
+        for source in [
+            AudioSource::Microphone {
+                device_id: "local.motive.audiofixture".into(),
+            },
+            AudioSource::SystemApplication {
+                bundle_id: "local.motive.audiofixture".into(),
+            },
+            AudioSource::SystemApplication {
+                bundle_id: "local.motive.secondfixture".into(),
+            },
+        ] {
+            store.add("Input".into(), source).unwrap();
+        }
+        store.validate().unwrap();
+        assert!(store.inputs[1].source.legacy_device().is_none());
+        assert_eq!(store.inputs[1].source.native_kind(), 2);
+        for bundle in [
+            "",
+            "default",
+            "123",
+            "local..fixture",
+            ".local.fixture",
+            "local.fixture.",
+            "local/fixture",
+            "local.fixture\0suffix",
+        ] {
+            assert!(
+                AudioSource::SystemApplication {
+                    bundle_id: bundle.into()
+                }
+                .validate()
+                .is_err()
+            );
+        }
+        for uuid in [
+            "",
+            "main",
+            "default",
+            "1",
+            "00112233-4455-6677-8899-aabbccddeeff",
+            "00112233-4455-6677-8899-AABBCCDDEEFG",
+        ] {
+            assert!(
+                AudioSource::SystemDesktop {
+                    display_uuid: uuid.into()
+                }
+                .validate()
+                .is_err()
+            );
+        }
+    }
+    #[test]
+    fn absent_system_packets_are_nonfatal_but_never_claim_measured_silence() {
+        let mut runtime = AudioRuntime {
+            available: true,
+            ..AudioRuntime::default()
+        };
+        runtime.inputs.push(AudioInputRuntime {
+            id: "audio-1".into(),
+            instance_id: 1,
+            phase: AudioPhase::AwaitingAudio,
+            issue: Some(AudioIssueCode::SystemAudioNoSamples),
+            levels: AudioLevels {
+                stale: true,
+                ..AudioLevels::default()
+            },
+        });
+        assert!(runtime.ready());
+        assert_eq!(runtime.issues()[0].severity, "info");
+        assert_eq!(runtime.issues()[0].recovery, "wait_for_samples");
+        assert!(runtime.inputs[0].levels.stale);
+        assert_eq!(runtime.inputs[0].levels.frames, 0);
+        runtime.inputs[0].phase = AudioPhase::Failed;
+        runtime.inputs[0].issue = Some(AudioIssueCode::SystemAudioStreamStopped);
+        assert!(!runtime.ready());
+        assert_eq!(runtime.issues()[0].recovery, "reconnect_audio_input");
     }
 }

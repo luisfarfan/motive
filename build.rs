@@ -36,6 +36,7 @@ fn main() {
         "Foundation",
         "AppKit",
         "CoreGraphics",
+        "ScreenCaptureKit",
         "AVFoundation",
         "VideoToolbox",
         "Security",

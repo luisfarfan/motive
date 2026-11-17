@@ -50,6 +50,10 @@ typedef struct {
 } audio_metrics;
 struct audio_input {
     char id[64],device[512];
+    unsigned kind;
+    pid_t application_pid;
+    CGDirectDisplayID system_display;
+    atomic_bool system_stopped;
     obs_source_t *source;
     obs_volmeter_t *meter;
     audio_metrics metrics;
@@ -60,8 +64,11 @@ struct audio_input {
 };
 struct audio_mix_meter { audio_metrics metrics; };
 
+#include "system-audio.inc"
+
 static void audio_metrics_init(audio_metrics *m) { pthread_mutex_init(&m->lock,NULL); }
 static void audio_flow(void *param,obs_source_t *source,const struct audio_data *data,bool muted) {
+    if(!data || !data->frames)return;
     (void)source;(void)muted;audio_metrics *m=&((audio_input *)param)->metrics;
     pthread_mutex_lock(&m->lock);
     m->frames+=data->frames;m->seen_ns=os_gettime_ns();m->timestamp=data->timestamp;
@@ -111,6 +118,8 @@ static audio_input *audio_find(motive_engine *e,const char *id) {
 }
 static void audio_detach(audio_input *a) {
     obs_set_output_source(a->slot+1,NULL);
+    if (a->source && audio_is_system(a))
+        signal_handler_disconnect(obs_source_get_signal_handler(a->source),"update_properties",system_audio_stopped,a);
     if (a->source) obs_source_remove_audio_capture_callback(a->source,audio_flow,a);
     if (a->meter) {obs_volmeter_destroy(a->meter);a->meter=NULL;}
     if (a->source) {obs_source_release(a->source);a->source=NULL;}
@@ -128,9 +137,9 @@ static void audio_mix_stop(motive_engine *e) {
 static bool audio_attach(motive_engine *e,audio_input *a,const char *tone_path,float gain,bool muted) {
     (void)tone_path;
     obs_data_t *settings=obs_data_create();
-    if (!strcmp(a->device,"tone")) {
+    if (a->kind==0) {
         a->source=obs_source_create_private("motive_audio_tone",a->id,settings);
-    } else {
+    } else if (a->kind==1) {
         if ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio]!=AVAuthorizationStatusAuthorized) {
             obs_data_release(settings);a->fault=2;snprintf(e->error,sizeof(e->error),"MICROPHONE_PERMISSION_DENIED");return false;
         }
@@ -139,9 +148,25 @@ static bool audio_attach(motive_engine *e,audio_input *a,const char *tone_path,f
         }
         obs_data_set_string(settings,"device_id",a->device);
         a->source=obs_source_create_private("coreaudio_input_capture",a->id,settings);
+    } else {
+        int fault=system_audio_resolve(a);
+        if(fault) {obs_data_release(settings);a->fault=fault;snprintf(e->error,sizeof(e->error),"%s",audio_fault_name(fault));return false;}
+        obs_data_set_int(settings,"type",a->kind==2?1:0);
+        if(a->kind==2)obs_data_set_string(settings,"application",a->device);
+        atomic_store(&a->system_stopped,false);
+        a->source=obs_source_create_private("sck_audio_capture",a->id,settings);
+        if(a->source) {
+            signal_handler_connect(obs_source_get_signal_handler(a->source),"update_properties",system_audio_stopped,a);
+            // Close target exit/relaunch races around the official plugin's
+            // own enumeration. Never silently accept a different process.
+            fault=system_audio_target_health(a);
+            if(fault) {obs_data_release(settings);audio_detach(a);a->fault=fault;snprintf(e->error,sizeof(e->error),"%s",audio_fault_name(fault));return false;}
+        }
     }
     obs_data_release(settings);
-    if (!a->source) {a->fault=4;snprintf(e->error,sizeof(e->error),"AUDIO_CREATE_FAILED");return false;}
+    // OBS preserves source settings even when the plugin's create returned
+    // NULL. A non-NULL obs_source_t alone is not proof of successful creation.
+    if (!a->source || obs_obj_invalid(a->source)) {audio_detach(a);a->fault=4;snprintf(e->error,sizeof(e->error),"AUDIO_CREATE_FAILED");return false;}
     a->meter=obs_volmeter_create(OBS_FADER_LOG);
     if (!a->meter) {audio_detach(a);a->fault=4;snprintf(e->error,sizeof(e->error),"AUDIO_CREATE_FAILED");return false;}
     obs_source_set_monitoring_type(a->source,OBS_MONITORING_TYPE_NONE);
@@ -156,18 +181,32 @@ static bool audio_attach(motive_engine *e,audio_input *a,const char *tone_path,f
     obs_set_output_source(a->slot+1,a->source);
     return true;
 }
-bool motive_audio_add(motive_engine *e,const char *id,const char *device,const char *tone_path,float gain,bool muted) {
+bool motive_audio_add_target(motive_engine *e,const char *id,unsigned kind,const char *device,float gain,bool muted) {
+    if(!audio_target_valid(kind,device) || !id || !*id || strlen(id)>=64 || !isfinite(gain) || gain < -60 || gain > 24) {
+        snprintf(e->error,sizeof(e->error),"INVALID_AUDIO_TARGET");return false;
+    }
     if (audio_find(e,id)) {snprintf(e->error,sizeof(e->error),"AUDIO_ID_EXISTS");return false;}
-    for (size_t i=0;i<8;i++) if (e->audio_inputs[i] && !strcmp(e->audio_inputs[i]->device,device)) {
-        snprintf(e->error,sizeof(e->error),"AUDIO_DEVICE_DUPLICATE");return false;
+    for (size_t i=0;i<8;i++) if (e->audio_inputs[i]) {
+        audio_input *existing=e->audio_inputs[i];
+        if(existing->kind==kind && !strcmp(existing->device,device)) {
+            snprintf(e->error,sizeof(e->error),"AUDIO_DEVICE_DUPLICATE");return false;
+        }
+        if(kind>=2 && audio_is_system(existing) && (kind==3 || existing->kind==3)) {
+            snprintf(e->error,sizeof(e->error),"AUDIO_CAPTURE_OVERLAP");return false;
+        }
     }
     size_t slot=0;while(slot<8 && e->audio_inputs[slot]) slot++;
     if (slot==8) {snprintf(e->error,sizeof(e->error),"AUDIO_INPUT_LIMIT");return false;}
-    audio_input *a=calloc(1,sizeof(*a));a->slot=(unsigned)slot;
+    audio_input *a=calloc(1,sizeof(*a));a->slot=(unsigned)slot;a->kind=kind;
+    atomic_init(&a->system_stopped,false);
     snprintf(a->id,sizeof(a->id),"%s",id);snprintf(a->device,sizeof(a->device),"%s",device);
     audio_metrics_init(&a->metrics);
-    if (!audio_attach(e,a,tone_path,gain,muted)) {audio_release(a);return false;}
+    if (!audio_attach(e,a,"",gain,muted)) {audio_release(a);return false;}
     e->audio_inputs[slot]=a;return true;
+}
+bool motive_audio_add(motive_engine *e,const char *id,const char *device,const char *tone_path,float gain,bool muted) {
+    (void)tone_path;
+    return motive_audio_add_target(e,id,device && !strcmp(device,"tone")?0:1,device,gain,muted);
 }
 bool motive_audio_remove(motive_engine *e,const char *id) {
     audio_input *a=audio_find(e,id);
@@ -201,15 +240,26 @@ bool motive_audio_reconnect(motive_engine *e,const char *id,float gain,bool mute
 }
 // Restore retains unavailable desired inputs, with explicit failure, so the user
 // can reconnect that same stable ID later. This never substitutes a device.
-bool motive_audio_restore_missing(motive_engine *e,const char *id,const char *device) {
+bool motive_audio_restore_missing_target(motive_engine *e,const char *id,unsigned kind,const char *device) {
+    if(!audio_target_valid(kind,device) || !id || !*id || strlen(id)>=64)return false;
     if(audio_find(e,id))return false;
+    for(size_t i=0;i<8;i++)if(e->audio_inputs[i]) {
+        audio_input *other=e->audio_inputs[i];
+        if((other->kind==kind && !strcmp(other->device,device)) ||
+           (kind>=2 && audio_is_system(other) && (kind==3 || other->kind==3)))return false;
+    }
     size_t slot=0;while(slot<8 && e->audio_inputs[slot])slot++;
     if(slot==8)return false;
-    audio_input *a=calloc(1,sizeof(*a));a->slot=(unsigned)slot;
+    audio_input *a=calloc(1,sizeof(*a));a->slot=(unsigned)slot;a->kind=kind;
+    atomic_init(&a->system_stopped,false);
     snprintf(a->id,sizeof(a->id),"%s",id);snprintf(a->device,sizeof(a->device),"%s",device);
     audio_metrics_init(&a->metrics);
-    a->fault=!strncmp(e->error,"MICROPHONE_PERMISSION_DENIED",28)?2:!strncmp(e->error,"AUDIO_CREATE_FAILED",19)?4:1;
+    a->fault=kind>=2?8:1;
+    for(int fault=1;fault<=14;fault++)if(!strcmp(e->error,audio_fault_name(fault))) {a->fault=fault;break;}
     e->audio_inputs[slot]=a;return true;
+}
+bool motive_audio_restore_missing(motive_engine *e,const char *id,const char *device) {
+    return motive_audio_restore_missing_target(e,id,device && !strcmp(device,"tone")?0:1,device);
 }
 bool motive_audio_rename_id(motive_engine *e,const char *old_id,const char *new_id) {
     audio_input *a=audio_find(e,old_id);
@@ -219,17 +269,24 @@ bool motive_audio_rename_id(motive_engine *e,const char *old_id,const char *new_
 static int audio_health(audio_input *a) {
     if (a->fault) return a->fault;
     if (a->disconnected) return 5;
-    if (strcmp(a->device,"tone")) {
+    if(audio_is_system(a)) {
+        int fault=system_audio_target_health(a);
+        if(fault)return fault;
+    } else if (a->kind==1) {
         if ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio]!=AVAuthorizationStatusAuthorized) return 2;
         if (!audio_available(a->device)) return 1;
     }
     pthread_mutex_lock(&a->metrics.lock);uint64_t seen=a->metrics.seen_ns;pthread_mutex_unlock(&a->metrics.lock);
-    return seen && os_gettime_ns()-seen<3000000000ULL ? 0:3;
+    uint64_t limit=audio_is_system(a)?1000000000ULL:3000000000ULL;
+    return seen && os_gettime_ns()-seen<limit ? 0:audio_is_system(a)?15:3;
 }
 void motive_poll_audio(motive_engine *e) {
     for(size_t i=0;i<8;i++) if(e->audio_inputs[i]) {
         audio_input *a=e->audio_inputs[i];if(a->disconnected || a->fault)continue;
         int health=audio_health(a);
+        // SCK may stop delivering buffers while an application is silent.
+        // No packet is not a measured zero and is not proof of stream failure.
+        if(health==15)continue;
         if(health==3 && os_gettime_ns()-a->created_ns<4000000000ULL)continue;
         if(health) {
             a->fault=health==3?6:health;
@@ -261,11 +318,10 @@ static NSDictionary *audio_metrics_json(audio_metrics *m) {
 }
 char *motive_audio_state(motive_engine *e) {
     NSMutableArray *inputs=[NSMutableArray array];
-    const char *codes[]={"","DEVICE_UNAVAILABLE","MICROPHONE_PERMISSION_DENIED","AUDIO_NOT_READY","AUDIO_CREATE_FAILED","AUDIO_DISCONNECTED","AUDIO_STALLED"};
     for (size_t i=0;i<8;i++) if (e->audio_inputs[i]) {
         audio_input *a=e->audio_inputs[i];int health=audio_health(a);
-        [inputs addObject:@{@"id":@(a->id),@"instance_id":@(a->instance),@"issue":health?@(codes[health]):[NSNull null],
-            @"phase":health==0?@"ready":health==3?@"warming":health==5?@"disconnected":@"failed",
+        [inputs addObject:@{@"id":@(a->id),@"instance_id":@(a->instance),@"issue":health?@(audio_fault_name(health)):[NSNull null],
+            @"phase":health==0?@"ready":health==3?@"warming":health==5?@"disconnected":health==15?@"awaiting_audio":@"failed",
             @"levels":audio_metrics_json(&a->metrics)}];
     }
     NSDictionary *state=@{@"available":@YES,@"inputs":inputs,@"instances_created":@(e->audio_instances),
@@ -276,7 +332,7 @@ char *motive_audio_state(motive_engine *e) {
 /* Compatibility stats read the global mix. The legacy selector's device is
  * owned by the same registry; there is never a second physical capture. */
 int motive_audio_health(motive_engine *e) {
-    for(size_t i=0;i<8;i++) if(e->audio_inputs[i] && !strcmp(e->audio_inputs[i]->device,e->audio_id)) return audio_health(e->audio_inputs[i]);
+    for(size_t i=0;i<8;i++) if(e->audio_inputs[i] && !audio_is_system(e->audio_inputs[i]) && !strcmp(e->audio_inputs[i]->device,e->audio_id)) return audio_health(e->audio_inputs[i]);
     return 0;
 }
 uint64_t motive_audio_frames(motive_engine *e) {

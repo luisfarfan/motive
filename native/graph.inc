@@ -17,7 +17,7 @@ struct visual_source {
     obs_source_t *source,*watch;
     char id[64],kind[16],device[512];
     bool extended,stretch;char definition_kind[32],definition_subkind[32],asset_id[80];char *overlay_json;
-    uint32_t window; pid_t owner; uint64_t active_since,instance_id; bool desired_active,warming;
+    uint32_t window,capture_fps; pid_t owner; uint64_t active_since,instance_id; bool desired_active,warming;
 };
 struct visual_scene { obs_scene_t *scene; char id[64]; uint32_t visible_mask; char layer_ids[32][64];obs_sceneitem_t *items[32];size_t layer_count; };
 static bool visual_equal(visual_source *s,NSDictionary *d) {
@@ -39,17 +39,17 @@ static void visual_destroy(visual_source *s) {
     if (s->source) obs_source_release(s->source);
     free(s->overlay_json);free(s);
 }
-static bool detach_camera_item(obs_scene_t *scene,obs_sceneitem_t *item,void *source) {
+static bool detach_capture_item(obs_scene_t *scene,obs_sceneitem_t *item,void *source) {
     (void)scene;
     if(obs_sceneitem_get_source(item)==source) obs_sceneitem_remove(item);
     return true;
 }
-static void release_camera_session(motive_engine *e,visual_source *s) {
-    // AVFoundation cannot reliably start a second session for the same device
-    // while the old session is being destroyed. Detach every layer, then wait
-    // for OBS's destroy queue (the official module synchronously stops AV capture).
+static void release_capture_source(motive_engine *e,visual_source *s) {
+    // Detach every layer, then join OBS source destruction before replacement.
+    // AVFoundation stops synchronously. Official SCK starts asynchronous stop;
+    // the API exposes no completion barrier, so SCStream overlap is unverified.
     for(size_t i=0;i<e->scene_count;i++)
-        obs_scene_enum_items(e->scenes[i]->scene,detach_camera_item,s->source);
+        obs_scene_enum_items(e->scenes[i]->scene,detach_capture_item,s->source);
     if(s->watch) {obs_source_filter_remove(s->source,s->watch);obs_source_release(s->watch);s->watch=NULL;}
     obs_source_release(s->source);s->source=NULL;
     obs_wait_for_destroy_queue();
@@ -65,6 +65,15 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
         if (!CGPreflightScreenCaptureAccess()) {snprintf(e->error,sizeof(e->error),"SCREEN_PERMISSION_DENIED");goto fail;}
         NSDictionary *w=find_window(s->window);
         if (!w || [w[@"pid"] intValue]!=s->owner) {snprintf(e->error,sizeof(e->error),"SOURCE_UNAVAILABLE");goto fail;}
+        // SCK captures the OBS FPS on stream creation; unchanged updates are a
+        // no-op upstream. Retire every old layer/reference before replacing the
+        // OBS source, preserving the stable graph ID. SCK shutdown itself is asynchronous.
+        for(size_t i=0;i<e->visual_count;i++) {
+            visual_source *old=e->visuals[i];
+            if(old->source && !strcmp(old->kind,"window") && !strcmp(old->id,s->id))
+                release_capture_source(e,old);
+        }
+        obs_wait_for_destroy_queue();s->capture_fps=e->fps;
         type="screen_capture";obs_data_set_int(settings,"type",1);obs_data_set_int(settings,"window",s->window);
         obs_data_set_bool(settings,"show_cursor",false);obs_data_set_bool(settings,"show_hidden_windows",true);
     } else if ([kind isEqualToString:@"camera"]) {
@@ -74,7 +83,7 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
         for(size_t i=0;i<e->visual_count;i++) {
             visual_source *old=e->visuals[i];
             if(old->source && !strcmp(old->kind,"camera") && !strcmp(old->device,s->device))
-                release_camera_session(e,old);
+                release_capture_source(e,old);
         }
         // Also finish destruction from a preceding remove-source command.
         obs_wait_for_destroy_queue();
@@ -111,7 +120,7 @@ fail:
     obs_data_release(settings);free(s);return NULL;
 }
 static const char *visual_health(visual_source *s) {
-    if(!s->source) return "CAMERA_UNAVAILABLE";
+    if(!s->source) return !strcmp(s->kind,"camera") ? "CAMERA_UNAVAILABLE":"SOURCE_UNAVAILABLE";
     if(s->extended)return overlay_source_health(s->source);
     if (!strcmp(s->kind,"window")) {
         if (!CGPreflightScreenCaptureAccess()) return "SCREEN_PERMISSION_DENIED";
@@ -145,6 +154,7 @@ bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_i
     for (NSDictionary *d in sources) {
         visual_source *s=NULL;
         for (size_t i=0;i<e->visual_count;i++) if (!strcmp(e->visuals[i]->id,[d[@"id"] UTF8String]) && visual_equal(e->visuals[i],d)
+            && (strcmp(e->visuals[i]->kind,"window") || e->visuals[i]->capture_fps==e->fps)
             && strcmp(reconnect_id,"*") && strcmp(reconnect_id,e->visuals[i]->id)) {s=e->visuals[i];reused[i]=true;break;}
         if (!s) s=visual_create(e,d);
         if (!s) goto fail;
@@ -175,7 +185,8 @@ bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_i
                     s->visible_mask|=1u<<i;
                     if ([d[@"id"] isEqual:graph[@"active_scene"]]) enabled[i]=true;
                 }
-            vec2_set(&pos,[t[@"x"] floatValue],[t[@"y"] floatValue]);vec2_set(&bounds,[t[@"width"] floatValue],[t[@"height"] floatValue]);vec2_set(&scale,1,1);
+            float factor=motive_design_scale(e);
+            vec2_set(&pos,[t[@"x"] floatValue]*factor,[t[@"y"] floatValue]*factor);vec2_set(&bounds,[t[@"width"] floatValue]*factor,[t[@"height"] floatValue]*factor);vec2_set(&scale,1,1);
             obs_sceneitem_defer_update_begin(item);
             obs_sceneitem_set_scale(item,&scale);obs_sceneitem_set_alignment(item,OBS_ALIGN_TOP|OBS_ALIGN_LEFT);
             obs_sceneitem_set_bounds_type(item,source->stretch?OBS_BOUNDS_STRETCH:OBS_BOUNDS_SCALE_INNER);obs_sceneitem_set_bounds_alignment(item,0);
@@ -220,7 +231,10 @@ char *motive_graph_health(motive_engine *e) {
         frame_watch *w=s->watch ? obs_obj_get_data(s->watch):NULL;uint64_t seen=w ? atomic_load(&w->seen_ns):0;
         uint64_t now=os_gettime_ns();
         [states addObject:@{@"id":@(s->id),@"active":@(active),@"issue":@(issue),
-            @"warming":@(s->warming),@"instance_id":@(s->instance_id),@"width":@(s->source ? obs_source_get_width(s->source):0),@"frames":@(w ? atomic_load(&w->frames):0),
+            @"warming":@(s->warming),@"instance_id":@(s->instance_id),@"kind":@(s->kind),
+            @"width":@(s->source ? obs_source_get_width(s->source):0),@"height":@(s->source ? obs_source_get_height(s->source):0),
+            @"capture_fps_requested":s->capture_fps ? @(s->capture_fps):[NSNull null],
+            @"capture_fps_measured":[NSNull null],@"frames":@(w ? atomic_load(&w->frames):0),
             @"frame_age_ms":seen ? @((now-seen)/1000000):[NSNull null]}];
     }
     NSData *data=[NSJSONSerialization dataWithJSONObject:states options:0 error:nil];

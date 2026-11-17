@@ -24,7 +24,9 @@ typedef struct { atomic_uint_fast64_t stops; } transition_events;
 typedef struct {
     pthread_mutex_t lock;
     uint8_t *pixels;
-    uint32_t width, height;
+    uint32_t width, height, fps;
+    bool video_ready, preview_connected;
+    char video_failure[128];
     char audio_id[512];
     audio_input *audio_inputs[8];uint64_t audio_instances;
     audio_mix_meter *mix_meter;
@@ -113,9 +115,11 @@ static void receive_frame(void *param, struct video_data *frame) {
     pthread_mutex_unlock(&e->lock);
 }
 static void connect_preview(motive_engine *e) {
+    if (!e->video_ready || !e->pixels || e->preview_connected) return;
     struct video_scale_info scale = {.format=VIDEO_FORMAT_BGRA, .width=e->width,
         .height=e->height, .range=VIDEO_RANGE_FULL, .colorspace=VIDEO_CS_709};
     obs_add_raw_video_callback(&scale, receive_frame, e);
+    e->preview_connected=true;
 }
 static bool load_module(motive_engine *e, const char *name) {
     char binary[8192], data[8192]; obs_module_t *module = NULL;
@@ -131,7 +135,7 @@ static bool load_module(motive_engine *e, const char *name) {
 static int reset_video(motive_engine *e) {
     char graphics[8192];
     snprintf(graphics,sizeof(graphics),"%s/Frameworks/libobs-metal.dylib",e->base);
-    struct obs_video_info v = {.graphics_module=graphics,.fps_num=30,.fps_den=1,
+    struct obs_video_info v = {.graphics_module=graphics,.fps_num=e->fps,.fps_den=1,
         .base_width=e->width,.base_height=e->height,.output_width=e->width,.output_height=e->height,
         .output_format=VIDEO_FORMAT_NV12,.gpu_conversion=true,.colorspace=VIDEO_CS_709,
         .range=VIDEO_RANGE_PARTIAL,.scale_type=OBS_SCALE_BICUBIC};
@@ -141,6 +145,7 @@ static struct obs_source_info watch_info;
 static struct obs_source_info tone_info;
 static struct obs_source_info overlay_source_info;
 static overlay_animator *overlay_animator_create(void);
+static bool overlay_animation_busy(overlay_animator *a);
 #include "credentials.inc"
 // Native plugins may log a server's reply containing the stream key. Once a
 // credential is used, suppress free-form OBS logs for the process lifetime;
@@ -161,7 +166,7 @@ static void audio_mix_stop(motive_engine *e);
 void motive_destroy(motive_engine *e);
 motive_engine *motive_create(const char *base) {
     motive_engine *e=calloc(1,sizeof(*e));
-    pthread_mutex_init(&e->lock,NULL); e->width=960; e->height=540;
+    pthread_mutex_init(&e->lock,NULL); e->width=960; e->height=540; e->fps=30;
     snprintf(e->base,sizeof(e->base),"%s",base);
     [NSApplication sharedApplication];
     base_get_log_handler(&previous_log_handler,&previous_log_context);
@@ -172,6 +177,7 @@ motive_engine *motive_create(const char *base) {
     obs_add_data_path(resources);
     int code=reset_video(e);
     if (code) { snprintf(e->error,sizeof(e->error),"obs_reset_video falló: %d",code); return e; }
+    e->video_ready=true;
     struct obs_audio_info audio={.samples_per_sec=48000,.speakers=SPEAKERS_STEREO};
     if (!obs_reset_audio(&audio)) { snprintf(e->error,sizeof(e->error),"obs_reset_audio falló"); return e; }
     const char *modules[]={"obs-x264","obs-ffmpeg","obs-outputs","mac-capture","mac-avcapture","obs-transitions","image-source","text-freetype2"};
@@ -196,7 +202,8 @@ motive_engine *motive_create(const char *base) {
     obs_register_source(&tone_info);
     obs_register_source(&overlay_source_info);
     e->animations=overlay_animator_create();
-    e->pixels=calloc(e->width*e->height,4);
+    e->pixels=calloc((size_t)e->width*e->height,4);
+    if (!e->pixels) {snprintf(e->error,sizeof(e->error),"VIDEO_BUFFER_ALLOCATION_FAILED");return e;}
     connect_preview(e);
     audio_mix_start(e);
     return e;
@@ -316,25 +323,57 @@ void motive_stop_output(motive_engine *e) {
         obs_output_stop(e->output);
 }
 
-bool motive_variant(motive_engine *e,bool vertical) {
+/* Config changes are owner-only and require quiescent output workers. Reserve
+ * before mutation; OBS reset can destroy video before returning failure. */
+bool motive_configure_video(motive_engine *e,uint32_t width,uint32_t height,uint32_t fps) {
+    e->error[0]=0;
     if (e->scene_phase==SCENE_PREPARING || e->scene_phase==SCENE_RUNNING) {snprintf(e->error,sizeof(e->error),"TRANSITION_BUSY");return false;}
-    if (motive_output_state(e)) { snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY"); return false; }
-    if (e->width==(vertical ? 540u:960u) && e->height==(vertical ? 960u:540u)) {
-        return true;
+    if (overlay_animation_busy(e->animations)) {snprintf(e->error,sizeof(e->error),"ANIMATION_BUSY");return false;}
+    if (motive_output_state(e)) {snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY");return false;}
+    uint32_t wide=width>height ? width:height,shorter=width>height ? height:width;
+    if (!((wide==960 && shorter==540) || (wide==1280 && shorter==720) || (wide==1920 && shorter==1080)) || (fps!=30 && fps!=60)) {
+        snprintf(e->error,sizeof(e->error),"INVALID_VIDEO_CONFIGURATION");return false;
     }
+    if (e->video_ready && e->width==width && e->height==height && e->fps==fps) {e->video_failure[0]=0;return true;}
+    if ((size_t)width>SIZE_MAX/height/4) {snprintf(e->error,sizeof(e->error),"VIDEO_BUFFER_ALLOCATION_FAILED");return false;}
+    uint8_t *next=calloc((size_t)width*height,4);
+    if (!next) {snprintf(e->error,sizeof(e->error),"VIDEO_BUFFER_ALLOCATION_FAILED");return false;}
     release_output(e);
-    obs_remove_raw_video_callback(receive_frame,e);
-    uint32_t oldw=e->width,oldh=e->height;
-    e->width=vertical ? 540:960; e->height=vertical ? 960:540;
+    if (e->preview_connected) {obs_remove_raw_video_callback(receive_frame,e);e->preview_connected=false;}
+    uint32_t oldw=e->width,oldh=e->height,oldfps=e->fps;
+    e->video_ready=false;e->width=width;e->height=height;e->fps=fps;
     int code=reset_video(e);
     if (code) {
-        e->width=oldw;e->height=oldh; connect_preview(e);
-        snprintf(e->error,sizeof(e->error),"VIDEO_RESET_FAILED: %d",code); return false;
+        e->width=oldw;e->height=oldh;e->fps=oldfps;
+        int rollback=reset_video(e);
+        e->video_ready=rollback==OBS_VIDEO_SUCCESS;
+        free(next);
+        if (e->video_ready) connect_preview(e);
+        snprintf(e->video_failure,sizeof(e->video_failure),rollback ? "VIDEO_ROLLBACK_FAILED: reset=%d rollback=%d":"VIDEO_RESET_FAILED: reset=%d rollback=%d",code,rollback);
+        snprintf(e->error,sizeof(e->error),"%s",e->video_failure);return false;
     }
-    // Equal pixel count for the two supported variants; the callback is disconnected.
-    memset(e->pixels,0,e->width*e->height*4); e->sequence=0;
-    connect_preview(e); return true;
+    pthread_mutex_lock(&e->lock);
+    uint8_t *old=e->pixels;e->pixels=next;e->sequence=0;e->timestamp=0;
+    pthread_mutex_unlock(&e->lock);
+    free(old);e->video_ready=true;e->video_failure[0]=0;
+    connect_preview(e);return true;
 }
+void motive_invalidate_video(motive_engine *e) {
+    if(e->preview_connected) {obs_remove_raw_video_callback(receive_frame,e);e->preview_connected=false;}
+    e->video_ready=false;
+    snprintf(e->video_failure,sizeof(e->video_failure),"VIDEO_RECOVERY_REQUIRED");
+}
+char *motive_video_info(motive_engine *e) {
+    struct obs_video_info v={0};bool available=e->video_ready && obs_get_video_info(&v);
+    NSDictionary *state=@{@"available":@(available),@"width":available ? @(v.output_width):[NSNull null],
+        @"height":available ? @(v.output_height):[NSNull null],@"fps":available ? @((double)v.fps_num/v.fps_den):[NSNull null],
+        @"fps_num":available ? @(v.fps_num):[NSNull null],@"fps_den":available ? @(v.fps_den):[NSNull null],
+        @"base_width":available ? @(v.base_width):[NSNull null],@"base_height":available ? @(v.base_height):[NSNull null],
+        @"preview_connected":@(e->preview_connected),@"error":e->video_failure[0] ? @(e->video_failure):[NSNull null]};
+    NSData *json=[NSJSONSerialization dataWithJSONObject:state options:0 error:nil];
+    return strdup([[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding].UTF8String);
+}
+static float motive_design_scale(motive_engine *e) {return (float)e->width/(e->width>e->height ? 960.f:540.f);}
 // Inventory only: no capture starts until a concrete source is selected.
 static NSArray *window_inventory(void) {
     NSMutableArray *items=[NSMutableArray array];
@@ -429,7 +468,7 @@ void motive_destroy(motive_engine *e) {
         return;
     }
     release_output(e);
-    if (e->pixels) obs_remove_raw_video_callback(receive_frame,e);
+    if (e->preview_connected) obs_remove_raw_video_callback(receive_frame,e);
     if (obs_initialized()) {
         obs_set_output_source(0,NULL);
         audio_mix_stop(e);

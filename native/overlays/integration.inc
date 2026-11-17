@@ -59,7 +59,7 @@ bool motive_animate_overlay(motive_engine *e,const char *scene,const char *layer
     for(size_t i=0;i<e->scene_count;i++)if(!strcmp(e->scenes[i]->id,scene))for(size_t j=0;j<e->scenes[i]->layer_count;j++)if(!strcmp(e->scenes[i]->layer_ids[j],layer))item=e->scenes[i]->items[j];
     if(!item){snprintf(e->error,sizeof(e->error),"LAYER_UNAVAILABLE");return false;}
     uint64_t operation=0;
-    bool result=overlay_animation_start(e->animations,item,scene,layer,[a[@"kind"] UTF8String],[a[@"easing"] UTF8String],[a[@"duration_ms"] unsignedIntValue],[a[@"distance"] floatValue],[a[@"scale_from"] floatValue],&operation);
+    bool result=overlay_animation_start(e->animations,item,scene,layer,[a[@"kind"] UTF8String],[a[@"easing"] UTF8String],[a[@"duration_ms"] unsignedIntValue],[a[@"distance"] floatValue],[a[@"scale_from"] floatValue],motive_design_scale(e),&operation);
     if(!result)snprintf(e->error,sizeof(e->error),"ANIMATION_BUSY_OR_INVALID");else *operation_id=operation;return result;
 }
 bool motive_ack_overlay_animation(motive_engine *e,uint64_t id) {

@@ -6,8 +6,9 @@ anteriores. Las entradas D1–D10 conservan su contexto histórico; no son una
 lista de límites actuales. Contratos vigentes: [canvas/audio](h13-video-audio-contract.md)
 y [salidas](h13-output-contract.md). Resultados y gates pendientes:
 [verificación H13](h13-production-verification.md). Las últimas ejecuciones
-G pasan las 23 suites H1–H12; siguen abiertos GPUI de producción, sesión
-prolongada y exclusión propia final. [Índice de evidencia](h13-evidence-index.md).
+G pasan las 23 suites H1–H12. Producción GPUI y más de 30 minutos de salidas
+duales ya se ejecutaron; la aceptación es parcial por los hallazgos visuales
+y la exclusión propia final. [Índice de evidencia](h13-evidence-index.md).
 
 ## Inspección inicial — 2026-11-16
 
@@ -522,8 +523,9 @@ espera también una importación existente antes de permitir el destructor del
 worker. `shutdown` legacy establece el mismo sello de cierre. Tanto pendiente
 como listo para salir, el núcleo rechaza nuevo trabajo, incluidas mutaciones
 de overlays que antes entraban por una ruta temprana. Las consultas siguen
-disponibles. Ventana, menú y Cmd+Q pasan por la confirmación/ciclo compartidos;
-su matriz final de aceptación GPUI sigue abierta.
+disponibles. Ventana, menú y Cmd+Q pasan por la confirmación/ciclo compartidos.
+La producción GPUI observó cancelación de Cmd+Q y cierre confirmado; las rutas
+restantes conservan su estado individual en el checklist de aceptación.
 
 El bundle G (`d9b8d702…e0e2d93`) tiene 71 tests, Clippy y formato PASS, y
 **23/23 suites H1–H12 distintas PASS en sus últimas ejecuciones**. El
@@ -535,9 +537,23 @@ observa 29 consultas durante un import real y el resultado `completed` antes
 de salir. En G la matriz dual pasa **4/4 casos y 12/12 medios** (diez completos
 y dos parciales intencionales), con recuperación independiente; A/V visible
 pasa con siete pares de pulsos, mediana audio−video **+24,27 ms** y rango
-**33 ms**. Producción GPUI integrada y sesión prolongada siguen pendientes:
+**33 ms**. Ya se ejecutó producción GPUI integrada con una sesión dual de más
+de 30 minutos. Los ocho archivos pasan decodificación completa y cadencia
+estricta (≤34 ms), con siete functional/integrity PASS y un RTMP parcial
+intencional INCONCLUSIVE. El agregado estructural permanece INCONCLUSIVE por
+ese parcial y un intento de handshake sin medio; no declara aceptación nativa.
 [informe y evidencia](h13-production-verification.md),
 [runner de regresiones](h13-regressions.md), [aceptación nativa](h13-native-acceptance.md).
+
+La [revisión visual](../var/evidence/h13-native-visual-extract-1794944740966518000/visual-review.md)
+aprueba los cambios Cut/Fade completos y observa edición de lower y countdown
+en ambas salidas, pero conserva alerta parcialmente ocluida y congelamiento
+visual tardío de la ventana en REC3. El orden de la alerta se corrigió desde
+GPUI y se guardó; su toma de revalidación sigue pendiente. El congelamiento
+coincide con oclusión mientras la fixture sigue incrementando los contadores
+de audio y dibujo. Esto no distingue publicación de WindowServer, entrega de
+SCK o retención posterior: causa INCONCLUSIVE. Una toma compacta posterior
+no reemplaza ni vuelve PASS estos dos hallazgos originales.
 
 La [exclusión propia final](h13-system-audio-exclusion-final.md) conserva
 **FAIL y atribución INCONCLUSIVE**: −16,41 dB frente al gate <−45 dB, con
@@ -560,6 +576,7 @@ wrappers, y asignaciones malloc activas próximas al baseline
 sin PASS de presupuesto ni atribución causal de fuga o prueba de su ausencia;
 el probe es más corto que H12 y `vmmap` puede alterar la residencia.
 USB hot-unplug, permisos revocados, display físico, sleep/wake, otros macOS,
-RTMPS positivo confiable, sesión prolongada y bundle portable siguen pendientes.
+RTMPS positivo confiable y bundle portable siguen pendientes; la sesión dual
+prolongada ejecutada no acredita esos escenarios.
 No se habilitan destinos públicos, multistream, dos canvases simultáneos,
 Browser/CEF ni nuevas dependencias globales.

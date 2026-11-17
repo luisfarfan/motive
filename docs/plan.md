@@ -7,9 +7,11 @@ para esta fase y REA no bloqueó los hitos.
 **H13 implementado; aceptación final EN CURSO.** Canvas configurable, audio del
 sistema y salidas MKV/RTMP independientes ya comparten núcleo, CLI/MCP y GPUI.
 Las 23 suites H1–H12 pasan en sus últimas ejecuciones del bundle G; también
-pasan la matriz dual de cuatro casos/doce medios y el A/V visible. Producción
-operada por GPUI y sesión prolongada siguen pendientes. La exclusión propia
-final conserva FAIL con atribución INCONCLUSIVE. Estado y hashes:
+pasan la matriz dual de cuatro casos/doce medios y el A/V visible. Ya se ejecutó
+producción operada por GPUI con más de 30 minutos de salidas duales. Sus ocho
+archivos pasan decodificación completa y cadencia estricta, pero la aceptación
+sigue parcial por una alerta ocluida y un congelamiento visual tardío de ventana.
+La exclusión propia final conserva FAIL con atribución INCONCLUSIVE. Estado y hashes:
 [índice de evidencia](h13-evidence-index.md) y [verificación H13](h13-production-verification.md).
 
 La tabla conserva el alcance y los límites de cada bundle histórico; las
@@ -30,7 +32,7 @@ ampliaciones posteriores se registran en su propio hito.
 | 10 — Audio Mixer | Micrófono + tono, ganancia/mute, medidores, recuperación por entrada, persistencia v1 y Cut/Fade durante grabación/RTMP reales | [H10](h10-audio-verification.md): CLI/MCP reales y 17 suites H1–H9 aprobadas; USB hot-unplug/permisos/sleep y sesiones largas pendientes |
 | 11 — Overlay Engine y widgets | Texto, imagen alpha, formas, video visual, seis animaciones por capa, widgets y tres presets en dos layouts; CLI/MCP, grabación/RTMP y persistencia reales | [H11](h11-overlay-verification.md): 13 clips y 49 tests; aceptación condicionada a regresiones H1–H10 abiertas. Browser bloqueado; GPUI integra el [contrato](h11-overlay-ui-contract.md) por separado |
 | 12 — Creative Studio integrado | Biblioteca, picker, inspectores tipados, eventos, animaciones y persistencia desde GPUI; grabación VT/RTMP decodificada; 22 suites en sus últimas ejecuciones | [H12](h12-creative-studio-verification.md): 55 tests y Clippy; se conserva el fallo previo de render lag sin causa resuelta, sin certificar bundles posteriores |
-| 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12 en sus últimas ejecuciones | [H13](h13-production-verification.md): implementado; aceptación final **EN CURSO**. Recorrido GPUI y sesión prolongada pendientes; exclusión propia final FAIL, atribución INCONCLUSIVE |
+| 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12; producción GPUI y sesión dual de más de 30 min ejecutadas | [H13](h13-production-verification.md): aceptación **PARCIAL, EN CURSO**. Ocho archivos pasan decode/cadencia estricta; alerta ocluida y freeze de ventana conservados. Revalidación de alerta pendiente; exclusión propia final FAIL, atribución INCONCLUSIVE |
 
 Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
 bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión
@@ -141,8 +143,9 @@ separada. Ver [H10](h10-audio-verification.md) y el
 [contrato GPUI](h10-audio-ui-contract.md). La captura de audio del sistema,
 pospuesta en la [evaluación H10](h10-system-audio-next.md), se implementa en H13
 mediante el módulo oficial SCK y el [contrato v1/v2](h13-video-audio-contract.md).
-Conservar pendientes USB hot-unplug, revocación de permisos y sesiones largas;
-no añadir filtros, monitorización ni audio por escena en este alcance.
+Conservar pendientes USB hot-unplug y revocación de permisos; la sesión dual
+H13 de más de 30 minutos es evidencia acotada a sus dispositivos y condiciones.
+No añadir filtros, monitorización ni audio por escena en este alcance.
 
 Sigue pendiente validar RTMPS positivo con un destino controlado y certificado
 públicamente confiable. Antes de habilitarlo, registrar localmente destinos
@@ -151,9 +154,10 @@ MCP seleccionará destinos aprobados, sin recibir claves ni URLs arbitrarias.
 No requiere un dominio propio de Motive. Ver el [informe H8](h8-streaming-verification.md)
 para el bloqueo de una CA aislada, evidencia y secuencia de prueba privada.
 
-Conservar pendientes sesiones largas, USB hot-unplug, sleep/wake, matriz de
-macOS y bundle portable/notarizado. No añadir multistream, nube, pagos ni
-marketplace, ni emitir a servicios públicos sin autorización. Una grabación y
+Conservar pendientes USB hot-unplug, sleep/wake, matriz de macOS y bundle
+portable/notarizado; la toma prolongada H13 no acredita esas condiciones. No
+añadir multistream, nube, pagos ni marketplace, ni emitir a servicios públicos
+sin autorización. Una grabación y
 un destino RTMP concurrentes en H13 no habilitan multistream ni dos lienzos.
 
 ## Ampliación H1
@@ -250,15 +254,33 @@ esperar 20 s frente a 178,41 MiB iniciales. No es un PASS de presupuesto de
 memoria ni prueba causal de fuga o de su ausencia; `vmmap` puede perturbar la
 residencia y este protocolo es más corto que H12.
 
-Los siguientes gates siguen abiertos hasta contar con sus informes completos:
+La producción GPUI integrada y la sesión dual de más de 30 minutos ya se
+ejecutaron, con composición de ventana/cámara, mixer, lower/countdown, Cut/Fade,
+control y recuperación por destino, cancelación de Cmd+Q y cierre confirmado.
+Proyecto, mixer y perfiles también se restauraron desde GPUI; la corrección
+del orden de alerta quedó guardada durante la preparación compacta.
+Sus ocho archivos pasan decodificación completa y cadencia estricta (≤34 ms).
+El análisis estructural conserva siete resultados functional/integrity PASS y
+un RTMP parcial intencional INCONCLUSIVE; su agregado sigue INCONCLUSIVE por
+ese parcial y la cobertura de un intento de handshake sin archivo. No equivale
+a aceptación completa del recorrido.
 
-- Producción GPUI integrada con ambas salidas, audio del sistema/micrófono,
-  Cut/Fade, edición/widgets, stop/recovery por destino y persistencia.
-- Confirmación, cancelación y cierre desde ventana, menú y Cmd+Q con salidas
-  activas/conectando; inspección de estados y tamaños nativos.
-- Exclusión del audio propio del bundle final, con condiciones de audio
-  controladas que permitan atribuir el resultado; conservar el FAIL actual.
-- Sesión prolongada y análisis completo de sus medios, recursos y cadencia.
+La [revisión visual](../var/evidence/h13-native-visual-extract-1794944740966518000/visual-review.md)
+conserva **FAIL** de alerta parcialmente tapada y **FAIL** de continuidad de
+ventana en REC3. El orden de alerta ya se corrigió mediante GPUI, pero falta
+revalidarlo en otra toma. El contador retenido coincide con oclusión mientras
+los contadores de audio y dibujo de la fixture avanzan; causa **INCONCLUSIVE**.
+La repetición compacta sigue pendiente por el acceso al estudio bajo Stage
+Manager; no se ha cambiado ningún ajuste global ni sustituido el fallo original.
+
+Permanecen abiertos:
+
+- Revalidación visual del orden de alerta y aceptación de continuidad de ventana;
+  conservar la toma original y distinguir observación de atribución causal.
+- Cobertura restante de cierre por ventana/menú y estados conectando, según el
+  checklist nativo; Cmd+Q cancelado y confirmado ya tienen evidencia propia.
+- Exclusión del audio propio del bundle final en condiciones que permitan
+  atribuir el resultado; conservar el FAIL actual.
 
 El [informe H13](h13-production-verification.md) separa cada hash y resultado;
 el [checklist nativo](h13-native-acceptance.md) distingue observaciones y pasos pendientes.

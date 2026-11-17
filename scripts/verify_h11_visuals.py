@@ -116,7 +116,63 @@ def srgb_blend(foreground, background, alpha):
     return [srgb(alpha*linear(f) + (1-alpha)*linear(b)) for f, b in zip(foreground, background)]
 
 
-def verify_pixels(path, stages, out):
+def fixture_frame_identity(recording, source_clip, pause_stage, moving_stage, out):
+    """Identify held source content across GOPs, not H.264 reconstruction noise.
+
+    The owned two-second fixture has 60 distinct frames. A stopped image can
+    reconstruct differently at a new I-frame: the saved failed run changed 983
+    pixels by >15 at its I-frame although both images matched original frame 55.
+    Match four samples against every original frame with explicit confidence,
+    and require real playing samples to resolve to different fixture frames.
+    This is a fixture-specific identity gate, not a general motion detector.
+    """
+    box = (720, 410, 192, 108)
+    x, y, width, height = box
+    frame_bytes = width * height * 3
+    raw = subprocess.check_output(['ffmpeg', '-nostdin', '-v', 'error', '-i', str(source_clip),
+                                   '-vf', 'scale=192:108:flags=bicubic', '-pix_fmt', 'rgb24',
+                                   '-f', 'rawvideo', '-'])
+    assert len(raw) == 60 * frame_bytes, ('unexpected controlled fixture frames', len(raw))
+    originals = [raw[i*frame_bytes:(i+1)*frame_bytes] for i in range(60)]
+    assert len(set(originals)) == 60, 'controlled fixture needs unique source frames'
+
+    def identify(second, label):
+        decoded = frame(recording, second)
+        crop = b''.join(decoded[(row*WIDTH+x)*3:(row*WIDTH+x+width)*3]
+                        for row in range(y, y+height))
+        scores = sorted((sum(abs(a-b) for a, b in zip(crop, original))/frame_bytes, i)
+                        for i, original in enumerate(originals))
+        error, index = scores[0]
+        runner = scores[1][0]
+        # Absolute fit rejects blank/unrelated images; separation rejects an
+        # ambiguous nearest match. Both previous real runs separate by >=1.7.
+        assert error <= 20 and runner-error >= .5 and runner >= error*1.03, (
+            'ambiguous controlled source-frame identity', second, scores[:3])
+        png(out / (label + '.png'), width, height, crop, channels=3)
+        return {'sample_seconds': second, 'source_frame': index, 'source_pts': index/30,
+                'mean_absolute_rgb_error': error, 'runner_up_error': runner,
+                'identity_margin': runner-error}
+
+    paused = [identify(pause_stage['start']+offset, 'pause-identity-' + str(i))
+              for i, offset in enumerate((.6, 1, 1.6, 2.4))]
+    assert len({v['source_frame'] for v in paused}) == 1, ('paused source content advanced', paused)
+    playing = [identify(moving_stage['start']+offset, 'restart-identity-' + str(i))
+               for i, offset in enumerate((1, 1.6))]
+    assert playing[0]['source_frame'] != playing[1]['source_frame'], ('playing source identity stayed fixed', playing)
+    native = []
+    for sample in pause_stage['samples']:
+        videos = [v for v in sources(sample['state']).values() if v['kind'] == 'video']
+        assert len(videos) == 1 and videos[0]['media_state'] == 'paused', videos
+        native.append(videos[0]['media_time_ms'])
+    assert native and len(set(native)) == 1, ('paused native time advanced', native)
+    source_index = paused[0]['source_frame']
+    png(out / 'paused-original-source.png', width, height, originals[source_index], channels=3)
+    return {'fixture_sha256': hashlib.sha256(pathlib.Path(source_clip).read_bytes()).hexdigest(),
+            'paused': paused, 'playing_control': playing, 'native_paused_media_time_ms': native[0],
+            'gate': 'same unambiguous original frame at four pause times; distinct frames while playing'}
+
+
+def verify_pixels(path, stages, out, source_clip=None):
     selected = {s['name']: s for s in stages}
     frames = {name: frame(path, selected[name]['start'] + 1.3) for name in ('baseline', 'updated', 'empty', 'center', 'right')}
     for name, raw in frames.items():
@@ -182,11 +238,15 @@ def verify_pixels(path, stages, out):
             return sum(max(abs(x-y) for x, y in zip(p, q)) > 15 for p, q in zip(a, b))
         still_changes, live_changes = changes(paused), changes(moving)
         loop_changes = changes(selected['empty']['start'])
-        assert still_changes < 192*108*.02, ('paused clip moved', still_changes)
+        assert source_clip is not None, 'controlled source clip required for pause identity'
+        identity = fixture_frame_identity(path, source_clip, selected['paused_video'],
+                                          selected['restarted_video'], out)
         assert live_changes > 300, ('restarted clip did not move', live_changes)
         assert loop_changes > 300, ('2-second clip stopped looping after 6 seconds', loop_changes)
         measurements['video_pause_restart'] = {'paused_changed_pixels': still_changes, 'playing_changed_pixels': live_changes,
-                                              'loop_changed_pixels_after_6_seconds': loop_changes}
+                                              'loop_changed_pixels_after_6_seconds': loop_changes,
+                                              'source_frame_identity': identity,
+                                              'paused_pixel_difference_note': 'Diagnostic raw H.264 difference, including keyframe requantization; acceptance uses original fixture identity.'}
     return measurements
 
 
@@ -380,7 +440,7 @@ def main():
         recording_owned = False
         report['stopped'] = stopped
         report['media'] = verify_media(path, report['stages'], args.with_video)
-        report['pixels'] = verify_pixels(path, report['stages'], run)
+        report['pixels'] = verify_pixels(path, report['stages'], run, clip if args.with_video else None)
         samples = [sample for stage in report['stages'] for sample in stage['samples']]
         report['performance'] = {'cpu_median': statistics.median(s['cpu_percent'] for s in samples),
                                  'rss_median_mib': statistics.median(s['rss_mib'] for s in samples),

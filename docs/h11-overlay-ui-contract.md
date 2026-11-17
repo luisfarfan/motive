@@ -337,6 +337,11 @@ Cada video usa `ffmpeg_source` oficial, con mixers `0`, mute activado y monitore
 como si fuera otro canal H10. La mezcla global y sus controles siguen el
 [contrato H10](h10-audio-ui-contract.md).
 
+PNG alfa está verificado. No anunciar transparencia de video, HDR, emoji ni
+fuentes multimedia externas: no están verificados en este alcance. La
+normalización conserva solo las pistas locales admitidas y elimina metadatos;
+no es un contrato de preservación de todos los canales auxiliares de un formato.
+
 El decoder conserva instancias, timestamps y reproducción entre escenas:
 `close_when_inactive=false`, `restart_on_activate=false`, `clear_on_media_end=false`.
 Consultar `media_state` (`none`, `opening`, `buffering`, `playing`, `paused`,
@@ -351,6 +356,10 @@ conservadora de píxeles más atlas (`limits.estimated_visual_bytes=268435456`,
 `limits.max_video_sources=4` en capabilities): `8 × ancho × alto`, más 8MiB por texto y 16MiB
 por widget (hijos FreeType). No es una promesa de RSS máximo: excluye memoria del
 decoder, fuentes, glyph metadata, buffers del encoder y otros recursos del proceso.
+Cuenta fuentes activas e inactivas. Los videos inactivos conservan su decoder;
+durante una reconciliación se preparan los recursos nuevos antes de liberar los
+anteriores: sustituir cuatro videos puede mantener ocho temporalmente. Ese pico
+puede aproximar el doble de la estimación y debe considerarse en la UX de importación.
 El runtime expone `framebuffer_estimate_bytes` y `text_atlas_estimate_bytes`, además
 de dimensiones intrínsecas/lógicas. No convertir esos campos en un medidor de GPU
 real. Los targets nativos están limitados a 1920×1080; los bloques FreeType usan
@@ -387,6 +396,10 @@ que un asset fallido solo desaparece mientras el resto sigue emitiendo. Revisar
 H11; sin ellas, el grafo conserva v3. El campo nuevo `sources[].overlay` se omite en
 fuentes antiguas. V1–V3 siguen admitidos; un archivo v3 con definiciones H11 se
 rechaza (`PROJECT_VERSION_MISMATCH`). V4 permite hasta 256KiB; V1–V3, 64KiB.
+Las solicitudes CLI/MCP siguen limitadas a 64KiB; la respuesta del propietario
+tiene un límite independiente de 1MiB para transportar el proyecto y sus estados.
+El guardado usa la misma representación numérica JSON que el snapshot confirmado,
+incluida la precisión de valores `f32` como opacidad y transformaciones.
 No renombrar IDs ni reescribir layouts de la otra variante al editar una.
 
 Persisten definiciones, referencias de assets, capas y layouts; no persisten
@@ -405,6 +418,17 @@ Lower third/BRB empiezan ocultos; después de instanciar, mostrar la fuente widg
 cuando el usuario quiera presentarla. Starting Soon no comienza el reloj hasta
 `timer_start`. No editar el preset instalado para guardar personalizaciones: editar
 las definiciones devueltas y guardar el proyecto.
+
+BRB publica además `decoration_animation` v1: `source_name:"Accent"` y una receta
+`animation` con `kind:"scale_in"`, `easing:"ease_in_out"`, `duration_ms:1200`,
+`distance:0`, `scale_from:0.7`. Es una entrada discreta del círculo decorativo,
+sin bucle ni ejecución automática. Tras instanciar, resolver `source_name` solo
+entre los `source_ids` devueltos, conservar su ID y encontrar su `layer_id` en la
+escena destino. Enviar esa receta mediante `animate_overlay` cuando el usuario
+decida presentarla; UI, CLI y MCP usan el mismo comando y `operation_id`. No
+resolver nuevamente por nombre si la fuente se renombra, ni crear un temporizador
+de UI para repetirla. La animación respeta el layout horizontal o vertical activo
+y los estados de ocupación/cancelación ya descritos.
 
 ## Mismo control por MCP
 

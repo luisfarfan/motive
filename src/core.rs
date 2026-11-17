@@ -1540,7 +1540,10 @@ fn command_error(e: anyhow::Error) -> Value {
     error(code, msg.as_str())
 }
 fn serialize_project(project: &Project) -> anyhow::Result<Vec<u8>> {
-    let bytes = serde_json::to_vec_pretty(project)?;
+    // Use the same JSON-number representation as status/CLI/MCP. Serializing
+    // f32 directly chooses a different decimal spelling than Value's f64 and
+    // would make a saved document differ from the acknowledged shared state.
+    let bytes = serde_json::to_vec_pretty(&serde_json::to_value(project)?)?;
     anyhow::ensure!(
         bytes.len() <= if project.version >= 4 { 262144 } else { 65536 },
         "PROJECT_TOO_LARGE"
@@ -1639,6 +1642,29 @@ fn create_tone() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn saved_overlay_numbers_equal_the_acknowledged_json_state() {
+        let mut project = Project {
+            version: 4,
+            ..Project::default()
+        };
+        project.graph.as_mut().unwrap().sources[1].overlay = Some(overlays::Definition::Shape {
+            shape: overlays::Shape::Circle,
+            width: 64,
+            height: 64,
+            color: 0xffffff,
+            opacity: 0.8,
+            border_color: None,
+            border_width: 0,
+        });
+        let bytes = serialize_project(&project).unwrap();
+        let saved: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(saved, serde_json::to_value(&project).unwrap());
+        assert_eq!(
+            serde_json::to_value(parse_project(&bytes).unwrap()).unwrap(),
+            saved
+        );
+    }
     #[test]
     fn overlay_project_v4_roundtrips_beyond_legacy_size_without_silent_v3_extension() {
         let definition = overlays::Definition::Text {

@@ -1,0 +1,221 @@
+{
+  "max_actions_per_event": 32,
+  "queue_capacity": 16,
+  "rate_limit": 100,
+  "rate_window_ms": 1000,
+  "rules": [
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "goal-celebration",
+          "type": "widget"
+        },
+        {
+          "resource": "stadium-cheer",
+          "type": "sound"
+        },
+        {
+          "amount": 1,
+          "name": "goals",
+          "type": "increment_counter"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "keyword",
+          "phrase": "gol",
+          "type": "contains",
+          "whole_word": true
+        },
+        {
+          "milli": 800,
+          "type": "confidence_at_least"
+        }
+      ],
+      "cooldown_ms": 3000,
+      "debounce_ms": 0,
+      "enabled": true,
+      "event_kind": "voice.keyword_detected",
+      "failure_policy": "continue_unavailable",
+      "id": "goal-celebration",
+      "priority": 5,
+      "timeout_ms": 5000
+    },
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "community-alert",
+          "type": "widget"
+        },
+        {
+          "text": "Thank you for supporting this local demo. Speech is not synthesized.",
+          "type": "prepare_speech"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "comparison": "greater_equal",
+          "field": "amount_minor",
+          "type": "numeric",
+          "value": 100
+        }
+      ],
+      "cooldown_ms": 0,
+      "debounce_ms": 0,
+      "enabled": true,
+      "event_kind": "viewer.donation",
+      "failure_policy": "stop",
+      "id": "donation-alert",
+      "priority": 5,
+      "timeout_ms": 5000
+    },
+    {
+      "actions": [
+        {
+          "scene_id": "match-brb",
+          "transition": {
+            "duration_ms": 400,
+            "kind": "fade"
+          },
+          "type": "select_scene"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "command",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "brb"
+          }
+        },
+        {
+          "type": "authorized_user"
+        }
+      ],
+      "cooldown_ms": 3000,
+      "debounce_ms": 0,
+      "enabled": true,
+      "event_kind": "chat.command",
+      "failure_policy": "stop",
+      "id": "brb-authorized",
+      "priority": 5,
+      "timeout_ms": 5000
+    },
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "goal-celebration",
+          "type": "widget"
+        },
+        {
+          "amount": 1,
+          "name": "goals",
+          "type": "increment_counter"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "button_id",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "goal"
+          }
+        }
+      ],
+      "cooldown_ms": 3000,
+      "debounce_ms": 0,
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "failure_policy": "stop",
+      "id": "deck-goal",
+      "priority": 5,
+      "timeout_ms": 5000
+    },
+    {
+      "actions": [
+        {
+          "event": "trigger",
+          "source_id": "community-alert",
+          "type": "widget"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "button_id",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "community"
+          }
+        }
+      ],
+      "cooldown_ms": 0,
+      "debounce_ms": 0,
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "failure_policy": "stop",
+      "id": "deck-community",
+      "priority": 5,
+      "timeout_ms": 5000
+    },
+    {
+      "actions": [
+        {
+          "actions": [
+            {
+              "event": "trigger",
+              "source_id": "goal-celebration",
+              "type": "widget"
+            },
+            {
+              "resource": "stadium-cheer",
+              "type": "sound"
+            },
+            {
+              "amount": 1,
+              "name": "goals",
+              "type": "increment_counter"
+            }
+          ],
+          "type": "sequence"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "button_id",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "celebrate"
+          }
+        }
+      ],
+      "cooldown_ms": 3000,
+      "debounce_ms": 0,
+      "enabled": true,
+      "event_kind": "manual.button_pressed",
+      "failure_policy": "continue_unavailable",
+      "id": "deck-celebrate",
+      "priority": 5,
+      "timeout_ms": 5000
+    }
+  ],
+  "schema_version": 1,
+  "variables": {
+    "goals": {
+      "type": "int",
+      "value": 0
+    }
+  }
+}

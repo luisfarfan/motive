@@ -1,0 +1,373 @@
+{
+  "schema_version": 1,
+  "id": "neon-arena",
+  "version": "0.1.0",
+  "name": "NEON ARENA \u2014 Play Together",
+  "author": "Motive contributors",
+  "license": "GPL-3.0-or-later",
+  "resources": [],
+  "scenes": [
+    {
+      "id": "arena-live",
+      "name": "Squad Night",
+      "layers": [
+        {
+          "id": "arena-bg",
+          "overlay_id": "arena-background",
+          "horizontal": {
+            "x": 0,
+            "y": 0,
+            "width": 960,
+            "height": 540,
+            "visible": true,
+            "order": 0
+          },
+          "vertical": {
+            "x": 0,
+            "y": 0,
+            "width": 540,
+            "height": 960,
+            "visible": true,
+            "order": 0
+          }
+        },
+        {
+          "id": "arena-edge",
+          "overlay_id": "arena-accent",
+          "horizontal": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 540,
+            "visible": true,
+            "order": 1
+          },
+          "vertical": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 960,
+            "visible": true,
+            "order": 1
+          }
+        },
+        {
+          "id": "arena-live-label",
+          "overlay_id": "arena-label",
+          "horizontal": {
+            "x": 32,
+            "y": 28,
+            "width": 740,
+            "height": 60,
+            "visible": true,
+            "order": 2
+          },
+          "vertical": {
+            "x": 24,
+            "y": 32,
+            "width": 492,
+            "height": 60,
+            "visible": true,
+            "order": 2
+          }
+        },
+        {
+          "id": "arena-camera",
+          "overlay_id": "arena-frame",
+          "horizontal": {
+            "x": 608,
+            "y": 318,
+            "width": 320,
+            "height": 180,
+            "visible": true,
+            "order": 3
+          },
+          "vertical": {
+            "x": 24,
+            "y": 630,
+            "width": 492,
+            "height": 277,
+            "visible": true,
+            "order": 3
+          }
+        },
+        {
+          "id": "arena-alert-layer",
+          "overlay_id": "arena-alert",
+          "horizontal": {
+            "x": 130,
+            "y": 100,
+            "width": 700,
+            "height": 150,
+            "visible": true,
+            "order": 4
+          },
+          "vertical": {
+            "x": 24,
+            "y": 240,
+            "width": 492,
+            "height": 105,
+            "visible": true,
+            "order": 4
+          }
+        },
+        {
+          "id": "arena-reward-layer",
+          "overlay_id": "arena-reward",
+          "horizontal": {
+            "x": 130,
+            "y": 270,
+            "width": 700,
+            "height": 150,
+            "visible": true,
+            "order": 5
+          },
+          "vertical": {
+            "x": 24,
+            "y": 390,
+            "width": 492,
+            "height": 105,
+            "visible": true,
+            "order": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "arena-brb",
+      "name": "Next Round",
+      "layers": [
+        {
+          "id": "arena-brb-bg",
+          "overlay_id": "arena-background",
+          "horizontal": {
+            "x": 0,
+            "y": 0,
+            "width": 960,
+            "height": 540,
+            "visible": true,
+            "order": 0
+          },
+          "vertical": {
+            "x": 0,
+            "y": 0,
+            "width": 540,
+            "height": 960,
+            "visible": true,
+            "order": 0
+          }
+        },
+        {
+          "id": "arena-brb-edge",
+          "overlay_id": "arena-accent",
+          "horizontal": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 540,
+            "visible": true,
+            "order": 1
+          },
+          "vertical": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 960,
+            "visible": true,
+            "order": 1
+          }
+        },
+        {
+          "id": "arena-brb-title",
+          "overlay_id": "arena-title",
+          "horizontal": {
+            "x": 32,
+            "y": 130,
+            "width": 860,
+            "height": 250,
+            "visible": true,
+            "order": 2
+          },
+          "vertical": {
+            "x": 24,
+            "y": 240,
+            "width": 492,
+            "height": 250,
+            "visible": true,
+            "order": 2
+          }
+        }
+      ]
+    }
+  ],
+  "overlays": [
+    {
+      "id": "arena-background",
+      "name": "Arena black",
+      "definition": {
+        "kind": "shape",
+        "shape": "rectangle",
+        "width": 960,
+        "height": 540,
+        "color": 1510953,
+        "opacity": 1.0,
+        "border_color": null,
+        "border_width": 0
+      }
+    },
+    {
+      "id": "arena-accent",
+      "name": "Arena edge",
+      "definition": {
+        "kind": "shape",
+        "shape": "rectangle",
+        "width": 12,
+        "height": 540,
+        "color": 14067455,
+        "opacity": 1.0,
+        "border_color": null,
+        "border_width": 0
+      }
+    },
+    {
+      "id": "arena-title",
+      "name": "BRB title",
+      "definition": {
+        "kind": "text",
+        "text": "NEXT ROUND\nSTARTS SOON.",
+        "font": "Helvetica",
+        "size": 82,
+        "color": 15919615,
+        "opacity": 1.0,
+        "align": "left",
+        "width": 860,
+        "height": 250,
+        "background": null,
+        "background_opacity": 0.0,
+        "outline": false
+      }
+    },
+    {
+      "id": "arena-alert",
+      "name": "Community alert",
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "kind": "alert",
+          "title": "PLAYER TWO JOINED",
+          "subtitle": "WELCOME TO THE ARENA",
+          "width": 700,
+          "height": 150,
+          "background": 3678286,
+          "accent": 14067455,
+          "color": 15919615,
+          "opacity": 1.0,
+          "duration_ms": 4500
+        }
+      }
+    },
+    {
+      "id": "arena-reward",
+      "name": "Reward celebration",
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "kind": "alert",
+          "title": "POWER UP!",
+          "subtitle": "A COMMUNITY REWARD",
+          "width": 700,
+          "height": 150,
+          "background": 11137219,
+          "accent": 1510953,
+          "color": 1510953,
+          "opacity": 1.0,
+          "duration_ms": 3500
+        }
+      }
+    },
+    {
+      "id": "arena-frame",
+      "name": "Camera placeholder frame",
+      "definition": {
+        "kind": "shape",
+        "shape": "rectangle",
+        "width": 320,
+        "height": 180,
+        "color": 1510953,
+        "opacity": 1,
+        "border_color": 14067455,
+        "border_width": 3
+      }
+    },
+    {
+      "id": "arena-label",
+      "name": "Live label",
+      "definition": {
+        "kind": "text",
+        "text": "NEON ARENA  /  SQUAD NIGHT",
+        "font": "Menlo",
+        "size": 24,
+        "color": 14067455,
+        "opacity": 1.0,
+        "align": "left",
+        "width": 740,
+        "height": 60,
+        "background": null,
+        "background_opacity": 0.0,
+        "outline": false
+      }
+    }
+  ],
+  "animations": [
+    {
+      "id": "reward-in",
+      "scene_id": "arena-live",
+      "layer_id": "arena-reward-layer",
+      "kind": "scale_in",
+      "easing": "ease_out",
+      "duration_ms": 350,
+      "distance": 120,
+      "scale_from": 0.8
+    },
+    {
+      "id": "reward-out",
+      "scene_id": "arena-live",
+      "layer_id": "arena-reward-layer",
+      "kind": "scale_out",
+      "easing": "ease_in",
+      "duration_ms": 250,
+      "distance": 120,
+      "scale_from": 0.8
+    }
+  ],
+  "properties": [
+    {
+      "id": "reward-text",
+      "label": "Reward",
+      "overlay_id": "arena-reward",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "POWER UP!"
+      }
+    }
+  ],
+  "events": [
+    "manual.button_pressed",
+    "viewer.reward_redeemed",
+    "viewer.follow"
+  ],
+  "rule_ids": [],
+  "requires": [
+    "text",
+    "shape",
+    "widget",
+    "layer_animation",
+    "scene_transition"
+  ],
+  "budget": {
+    "max_resource_bytes": 0,
+    "max_estimated_texture_bytes": 134217728,
+    "max_simultaneous_animations": 4
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "id": "matchday-deck",
+  "name": "MATCHDAY Live Deck \u2014 simulation",
+  "groups": [
+    {
+      "id": "show",
+      "label": "Show",
+      "order": 0
+    },
+    {
+      "id": "community",
+      "label": "Community",
+      "order": 1
+    }
+  ],
+  "buttons": [
+    {
+      "id": "goal",
+      "group_id": "show",
+      "label": "Goal",
+      "icon": "goal",
+      "order": 0,
+      "enabled": true,
+      "shortcut": {
+        "key": "g",
+        "command": false,
+        "option": true,
+        "shift": false
+      },
+      "cooldown_ms": 10000,
+      "sensitive": false,
+      "target": {
+        "kind": "rule",
+        "rule_id": "deck-goal"
+      }
+    },
+    {
+      "id": "countdown",
+      "group_id": "show",
+      "label": "Kickoff timer",
+      "icon": "timer",
+      "order": 1,
+      "enabled": true,
+      "shortcut": {
+        "key": "t",
+        "command": false,
+        "option": true,
+        "shift": false
+      },
+      "cooldown_ms": 0,
+      "sensitive": false,
+      "target": {
+        "kind": "countdown",
+        "source_ref": "match-clock",
+        "reset": false
+      }
+    },
+    {
+      "id": "lower-third",
+      "group_id": "show",
+      "label": "Presenter",
+      "icon": "text",
+      "order": 2,
+      "enabled": true,
+      "shortcut": {
+        "key": "l",
+        "command": false,
+        "option": true,
+        "shift": false
+      },
+      "cooldown_ms": 0,
+      "sensitive": false,
+      "target": {
+        "kind": "overlay",
+        "source_ref": "match-lower-third",
+        "show": true
+      }
+    },
+    {
+      "id": "lower-entry",
+      "group_id": "show",
+      "label": "Presenter entry",
+      "icon": "layers",
+      "order": 3,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 0,
+      "sensitive": false,
+      "target": {
+        "kind": "animation",
+        "animation_id": "lower-enter"
+      }
+    },
+    {
+      "id": "brb",
+      "group_id": "show",
+      "label": "Half-time",
+      "icon": "pause",
+      "order": 4,
+      "enabled": true,
+      "shortcut": {
+        "key": "b",
+        "command": false,
+        "option": true,
+        "shift": false
+      },
+      "cooldown_ms": 2000,
+      "sensitive": true,
+      "target": {
+        "kind": "scene",
+        "scene_ref": "match-brb",
+        "transition": {
+          "kind": "fade",
+          "duration_ms": 500
+        }
+      }
+    },
+    {
+      "id": "live",
+      "group_id": "show",
+      "label": "Return live",
+      "icon": "play",
+      "order": 5,
+      "enabled": true,
+      "shortcut": {
+        "key": "r",
+        "command": false,
+        "option": true,
+        "shift": false
+      },
+      "cooldown_ms": 1000,
+      "sensitive": true,
+      "target": {
+        "kind": "scene",
+        "scene_ref": "match-live",
+        "transition": {
+          "kind": "cut"
+        }
+      }
+    },
+    {
+      "id": "community",
+      "group_id": "community",
+      "label": "Community alert",
+      "icon": "bell",
+      "order": 0,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 3000,
+      "sensitive": false,
+      "target": {
+        "kind": "rule",
+        "rule_id": "deck-community"
+      }
+    },
+    {
+      "id": "celebrate",
+      "group_id": "community",
+      "label": "Goal sequence",
+      "icon": "spark",
+      "order": 1,
+      "enabled": true,
+      "shortcut": null,
+      "cooldown_ms": 10000,
+      "sensitive": false,
+      "target": {
+        "kind": "composite",
+        "rule_id": "deck-celebrate"
+      }
+    }
+  ]
+}

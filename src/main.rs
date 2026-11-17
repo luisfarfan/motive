@@ -9,6 +9,19 @@ use serde_json::json;
 mod ui;
 use ui::Studio;
 
+actions!(motive, [Quit]);
+unsafe extern "C" {
+    fn motive_lifecycle_install() -> bool;
+    fn motive_lifecycle_take_quit_request() -> bool;
+    fn motive_lifecycle_allow_quit() -> bool;
+}
+fn take_native_quit_request() -> bool {
+    unsafe { motive_lifecycle_take_quit_request() }
+}
+fn authorize_native_quit() -> bool {
+    unsafe { motive_lifecycle_allow_quit() }
+}
+
 fn window_options(title: &str, w: f32, h: f32, cx: &App) -> WindowOptions {
     WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
@@ -44,6 +57,17 @@ fn main() -> anyhow::Result<()> {
     application().with_assets(assets::AllAssets).run(|cx| {
         init(cx);
         ui::init(cx);
+        cx.set_quit_mode(QuitMode::Explicit);
+        cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
+        // Install menus while the original framework delegate is still present.
+        cx.set_menus([Menu::new("Motive").items([MenuItem::action("Salir de Motive", Quit)])]);
+        if !unsafe { motive_lifecycle_install() } {
+            eprintln!("{}", json!({"ok":false,"error":{"code":"LIFECYCLE_INIT_FAILED","message":"No se pudo instalar el cierre controlado"}}));
+            // No Production/output exists yet; fail startup instead of exposing
+            // an unguarded native Quit action to an active production.
+            cx.quit();
+            return;
+        }
         let setup = (|| -> anyhow::Result<_> {
             let (server, requests) = control::Server::start()?;
             let production = Production::new()?;
@@ -51,23 +75,26 @@ fn main() -> anyhow::Result<()> {
         })();
         match setup {
             Ok((production, server, requests)) => {
-                open_window(ui::window_options(cx), cx, |window, cx| {
+                let (studio_window, view) = open_window(ui::window_options(cx), cx, |window, cx| {
                     let view = cx.new(|cx| Studio::new(production, server, requests, window, cx));
                     let weak = view.downgrade();
-                    window.on_window_should_close(cx, move |_, cx| {
-                        let _ = weak.update(cx, |view, cx| {
-                            if view.production.engine.output_state() != 0 {
-                                view.message = "Finaliza la salida antes de cerrar.".into();
-                                cx.notify();
-                            } else {
-                                cx.quit();
-                            }
-                        });
-                        false
+                    window.on_window_should_close(cx, move |window, cx| {
+                        weak.update(cx, |view, cx| view.close_requested(window, cx))
+                            .unwrap_or(false)
                     });
                     view
                 })
                 .expect("No se pudo abrir Motive");
+                let weak = view.downgrade();
+                cx.on_action(move |_: &Quit, cx| {
+                    let weak = weak.clone();
+                    // Action dispatch may already borrow the active window.
+                    cx.defer(move |cx| {
+                        let _ = studio_window.update(cx, |_, window, cx| {
+                            let _ = weak.update(cx, |view, cx| view.request_exit(window, cx));
+                        });
+                    });
+                });
                 cx.activate(true);
             }
             Err(e) => {
@@ -75,7 +102,7 @@ fn main() -> anyhow::Result<()> {
                     "{}",
                     json!({"ok":false,"error":{"code":"STARTUP_FAILED","message":e.to_string()}})
                 );
-                cx.quit();
+                if authorize_native_quit() { cx.quit(); }
             }
         }
     });

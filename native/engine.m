@@ -21,10 +21,28 @@ typedef struct visual_scene visual_scene;
 typedef struct overlay_animator overlay_animator;
 enum scene_phase { SCENE_IDLE, SCENE_PREPARING, SCENE_RUNNING, SCENE_COMPLETED, SCENE_CANCELLED, SCENE_FAILED };
 typedef struct { atomic_uint_fast64_t stops; } transition_events;
+/* Embedded slots never move: OBS signal userdata remains valid until the
+ * per-output worker barrier and disconnection of both handlers. */
+typedef struct {
+    obs_output_t *output;
+    obs_service_t *service;
+    obs_encoder_t *video_encoder,*audio_encoder;
+    bool network_output,legacy_udp,selected_hardware;
+    atomic_bool output_started,output_stopped;
+    atomic_int output_code;
+    atomic_uint_fast64_t started_ns,stopped_ns;
+    void *output_activity;
+    uint64_t bytes;
+    uint32_t frames,encoded_frames;
+    int drops;
+    char selected_encoder[512],fallback_reason[128];
+} output_slot;
 typedef struct {
     pthread_mutex_t lock;
     uint8_t *pixels;
-    uint32_t width, height;
+    uint32_t width, height, fps;
+    bool video_ready, preview_connected;
+    char video_failure[128];
     char audio_id[512];
     audio_input *audio_inputs[8];uint64_t audio_instances;
     audio_mix_meter *mix_meter;
@@ -41,16 +59,10 @@ typedef struct {
     uint64_t sequence, timestamp;
     atomic_uint_fast64_t busy_drops;
     atomic_uint_fast64_t preview_copies;
-    obs_output_t *output;
-    obs_service_t *service;
-    bool rtmp_loaded,network_output;
-    atomic_bool output_started;
-    obs_encoder_t *video_encoder, *audio_encoder;
-    void *output_activity;
-    atomic_int output_code;
-    atomic_bool output_stopped;
-    bool vt_loaded, selected_hardware;
-    char vt_h264_id[512], selected_encoder[512], fallback_reason[128], vt_unavailable_reason[128];
+    output_slot outputs[2];
+    unsigned last_output;
+    bool rtmp_loaded,vt_loaded;
+    char vt_h264_id[512],vt_unavailable_reason[128];
     char *encoder_inventory;
     char base[4096], error[512];
 } motive_engine;
@@ -113,9 +125,11 @@ static void receive_frame(void *param, struct video_data *frame) {
     pthread_mutex_unlock(&e->lock);
 }
 static void connect_preview(motive_engine *e) {
+    if (!e->video_ready || !e->pixels || e->preview_connected) return;
     struct video_scale_info scale = {.format=VIDEO_FORMAT_BGRA, .width=e->width,
         .height=e->height, .range=VIDEO_RANGE_FULL, .colorspace=VIDEO_CS_709};
     obs_add_raw_video_callback(&scale, receive_frame, e);
+    e->preview_connected=true;
 }
 static bool load_module(motive_engine *e, const char *name) {
     char binary[8192], data[8192]; obs_module_t *module = NULL;
@@ -131,7 +145,7 @@ static bool load_module(motive_engine *e, const char *name) {
 static int reset_video(motive_engine *e) {
     char graphics[8192];
     snprintf(graphics,sizeof(graphics),"%s/Frameworks/libobs-metal.dylib",e->base);
-    struct obs_video_info v = {.graphics_module=graphics,.fps_num=30,.fps_den=1,
+    struct obs_video_info v = {.graphics_module=graphics,.fps_num=e->fps,.fps_den=1,
         .base_width=e->width,.base_height=e->height,.output_width=e->width,.output_height=e->height,
         .output_format=VIDEO_FORMAT_NV12,.gpu_conversion=true,.colorspace=VIDEO_CS_709,
         .range=VIDEO_RANGE_PARTIAL,.scale_type=OBS_SCALE_BICUBIC};
@@ -141,6 +155,7 @@ static struct obs_source_info watch_info;
 static struct obs_source_info tone_info;
 static struct obs_source_info overlay_source_info;
 static overlay_animator *overlay_animator_create(void);
+static bool overlay_animation_busy(overlay_animator *a);
 #include "credentials.inc"
 // Native plugins may log a server's reply containing the stream key. Once a
 // credential is used, suppress free-form OBS logs for the process lifetime;
@@ -158,10 +173,18 @@ static void private_log(int level,const char *format,va_list args,void *unused) 
 static void discover_encoders(motive_engine *e);
 static void audio_mix_start(motive_engine *e);
 static void audio_mix_stop(motive_engine *e);
+#include "self-audio-fixture.inc"
 void motive_destroy(motive_engine *e);
 motive_engine *motive_create(const char *base) {
     motive_engine *e=calloc(1,sizeof(*e));
-    pthread_mutex_init(&e->lock,NULL); e->width=960; e->height=540;
+    for (unsigned i=0;i<2;i++) {
+        atomic_init(&e->outputs[i].output_started,false);
+        atomic_init(&e->outputs[i].output_stopped,true);
+        atomic_init(&e->outputs[i].output_code,0);
+        atomic_init(&e->outputs[i].started_ns,0);
+        atomic_init(&e->outputs[i].stopped_ns,0);
+    }
+    pthread_mutex_init(&e->lock,NULL); e->width=960; e->height=540; e->fps=30;
     snprintf(e->base,sizeof(e->base),"%s",base);
     [NSApplication sharedApplication];
     base_get_log_handler(&previous_log_handler,&previous_log_context);
@@ -172,6 +195,7 @@ motive_engine *motive_create(const char *base) {
     obs_add_data_path(resources);
     int code=reset_video(e);
     if (code) { snprintf(e->error,sizeof(e->error),"obs_reset_video falló: %d",code); return e; }
+    e->video_ready=true;
     struct obs_audio_info audio={.samples_per_sec=48000,.speakers=SPEAKERS_STEREO};
     if (!obs_reset_audio(&audio)) { snprintf(e->error,sizeof(e->error),"obs_reset_audio falló"); return e; }
     const char *modules[]={"obs-x264","obs-ffmpeg","obs-outputs","mac-capture","mac-avcapture","obs-transitions","image-source","text-freetype2"};
@@ -196,9 +220,11 @@ motive_engine *motive_create(const char *base) {
     obs_register_source(&tone_info);
     obs_register_source(&overlay_source_info);
     e->animations=overlay_animator_create();
-    e->pixels=calloc(e->width*e->height,4);
+    e->pixels=calloc((size_t)e->width*e->height,4);
+    if (!e->pixels) {snprintf(e->error,sizeof(e->error),"VIDEO_BUFFER_ALLOCATION_FAILED");return e;}
     connect_preview(e);
     audio_mix_start(e);
+    if(!motive_self_audio_fixture_start())snprintf(e->error,sizeof(e->error),"SELF_AUDIO_FIXTURE_START_FAILED");
     return e;
 }
 const char *motive_error(motive_engine *e) { return e->error; }
@@ -216,125 +242,60 @@ uint32_t motive_total_frames(void) { return obs_get_total_frames(); }
 uint32_t motive_lagged_frames(void) { return obs_get_lagged_frames(); }
 uint64_t motive_busy_drops(motive_engine *e) { return atomic_load(&e->busy_drops); }
 
-static void output_started(void *data,calldata_t *cd) {
-    (void)cd;atomic_store(&((motive_engine *)data)->output_started,true);
-}
-static void output_stopped(void *data,calldata_t *cd);
-static void end_output_activity(motive_engine *e) {
-    if (!e->output_activity) return;
-    id activity=(__bridge id)e->output_activity;
-    [[NSProcessInfo processInfo] endActivity:activity];
-    CFRelease(e->output_activity);e->output_activity=NULL;
-}
-static void begin_output_activity(motive_engine *e) {
-    if (e->output_activity) return;
-    // An app-scoped assertion for user-requested real-time media work. It ends
-    // after finalization/failure; no global sleep or permission setting changes.
-    id activity=[[NSProcessInfo processInfo] beginActivityWithOptions:
-        NSActivityUserInitiatedAllowingIdleSystemSleep | NSActivityLatencyCritical
-        reason:@"Motive media output"];
-    e->output_activity=(void *)CFBridgingRetain(activity);
-}
-static void release_output(motive_engine *e) {
-    if (e->output) { signal_handler_disconnect(obs_output_get_signal_handler(e->output),"start",output_started,e); signal_handler_disconnect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e); obs_output_release(e->output); e->output=NULL; }
-    if (e->service) {obs_service_release(e->service);e->service=NULL;}
-    if (e->video_encoder) { obs_encoder_release(e->video_encoder); e->video_encoder=NULL; }
-    if (e->audio_encoder) { obs_encoder_release(e->audio_encoder); e->audio_encoder=NULL; }
-    end_output_activity(e);
-}
-static void output_stopped(void *data, calldata_t *cd) {
-    motive_engine *e=data;
-    atomic_store(&e->output_code,(int)calldata_int(cd,"code"));
-    atomic_store(&e->output_stopped,true);
-}
-int motive_output_state(motive_engine *e) {
-    if (!e->output) return 0;
-    if (e->network_output) {
-        calldata_t state;calldata_init(&state);
-        bool known=proc_handler_call(obs_output_get_proc_handler(e->output),"get_thread_state",&state);
-        bool connecting=calldata_bool(&state,"connecting");
-        bool workers=calldata_bool(&state,"workers_active");calldata_free(&state);
-        // Fail closed if the lifecycle extension is missing. Public start/stop
-        // signals alone do not establish that plugin workers have returned.
-        if (!known || connecting) return 3;
-        if (atomic_load(&e->output_stopped) && workers) return 2;
-    }
-    if (atomic_load(&e->output_stopped)) {
-        if(obs_output_active(e->output))return 2;
-        end_output_activity(e);return 0;
-    }
-    if (e->network_output && !atomic_load(&e->output_started)) return 3;
-    return obs_output_active(e->output) ? 1 : 2;
-}
-int motive_output_code(motive_engine *e) { return atomic_load(&e->output_code); }
-uint64_t motive_output_bytes(motive_engine *e) { return e->output ? obs_output_get_total_bytes(e->output) : 0; }
-uint32_t motive_output_frames(motive_engine *e) { return e->output ? obs_output_get_total_frames(e->output) : 0; }
-int motive_output_drops(motive_engine *e) { return e->output ? obs_output_get_frames_dropped(e->output) : 0; }
+#include "output-slots.inc"
 #include "encoding.inc"
-bool motive_start_output(motive_engine *e,const char *path,bool local_stream,const char *profile) {
-    e->error[0]=0;
-    if (motive_output_state(e)) { snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY"); return false; }
-    release_output(e);
-    e->selected_encoder[0]=0;e->fallback_reason[0]=0;e->selected_hardware=false;
-    if (!local_stream) return start_profile(e,path,profile,false,NULL);
-    e->network_output=false;
-    obs_data_t *settings=obs_data_create();
-    if (local_stream) {
-        // Fixed loopback destination. No public destinations or keys in this prototype.
-        obs_data_set_string(settings,"url","udp://127.0.0.1:19350?pkt_size=1316");
-        obs_data_set_string(settings,"format_name","mpegts");
-        obs_data_set_string(settings,"video_encoder","libx264");
-        obs_data_set_string(settings,"audio_encoder","aac");
-        obs_data_set_string(settings,"video_settings","preset=ultrafast tune=zerolatency");
-        obs_data_set_int(settings,"video_bitrate",2500);
-        obs_data_set_int(settings,"audio_bitrate",160);
-        obs_data_set_int(settings,"gop_size",60);
-        e->output=obs_output_create("ffmpeg_output","Local MPEG-TS",settings,NULL);
-        if (e->output) {
-            obs_output_set_media(e->output,obs_get_video(),obs_get_audio());
-            obs_output_set_mixers(e->output,1); // Bit mask: include audio mix 0.
-        }
-    }
-    obs_data_release(settings);
-    if (!e->output) { snprintf(e->error,sizeof(e->error),"OUTPUT_UNAVAILABLE"); return false; }
-    atomic_store(&e->output_stopped,false); atomic_store(&e->output_code,0);
-    signal_handler_connect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e);
-    begin_output_activity(e);
-    if (!obs_output_start(e->output)) {
-        const char *reason=obs_output_get_last_error(e->output);
-        snprintf(e->error,sizeof(e->error),"OUTPUT_START_FAILED: %.440s",reason ? reason : "sin detalle");
-        release_output(e); atomic_store(&e->output_stopped,true); return false;
-    }
-    snprintf(e->selected_encoder,sizeof(e->selected_encoder),"libx264 (loopback)");
-    return true;
-}
-void motive_stop_output(motive_engine *e) {
-    // OBS 33.0.1 force-stop during connect can race its detached connect thread.
-    // The core rejects explicit cancellation while connecting; health-triggered
-    // stops are deferred until the connection completes, never force-joined here.
-    if (e->output && !atomic_load(&e->output_stopped) && motive_output_state(e)!=3)
-        obs_output_stop(e->output);
-}
 
-bool motive_variant(motive_engine *e,bool vertical) {
+/* Config changes are owner-only and require quiescent output workers. Reserve
+ * before mutation; OBS reset can destroy video before returning failure. */
+bool motive_configure_video(motive_engine *e,uint32_t width,uint32_t height,uint32_t fps) {
+    e->error[0]=0;
     if (e->scene_phase==SCENE_PREPARING || e->scene_phase==SCENE_RUNNING) {snprintf(e->error,sizeof(e->error),"TRANSITION_BUSY");return false;}
-    if (motive_output_state(e)) { snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY"); return false; }
-    if (e->width==(vertical ? 540u:960u) && e->height==(vertical ? 960u:540u)) {
-        return true;
+    if (overlay_animation_busy(e->animations)) {snprintf(e->error,sizeof(e->error),"ANIMATION_BUSY");return false;}
+    if (motive_output_state(e)) {snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY");return false;}
+    uint32_t wide=width>height ? width:height,shorter=width>height ? height:width;
+    if (!((wide==960 && shorter==540) || (wide==1280 && shorter==720) || (wide==1920 && shorter==1080)) || (fps!=30 && fps!=60)) {
+        snprintf(e->error,sizeof(e->error),"INVALID_VIDEO_CONFIGURATION");return false;
     }
-    release_output(e);
-    obs_remove_raw_video_callback(receive_frame,e);
-    uint32_t oldw=e->width,oldh=e->height;
-    e->width=vertical ? 540:960; e->height=vertical ? 960:540;
+    if (e->video_ready && e->width==width && e->height==height && e->fps==fps) {e->video_failure[0]=0;return true;}
+    if ((size_t)width>SIZE_MAX/height/4) {snprintf(e->error,sizeof(e->error),"VIDEO_BUFFER_ALLOCATION_FAILED");return false;}
+    uint8_t *next=calloc((size_t)width*height,4);
+    if (!next) {snprintf(e->error,sizeof(e->error),"VIDEO_BUFFER_ALLOCATION_FAILED");return false;}
+    release_outputs(e);
+    if (e->preview_connected) {obs_remove_raw_video_callback(receive_frame,e);e->preview_connected=false;}
+    uint32_t oldw=e->width,oldh=e->height,oldfps=e->fps;
+    e->video_ready=false;e->width=width;e->height=height;e->fps=fps;
     int code=reset_video(e);
     if (code) {
-        e->width=oldw;e->height=oldh; connect_preview(e);
-        snprintf(e->error,sizeof(e->error),"VIDEO_RESET_FAILED: %d",code); return false;
+        e->width=oldw;e->height=oldh;e->fps=oldfps;
+        int rollback=reset_video(e);
+        e->video_ready=rollback==OBS_VIDEO_SUCCESS;
+        free(next);
+        if (e->video_ready) connect_preview(e);
+        snprintf(e->video_failure,sizeof(e->video_failure),rollback ? "VIDEO_ROLLBACK_FAILED: reset=%d rollback=%d":"VIDEO_RESET_FAILED: reset=%d rollback=%d",code,rollback);
+        snprintf(e->error,sizeof(e->error),"%s",e->video_failure);return false;
     }
-    // Equal pixel count for the two supported variants; the callback is disconnected.
-    memset(e->pixels,0,e->width*e->height*4); e->sequence=0;
-    connect_preview(e); return true;
+    pthread_mutex_lock(&e->lock);
+    uint8_t *old=e->pixels;e->pixels=next;e->sequence=0;e->timestamp=0;
+    pthread_mutex_unlock(&e->lock);
+    free(old);e->video_ready=true;e->video_failure[0]=0;
+    connect_preview(e);return true;
 }
+void motive_invalidate_video(motive_engine *e) {
+    if(e->preview_connected) {obs_remove_raw_video_callback(receive_frame,e);e->preview_connected=false;}
+    e->video_ready=false;
+    snprintf(e->video_failure,sizeof(e->video_failure),"VIDEO_RECOVERY_REQUIRED");
+}
+char *motive_video_info(motive_engine *e) {
+    struct obs_video_info v={0};bool available=e->video_ready && obs_get_video_info(&v);
+    NSDictionary *state=@{@"available":@(available),@"width":available ? @(v.output_width):[NSNull null],
+        @"height":available ? @(v.output_height):[NSNull null],@"fps":available ? @((double)v.fps_num/v.fps_den):[NSNull null],
+        @"fps_num":available ? @(v.fps_num):[NSNull null],@"fps_den":available ? @(v.fps_den):[NSNull null],
+        @"base_width":available ? @(v.base_width):[NSNull null],@"base_height":available ? @(v.base_height):[NSNull null],
+        @"preview_connected":@(e->preview_connected),@"error":e->video_failure[0] ? @(e->video_failure):[NSNull null]};
+    NSData *json=[NSJSONSerialization dataWithJSONObject:state options:0 error:nil];
+    return strdup([[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding].UTF8String);
+}
+static float motive_design_scale(motive_engine *e) {return (float)e->width/(e->width>e->height ? 960.f:540.f);}
 // Inventory only: no capture starts until a concrete source is selected.
 static NSArray *window_inventory(void) {
     NSMutableArray *items=[NSMutableArray array];
@@ -422,14 +383,15 @@ void motive_close_test_window(void) {
 #include "audio-mixer.inc"
 void motive_destroy(motive_engine *e) {
     if (!e) return;
-    if (e->output && motive_output_state(e)) {
+    motive_self_audio_fixture_stop();
+    if (motive_output_state(e)) {
         // Normal shutdown is rejected/deferred by Production until quiescent.
         // An abnormal owner drop must not free memory still used by workers or
         // join a network handshake on the UI thread. Process exit reclaims it.
         return;
     }
-    release_output(e);
-    if (e->pixels) obs_remove_raw_video_callback(receive_frame,e);
+    release_outputs(e);
+    if (e->preview_connected) obs_remove_raw_video_callback(receive_frame,e);
     if (obs_initialized()) {
         obs_set_output_source(0,NULL);
         audio_mix_stop(e);
@@ -441,5 +403,3 @@ void motive_destroy(motive_engine *e) {
     }
     free(e->encoder_inventory);free(e->pixels); pthread_mutex_destroy(&e->lock); free(e);
 }
-
-bool motive_reset_output(motive_engine *e) { if(motive_output_state(e)){snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY");return false;} release_output(e);atomic_store(&e->output_code,0);return true;}

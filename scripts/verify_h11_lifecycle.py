@@ -10,7 +10,7 @@ import pathlib
 import subprocess
 import time
 
-from h7_support import Client, EVIDENCE, EXE, ROOT, media
+from h7_support import Client, EVIDENCE, EXE, ROOT, media, assert_project_format
 from verify_h11_visuals import fixture_png, import_asset, sources
 
 
@@ -98,7 +98,7 @@ def main():
         profiles = c.call('output_profiles')['store']
         c.call('save_project')
         desired = json.loads(project_path.read_text())
-        assert desired['version'] == 4
+        assert_project_format(desired, 4, original['project'].get('video'))
         report['desired'] = desired
         initial_sources = sources(c.state())
         assert len([s for s in initial_sources.values() if s['id'] == image_id]) == 1
@@ -164,9 +164,14 @@ def main():
         c.call('save_project')
         # Legacy project restores without introducing v4 fields; independent
         # mixer and output profiles retain their versioned contracts.
-        project_path.write_text(json.dumps(original['project']))
+        legacy_project = json.loads(json.dumps(original['project']))
+        legacy_project['version'] = 3
+        legacy_project.pop('video', None)
+        project_path.write_text(json.dumps(legacy_project))
         legacy = c.call('load_project')['state']
-        assert legacy['project'] == original['project'] and legacy['project']['version'] == 3
+        assert legacy['project'] == legacy_project and legacy['project']['version'] == 3
+        legacy_size = (960, 540) if legacy_project['variant'] == 'horizontal' else (540, 960)
+        assert (legacy['width'], legacy['height'], legacy['fps']) == (*legacy_size, 30)
         assert legacy['audio_mixer']['store'] == mixer and c.call('output_profiles')['store'] == profiles
         report['legacy_restored'] = legacy
         # Large v4 documents must remain controllable through BOTH real clients.

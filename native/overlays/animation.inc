@@ -21,7 +21,7 @@ typedef struct {
     enum overlay_animation_easing easing;
     enum overlay_animation_phase phase;
     uint32_t duration_ms;
-    float distance, scale_from, progress;
+    float distance, render_distance, scale_from, progress;
     bool initialized, baseline_visible, native_transition_active, pending_ack;
     struct obs_transform_info baseline;
     obs_sceneitem_t *item;
@@ -179,7 +179,7 @@ static void overlay_job_advance(void *param,obs_scene_t *scene) {
     bool incoming=overlay_job_in(j);
     if(j->kind==OVERLAY_SLIDE_IN || j->kind==OVERLAY_SLIDE_OUT) {
         struct vec2 pos=j->baseline.pos;
-        pos.x-=j->distance*(incoming ? 1-eased:eased);
+        pos.x-=j->render_distance*(incoming ? 1-eased:eased);
         obs_sceneitem_set_pos(j->item,&pos);
     } else {
         float factor=incoming ? j->scale_from+(1-j->scale_from)*eased:1+(j->scale_from-1)*eased;
@@ -273,7 +273,7 @@ static int overlay_animation_slot(overlay_animator *a,obs_sceneitem_t *item,cons
 }
 static bool overlay_animation_start(overlay_animator *a,obs_sceneitem_t *item,const char *scene_id,
     const char *layer_id,const char *kind,const char *easing,uint32_t duration_ms,float distance,
-    float scale_from,uint64_t *id) {
+    float scale_from,float design_scale,uint64_t *id) {
     if(!a)return false;
     int k=-1,e=-1;
     if(kind)for(int i=0;i<6;i++)if(!strcmp(kind,overlay_kind_name(i)))k=i;
@@ -281,7 +281,7 @@ static bool overlay_animation_start(overlay_animator *a,obs_sceneitem_t *item,co
     bool valid=item && scene_id && *scene_id && strlen(scene_id)<64 && layer_id && *layer_id &&
         strlen(layer_id)<64 && k>=0 && e>=0 && duration_ms>=100 && duration_ms<=10000 &&
         isfinite(distance) && fabsf(distance)<=1920 && isfinite(scale_from) &&
-        scale_from>=.1f && scale_from<=2 && id;
+        scale_from>=.1f && scale_from<=2 && isfinite(design_scale) && design_scale>=1 && design_scale<=2 && id;
     pthread_mutex_lock(&a->lock);
     if(!valid || (k<=OVERLAY_FADE_OUT && e!=OVERLAY_LINEAR)) {
         snprintf(a->error,sizeof(a->error),"%s",valid ? "ANIMATION_EASING_UNSUPPORTED":"INVALID_ANIMATION");
@@ -294,7 +294,7 @@ static bool overlay_animation_start(overlay_animator *a,obs_sceneitem_t *item,co
     pthread_mutex_unlock(&a->lock);
     if(slot<0)return false;
     overlay_animation_job next={.kind=k,.easing=e,.phase=OVERLAY_ANIMATION_RUNNING,
-        .duration_ms=duration_ms,.distance=distance,.scale_from=scale_from};
+        .duration_ms=duration_ms,.distance=distance,.render_distance=distance*design_scale,.scale_from=scale_from};
     next.scene=obs_scene_get_ref(obs_sceneitem_get_scene(item));
     if(next.scene) {next.item=item;obs_sceneitem_addref(item);}
     if(next.scene && overlay_job_fade(&next))

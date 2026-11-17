@@ -279,7 +279,7 @@ impl Studio {
     }
     fn program_point(&self, p: Point<Pixels>) -> (f32, f32) {
         let b = self.editor.bounds.get();
-        let scale = f32::from(b.size.width) / self.production.engine.width as f32;
+        let scale = f32::from(b.size.width) / self.production.layout_dimensions().0 as f32;
         (
             f32::from(p.x - b.origin.x) / scale,
             f32::from(p.y - b.origin.y) / scale,
@@ -291,8 +291,8 @@ impl Studio {
         }
         self.focus.focus(window, cx);
         let point = self.program_point(event.position);
-        let scale =
-            f32::from(self.editor.bounds.get().size.width) / self.production.engine.width as f32;
+        let scale = f32::from(self.editor.bounds.get().size.width)
+            / self.production.layout_dimensions().0 as f32;
         let selected = self.selected_edit();
         let handle = selected
             .as_ref()
@@ -333,10 +333,10 @@ impl Studio {
         d.edit.after = drag_rect(&d.edit.before, d.handle, delta, event.modifiers.shift);
         d.guides = (None, None);
         if d.handle == Handle::Move && !event.modifiers.platform {
-            let threshold = 6. * self.production.engine.width as f32
+            let threshold = 6. * self.production.layout_dimensions().0 as f32
                 / f32::from(self.editor.bounds.get().size.width);
-            let w = self.production.engine.width as f32;
-            let h = self.production.engine.height as f32;
+            let w = self.production.layout_dimensions().0 as f32;
+            let h = self.production.layout_dimensions().1 as f32;
             let (x, gx) = snap(
                 d.edit.after.x,
                 d.edit.after.width,

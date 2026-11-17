@@ -47,11 +47,13 @@ unsafe extern "C" {
     fn motive_cancel_scene(engine: *mut c_void, operation: u64) -> bool;
     fn motive_scene_state(engine: *mut c_void) -> *mut c_char;
     fn motive_reset_output(engine: *mut c_void) -> bool;
+    fn motive_reset_output_target(engine: *mut c_void, target: u32) -> bool;
+    fn motive_output_info(engine: *mut c_void, target: u32) -> *mut c_char;
+    fn motive_stop_output_target(engine: *mut c_void, target: u32);
     fn motive_total_frames() -> u32;
     fn motive_lagged_frames() -> u32;
     fn motive_busy_drops(engine: *mut c_void) -> u64;
     fn motive_output_state(engine: *mut c_void) -> i32;
-    fn motive_output_code(engine: *mut c_void) -> i32;
     fn motive_output_bytes(engine: *mut c_void) -> u64;
     fn motive_output_frames(engine: *mut c_void) -> u32;
     fn motive_output_drops(engine: *mut c_void) -> i32;
@@ -72,7 +74,9 @@ unsafe extern "C" {
     fn motive_encoded_frames(engine: *mut c_void) -> u32;
     fn motive_video_skipped_frames() -> u32;
     fn motive_stop_output(engine: *mut c_void);
-    fn motive_variant(engine: *mut c_void, vertical: bool) -> bool;
+    fn motive_configure_video(engine: *mut c_void, width: u32, height: u32, fps: u32) -> bool;
+    fn motive_video_info(engine: *mut c_void) -> *mut c_char;
+    fn motive_invalidate_video(engine: *mut c_void);
     fn motive_devices() -> *mut c_char;
     fn motive_free(value: *mut c_char);
     fn motive_capture_width(engine: *mut c_void) -> u32;
@@ -81,11 +85,11 @@ unsafe extern "C" {
     fn motive_audio_frames(engine: *mut c_void) -> u64;
     fn motive_audio_peak(engine: *mut c_void) -> f32;
     fn motive_close_test_window();
-    fn motive_audio_add(
+    fn motive_audio_add_target(
         engine: *mut c_void,
         id: *const c_char,
-        device: *const c_char,
-        tone_path: *const c_char,
+        kind: u32,
+        target: *const c_char,
         gain: f32,
         muted: bool,
     ) -> bool;
@@ -101,11 +105,13 @@ unsafe extern "C" {
         gain: f32,
         muted: bool,
     ) -> bool;
-    fn motive_audio_restore_missing(
+    fn motive_audio_restore_missing_target(
         engine: *mut c_void,
         id: *const c_char,
-        device: *const c_char,
+        kind: u32,
+        target: *const c_char,
     ) -> bool;
+    fn motive_system_audio_sources(engine: *mut c_void) -> *mut c_char;
     fn motive_audio_rename_id(engine: *mut c_void, old: *const c_char, new: *const c_char) -> bool;
     fn motive_audio_legacy(engine: *mut c_void, device: *const c_char);
 }
@@ -115,6 +121,7 @@ pub struct Engine {
     raw: *mut c_void,
     pub width: u32,
     pub height: u32,
+    pub fps: u32,
     _main_thread: PhantomData<Rc<()>>,
 }
 impl Engine {
@@ -129,6 +136,7 @@ impl Engine {
             raw,
             width: 960,
             height: 540,
+            fps: 30,
             _main_thread: PhantomData,
         };
         let error = unsafe { CStr::from_ptr(motive_error(raw)) }.to_string_lossy();
@@ -259,6 +267,29 @@ impl Engine {
     pub fn reset_output(&mut self) -> anyhow::Result<()> {
         self.checked(unsafe { motive_reset_output(self.raw) })
     }
+    pub fn reset_output_target(
+        &mut self,
+        target: crate::core::output::OutputTarget,
+    ) -> anyhow::Result<()> {
+        self.checked(unsafe { motive_reset_output_target(self.raw, target.index()) })
+    }
+    pub fn output_observation(
+        &self,
+        target: crate::core::output::OutputTarget,
+    ) -> crate::core::output::NativeOutput {
+        let raw = unsafe { motive_output_info(self.raw, target.index()) };
+        assert!(!raw.is_null(), "native output observation unavailable");
+        let value = serde_json::from_slice::<crate::core::output::NativeOutput>(
+            unsafe { CStr::from_ptr(raw) }.to_bytes(),
+        );
+        unsafe { motive_free(raw) };
+        let value = value.expect("native output observation contract");
+        assert!(value.state <= 4, "native output state contract");
+        value
+    }
+    pub fn stop_output_target(&mut self, target: crate::core::output::OutputTarget) {
+        unsafe { motive_stop_output_target(self.raw, target.index()) };
+    }
     fn checked(&self, ok: bool) -> anyhow::Result<()> {
         anyhow::ensure!(
             ok,
@@ -267,9 +298,32 @@ impl Engine {
         );
         Ok(())
     }
-    pub fn variant(&mut self, vertical: bool) -> anyhow::Result<()> {
-        self.checked(unsafe { motive_variant(self.raw, vertical) })?;
-        (self.width, self.height) = if vertical { (540, 960) } else { (960, 540) };
+    pub fn invalidate_video(&mut self) {
+        unsafe { motive_invalidate_video(self.raw) };
+    }
+    pub fn video_info(&self) -> serde_json::Value {
+        self.overlay_json(unsafe { motive_video_info(self.raw) })
+    }
+    pub fn configure_video(
+        &mut self,
+        video: crate::core::video::VideoConfig,
+        variant: crate::core::Variant,
+    ) -> anyhow::Result<()> {
+        video.validate()?;
+        let (width, height) = video.dimensions(variant);
+        self.checked(unsafe { motive_configure_video(self.raw, width, height, video.fps) })?;
+        let actual = self.video_info();
+        anyhow::ensure!(
+            actual["available"] == true
+                && actual["width"] == width
+                && actual["height"] == height
+                && actual["fps_num"] == video.fps
+                && actual["fps_den"] == 1,
+            "VIDEO_CONFIGURATION_MISMATCH"
+        );
+        self.width = width;
+        self.height = height;
+        self.fps = video.fps;
         Ok(())
     }
     pub fn devices(&self) -> serde_json::Value {
@@ -285,17 +339,16 @@ impl Engine {
     pub fn audio_add(
         &mut self,
         input: &crate::core::audio::AudioInput,
-        tone_path: &str,
+        _tone_path: &str,
     ) -> anyhow::Result<()> {
         let id = CString::new(input.id.as_str())?;
-        let device = CString::new(input.source.device())?;
-        let path = CString::new(tone_path)?;
+        let target = CString::new(input.source.native_target())?;
         self.checked(unsafe {
-            motive_audio_add(
+            motive_audio_add_target(
                 self.raw,
                 id.as_ptr(),
-                device.as_ptr(),
-                path.as_ptr(),
+                input.source.native_kind(),
+                target.as_ptr(),
                 input.gain_db,
                 input.muted,
             )
@@ -321,6 +374,14 @@ impl Engine {
         unsafe { motive_free(raw) };
         value
     }
+    pub fn system_audio_sources(&self) -> anyhow::Result<crate::core::audio::SystemAudioSources> {
+        serde_json::from_value(self.overlay_json(unsafe { motive_system_audio_sources(self.raw) }))
+            .map_err(|error| {
+                anyhow::anyhow!(
+                    "AUDIO_STATE_UNAVAILABLE: invalid native system-audio inventory: {error}"
+                )
+            })
+    }
     pub fn poll_audio(&mut self) {
         unsafe { motive_poll_audio(self.raw) };
     }
@@ -342,9 +403,14 @@ impl Engine {
         input: &crate::core::audio::AudioInput,
     ) -> anyhow::Result<()> {
         let id = CString::new(input.id.as_str())?;
-        let device = CString::new(input.source.device())?;
+        let target = CString::new(input.source.native_target())?;
         self.checked(unsafe {
-            motive_audio_restore_missing(self.raw, id.as_ptr(), device.as_ptr())
+            motive_audio_restore_missing_target(
+                self.raw,
+                id.as_ptr(),
+                input.source.native_kind(),
+                target.as_ptr(),
+            )
         })
     }
     pub fn audio_rename_id(&mut self, old: &str, new: &str) -> anyhow::Result<()> {
@@ -403,9 +469,6 @@ impl Engine {
     }
     pub fn output_state(&self) -> i32 {
         unsafe { motive_output_state(self.raw) }
-    }
-    pub fn output_code(&self) -> i32 {
-        unsafe { motive_output_code(self.raw) }
     }
     pub fn audio_health(&self) -> i32 {
         unsafe { motive_audio_health(self.raw) }

@@ -20,7 +20,11 @@ def listen(port,label):
     p.terminate();p.wait();raise AssertionError('No receiver listener')
 try:
     project=setup_owned(c);before=c.state();base=c.call('output_profiles')['store'];assert base['version']==1
-    caps=c.call('output_capabilities')['capabilities'];assert caps['canvas']['fps_configurable'] is False
+    caps=c.call('output_capabilities')['capabilities']
+    assert caps['canvas']['fps_configurable'] is True
+    assert caps['canvas']['production_resolution_configurable'] is True
+    assert caps['canvas']['profile_resolution_configurable'] is False
+    assert caps['canvas']['configuration']['fps']==30
     if before['output_configuration']['endpoint'] is None:
         assert c.call('preflight_output',expect=False,target='streaming')['error']['code']=='ENDPOINT_REQUIRED'
     else:

@@ -27,7 +27,7 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 
 > **Experimental developer preview.** Recording and local loopback streaming work. This is not yet a packaged release or a full replacement for OBS Studio. The current interface is in Spanish; this README is in English.
 
-**Status — November 17, 2026:** H12 integrates the creative library, native file picker, typed inspectors, widgets and animations into GPUI. Native editing is verified in VideoToolbox recordings and local RTMP. All 22 H1–H11 suites pass on their latest runs; an earlier two-frame render-lag failure remains documented with its cause unresolved. See the [H12 evidence and limits](docs/h12-creative-studio-verification.md).
+**Status — November 17, 2026:** H13 implements configurable production video, application/desktop audio and simultaneous MKV recording + local RTMP, with independent controls in the shared core and GPUI. The current bundle passes the latest runs of all 23 H1–H12 regression suites, the four dual-output scenarios and visible A/V alignment. **H13 acceptance remains partial:** the native GPUI production and a dual-output session exceeding 30 minutes have run. The compact follow-up confirms the corrected alert and safe deferred shutdown; the latest controlled self-audio exclusion test also passes. Captured-window freezes, terminal frame accounting and measured memory limits keep acceptance partial. Earlier failures remain preserved. See the [H13 evidence index](docs/h13-evidence-index.md) and [measured limits](docs/h13-production-verification.md); the [H12 results](docs/h12-creative-studio-verification.md) remain historical evidence for their own bundles.
 
 ## ✨ What is taking shape
 
@@ -35,14 +35,14 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 |---|---|---|
 | 🪟 | Window capture | Select an individual application window through ScreenCaptureKit |
 | 📷 | Camera input | Explicit camera selection through the official OBS AVFoundation module |
-| 🎙️ | Global audio mixer | Reusable microphone UIDs + controlled tone, independent gain/mute, peak/RMS and explicit per-input recovery |
-| 🎬 | Local recording | H.264 + AAC in MKV, encoded and muxed by libobs |
+| 🎙️ | Global audio mixer | Microphone, controlled tone and explicitly selected application or desktop audio; independent gain/mute, peak/RMS and per-input recovery |
+| 🎬 | Independent outputs | Concurrent H.264/AAC MKV + loopback RTMP, separate encoder pairs/profiles, stop, duration, errors and recovery per destination |
 | 🎨 | Scene editor | Multiple scenes and reusable sources; layer position, size, visibility and order; editable original overlays |
 | 🧩 | Overlay engine | Native text, managed images/video, shapes, widgets and original presets; per-layer fade/slide/scale through GPUI, CLI and MCP |
-| ↔️ | Canvas variants | Independent landscape/portrait layer layouts at 960 × 540 and 540 × 960, with aspect-preserving fit |
+| ↔️ | Production video | 540p, 720p or 1080p composition at 30/60 FPS, landscape/portrait; independent layouts retain their 960 × 540 / 540 × 960 design coordinates |
 | 🔌 | Source recovery | Availability checks, controlled output stop and explicit reconnection |
 | 🤖 | Agent control | Local MCP and CLI commands, shared state and structured errors |
-| 💾 | Project state | Version 4 for H11 definitions; existing projects remain v3, with v1–v3 loading and stable scene/source/layer IDs |
+| 💾 | Project state | Explicit video configuration uses v5; legacy v3 and overlay v4 remain valid at 540p30, with v1–v4 loading and stable scene/source/layer IDs |
 
 ## 🚀 Get started
 
@@ -67,14 +67,14 @@ Ad-hoc rebuilds change the code identity and can require macOS permissions again
 ### Make your first recording
 
 1. Start with the built-in pattern. For an owned capture fixture, open **Mi producción → Abrir ventana controlada**, then select it from **Añadir fuente → Ventana**.
-2. Add a window or webcam from **Añadir fuente**. Use the settings icon beside **Audio** to add a physical microphone or **Añadir tono de prueba**. Complete normal macOS permissions and select only content you intend to capture.
+2. Add a window or webcam from **Añadir fuente**. Use the settings icon beside **Audio** to add a physical microphone or **Añadir tono de prueba**. **Consultar aplicaciones y pantallas** lists system-audio choices. Complete normal macOS permissions and select only content you intend to capture.
 3. Check the live preview, channel peak/RMS and master meters. Gain applies on fader release; **Silenciar** keeps the input meter visible while removing its contribution to the master. If Stage Manager hides a selected window, show it so capture receives its first frame.
-4. Click **Grabar**, then **Finalizar → Confirmar**. Wait for the ready state; recordings are saved under `var/recordings/`. **Preferencias y diagnóstico** shows the last file. **Perfiles de salida** manages the recording/streaming encoding settings.
-5. Switch **16:9 / 9:16** while idle. Use **Mi producción → Guardar proyecto / Restaurar proyecto guardado** for the composition; use **Guardar mixer / Restaurar mixer** in Audio for its separate store.
+4. Click **Grabar**, then open **Salidas → Grabación MKV → Detener → Confirmar**. Wait until that destination finishes; recordings are saved under `var/recordings/`. **Salidas** shows each destination's status, duration and error. **Perfiles de salida** manages recording/streaming encoding settings; prepare the profiles and loopback receiver before using **Transmitir** alongside recording.
+5. While idle, set resolution/FPS in **Preferencias y diagnóstico** and switch **16:9 / 9:16**. Use **Mi producción → Guardar proyecto / Restaurar proyecto guardado** for the composition; use **Guardar mixer / Restaurar mixer** in Audio for its separate store.
 
-Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No capture device is selected automatically at launch. The global Audio Mixer has its own version-1 store (`save_audio_mixer` / `load_audio_mixer`), separate from project v3/v4 and output profiles.
+Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No capture device is selected automatically at launch. The global Audio Mixer has its own store (`save_audio_mixer` / `load_audio_mixer`): v1 remains supported; system-audio inputs require v2. Project v3/v4/v5 and output profiles v1 remain separate.
 
-Recording defaults to **Apple VideoToolbox hardware H.264** when available, with x264 fallback before output starts. Recording and local RTMP share validated encoder/bitrate/CBR/keyframe/reordering profiles, stored separately from project v3/v4 with explicit save/load. Canvas dimensions and 30 FPS remain fixed. `encoders`, `output_capabilities` and `output_profiles` report the effective configuration; `set_encoder` edits the selected recording profile (also used by RTMP when it selects that profile). See [hardware measurements](docs/videotoolbox-verification.md) and [H7 output verification](docs/h7-output-verification.md) for contracts, reproduction and limits.
+Outputs default to **Apple VideoToolbox hardware H.264** when available, with x264 fallback before each output starts. Recording and RTMP use independent H.264/AAC encoder pairs on the same composition and audio mix. Each destination snapshots its selected encoder/bitrate/CBR/keyframe/reordering profile at start. Resolution/FPS belong to the production and can change only while its resources are idle. `video_capabilities`, `output_capabilities`, `output_profiles` and `outputs` report configuration and observed state. See the [canvas/audio contract](docs/h13-video-audio-contract.md) and [output contract](docs/h13-output-contract.md). A 60 FPS composition does not establish 60 FPS capture: the camera currently requests 720p and keeps its own cadence.
 
 ### When a source disappears
 
@@ -86,7 +86,7 @@ Silence is distinct from missing audio packets. Camera health also watches actua
 
 Use **Añadir fuente** to add a window, webcam, overlay or existing source. Select a layer on the canvas or in the layer list; drag, resize or edit its numeric transform. The eye toggles visibility and the layer menu changes order. Command+Z / Shift+Command+Z undo and redo compatible transform edits; a concurrent CLI/MCP change invalidates that local history. Removing a layer does not implicitly delete its shared source; release unused sources from **Añadir fuente → Fuentes sin capas** (the shared `remove_source` command).
 
-The modular native studio includes scene naming and Cut/Fade controls, reusable visual sources, exact layer editing, output-profile management, loopback RTMP configuration, and H10 channel gain/mute with real stereo peak/RMS meters. Light/dark appearance and safe guides have a separate local preference file. Gesture previews commit once on release; revision guards preserve newer MCP changes. See [UI evolution verification](docs/ui-evolution-verification.md), [architecture and capability map](docs/ui-architecture.md), and [editor shortcuts](docs/ui-native-verification.md).
+The modular native studio includes scene naming and Cut/Fade controls, reusable visual sources, exact layer editing, output-profile management, independent output controls, loopback RTMP configuration, and channel gain/mute with real stereo peak/RMS meters. Light/dark appearance and safe guides have a separate local preference file. Gesture previews commit once on release; revision guards preserve newer MCP changes. See [UI evolution verification](docs/ui-evolution-verification.md), [architecture and capability map](docs/ui-architecture.md), and [editor shortcuts](docs/ui-native-verification.md); H13's executed native workflow and remaining limits are recorded in its [acceptance report](docs/h13-native-acceptance.md).
 
 Geometry, layer order and overlay color can change during recording. Scene selection supports official OBS **Cut and Fade** during recording/local RTMP, with target preparation, shared capture resources and explicit cancellation. Graph edits wait for the transition to finish; adding/removing capture resources and directly changing layer visibility require a stopped output. Each orientation has its own transforms. See [H9 contracts and real verification](docs/h9-scene-transitions-verification.md).
 
@@ -116,6 +116,20 @@ The app owns one engine. CLI and MCP connect to its Unix socket at `var/run/moti
 
 Replace example IDs with values from `devices`. A `null` window ID restores the generated pattern; audio accepts `none`, `tone` or a listed device UID.
 
+The legacy start commands above remain exclusive. Use the H13 destination commands for simultaneous recording and RTMP, after configuring a running, owned loopback receiver:
+
+```sh
+./target/debug/motive ctl '{"op":"configure_video","video":{"version":1,"resolution":"full_hd1080","fps":30,"coordinate_space":"design960"}}'
+./target/debug/motive ctl '{"op":"configure_stream","endpoint":{"transport":"rtmp","port":19351}}'
+./target/debug/motive ctl '{"op":"start_output","target":"recording"}'
+./target/debug/motive ctl '{"op":"start_output","target":"streaming"}'
+./target/debug/motive ctl '{"op":"outputs"}'
+./target/debug/motive ctl '{"op":"stop_output_target","target":"streaming"}'
+./target/debug/motive ctl '{"op":"cancel_all_outputs"}'
+```
+
+Stopping one destination leaves the other running. Observe each slot's `native_busy: false` before treating it as finished; cancel may wait for a connection worker. `recover_output_target` acknowledges only that destination's failure and never restarts it. Legacy stop/cancel reject two busy outputs with `OUTPUT_TARGET_REQUIRED`. See the [shared contract](docs/h13-output-contract.md) for snapshots, phases and compatibility.
+
 New scene operations use the same core. Read the returned graph to obtain IDs:
 
 ```sh
@@ -142,6 +156,17 @@ Monitoring stays off. Per-input meters are post-fader/pre-manual-mute; the final
 mix meter is post-mute and detects saturation before libobs clamps the output.
 See the [UI/CLI/MCP contract](docs/h10-audio-ui-contract.md) and
 [real audio verification](docs/h10-audio-verification.md).
+
+H13 adds `system_audio_sources` for explicit discovery. Add an application with
+`source: {"kind":"system_application","bundle_id":"BUNDLE_ID_FROM_INVENTORY"}`,
+or the selectable primary desktop with
+`source: {"kind":"system_desktop","display_uuid":"UUID_FROM_INVENTORY"}`.
+The same identity reuses its channel. Desktop and application captures cannot
+coexist because their audio overlaps. The OBS module requests exclusion of
+Motive's own audio; [final measured acceptance remains open](docs/h13-system-audio-exclusion-final.md).
+Silence with packets is healthy, while `awaiting_audio` reports missing samples. Application
+loss remains latched until explicit recovery. See [H13 audio semantics and
+limits](docs/h13-video-audio-contract.md).
 
 The H12 GPUI adapter adds **Library → Create / Assets / Presets / Sources** and
 a typed inspector with **Content / Live / Animation** tabs. Import files with the
@@ -185,11 +210,15 @@ For an MCP client, use an absolute path to your checkout:
 
 `audio_mixer` · `add_audio_input` · `remove_audio_input` · `set_audio_gain` · `set_audio_mute` · `disconnect_audio_input` · `reconnect_audio_input` · `save_audio_mixer` · `load_audio_mixer`
 
+`video_capabilities` · `configure_video` · `system_audio_sources`
+
 `encoders` · `set_encoder`
 
 `output_capabilities` · `output_profiles` · `upsert_output_profile` · `remove_output_profile` · `select_output_profile` · `save_output_profiles` · `load_output_profiles` · `configure_stream` · `preflight_output` · `start_stream` · `recover_output`
 
 `cancel_output` · `request_shutdown` · `credential_status` · `select_stream_credential`
+
+`outputs` · `start_output` · `stop_output_target` · `cancel_output_target` · `recover_output_target` · `cancel_all_outputs`
 
 `overlay_capabilities` · `overlay_state` · `asset_inventory` · `list_assets` · `import_asset` · `remove_asset` · `create_overlay` · `update_overlay` · `overlay_event` · `animate_overlay` · `cancel_overlay_animation` · `overlay_presets` · `instantiate_overlay_preset`
 
@@ -200,6 +229,8 @@ Responses include the shared PID/revision, source issues and real engine counter
 The API accepts no arbitrary output paths, public stream URLs, shell commands or stream-key values. `configure_stream` accepts only RTMP/RTMPS and an unprivileged port at **127.0.0.1**. `cancel_output` queues safe deferred cancellation (`cancel_pending`) while a handshake finishes; `stop_output` retains its immediate-cancellation guard. Native worker completion is checked through a pinned lifecycle patch to the official OBS output module.
 
 Credentials can be enrolled locally in **macOS Keychain** using the signed terminal helper; CLI/MCP see only opaque references, bound to an RTMPS port. Trusted RTMPS delivery remains pending: OBS 33.0.1 does not expose an isolated development-CA setting on macOS. See [H8 verification and security limits](docs/h8-streaming-verification.md). No public destination is enabled. The legacy CLI-only `start_local_stream` still sends MPEG-TS to **127.0.0.1:19350** using its original libx264 settings.
+
+Native window close, **Motive → Salir de Motive** and Cmd+Q use the shared shutdown lifecycle. Active production requires confirmation; finalization waits for both output workers and any existing import. The core rejects new work once shutdown is pending or committed while allowing queries. Native tests observed Cmd+Q cancellation, rejection of a stale confirmation and deferred shutdown during an incomplete RTMP handshake. Motive stayed open behind the worker barrier and exited 0.835 seconds after the controlled peer was released. Other native close paths retain their individual coverage in the [acceptance report](docs/h13-native-acceptance.md).
 
 If a forced shutdown leaves a stale socket, first confirm no Motive process remains and `ctl` cannot connect, then remove only `var/run/motive.sock`. Motive never unlinks another running instance's socket.
 
@@ -228,15 +259,25 @@ The integration scripts require the app to be open and idle. `verify.py` also re
 
 H12 has 55 passing Rust tests, clean Clippy and real native workflows decoded from recording and RTMP. The five open H11 regression groups pass on the exact integrated baseline; all 22 suites also pass on their latest H12 runs. Original failures remain preserved, including an intermittent two-frame render-lag failure before the passing final ABBA run. Follow [H12 reproduction and evidence](docs/h12-creative-studio-verification.md) for hashes, CPU/RSS, media and limits. Historical [H11 evidence](docs/h11-overlay-verification.md) is unchanged. Never run physical suites simultaneously in different worktrees.
 
+The current H13 bundle G (`d9b8d702…e0e2d93`) has 71 passing Rust tests, clean Clippy/format and **23/23 distinct H1–H12 suites passing in their latest runs**. H10 uses [isolated measurement references](docs/h13-h10-metrology.md) and new real recordings; earlier failures and failed manifests remain preserved. The [evidence index](docs/h13-evidence-index.md) maps each result to its bundle and report.
+
+On G, all seven canvas cases and seven system-audio stages pass. Dual outputs pass **4/4 scenarios and 12/12 media**, including independent recovery; two intentionally partial files are distinguished from the ten complete files. Visible A/V passes with seven pulse pairs, median audio−video **+24.27 ms** and a **33 ms range**. This measures end-to-end alignment, not zero latency. H8 shutdown gates and closure during an active import also pass. See [H13 verification](docs/h13-production-verification.md).
+
+Native GPUI production and more than 30 minutes of concurrent recording/RTMP have now been executed. All eight files pass full decoding and strict video cadence checks (maximum interval 34 ms); this is not an overall acceptance pass. The structural analyzer retains seven functional/integrity PASS results, one intentional partial RTMP file as INCONCLUSIVE, and an observed handshake attempt without a media file. The [visual review](var/evidence/h13-native-visual-extract-1794944740966518000/visual-review.md) confirms Cut/Fade, live lower-third edits and countdown controls in both outputs, while retaining two failures: the alert was partly covered by the window, and the window counter stopped advancing in late REC3 samples. The late freeze coincides with window occlusion while the fixture's draw and audio counters keep advancing; its cause remains INCONCLUSIVE.
+
+The separate [compact visual revalidation](var/evidence/h13-native-visual-extract-1794946829324892000/visual-review.md) passes alert legibility after moving its layer to order 3 through GPUI. Window continuity still fails: all 11 periodic samples repeat counter `193356288`. Its two files have [functional and strict-cadence PASS results](var/evidence/h13-native-analysis-1794946801711114000/report.json), while coverage remains INCONCLUSIVE. Terminal accounting is also unresolved: compact RTMP decodes 5027 frames against 5028 reported by the output; MKV matches at 13880. Successful decoding and zero reported drops do not establish delivery of every final frame. See the [native acceptance report](docs/h13-native-acceptance.md) and [production report](docs/h13-production-verification.md).
+
+**H13 remains in progress with partial acceptance.** The latest [self-audio exclusion test passes on the same bundle G](docs/h13-system-audio-exclusion-final.md): −123.174221 dB relative suppression against the unchanged <−45 dB gate, after a controlled floor test passed. The original G failure and its inconclusive attribution remain archived; no code or checker threshold changed, and the near-numerical-floor result is not a universal attenuation guarantee. A directed memory probe observes active malloc allocations returning near baseline while pages remain resident: after releasing the videos and waiting 20 seconds, median RSS is 1141.38 MiB versus 178.41 MiB initially. This is no memory-budget pass or proof about leaks; [memory and encoder-tail measurements](docs/h13-encoder-tail-investigation.md) retain the limits and nonuniform final video intervals from earlier runs.
+
 See [H1 verification](docs/h1-verification.md) and [scene-graph verification](docs/scene-graph-verification.md) for device tests, recovery behavior, prerequisites and evidence. The output-recovery test deliberately terminates only Motive's own mux helper. Captures, device inventories and runtime logs stay under ignored `var/`; they are not published with this repository.
 
 ## 🗺️ Direction and boundaries
 
-- **Now:** native scene editing, Cut/Fade, H10 mixer, output profiles, loopback streaming and the H12 creative library through one shared production core; measured behavior and remaining stability limits are documented.
-- **Next:** investigate intermittent render lag, improve accessibility and inactive-scene previews, define recording-library and agent-proposal contracts, add secure native credential entry, and test removable-device recovery and longer sessions.
+- **Now:** H13 has completed a native GPUI production and a dual-output run exceeding 30 minutes. Acceptance remains partial because captured-window continuity fails and terminal frame accounting and memory limits remain unresolved. All 23 regression suites pass in their latest runs on the current bundle.
+- **Next:** close those acceptance gates, investigate retained capture/cadence failures, improve accessibility and inactive-scene previews, define recording-library and agent-proposal contracts, and add secure native credential entry and removable-device recovery tests.
 - **Later:** isolated browser overlays, richer typography/effects, a distributable bundle, simultaneous variants and authorized platform streaming.
 
-The preview copies new BGRA frames through CPU memory into GPUI; it is not zero-copy. The core supports up to 8 scenes, 16 visual sources, 32 layers and 4 video sources, with one active canvas and one output. The 256 MiB visual allocation estimate is not an RSS cap: hidden decoders and resource-replacement peaks still consume memory. There are no cloud services, payments or marketplace features.
+The preview copies new BGRA frames through CPU memory into GPUI; it is not zero-copy. The core supports up to 8 scenes, 16 visual sources, 32 layers and 4 video sources, with one active canvas, one MKV destination and one RTMP destination. It does not provide multiple streaming destinations or simultaneous canvas variants. The 256 MiB visual allocation estimate is not an RSS cap: hidden decoders and resource-replacement peaks still consume memory. There are no cloud services, payments or marketplace features.
 
 Competitive research prioritizes official documentation, open-source code and observable behavior. REA is optional research tooling, **never a product dependency**. Motive's design and implementation are independent; no proprietary Meld code, assets or designs are included.
 
@@ -249,13 +290,15 @@ Start with [AGENTS.md](AGENTS.md), [the plan](docs/plan.md) and [architecture de
 | `src/main.rs` | Application startup and CLI/MCP dispatch |
 | `src/ui/` | Native studio, theme, components and guarded canvas editor |
 | `src/core.rs` | Shared commands, health policy and project state |
-| `src/audio.rs` | Typed global audio registry, meter/health contracts and version-1 persistence validation |
+| `src/audio.rs` | Typed global audio registry, microphone/system identities, meter/health contracts and v1/v2 persistence validation |
+| `src/video.rs` | Production resolution/FPS contract and stable design-coordinate mapping |
 | `src/overlays/` | Typed definitions, managed imports, widgets/presets and shared overlay controls |
-| `src/output.rs` | Typed output profiles and loopback endpoint validation, separate from scene v3/v4 |
+| `src/output.rs`, `src/output_runtime.rs` | Independent destination registry, lifecycle, profile snapshots and loopback endpoint validation |
 | `src/scene.rs` | Stable scene graph, independent layouts and validation |
 | `src/control.rs` | Local socket, CLI and MCP adapter |
 | `src/engine.rs` | Main-thread Rust ownership of the native engine |
 | `native/engine.m` | libobs, ScreenCaptureKit and AVFoundation integration |
+| `native/output-slots.inc` | Independent OBS outputs/encoders, metrics and native worker barriers |
 | `native/graph.inc` | Native scenes, source reconciliation and camera frame health |
 | `native/overlays/` | OBS source wrappers, widget clocks and per-layer animation lifecycle |
 | `scripts/` | Pinned bootstrap, bundle and real-media checks |

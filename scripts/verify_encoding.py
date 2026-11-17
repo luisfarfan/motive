@@ -15,6 +15,7 @@ import statistics
 import struct
 import subprocess
 import time
+from h7_support import assert_project_format
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 EXE = ROOT/'target/debug/motive'
@@ -183,7 +184,7 @@ try:
         source,layer=add(scene,name,spec);created.append(source)
         if name=='Secondary':transform(scene,layer,640,32,288,162,2)
         if name=='Overlay':transform(scene,layer,32,436,320,72,3)
-    project=state()['project'];assert project['version']==3
+    project=state()['project'];assert_project_format(project,3,original['project'].get('video'))
     command('save_project');assert command('load_project')['state']['project']==project
     for round in range(args.rounds):
         order=['x264','videotoolbox'] if round%2==0 else ['videotoolbox','x264']

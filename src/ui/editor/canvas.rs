@@ -7,7 +7,7 @@ impl Studio {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let bounds = self.editor.bounds.clone();
-        let scale = pw / self.production.engine.width as f32;
+        let scale = pw / self.production.layout_dimensions().0 as f32;
         let selected = self
             .editor
             .drag

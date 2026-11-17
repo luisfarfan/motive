@@ -166,6 +166,7 @@ pub fn send(command: Value, origin: &str) -> Value {
                     | "devices"
                     | "encoders"
                     | "output_capabilities"
+                    | "outputs"
                     | "output_profiles"
                     | "preflight_output"
                     | "credential_status"
@@ -216,6 +217,9 @@ pub(crate) fn tool(
             | "load_output_profiles"
             | "stop_output"
             | "cancel_output"
+            | "stop_output_target"
+            | "cancel_output_target"
+            | "cancel_all_outputs"
             | "request_shutdown"
             | "cancel_transition"
             | "remove_asset"
@@ -256,7 +260,7 @@ pub fn tools() -> Vec<Value> {
         ),
         tool(
             "load_audio_mixer",
-            "Restaura explícitamente el mezclador v1 mientras idle; reutiliza capturas presentes y conserva entradas ausentes en estado failed.",
+            "Restaura explícitamente el mezclador v1/v2 mientras idle; reutiliza capturas presentes y conserva entradas ausentes en estado failed.",
             json!({}),
             &[],
             false,
@@ -270,8 +274,13 @@ pub fn tools() -> Vec<Value> {
         ),
         tool(
             "add_audio_input",
-            "Añade micrófono por UID o tono controlado; reutiliza el ID existente sin duplicar captura. Requiere salida detenida.",
-            json!({"name":{"type":"string","minLength":1,"maxLength":80},"source":{"oneOf":[{"type":"object","properties":{"kind":{"const":"tone"}},"required":["kind"],"additionalProperties":false},{"type":"object","properties":{"kind":{"const":"microphone"},"device_id":{"type":"string","minLength":1,"maxLength":511}},"required":["kind","device_id"],"additionalProperties":false}]}}),
+            "Añade micrófono por UID, tono o captura SCK explícita de aplicación/display principal del inventario. Reutiliza identidad; rechaza escritorio más aplicación. Requiere salidas detenidas y permisos existentes; no concede permisos.",
+            json!({"name":{"type":"string","minLength":1,"maxLength":80},"source":{"oneOf":[
+                {"type":"object","properties":{"kind":{"const":"tone"}},"required":["kind"],"additionalProperties":false},
+                {"type":"object","properties":{"kind":{"const":"microphone"},"device_id":{"type":"string","minLength":1,"maxLength":511}},"required":["kind","device_id"],"additionalProperties":false},
+                {"type":"object","properties":{"kind":{"const":"system_application"},"bundle_id":{"type":"string","minLength":1,"maxLength":255}},"required":["kind","bundle_id"],"additionalProperties":false},
+                {"type":"object","properties":{"kind":{"const":"system_desktop"},"display_uuid":{"type":"string","pattern":"^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"}},"required":["kind","display_uuid"],"additionalProperties":false}
+            ]}}),
             &["name", "source"],
             false,
         ),
@@ -353,6 +362,32 @@ pub fn tools() -> Vec<Value> {
             false,
         ),
         tool(
+            "system_audio_sources",
+            "Consulta destinos de audio de sistema/aplicación e identidad estable con permisos actuales. No inicia captura ni concede permisos.",
+            json!({}),
+            &[],
+            true,
+        ),
+        tool(
+            "video_capabilities",
+            "Canvas de producción, espacio lógico estable y límites de captura. Presets nuevos son candidatos hasta verificación de medios decodificados.",
+            json!({}),
+            &[],
+            true,
+        ),
+        tool(
+            "configure_video",
+            "Configura el único reloj/canvas OBS en reposo. Conserva coordenadas de diseño, audio y perfiles; persiste en proyecto v5 mediante save_project. Cambiar FPS retira primero la fuente OBS anterior; el cierre SCStream es asíncrono. Cámara conserva preset720p y cadencia propia.",
+            json!({"video":{"type":"object","additionalProperties":false,
+                "properties":{"version":{"type":"integer","const":1},
+                    "resolution":{"type":"string","enum":["legacy540","hd720","full_hd1080"]},
+                    "fps":{"type":"integer","enum":[30,60]},
+                    "coordinate_space":{"type":"string","const":"design960"}},
+                "required":["version","resolution","fps","coordinate_space"]}}),
+            &["video"],
+            false,
+        ),
+        tool(
             "set_variant",
             "Cambia composición cuando no hay salida activa.",
             json!({"variant":{"type":"string","enum":["horizontal","vertical"]}}),
@@ -417,6 +452,34 @@ pub fn tools() -> Vec<Value> {
         ),
     ];
     let target = json!({"type":"string","enum":["recording","streaming"]});
+    result.push(tool("outputs", "Registro compartido recording/streaming: fases, workers, perfiles efectivos, recuperación y métricas por intento.", json!({}), &[], true));
+    for (name, description) in [
+        (
+            "start_output",
+            "Inicia solo este destino con su perfil. Permite MKV y RTMP loopback concurrentes; no cambia fuentes, canvas ni la otra salida.",
+        ),
+        (
+            "stop_output_target",
+            "Solicita finalizar solo este destino. Connecting devuelve OUTPUT_CONNECTING; observar native_busy hasta false.",
+        ),
+        (
+            "cancel_output_target",
+            "Solicita finalizar solo este destino; durante connecting la cancelación queda diferida hasta el punto seguro de H8.",
+        ),
+        (
+            "recover_output_target",
+            "Reconoce solo el fallo de este destino quiescente; permite que la otra salida continúe. No reinicia ni borra medios.",
+        ),
+    ] {
+        result.push(tool(
+            name,
+            description,
+            json!({"target":target}),
+            &["target"],
+            false,
+        ));
+    }
+    result.push(tool("cancel_all_outputs", "Finaliza todos los destinos con sus barreras independientes; difiere handshakes pendientes. No cierra Motive.", json!({}), &[], false));
     let profile_id =
         json!({"type":"string","minLength":1,"maxLength":48,"pattern":"^[a-z0-9_-]+$"});
     let profile = json!({"type":"object","additionalProperties":false,"properties":{
@@ -483,21 +546,21 @@ pub fn tools() -> Vec<Value> {
         ),
         (
             "preflight_output",
-            "Valida estado, fuentes, perfil y módulos. No conecta a red ni inicializa encoders; no garantiza disponibilidad del receptor.",
+            "Valida este destino y fuentes/perfil/módulos compartidos; permite la otra salida activa. No conecta a red ni inicializa encoders; no garantiza receptor ni una segunda sesión hardware.",
             json!({"target":target}),
             vec!["target"],
             true,
         ),
         (
             "start_stream",
-            "Inicia conexión RTMP(S) al receptor local configurado. Consulta connecting/streaming/error; sin reintentos automáticos.",
+            "Compatibilidad: inicia RTMP(S) local solo cuando no hay otra salida ocupada. Para concurrencia usa start_output con target streaming. Sin reintentos automáticos.",
             json!({}),
             vec![],
             false,
         ),
         (
             "recover_output",
-            "Reconoce fallo de salida únicamente cuando terminó; conserva recuperación de fuentes y no reinicia automáticamente.",
+            "Compatibilidad: reconoce un único fallo con todas las salidas detenidas. Rechaza ambigüedad; usa recover_output_target para recuperar mientras el otro destino continúa.",
             json!({}),
             vec![],
             false,

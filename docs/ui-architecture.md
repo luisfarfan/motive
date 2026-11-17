@@ -76,3 +76,75 @@ were verified in GPUI and through MCP. A GPUI-started/stopped VT recording decod
 source reuse/release, overlay RGB, Fade/cancel and exact X=64.125. Query profile
 lists refresh after UI and MCP mutations without overwriting open drafts.
 30 unit tests and Clippy pass; final media regression evidence follows.
+
+
+## Capability map and ownership
+
+| Surface | Shared commands / state | UI-owned presentation |
+| --- | --- | --- |
+| Scenes | create/rename/remove/select; configure/cancel transition; transition status | Selected row, native name/duration drafts |
+| Sources/layers | add/reuse/remove; transform, visibility, order, overlay RGB; reconnect | Selected ID, picker choices, bounded transform history |
+| Canvas | Active graph and variant, real libobs frame | Geometry, provisional outline/guides, numeric fields |
+| Profiles | query/upsert/remove/select/save/load, preflight | Revision-bound profile draft and read-only list snapshot |
+| RTMP | configure loopback endpoint, preflight/start/cancel/stop/recover | Transport/port draft; actual lifecycle text and stats |
+| Credentials | opaque reference selection and access query | Reference draft only; no secret entry or storage |
+| H10 audio | ID-keyed registry/runtime; add/gain/mute/disconnect/reconnect/remove/save/load | Kit faders, pointer focus, release revision |
+| Preferences | No multimedia mutation | Explicit UI-v1 theme/safe-margin file only |
+| Agent status | PID/revision/last action from shared Production | Display only; no invented proposals |
+| Recording result | Core-owned last output path and encoder state | Display only; no arbitrary filesystem browsing |
+
+The reusable library deliberately uses composition functions, not a new class
+hierarchy: themed Kit buttons, rows/columns, labels/status dots, audio meters,
+property groups and labelled inputs. One popover shell handles sizing/scrolling,
+close, drafts and stale-state notices. One revision-bound confirmation handles
+structural deletion, restore/overwrite and output stop. Scene/layer/device views
+remain cohesive feature methods because each has one production use site.
+Numeric fields use persistent Kit entities and the existing pure geometry tests.
+
+Semantic light/dark colors and shared control/type dimensions live in theme.rs.
+Stage geometry and one-off feature dimensions remain close to their layout;
+there is no justification for a token per numeric constant. Kit owns focus rings,
+menus, dialogs, inputs and slider/accessibility behavior. Layout remains macOS
+native at 1440×980 and 1024×780; channels and scenes scroll independently.
+
+## Final architecture audit
+
+- The original Studio monolith is split into feature modules (roughly 68–301
+  lines each); the owner module is 208 lines. Editor event/undo handling is 445
+  lines, separated from canvas drawing and pure geometry. No dependency cycle,
+  second Production, mixer, Scene Graph, output policy or renderer was added.
+- Drafts/confirmation intent preserve the originating revision. MCP refreshes
+  the live profile list and meters; it does not silently rebase an open draft.
+  A stale gesture/form is rejected. Transform undo is local and deliberately
+  invalidated by structural/remote changes; it does not claim to undo all actions.
+- Removed the unreachable legacy single-input audio picker once H10 became the
+  only UI mixer flow. CLI compatibility remains the engine owner's concern.
+- The 33 ms owner pump, bounded request draining, one-second device/health poll
+  and CPU-copy preview remain unchanged. Faders/dragging commit on release.
+  No performance improvement is claimed. JSON status and per-frame presentation
+  allocation remain measurable future profiling topics, not speculative fixes.
+- Accessibility checks cover actual AX names/roles, keyboard focus, native
+  inputs, buttons and sliders, and pointer-to-keyboard transitions. This is not
+  a full VoiceOver audit or certification. Device labels truncate visually but
+  retain full native names. High channel counts scroll; only two physical/test
+  channels were visually exercised on this Mac.
+
+## Explicit gaps for the next owner
+
+- Source/layer and mixer-input renaming have no shared rename command. Scene
+  rename is implemented. Inactive scene/per-layer previews need engine support;
+  the UI explicitly shows no preview rather than inventing images.
+- A recordings library needs a typed core list/inspect/reveal contract with
+  opaque output IDs and containment under the approved recording directory,
+  plus an approved screen. The UI currently exposes the real last file only.
+- Secure secret registration/replacement/deletion stays in the local Keychain
+  helper. A native flow needs an OS-authorized secure-entry contract; ordinary
+  text fields are inappropriate. Public destinations remain prohibited.
+- Agent proposals need stable proposal IDs, base revision, typed operations,
+  validated preview/diff, explicit accept/discard, and a core-owned inverse with
+  revision/ownership preconditions. Current MCP commands execute directly and
+  the UI reports their real result. It does not manufacture approval/history.
+- Output resolution/FPS, monitoring, audio filters/system audio, multi-output,
+  text/AI overlays and extra Phase 2–5 screens remain outside current contracts.
+  No fake toggles were added. The UI is usable for the implemented studio flows;
+  it is not the completed Motive Design System.

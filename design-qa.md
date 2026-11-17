@@ -1,6 +1,52 @@
 # Native studio visual QA
 
-final result: blocked for UI evolution until final native validation; the prior UI-0–UI-3 review below remains historical evidence
+final result: pass for implemented UI evolution, with the capability limits below
+
+## UI evolution — 2026-11-16–17
+
+Compared the actual GPUI app with the unchanged Phase 1 references at matching
+logical sizes, light and dark. No Claude files were modified. Reference captures
+from the earlier proxima-browser review were reused because their source did not
+change. Preview/active thumbnail contain libobs media, not reference images.
+
+| State | Paired evidence under `var/evidence/ui-evolution/` | Result |
+| --- | --- | --- |
+| Light studio, 1440×980 | `comparison-ready-1440.png` | Pass; hierarchy/colors/rail/stage retained |
+| Dark selected layer, 1440×980 | `comparison-dark-1440.png` | Pass; native numeric inspector and focus |
+| Light editor, 1024×780 | `comparison-edit-1024.png` | Pass; two real mixer channels and controls fit |
+| Controlled source loss, 1024×780 | `comparison-source-lost-1024.png` | Pass; clear warning, source marker, recording disabled |
+
+New panels use Kit inputs/buttons/popovers/dialogs and the same semantic palette.
+H10 expands the audio area for real stereo meters, gain/mute and master, reducing
+the immediately visible scene list; both areas scroll independently. Capability
+content differs from the illustrative prototype. The stage retains its existing
+roughly 32 px height difference, correct aspect ratio and letterboxing. Inactive
+thumbnails remain explicitly unavailable. macOS owns the sharing indicator and
+window controls. No fake CPU/statistics, agent proposals or preview assets appear.
+
+Five interaction/layout defects were corrected with retained before/after
+artifacts: dialog footer, dialog/popover stacking, compact mixer density,
+fader pointer focus, and recovery-banner click-through. The final banner fix
+only changes hit testing; its appearance matches the paired captures. Real
+native recovery and a subsequent 3,478-frame gesture recording passed on the
+final binary. Real saturation and gain reduction were also observed in GPUI.
+
+Accessibility checks cover native AX names/roles, Tab/focus, labelled fields,
+button activation and slider arrows. Long fractional transforms can scroll
+within their focused input; exact f32 precision is retained. Device names may
+truncate in the compact rail. A full VoiceOver/large-text audit remains pending.
+No unresolved P1/P2 defect remains in the exercised controls; this is not a
+claim that the whole Motive UI or future Design System screens are complete.
+
+30 unit tests, Clippy and fmt passed. All 17 H1–H9 suites passed on the first
+final-bundle run; both H10 suites passed, with one retained failed pilot attempt
+and an unchanged successful retest. See [verification](docs/ui-evolution-verification.md)
+for hashes, measurements, repro steps, raw-artifact locations and actual limits.
+
+## Historical UI-0–UI-3 review
+
+The following describes the preceding 7280c5c checkpoint. Its H9-only audio and
+CLI-only configuration limits are superseded by the evolution report above.
 
 Source: approved `design/screens/phase-1/`, Phase 1 artboards and the unmodified
 local prototype. Implementation: signed native GPUI app, actual libobs preview.

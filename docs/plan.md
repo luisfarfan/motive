@@ -65,6 +65,16 @@ de desarrollo, desconexión de ventana y límites de hot-unplug. Solo esta
 Mac/macOS 27.2 fueron probados. El mínimo de build 15.0 no equivale a una matriz
 de compatibilidad ejecutada.
 
+## Evolución de interfaz nativa
+
+La rama aislada `codex/ui-evolution` modulariza GPUI y añade gestión de escenas,
+Cut/Fade, fuentes, perfiles, RTMP local y el mixer H10 ya integrado/verificado.
+Todos los controles usan Production; preferencias visuales tienen su archivo
+local separado. Ver [resultados y límites](ui-evolution-verification.md) y
+[mapa UI/núcleo](ui-architecture.md). No equivale a terminar el Design System;
+biblioteca de grabaciones, propuestas de agentes y entrada nativa de secretos
+necesitan contratos y pantallas apropiados. No se hizo push ni merge de UI.
+
 ## Siguiente hito recomendado
 
 H10 implementa Audio Mixer en el núcleo compartido, con aceptación real de

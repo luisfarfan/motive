@@ -16,6 +16,7 @@ impl Studio {
                     .child(div().font_weight(FontWeight::SEMIBOLD).child("Escenas"))
                     .child(label(graph.scenes.len().to_string(), p.muted))
                     .child(div().flex_1())
+                    .child(self.panel_button(Panel::Scenes, "", IconName::SlidersHorizontal, cx))
                     .child(
                         self.action(
                             "new-scene",
@@ -29,6 +30,7 @@ impl Studio {
                         .tooltip("Nueva escena"),
                     ),
             )
+            .child(self.transition_indicator(status, cx))
             .child(
                 col()
                     .id("scenes-scroll")
@@ -67,7 +69,7 @@ impl Studio {
                                 }
                             }))
                             .p(px(6.))
-                            .rounded(px(10.))
+                            .rounded(px(metrics::POPOVER_RADIUS))
                             .cursor_pointer()
                             .hover(|d| d.bg(p.selected))
                             .on_click(cx.listener(move |v, _, _, cx| {
@@ -131,5 +133,41 @@ impl Studio {
                             )
                     })),
             )
+    }
+}
+
+impl Studio {
+    fn transition_indicator(&self, status: &Value, cx: &mut Context<Self>) -> Div {
+        let t = &status["transition"];
+        let p = Palette::new(self.dark);
+        col().when(
+            matches!(
+                t["phase"].as_str(),
+                Some("preparing" | "running" | "failed")
+            ),
+            |d| {
+                d.gap(px(4.))
+                    .pb(px(8.))
+                    .child(label(
+                        format!(
+                            "{} → {} · {:.0}%",
+                            t["phase"].as_str().unwrap_or(""),
+                            t["target_scene"].as_str().unwrap_or("—"),
+                            t["progress"].as_f64().unwrap_or(0.) * 100.
+                        ),
+                        p.warn,
+                    ))
+                    .when(t["phase"] != "failed", |d| {
+                        d.child(self.action(
+                            "cancel-scene-transition",
+                            "Cancelar transición",
+                            Command::CancelTransition {
+                                operation_id: t["operation_id"].as_u64().unwrap_or(0),
+                            },
+                            cx,
+                        ))
+                    })
+            },
+        )
     }
 }

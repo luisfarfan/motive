@@ -1,10 +1,7 @@
 use super::*;
 impl Studio {
-    pub(super) fn render_panel(
-        &self,
-        panel: &'static str,
-        cx: &mut Context<Self>,
-    ) -> impl IntoElement {
+    pub(super) fn render_panel(&self, panel: Panel, cx: &mut Context<Self>) -> impl IntoElement {
+        let panel = panel.id();
         let p = Palette::new(self.dark);
         let graph = self.production.graph();
         let scene = graph.scene(&graph.active_scene).unwrap();
@@ -15,6 +12,9 @@ impl Studio {
             "output" => "Salida RTMP local",
             "agent" => "Control por agentes",
             "layer" => "Propiedades de capa",
+            "profiles" => "Perfiles de salida",
+            "settings" => "Preferencias y diagnóstico",
+            "scenes" => "Escenas y transiciones",
             _ => "Estudio",
         };
         let mut content = col().gap(px(8.));
@@ -28,40 +28,7 @@ impl Studio {
                         Command::LoadProject,
                         cx,
                     ))
-                    .child(label("Escenas en vivo", p.muted))
-                    .child(
-                        row()
-                            .child(self.action(
-                                "cut",
-                                "Cut",
-                                Command::ConfigureTransition {
-                                    transition: TransitionConfig {
-                                        kind: TransitionKind::Cut,
-                                        duration_ms: 0,
-                                    },
-                                },
-                                cx,
-                            ))
-                            .child(self.action(
-                                "fade",
-                                "Fade · 300 ms",
-                                Command::ConfigureTransition {
-                                    transition: TransitionConfig {
-                                        kind: TransitionKind::Fade,
-                                        duration_ms: 300,
-                                    },
-                                },
-                                cx,
-                            )),
-                    )
-                    .child(self.action(
-                        "remove-scene",
-                        "Eliminar escena actual",
-                        Command::RemoveScene {
-                            scene_id: scene.id.clone(),
-                        },
-                        cx,
-                    ))
+                    .child(self.scene_settings(cx))
                     .child(label("Desarrollo · contenido propio", p.muted))
                     .child(self.action(
                         "fixture",
@@ -89,179 +56,19 @@ impl Studio {
                     .child(label("Propuestas visuales de agentes: futuras.", p.muted));
             }
             "add-source" | "audio" => {
-                if panel == "add-source" {
-                    content = content
-                        .child(
-                            row().children(
-                                [
-                                    ("windows", "Ventana", IconName::Monitor),
-                                    ("cameras", "Webcam", IconName::Video),
-                                ]
-                                .map(|(kind, title, icon)| {
-                                    quiet(kind, title).icon(icon).on_click(cx.listener(
-                                        move |v, _, _, cx| {
-                                            v.devices = v.production.engine.devices();
-                                            v.picker = Some(kind);
-                                            cx.notify();
-                                        },
-                                    ))
-                                }),
-                            ),
-                        )
-                        .child(
-                            row()
-                                .child(
-                                    self.action(
-                                        "add-overlay",
-                                        "Overlay",
-                                        Command::AddSource {
-                                            scene_id: scene.id.clone(),
-                                            name: "Overlay".into(),
-                                            source: SourceInput::Overlay { color: 0x33e8b5 },
-                                        },
-                                        cx,
-                                    )
-                                    .icon(IconName::Layers),
-                                )
-                                .child(
-                                    self.action(
-                                        "add-pattern",
-                                        "Patrón",
-                                        Command::AddSource {
-                                            scene_id: scene.id.clone(),
-                                            name: "Patrón".into(),
-                                            source: SourceInput::Pattern,
-                                        },
-                                        cx,
-                                    )
-                                    .icon(IconName::Monitor),
-                                ),
-                        )
-                        .child(label("Reutilizar una fuente existente", p.muted))
-                        .children(graph.sources.iter().enumerate().map(|(i, s)| {
-                            self.action(
-                                ("reuse", i),
-                                s.name.clone(),
-                                Command::AddLayer {
-                                    scene_id: scene.id.clone(),
-                                    source_id: s.id.clone(),
-                                },
-                                cx,
-                            )
-                        }));
-                } else {
-                    content = content
-                        .child(
-                            row()
-                                .child(self.action(
-                                    "audio-none",
-                                    "Sin audio",
-                                    Command::SelectAudio { id: "none".into() },
-                                    cx,
-                                ))
-                                .child(self.action(
-                                    "audio-tone",
-                                    "Tono de prueba",
-                                    Command::SelectAudio { id: "tone".into() },
-                                    cx,
-                                )),
-                        )
-                        .child(label("Micrófonos disponibles", p.muted));
-                }
-                let kind = if panel == "audio" {
-                    Some("audio")
-                } else {
-                    self.picker
-                };
-                if let Some(kind) = kind {
-                    let entries = self.devices[kind].as_array().cloned().unwrap_or_default();
-                    if entries.is_empty() {
-                        content = content.child(label(
-                            "No hay dispositivos disponibles. Revisa conexión y permisos.",
-                            p.warn,
-                        ));
-                    }
-                    content = content.children(entries.iter().enumerate().filter_map(|(i, d)| {
-                        let name = d["name"].as_str()?;
-                        let clean = name
-                            .chars()
-                            .filter(|c| !c.is_control())
-                            .take(80)
-                            .collect::<String>();
-                        let command = match kind {
-                            "audio" => Command::SelectAudio {
-                                id: d["id"].as_str()?.into(),
-                            },
-                            _ => Command::AddSource {
-                                scene_id: scene.id.clone(),
-                                name: if clean.trim().is_empty() {
-                                    "Fuente".into()
-                                } else {
-                                    clean
-                                },
-                                source: if kind == "windows" {
-                                    SourceInput::Window {
-                                        window_id: d["id"].as_u64()? as u32,
-                                    }
-                                } else {
-                                    SourceInput::Camera {
-                                        device_id: d["id"].as_str()?.into(),
-                                    }
-                                },
-                            },
-                        };
-                        Some(self.action(("device", i), name.to_owned(), command, cx))
-                    }));
-                    content =
-                        content.child(quiet("permission", "Revisar permiso de macOS").on_click(
-                            cx.listener(move |v, _, _, cx| {
-                                v.production.engine.request_permission(match kind {
-                                    "audio" => 1,
-                                    "cameras" => 2,
-                                    _ => 0,
-                                });
-                                v.devices = v.production.engine.devices();
-                                cx.notify();
-                            }),
-                        ));
-                }
+                content = content.child(self.device_picker(panel, cx));
             }
             "output" => {
-                let s = self.production.status();
-                content = content
-                    .child("Solo receptor local controlado · una salida a la vez")
-                    .child(label(
-                        if let Some(port) = s["output_configuration"]["endpoint"]["port"].as_u64() {
-                            format!("Receptor local · 127.0.0.1:{port}")
-                        } else {
-                            "Sin receptor local configurado · usa CLI o MCP".into()
-                        },
-                        p.secondary,
-                    ))
-                    .child(self.action(
-                        "preflight",
-                        "Comprobar salida",
-                        Command::PreflightOutput {
-                            target: crate::core::output::OutputTarget::Streaming,
-                        },
-                        cx,
-                    ))
-                    .child(self.action(
-                        "start-stream",
-                        "Iniciar RTMP local",
-                        Command::StartStream,
-                        cx,
-                    ))
-                    .child(self.action(
-                        "recover-output",
-                        "Recuperar salida",
-                        Command::RecoverOutput,
-                        cx,
-                    ))
-                    .child(label(
-                        "No se habilitan destinos públicos desde esta pantalla.",
-                        p.muted,
-                    ));
+                content = content.child(self.output_settings(cx));
+            }
+            "profiles" => {
+                content = content.child(self.profile_settings(cx));
+            }
+            "settings" => {
+                content = content.child(self.studio_settings(cx));
+            }
+            "scenes" => {
+                content = content.child(self.scene_settings(cx));
             }
             "layer" => {
                 if let Some(l) = scene
@@ -325,6 +132,33 @@ impl Studio {
                             .spec,
                         SourceKind::Overlay { .. }
                     ) {
+                        let source_id = l.source_id.clone();
+                        content = content
+                            .child(forms::field(
+                                "Color overlay (RGB hexadecimal)",
+                                &self.forms.overlay_color,
+                                p,
+                            ))
+                            .child(quiet("apply-overlay-color", "Aplicar color").on_click(
+                                cx.listener(move |v, _, _, cx| {
+                                    let text = v.forms.overlay_color.read(cx).value();
+                                    if text.len() == 6
+                                        && text.bytes().all(|b| b.is_ascii_hexdigit())
+                                    {
+                                        let color = u32::from_str_radix(&text, 16).unwrap();
+                                        v.form_submit(
+                                            Command::SetOverlayColor {
+                                                source_id: source_id.clone(),
+                                                color,
+                                            },
+                                            cx,
+                                        );
+                                    } else {
+                                        v.message = "Usa seis dígitos RGB hexadecimales".into();
+                                        cx.notify();
+                                    }
+                                }),
+                            ));
                         content = content.child(
                             row().children(
                                 [
@@ -376,6 +210,12 @@ impl Studio {
                             })),
                     ),
             )
+            .when(self.forms.revision != self.production.revision, |d| {
+                d.child(label(
+                    "El estado cambió. Reabre para actualizar los formularios.",
+                    p.warn,
+                ))
+            })
             .child(content.id("panel-scroll").overflow_y_scroll())
             .child(label(self.message.clone(), p.secondary))
     }

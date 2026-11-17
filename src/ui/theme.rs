@@ -76,3 +76,14 @@ impl Palette {
         t.colors.ring = rgb(0x0a7aff).into();
     }
 }
+
+/// Phase 1 dimensions in logical pixels; geometric canvas values stay in the editor.
+pub(super) mod metrics {
+    pub const CONTROL: f32 = 28.;
+    pub const LAYER_ROW: f32 = 46.;
+    pub const TITLE_BAR: f32 = 52.;
+    pub const CONTROL_RADIUS: f32 = 6.;
+    pub const POPOVER_RADIUS: f32 = 10.;
+    pub const BODY: f32 = 13.;
+    pub const SECONDARY: f32 = 12.;
+}

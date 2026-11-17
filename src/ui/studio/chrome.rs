@@ -7,14 +7,26 @@ impl Studio {
         command: Command,
         cx: &mut Context<Self>,
     ) -> Button {
-        quiet(id, text).on_click(cx.listener(move |v, _, _, cx| {
-            v.command(command.clone(), "UI", cx);
+        quiet(id, text).on_click(cx.listener(move |v, _, w, cx| {
+            if matches!(
+                command,
+                Command::RemoveScene { .. }
+                    | Command::RemoveLayer { .. }
+                    | Command::RemoveSource { .. }
+                    | Command::RemoveOutputProfile { .. }
+                    | Command::LoadProject
+                    | Command::LoadOutputProfiles
+            ) {
+                v.confirm_command(command.clone(), w, cx);
+            } else {
+                v.command(command.clone(), "UI", cx);
+            }
         }))
     }
     pub(super) fn popover(
         &self,
         id: impl Into<ElementId>,
-        panel: &'static str,
+        panel: Panel,
         trigger: Button,
         layer: Option<String>,
         cx: &mut Context<Self>,
@@ -24,15 +36,16 @@ impl Studio {
         gpui_kit::component::popover::Popover::new(id)
             .p_0()
             .bg(Palette::new(self.dark).raised)
-            .rounded(px(10.))
+            .rounded(px(metrics::POPOVER_RADIUS))
             .open(open)
             .trigger(trigger)
-            .on_open_change(cx.listener(move |v, open, _, cx| {
+            .on_open_change(cx.listener(move |v, open, w, cx| {
                 if *open {
                     v.panel = Some(panel);
                     if let Some(layer) = &layer {
                         v.selected_layer = Some(layer.clone());
                     }
+                    v.prepare_forms(w, cx);
                     v.devices = v.production.engine.devices();
                 } else {
                     v.panel = None;
@@ -47,19 +60,23 @@ impl Studio {
     }
     pub(super) fn panel_button(
         &self,
-        id: &'static str,
+        panel: Panel,
         text: &'static str,
         icon: IconName,
         cx: &mut Context<Self>,
     ) -> gpui_kit::component::popover::Popover {
-        let disabled = id == "output" && self.production.status()["output"] != "idle";
+        let id = panel.id();
+        let disabled = false;
         self.popover(
             id,
-            id,
+            panel,
             quiet((ElementId::from("trigger"), id), text)
                 .icon(icon)
                 .tooltip(match id {
                     "audio" => "Seleccionar entrada de audio",
+                    "profiles" => "Perfiles de salida",
+                    "settings" => "Preferencias y diagnóstico",
+                    "scenes" => "Escenas y transiciones",
                     "add-source" => "Añadir fuente",
                     _ => text,
                 })
@@ -100,7 +117,7 @@ impl Studio {
         };
         let seconds = status["stats"]["output_frames"].as_u64().unwrap_or(0) / 30;
         TitleBar::new()
-            .h(px(52.))
+            .h(px(metrics::TITLE_BAR))
             .pl(px(88.))
             .pr(px(14.))
             .bg(p.raised)
@@ -116,7 +133,7 @@ impl Studio {
                             .bg(rgb(0x5fe3c6))
                             .text_color(rgb(0x0f2a2e))
                             .font_weight(FontWeight::BOLD)
-                            .text_size(px(13.))
+                            .text_size(px(metrics::BODY))
                             .flex()
                             .items_center()
                             .justify_center()
@@ -134,7 +151,7 @@ impl Studio {
                     )
                     .child(div().mx(px(6.)).w(px(1.)).h(px(18.)).bg(p.line))
                     .child(self.panel_button(
-                        "project",
+                        Panel::Project,
                         "Mi producción",
                         IconName::ChevronDown,
                         cx,
@@ -181,7 +198,9 @@ impl Studio {
                                 cx.notify();
                             })),
                     )
-                    .child(self.panel_button("agent", "MCP", IconName::Circle, cx))
+                    .child(self.panel_button(Panel::Settings, "", IconName::Settings, cx))
+                    .child(self.panel_button(Panel::Profiles, "", IconName::SlidersHorizontal, cx))
+                    .child(self.panel_button(Panel::Agent, "MCP", IconName::Circle, cx))
                     .child(
                         control(
                             "record",
@@ -199,7 +218,7 @@ impl Studio {
                             v.command(Command::StartRecording, "UI", cx);
                         })),
                     )
-                    .child(self.panel_button("output", "Emitir", IconName::Radio, cx))
+                    .child(self.panel_button(Panel::Output, "Emitir", IconName::Radio, cx))
                     .when(output != "idle", |d| {
                         d.child(
                             control(
@@ -215,13 +234,17 @@ impl Studio {
                             .icon(IconName::Square)
                             .disabled(matches!(output, "cancel_pending" | "stopping"))
                             .on_click(cx.listener(
-                                move |v, _, _, cx| {
+                                move |v, _, w, cx| {
                                     let cmd = match v.production.status()["output"].as_str() {
                                         Some("connecting") => Command::CancelOutput,
                                         Some("error") => Command::RecoverOutput,
                                         _ => Command::StopOutput,
                                     };
-                                    v.command(cmd, "UI", cx);
+                                    if matches!(cmd, Command::StopOutput) {
+                                        v.confirm_command(cmd, w, cx);
+                                    } else {
+                                        v.command(cmd, "UI", cx);
+                                    }
                                 },
                             )),
                         )

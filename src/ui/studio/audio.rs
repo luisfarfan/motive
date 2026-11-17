@@ -7,7 +7,6 @@ impl Studio {
             .unwrap_or(0.)
             .clamp(0., 1.);
         let db = if peak > 0. { 20. * peak.log10() } else { -60. };
-        let bars = ((db + 60.) / 60. * 48.).clamp(0., 48.) as usize;
         let audio = &self.production.project.audio;
         let name = if audio == "tone" {
             "Tono de prueba".to_owned()
@@ -36,7 +35,7 @@ impl Studio {
                             .font_weight(FontWeight::SEMIBOLD)
                             .child("Audio"),
                     )
-                    .child(self.panel_button("audio", "", IconName::SlidersHorizontal, cx)),
+                    .child(self.panel_button(Panel::Audio, "", IconName::SlidersHorizontal, cx)),
             )
             .child(
                 row()
@@ -49,7 +48,7 @@ impl Studio {
                         div()
                             .flex_1()
                             .overflow_hidden()
-                            .text_size(px(12.))
+                            .text_size(px(metrics::SECONDARY))
                             .child(name),
                     )
                     .child(label(
@@ -61,19 +60,7 @@ impl Studio {
                         p.secondary,
                     )),
             )
-            .child(row().gap(px(1.)).children((0..48).map(|i| {
-                div().flex_1().h(px(5.)).bg(if i < bars {
-                    if i > 43 {
-                        p.live
-                    } else if i > 36 {
-                        p.warn
-                    } else {
-                        p.ready
-                    }
-                } else {
-                    p.sunken
-                })
-            })))
+            .child(audio_meter(peak, p))
             .child(
                 row().justify_between().children(
                     ["−60", "−30", "−12", "0"].map(|x| label(x, p.muted).text_size(px(10.))),

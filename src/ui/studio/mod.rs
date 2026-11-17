@@ -30,9 +30,10 @@ pub struct Studio {
     picker: Option<&'static str>,
     selected_layer: Option<String>,
     dark: bool,
-    panel: Option<&'static str>,
+    panel: Option<Panel>,
     focus: FocusHandle,
     editor: editor::Editor,
+    forms: forms::Forms,
 }
 impl Studio {
     pub fn new(
@@ -43,7 +44,10 @@ impl Studio {
         cx: &mut Context<Self>,
     ) -> Self {
         let devices = production.engine.devices();
+        let prefs = super::preferences::Preferences::load();
+        Palette::apply(prefs.dark, Some(window), cx);
         let editor = editor::Editor::new(window, cx);
+        let forms = forms::Forms::new(window, cx);
         cx.spawn(async move |this, cx| {
             loop {
                 cx.background_executor()
@@ -125,10 +129,11 @@ impl Studio {
             last_device_refresh: Instant::now(),
             picker: None,
             selected_layer: None,
-            dark: false,
+            dark: prefs.dark,
             panel: None,
             focus: cx.focus_handle(),
             editor,
+            forms,
         }
     }
     fn command(&mut self, cmd: Command, origin: &str, cx: &mut Context<Self>) -> Value {
@@ -148,6 +153,9 @@ impl Studio {
         } else if self.production.revision != revision {
             self.message = self.production.last_action.clone();
         }
+        if origin == "UI" && self.forms.revision == revision {
+            self.forms.revision = self.production.revision;
+        }
         cx.notify();
         result
     }
@@ -159,3 +167,36 @@ mod panels;
 mod scenes;
 mod sources;
 mod workspace;
+
+mod configuration;
+mod forms;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Panel {
+    Project,
+    Sources,
+    Audio,
+    Output,
+    Agent,
+    Layer,
+    Profiles,
+    Settings,
+    Scenes,
+}
+impl Panel {
+    fn id(self) -> &'static str {
+        match self {
+            Self::Project => "project",
+            Self::Sources => "add-source",
+            Self::Audio => "audio",
+            Self::Output => "output",
+            Self::Agent => "agent",
+            Self::Layer => "layer",
+            Self::Profiles => "profiles",
+            Self::Settings => "settings",
+            Self::Scenes => "scenes",
+        }
+    }
+}
+
+mod devices;

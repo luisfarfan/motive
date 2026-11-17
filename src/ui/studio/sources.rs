@@ -17,7 +17,7 @@ impl Studio {
                     .child(div().font_weight(FontWeight::SEMIBOLD).child("Capas"))
                     .child(label(format!("en {}", scene.name), p.muted))
                     .child(div().flex_1())
-                    .child(self.panel_button("add-source", "Añadir fuente", IconName::Plus, cx)),
+                    .child(self.panel_button(Panel::Sources, "Añadir fuente", IconName::Plus, cx)),
             )
             .child(col().border_t_1().border_color(p.line).children(
                 layers.into_iter().enumerate().map(|(i, l)| {
@@ -56,7 +56,7 @@ impl Studio {
                                 }
                             }
                         }))
-                        .min_h(px(46.))
+                        .min_h(px(metrics::LAYER_ROW))
                         .px(px(8.))
                         .gap(px(10.))
                         .border_b_1()
@@ -78,7 +78,7 @@ impl Studio {
                                 .min_w(px(96.))
                                 .child(
                                     div()
-                                        .text_size(px(13.))
+                                        .text_size(px(metrics::BODY))
                                         .truncate()
                                         .child(source.name.clone()),
                                 )
@@ -138,7 +138,7 @@ impl Studio {
                         .child(
                             self.popover(
                                 ("layer-popup", i),
-                                "layer",
+                                Panel::Layer,
                                 quiet(("layer-more", i), "")
                                     .icon(IconName::Ellipsis)
                                     .tooltip("Acciones de capa"),

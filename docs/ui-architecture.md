@@ -38,3 +38,21 @@ Mechanical module extraction, identical operation bodies. Pure geometry tests
 remain in their own module. 24 tests and production Clippy pass. Native execution
 is pending the existing H10 physical-test lock; no second Motive was launched.
 This environmental gate does not justify weakening native acceptance tests.
+
+## Increment 2 — native management
+
+Native scene rename and configurable Fade, profile creation/selection/save/load,
+loopback RTMP configuration and preflight ran through GPUI and were corroborated
+through MCP. Actual H.264/AAC reached the local FFmpeg receiver. Two native QA
+failures were retained and fixed: plain Kit Dialog needs an explicit footer;
+a popover must close before opening its confirmation dialog to avoid overlap.
+A stale profile draft after an MCP revision was rejected without changing bitrate.
+26 unit tests and production Clippy pass. Runtime evidence is in ignored
+`var/evidence/ui-evolution/`. Full regression run follows final integration.
+
+Forms are revision-bound drafts. Profile lists are query snapshots; selecting
+Edit reloads the profile from the shared core. Panel identity is an enum.
+Confirmations capture the revision and reject stale intent. Components include
+Kit button styles, property groups, numeric/text inputs and a real peak meter.
+Editor geometry and canvas rendering are separate. Appearance/safe-margin
+preferences have a strict local UI-only v1 schema; no multimedia state is stored.

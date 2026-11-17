@@ -141,5 +141,147 @@
       "sha256": "72b2c14a487560b7eb203795f2c2fead5c7499662e639944cca2a9bb19f09029"
     }
   ],
-  "obs_deps_archive_sha256": "8a371287051314b28dab25d37d814b9a2125fd5f41e75fc03fa19cee2b6cb50f"
+  "obs_deps_archive_sha256": "8a371287051314b28dab25d37d814b9a2125fd5f41e75fc03fa19cee2b6cb50f",
+  "submodules": [
+    {
+      "name": "mbedtls-framework",
+      "kind": "git_submodule",
+      "version": "git-2a3e2c5ea053",
+      "upstream_url": "https://github.com/Mbed-TLS/mbedtls-framework",
+      "revision": "2a3e2c5ea053c14b745dbdf41f609b1edc6a72fa",
+      "archive_url": "https://github.com/Mbed-TLS/mbedtls-framework/archive/2a3e2c5ea053c14b745dbdf41f609b1edc6a72fa.tar.gz",
+      "sha256": "f5934ffcad4c32a95f9281f0f95908eb471ee34df721fb9d6ad4adb9567f6b61",
+      "parent_source": "mbedtls",
+      "parent_revision": "c765c831e5c2a0971410692f92f7a81d6ec65ec2",
+      "submodule_path": "framework",
+      "role": "required_by_mbedtls_cmake_even_with_tests_and_generation_disabled"
+    },
+    {
+      "name": "obs-browser",
+      "kind": "git_submodule",
+      "version": "git-d4db73e7e5d5",
+      "upstream_url": "https://github.com/obsproject/obs-browser",
+      "revision": "d4db73e7e5d5b51d853177c8cddc796715a8ac84",
+      "archive_url": "https://github.com/obsproject/obs-browser/archive/d4db73e7e5d5b51d853177c8cddc796715a8ac84.tar.gz",
+      "sha256": "e68174d5460aaa400208f0e769a786f88e9b66e809ed6b893bda2e9e5b7a3b5f",
+      "parent_source": "obs-studio",
+      "parent_revision": "65c320b46e1af5c7a555161aea6182cdf7a8c524",
+      "submodule_path": "plugins/obs-browser",
+      "role": "required_for_obs_cmake_configuration; runtime_excluded_with_ENABLE_BROWSER_OFF"
+    },
+    {
+      "name": "obs-websocket",
+      "kind": "git_submodule",
+      "version": "git-e28f84975984",
+      "upstream_url": "https://github.com/obsproject/obs-websocket",
+      "revision": "e28f84975984340e84fc4879cfc05741cc0afde1",
+      "archive_url": "https://github.com/obsproject/obs-websocket/archive/e28f84975984340e84fc4879cfc05741cc0afde1.tar.gz",
+      "sha256": "2e200547fd453b8fecb70f3b1d17f3adf447dd26aa5278dcf2dfb989c51ba6a2",
+      "parent_source": "obs-studio",
+      "parent_revision": "65c320b46e1af5c7a555161aea6182cdf7a8c524",
+      "submodule_path": "plugins/obs-websocket",
+      "role": "required_for_obs_cmake_configuration; runtime_excluded_with_ENABLE_WEBSOCKET_OFF"
+    },
+    {
+      "name": "libdshowcapture",
+      "kind": "git_submodule",
+      "version": "git-887863832439",
+      "upstream_url": "https://github.com/obsproject/libdshowcapture",
+      "revision": "8878638324393815512f802640b0d5ce940161f1",
+      "archive_url": "https://github.com/obsproject/libdshowcapture/archive/8878638324393815512f802640b0d5ce940161f1.tar.gz",
+      "sha256": "f473bd8040fd772bb590ad03952031a056dbaab9d9310b10d9ebd8bee3da2407",
+      "parent_source": "obs-studio",
+      "parent_revision": "65c320b46e1af5c7a555161aea6182cdf7a8c524",
+      "submodule_path": "deps/libdshowcapture/src",
+      "role": "windows_only; retained_for_complete_declared_gitlink_inventory"
+    },
+    {
+      "name": "munit",
+      "kind": "git_submodule",
+      "version": "git-da8f73412998",
+      "upstream_url": "https://github.com/nemequ/munit",
+      "revision": "da8f73412998e4f1adf1100dc187533a51af77fd",
+      "archive_url": "https://github.com/nemequ/munit/archive/da8f73412998e4f1adf1100dc187533a51af77fd.tar.gz",
+      "sha256": "835a9ee03e3b9560af5a2e4465394e00337398f5baba9d686083b8e1d93f0c30",
+      "parent_source": "simde",
+      "parent_revision": "71fd833d9666141edcd1d3c109a80e228303d8d7",
+      "submodule_path": "test/munit",
+      "role": "simde_test_only; excluded_by_obs_deps_Dtests_false; retained_for_inventory"
+    },
+    {
+      "name": "capture-device-support",
+      "kind": "git_submodule",
+      "version": "git-fe9630974d47",
+      "upstream_url": "https://github.com/elgatosf/capture-device-support",
+      "revision": "fe9630974d47f51bf54826e72fb8b654e620aa93",
+      "archive_url": "https://github.com/elgatosf/capture-device-support/archive/fe9630974d47f51bf54826e72fb8b654e620aa93.tar.gz",
+      "sha256": "bdf253133a61fdf2498628c5a8ec2a52a17e63b0d36abb546009eeaef80bfeb7",
+      "parent_source": "libdshowcapture",
+      "parent_revision": "8878638324393815512f802640b0d5ce940161f1",
+      "submodule_path": "external/capture-device-support",
+      "role": "transitive_windows_capture_dependency; excluded_from_macos_runtime"
+    }
+  ],
+  "source_tree_proofs": [
+    {
+      "source": "obs-studio",
+      "revision": "65c320b46e1af5c7a555161aea6182cdf7a8c524",
+      "url": "https://api.github.com/repos/obsproject/obs-studio/git/trees/65c320b46e1af5c7a555161aea6182cdf7a8c524?recursive=1",
+      "sha256": "e9c27927caec361e2ff94ea5e8572e5d41c5eeed7d1694f66055a9db77062623"
+    },
+    {
+      "source": "mbedtls",
+      "revision": "c765c831e5c2a0971410692f92f7a81d6ec65ec2",
+      "url": "https://api.github.com/repos/Mbed-TLS/mbedtls/git/trees/c765c831e5c2a0971410692f92f7a81d6ec65ec2?recursive=1",
+      "sha256": "d22f7d8490c04b4ffaefd13481c7f1e54360f57fc1497ad8699bc7361bb94ca3"
+    },
+    {
+      "source": "opus",
+      "revision": "ddbe48383984d56acd9e1ab6a090c54ca6b735a6",
+      "url": "https://api.github.com/repos/xiph/opus/git/trees/ddbe48383984d56acd9e1ab6a090c54ca6b735a6?recursive=1",
+      "sha256": "974a0a264096d7173da68454daac059fcc47809d911df964206f800e84de0c77"
+    },
+    {
+      "source": "simde",
+      "revision": "71fd833d9666141edcd1d3c109a80e228303d8d7",
+      "url": "https://api.github.com/repos/simd-everywhere/simde/git/trees/71fd833d9666141edcd1d3c109a80e228303d8d7?recursive=1",
+      "sha256": "ba7b27481dae0b5b1140267269464e52dfd2415cc21bf688bdfaee0cb5d752e1"
+    },
+    {
+      "source": "mbedtls-framework",
+      "revision": "2a3e2c5ea053c14b745dbdf41f609b1edc6a72fa",
+      "url": "https://api.github.com/repos/Mbed-TLS/mbedtls-framework/git/trees/2a3e2c5ea053c14b745dbdf41f609b1edc6a72fa?recursive=1",
+      "sha256": "055c1120bc6d3b9d44fe974dc7b9e9dd2277937cbeb3d49407f8a373f78fa9eb"
+    },
+    {
+      "source": "obs-browser",
+      "revision": "d4db73e7e5d5b51d853177c8cddc796715a8ac84",
+      "url": "https://api.github.com/repos/obsproject/obs-browser/git/trees/d4db73e7e5d5b51d853177c8cddc796715a8ac84?recursive=1",
+      "sha256": "9f6b91c7e7f1e8c542cf4840de8d43d2f7f0d9d5b1d339be0fcd7ff4d385735e"
+    },
+    {
+      "source": "obs-websocket",
+      "revision": "e28f84975984340e84fc4879cfc05741cc0afde1",
+      "url": "https://api.github.com/repos/obsproject/obs-websocket/git/trees/e28f84975984340e84fc4879cfc05741cc0afde1?recursive=1",
+      "sha256": "f449619f0f5d8f8f0cb4c86939fdd85d047b5d99f366dbed81bfd638525762d4"
+    },
+    {
+      "source": "libdshowcapture",
+      "revision": "8878638324393815512f802640b0d5ce940161f1",
+      "url": "https://api.github.com/repos/obsproject/libdshowcapture/git/trees/8878638324393815512f802640b0d5ce940161f1?recursive=1",
+      "sha256": "d30c0eafa4c72e4b12a0342cfae447a6b00e3be3905a3151afd03477efc023c9"
+    },
+    {
+      "source": "munit",
+      "revision": "da8f73412998e4f1adf1100dc187533a51af77fd",
+      "url": "https://api.github.com/repos/nemequ/munit/git/trees/da8f73412998e4f1adf1100dc187533a51af77fd?recursive=1",
+      "sha256": "925358fb085061b8f5be937b4019d3ecdee9482f854e0924887f7325b3db06c9"
+    },
+    {
+      "source": "capture-device-support",
+      "revision": "fe9630974d47f51bf54826e72fb8b654e620aa93",
+      "url": "https://api.github.com/repos/elgatosf/capture-device-support/git/trees/fe9630974d47f51bf54826e72fb8b654e620aa93?recursive=1",
+      "sha256": "2bc4d1f2782b3a483d80b95d11ebc2c17bd7d8f3dab915bd411821d5cce903dd"
+    }
+  ]
 }

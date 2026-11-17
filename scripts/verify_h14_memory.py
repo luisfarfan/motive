@@ -116,7 +116,9 @@ def plan(args):
     return {'version': 1, 'mode': args.mode, 'fps': args.fps, 'resolution': '1920x1080',
             'interval_seconds': args.interval, 'baseline_seconds': args.hold,
             'cycles': args.cycles if args.mode != 'observe' else 0,
-            'per_cycle': ['four_visible', 'four_hidden', 'removed_settle'] if args.mode != 'observe' else [],
+            'per_cycle': (['four_visible', 'four_hidden'] +
+                          (['four_hidden_paused'] if args.pause_hidden else []) +
+                          ['removed_settle']) if args.mode != 'observe' else [],
             'soak_seconds': args.soak_seconds if args.mode == 'dual-soak' else 0,
             'scope': 'controlled pattern and four looping silent video decoders; tone for dual outputs',
             'warnings': ['Caller must hold canonical lock and provide the already-open app.',
@@ -284,6 +286,13 @@ def execute(args):
                     transform = dict(layer['layouts']['horizontal']); transform['visible'] = False
                     client.call('set_transform', scene_id=scene, layer_id=layer['id'], variant='horizontal', transform=transform)
                 phase(f'cycle_{cycle+1}_hidden', args.hold, 4)
+                if args.pause_hidden:
+                    for identifier in source_ids:
+                        client.call('overlay_event', source_id=identifier, event='pause')
+                    wait(lambda s: all(next(item for item in s['overlays']['runtime']['sources']
+                                           if item['id'] == identifier)['media_state'] == 'paused'
+                                       for identifier in source_ids))
+                    phase(f'cycle_{cycle+1}_hidden_paused', args.hold, 4)
                 remove_videos(); phase(f'cycle_{cycle+1}_released', args.settle, 0)
             if args.mode == 'dual-soak':
                 add_videos()
@@ -304,6 +313,9 @@ def execute(args):
                     started[target] = state['outputs'][target]['attempt_id']
                     report['media'].append({'target': target, 'path': str(receiver.path) if target == 'streaming' else state['outputs'][target]['path'], 'attempt_id': state['outputs'][target]['attempt_id']})
                     wait(lambda s: s['outputs'][target]['phase'] == 'active')
+                    wait(lambda s: s['outputs'][target]['stats']['output_frames'] >= 3)
+                    write_json(directory / (target+'-start-packets.json'),
+                               client.call('output_diagnostics', target=target))
                 phase('dual_soak', args.soak_seconds, 4, True)
         report['status'] = 'PARTIAL'
         report['measurement_completed'] = True
@@ -317,6 +329,9 @@ def execute(args):
                 cancel_owned_outputs(client, started)
                 if started:
                     wait(lambda s: all(not slot['native_busy'] for slot in s['outputs'].values()))
+                    for target in started:
+                        write_json(directory / (target+'-final-packets.json'),
+                                   client.call('output_diagnostics', target=target))
                 if changed:
                     check(all(not s['native_busy'] for s in client.state()['outputs'].values()), 'native outputs quiescent before source cleanup')
                     remove_videos()
@@ -396,6 +411,8 @@ def main():
     parser.add_argument('--hold', type=float, default=20)
     parser.add_argument('--settle', type=float, default=60)
     parser.add_argument('--cycles', type=int, choices=range(1, 6), default=3)
+    parser.add_argument('--pause-hidden', action='store_true',
+                        help='Measure explicit pause of the four owned hidden videos before removing them.')
     parser.add_argument('--soak-seconds', type=float, default=1800)
     parser.add_argument('--native-budget-us', type=float, default=2000)
     parser.add_argument('--rpc-budget-ms', type=float, default=20)

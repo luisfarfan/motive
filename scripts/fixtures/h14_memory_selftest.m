@@ -15,6 +15,8 @@ static NSDictionary *sample(void) {
     assert(result && [result[@"version"] intValue] == 1);
     assert([result[@"pid"] intValue] == getpid());
     assert([result[@"vm"][@"available"] boolValue]);
+    assert(CFGetTypeID((__bridge CFTypeRef)result[@"vm"][@"available"]) == CFBooleanGetTypeID());
+    assert(CFGetTypeID((__bridge CFTypeRef)result[@"cpu"][@"available"]) == CFBooleanGetTypeID());
     assert(result[@"vm"][@"physical_footprint_bytes"] != [NSNull null]);
     return result;
 }

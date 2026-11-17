@@ -43,3 +43,14 @@ evidence: `var/evidence/h14-build/secure-paste-native-test.log`. This does not
 prove the complete GPUI→native keyboard path. The visible button and Cmd+V
 still require verification in the rebuilt signed sheet; the user's actual clipboard must remain confined
 to their native entry, without tool inspection or screenshots of field content.
+
+## B2 user verification
+
+The signed B2 sheet exposes **Pegar** and the native secure field. The user
+reported that pasting and saving succeeded. The owner then observed
+`phase: stored`, `attached: true`, `receipt_persisted: true`, no reconciliation,
+and no credential operation still busy. Evidence is in
+`var/evidence/h14-portable-b2-1794953837847861000/`:
+`destination-enrollment-completed.json` and `secure-paste-ui-verification.json`.
+No tool inspected the clipboard or entered the key. The report verifies the
+button workflow; a separate physical Cmd+V test remains unverified.

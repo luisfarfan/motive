@@ -187,3 +187,24 @@ callbacks, superficie consumida, media clock o archivo existente no cierra
 esos gates. El cierre de proyecto, recuperación de dispositivos y la interfaz
 GPUI requieren sus pruebas independientes. Los resultados pueden ser
 inconclusos sin bloquear automáticamente los gates P0.
+
+## B2 follow-up: hidden playback and packet origin
+
+The initial 1080p30 lifecycle run keeps the original visible → hidden → removed
+sequence. B2 explicitly sets OBS FFmpeg `restart_on_activate=false` and
+`close_when_inactive=false`; upstream `ffmpeg_source_deactivate` only stops the
+player when restart-on-activate is true. Continued playback while hidden is
+therefore a configured behavior, not evidence of a leak.
+
+For a controlled follow-up, `--pause-hidden` adds one 20-second phase per cycle
+after hiding: the existing `overlay_event(pause)` targets only the four owned
+sources, checks their real `media_state=paused`, samples CPU/VM/malloc, then
+removes them normally. It changes no automatic product behavior or persisted
+configuration. Compare hidden-playing and hidden-paused within the same run.
+The 1080p60 dual-soak plan with this option lasts 380 + 1800 seconds plus setup.
+
+Future dual-soak runs also retain output packet traces just after three frames
+and after final quiescence, before cleanup. This supports timestamp-origin
+correlation; trace coverage must still be checked instead of assuming every
+packet survived the bounded ring. The already-running 30 fps lifecycle has no
+outputs and is unaffected by these harness additions.

@@ -62,7 +62,7 @@ char *motive_memory_diagnostics(void) {
                 @"high_water_semantics": @"sum of zone high-water touched memory; not simultaneous process live-allocation peak"
             },
             @"cpu": @{
-                @"available": @(usage_result == 0), @"errno": @(usage_errno),
+                @"available": usage_result == 0 ? @YES : @NO, @"errno": @(usage_errno),
                 @"user_seconds": usage_result == 0 ? @(motive_timeval_seconds(usage.ru_utime)) : unavailable,
                 @"system_seconds": usage_result == 0 ? @(motive_timeval_seconds(usage.ru_stime)) : unavailable,
                 @"coverage": @"all threads in current process; cumulative CPU, one core equals 100 percent in interval deltas"

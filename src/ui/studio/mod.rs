@@ -38,6 +38,8 @@ pub struct Studio {
     creative: creative::Creative,
     lifecycle: lifecycle::Lifecycle,
     recordings: recordings::RecordingsUi,
+    destinations_ui: destinations::DestinationsUi,
+    deck_ui: show_control::DeckUi,
 }
 impl Studio {
     pub fn new(
@@ -52,6 +54,7 @@ impl Studio {
         Palette::apply(prefs.dark, Some(window), cx);
         let editor = editor::Editor::new(window, cx);
         let forms = forms::Forms::new(window, cx);
+        let destinations_ui = destinations::DestinationsUi::new(window, cx);
         cx.spawn(async move |this, cx| {
             loop {
                 cx.background_executor()
@@ -69,6 +72,9 @@ impl Studio {
                             }
                             view.last_device_refresh = Instant::now();
                         }
+                        // The scheduler runs once per owner heartbeat, never
+                        // recursively from apply() or health polling.
+                        view.production.poll_show_control();
                         if view.poll_lifecycle(cx) {
                             return;
                         }
@@ -142,6 +148,8 @@ impl Studio {
             creative: creative::Creative::default(),
             lifecycle: lifecycle::Lifecycle::new(window.window_handle()),
             recordings: recordings::RecordingsUi::default(),
+            destinations_ui,
+            deck_ui: show_control::DeckUi::default(),
         }
     }
     fn command(&mut self, cmd: Command, origin: &str, cx: &mut Context<Self>) -> Value {
@@ -207,10 +215,13 @@ mod sources;
 mod workspace;
 
 mod configuration;
+mod creator_packs;
+mod destinations;
 mod forms;
 mod lifecycle;
 mod outputs;
 mod recordings;
+mod show_control;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Panel {
@@ -225,6 +236,8 @@ enum Panel {
     Scenes,
     Creative,
     Recordings,
+    Destinations,
+    LiveDeck,
 }
 impl Panel {
     fn id(self) -> &'static str {
@@ -240,6 +253,8 @@ impl Panel {
             Self::Scenes => "scenes",
             Self::Creative => "creative",
             Self::Recordings => "recordings",
+            Self::Destinations => "destinations",
+            Self::LiveDeck => "live-deck",
         }
     }
 }

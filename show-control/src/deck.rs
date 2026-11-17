@@ -218,6 +218,8 @@ pub enum ButtonState {
     CoolingDown { remaining_ms: u64 },
     Pending { request_id: u64 },
     Simulated,
+    Completed,
+    NeedsReconciliation,
     Rejected { code: String },
     Cancelled,
 }
@@ -236,8 +238,24 @@ pub struct DeckRuntime {
     last_now: u64,
     cooldown_until: BTreeMap<String, u64>,
     pending: BTreeMap<String, u64>,
+    live_requests: BTreeSet<u64>,
     states: BTreeMap<String, ButtonState>,
     history: VecDeque<DeckHistory>,
+}
+/// Opaque one-use admission issued only after the embedding owner validates its
+/// real local capability. This model never establishes Production authority.
+/// Non-Clone/non-Serde; cannot be supplied in a socket or event payload.
+pub struct LiveDeckPermit {
+    button_id: String,
+    deck: Deck,
+    next_request: u64,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LiveDeckResult {
+    Completed,
+    Rejected(String),
+    Cancelled,
+    NeedsReconciliation,
 }
 impl DeckRuntime {
     pub fn new(deck: Deck) -> Result<Self, Error> {
@@ -248,6 +266,7 @@ impl DeckRuntime {
             last_now: 0,
             cooldown_until: BTreeMap::new(),
             pending: BTreeMap::new(),
+            live_requests: BTreeSet::new(),
             states: BTreeMap::new(),
             history: VecDeque::new(),
         })
@@ -372,6 +391,75 @@ impl DeckRuntime {
             simulated: true,
         })
     }
+    /// Trusted owner boundary, not an RPC. Caller must first validate an exact
+    /// session/PID/revision/button/config local capability for sensitive buttons.
+    pub fn authorize_live(&self, button_id: &str, now_ms: u64) -> Result<LiveDeckPermit, Error> {
+        match self.state(button_id, now_ms)? {
+            ButtonState::Disabled => return Err(fail("DECK_DISABLED", "Button is disabled")),
+            ButtonState::Pending { .. } => {
+                return Err(fail("DECK_PENDING", "Previous request is pending"));
+            }
+            ButtonState::CoolingDown { .. } => {
+                return Err(fail("DECK_COOLDOWN", "Button cooldown is active"));
+            }
+            _ => {}
+        }
+        Ok(LiveDeckPermit {
+            button_id: button_id.into(),
+            deck: self.deck.clone(),
+            next_request: self.next_request,
+        })
+    }
+    pub fn press_live(&mut self, permit: LiveDeckPermit, now_ms: u64) -> Result<DeckPress, Error> {
+        if permit.deck != self.deck || permit.next_request != self.next_request {
+            return Err(fail(
+                "DECK_STALE_PERMIT",
+                "Deck changed since owner admission",
+            ));
+        }
+        // This call reuses the same model's bounded cooldown/history bookkeeping.
+        // The trusted owner permit replaces the simulator's confirmation input.
+        let mut press = self.press(&permit.button_id, now_ms, true)?;
+        press.simulated = false;
+        self.live_requests.insert(press.request_id);
+        Ok(press)
+    }
+    pub fn finish_live(
+        &mut self,
+        request_id: u64,
+        now_ms: u64,
+        result: LiveDeckResult,
+    ) -> Result<(), Error> {
+        self.advance(now_ms)?;
+        if !self.live_requests.contains(&request_id) {
+            return Err(fail(
+                "DECK_REQUEST_MODE",
+                "A simulated press cannot be reported as live",
+            ));
+        }
+        if matches!(&result,LiveDeckResult::Rejected(code) if !identifier(code)) {
+            return Err(fail(
+                "DECK_ERROR_CODE",
+                "Error codes must be bounded identifiers",
+            ));
+        }
+        let button_id = self
+            .pending
+            .iter()
+            .find(|(_, id)| **id == request_id)
+            .map(|(button, _)| button.clone())
+            .ok_or_else(|| fail("DECK_REQUEST", "Unknown or already terminal request"))?;
+        self.pending.remove(&button_id);
+        self.live_requests.remove(&request_id);
+        let state = match result {
+            LiveDeckResult::Completed => ButtonState::Completed,
+            LiveDeckResult::Rejected(code) => ButtonState::Rejected { code },
+            LiveDeckResult::Cancelled => ButtonState::Cancelled,
+            LiveDeckResult::NeedsReconciliation => ButtonState::NeedsReconciliation,
+        };
+        self.remember(&button_id, Some(request_id), state);
+        Ok(())
+    }
     pub fn finish_simulation(
         &mut self,
         request_id: u64,
@@ -379,6 +467,12 @@ impl DeckRuntime {
         error_code: Option<&str>,
     ) -> Result<(), Error> {
         self.advance(now_ms)?;
+        if self.live_requests.contains(&request_id) {
+            return Err(fail(
+                "DECK_REQUEST_MODE",
+                "Live request requires a real owner result",
+            ));
+        }
         if error_code.is_some_and(|c| !identifier(c)) {
             return Err(fail(
                 "DECK_ERROR_CODE",
@@ -408,6 +502,7 @@ impl DeckRuntime {
             .ok_or_else(|| fail("DECK_REQUEST", "Unknown or already terminal request"))?;
         self.pending.remove(&button_id);
         self.remember(&button_id, Some(request_id), ButtonState::Cancelled);
+        self.live_requests.remove(&request_id);
         Ok(())
     }
 }

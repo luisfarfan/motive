@@ -202,7 +202,7 @@ impl Drop for State {
 impl Production {
     pub(in crate::core) fn poll_overlays(&mut self) {
         if self.overlays.poll() {
-            self.revision += 1;
+            self.bump_external_revision();
         }
         self.engine.poll_overlays();
         let runtime = self.engine.overlay_state();
@@ -237,9 +237,40 @@ impl Production {
             }
         }
         let lifecycle = json!({"animations":runtime["animations"]["jobs"].as_array().map(|a|a.iter().map(|v|json!([v["operation_id"],v["phase"]])).collect::<Vec<_>>()),"sources":runtime["sources"].as_array().map(|a|a.iter().map(|v|json!([v["id"],v["phase"],v["visible"]])).collect::<Vec<_>>())});
-        if lifecycle != self.overlays.observed {
-            self.overlays.observed = lifecycle;
-            self.revision += 1;
+        // Never attribute the aggregate source+job delta to whichever Show
+        // Control operation happens to be pending. Every ID gets its own bump.
+        let previous = std::mem::replace(&mut self.overlays.observed, lifecycle.clone());
+        for category in ["animations", "sources"] {
+            let entries = |value: &Value| -> BTreeMap<String, Value> {
+                value[category]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|entry| {
+                        let id = if category == "animations" {
+                            entry[0].as_u64().map(|n| n.to_string())
+                        } else {
+                            entry[0].as_str().map(str::to_owned)
+                        }?;
+                        Some((id, entry.clone()))
+                    })
+                    .collect()
+            };
+            let before = entries(&previous);
+            let after = entries(&lifecycle);
+            let ids: BTreeSet<_> = before.keys().chain(after.keys()).cloned().collect();
+            for id in ids {
+                if before.get(&id) != after.get(&id) {
+                    let cause = if category == "animations" {
+                        crate::core::show_control::ledger::Cause::Animation(
+                            id.parse().expect("native operation integer"),
+                        )
+                    } else {
+                        crate::core::show_control::ledger::Cause::OverlaySource(&id)
+                    };
+                    self.bump_revision(cause);
+                }
+            }
         }
     }
     pub fn overlay_status(&self) -> Value {
@@ -461,6 +492,7 @@ impl Production {
                     let operation_id = self
                         .engine
                         .animate_overlay(&scene_id, &layer_id, &animation)?;
+                    self.show_control_ledger.bind_animation(operation_id);
                     self.overlays.animations.record(
                         operation_id,
                         self.project.variant,
@@ -496,7 +528,7 @@ impl Production {
             Ok(result) => {
                 if !query {
                     self.poll_health();
-                    self.revision += 1;
+                    self.bump_revision(crate::core::show_control::ledger::Cause::Command);
                     self.last_action = format!("{origin} · {label} · revisión {}", self.revision);
                 }
                 let mut value = json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"result":result});

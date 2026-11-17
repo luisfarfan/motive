@@ -681,6 +681,20 @@ pub fn tools() -> Vec<Value> {
         result.push(tool(op, description, properties, &required, false));
     }
     result.extend(crate::core::overlays::protocol::tools());
+    result.extend([
+        tool("memory_diagnostics", "Diagnóstico de memoria del propio proceso, solo bajo demanda; no inspecciona otras aplicaciones.", json!({}), &[], true),
+        tool("creator_packs", "Estado compartido del plan e instalación local de Creator Packs. No instala ni descarga contenido.", json!({}), &[], true),
+        tool("destinations", "Destinos RTMPS registrados y aprobaciones locales. Nunca devuelve claves.", json!({}), &[], true),
+        tool("select_approved_destination", "Selecciona solo un destino previamente aprobado por ID; null vuelve al modo loopback. No aprueba ni inicia una emisión externa.", json!({"id":{"type":["string","null"],"maxLength":48}}), &["id"], false),
+        tool("preflight_destination", "Valida configuración y acceso opaco a Keychain por ID aprobado; no conecta ni verifica entrega.", json!({"id":{"type":"string","minLength":1,"maxLength":48}}), &["id"], true),
+        tool("show_control_status", "Estado compartido de reglas, Live Deck, cooldowns, jobs, recibos e historial del owner real.", json!({}), &[], true),
+        tool("save_show_control", "Guarda configuración/deck/bindings v1 en archivo privado separado; no persiste autorización para reanudar jobs.", json!({}), &[], false),
+        tool("load_show_control", "Carga explícitamente configuración v1 desarmada. No restaura jobs ni repite triggers.", json!({}), &[], false),
+        tool("arm_show_control", "Activa configuración cargada solo para pid/revision exactos y fingerprint de bindings actual. No concede confirmaciones sensibles ni permiso de streaming.", json!({"pid":{"type":"integer","minimum":1},"revision":{"type":"integer","minimum":0}}), &["pid","revision"], false),
+        tool("press_show_control", "Activa un botón ya configurado en la sesión owner exacta con event_id estable para deduplicación. Botones sensibles requieren confirmación local; no existe booleano remoto de aprobación.", json!({"session":{"type":"string","minLength":32,"maxLength":32},"button_id":{"type":"string","minLength":1,"maxLength":64},"event_id":{"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9_:.-]+$"}}), &["session","button_id","event_id"], false),
+        tool("cancel_show_control", "Registra intención de cancelar el job de la sesión owner exacta y pide cancelación de su operación nativa conocida. No afirma finalización inmediata.", json!({"session":{"type":"string","minLength":32,"maxLength":32},"job_id":{"type":"integer","minimum":1}}), &["session","job_id"], false),
+        tool("reconcile_show_control", "Observa explícitamente la operación incierta en su sesión exacta; nunca repite dispatch ni continúa los pasos restantes.", json!({"session":{"type":"string","minLength":32,"maxLength":32},"job_id":{"type":"integer","minimum":1}}), &["session","job_id"], false),
+    ]);
     result
 }
 

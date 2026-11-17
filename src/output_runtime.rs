@@ -24,7 +24,7 @@ impl Production {
             let observation = self.engine.output_observation(target);
             let was_failed = self.outputs.get(target).recovery_required;
             if self.outputs.get_mut(target).observe(observation) {
-                self.revision += 1;
+                self.bump_external_revision();
             }
             let output = self.outputs.get(target);
             if output.recovery_required && !was_failed {
@@ -56,6 +56,10 @@ impl Production {
         target: OutputTarget,
         legacy_udp: bool,
     ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !(target == OutputTarget::Streaming && self.external_destination_selected()),
+            "LOCAL_STREAM_APPROVAL_REQUIRED"
+        );
         if legacy_udp {
             self.idle()?;
             self.source_ready()?;
@@ -100,7 +104,7 @@ impl Production {
             },
             path.clone(),
         );
-        self.revision += 1;
+        self.bump_external_revision();
         let result = if legacy_udp {
             self.engine.start_output("", true, &profile_json)
         } else if target == OutputTarget::Recording {

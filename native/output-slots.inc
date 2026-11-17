@@ -1,5 +1,5 @@
 /* Two independent encoder/output owners on the same OBS production. */
-static bool start_profile(motive_engine *,output_slot *,const char *,const char *,bool,const char *);
+static bool start_profile(motive_engine *,output_slot *,const char *,const char *,bool,const char *,const char *);
 
 /* Official OBS packet callback: synchronous before the output plugin sees the
  * packet. Counts dispatch, never successful disk/network delivery. The try-lock
@@ -240,13 +240,23 @@ char *motive_output_info(motive_engine *e,unsigned target) {
 bool motive_start_stream(motive_engine *e,const char *url,const char *profile,const char *credential) {
     if(!e->rtmp_loaded){snprintf(e->error,sizeof(e->error),"SERVICE_UNAVAILABLE");return false;}
     if(!prepare_output_slot(e,1,false))return false;
-    return start_profile(e,&e->outputs[1],url,profile,true,credential);
+    return start_profile(e,&e->outputs[1],url,profile,true,credential,NULL);
+}
+/* Only the local owner grant path calls this separate boundary. The service
+ * verifies the full URL against the exact Keychain binding before connecting. */
+bool motive_start_approved_stream(motive_engine *e,const char *url,const char *profile,const char *credential,const char *binding) {
+    if(!e->rtmp_loaded){snprintf(e->error,sizeof(e->error),"SERVICE_UNAVAILABLE");return false;}
+    if(!credential || !*credential || !approved_service_url_matches(url,binding)) {
+        snprintf(e->error,sizeof(e->error),"INVALID_DESTINATION_BINDING");return false;
+    }
+    if(!prepare_output_slot(e,1,false))return false;
+    return start_profile(e,&e->outputs[1],url,profile,true,credential,binding);
 }
 bool motive_start_output(motive_engine *e,const char *path,bool local_stream,const char *profile) {
     unsigned target=local_stream ? 1:0;
     if(!prepare_output_slot(e,target,local_stream))return false;
     output_slot *s=&e->outputs[target];
-    if(!local_stream)return start_profile(e,s,path,profile,false,NULL);
+    if(!local_stream)return start_profile(e,s,path,profile,false,NULL,NULL);
     obs_data_t *settings=obs_data_create();
     obs_data_set_string(settings,"url","udp://127.0.0.1:19350?pkt_size=1316");
     obs_data_set_string(settings,"format_name","mpegts");

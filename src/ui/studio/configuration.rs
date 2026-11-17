@@ -391,6 +391,12 @@ impl Studio {
             .child(label("Arrastre: una confirmación al soltar. ⌘ desactiva snapping; ⇧ restringe eje. ⌘Z / ⇧⌘Z: transformaciones compatibles.",p.secondary))
             .child(label(format!("libobs {} · {}×{} · {} FPS · revisión {}",s["libobs"].as_str().unwrap_or("—"),s["width"],s["height"],s["fps"],self.production.revision),p.secondary))
             .child(label(format!("Permisos · pantalla {} · cámara {} · micrófono {}",self.devices["screen_permission"],self.devices["camera_permission"],self.devices["microphone_permission"]),p.secondary))
+            .children(s["sources"].as_array().into_iter().flatten().filter(|source| source["active"]==true && source["freshness_notice"].as_str().is_some_and(|notice| !notice.is_empty())).map(|source| {
+                let id=source["id"].as_str().unwrap_or("");
+                let name=self.production.graph().sources.iter().find(|item|item.id==id).map(|item|item.name.as_str()).unwrap_or(id);
+                let age=source["frame_age_ms"].as_u64().map(|ms|format!(" Último buffer hace {:.1} s.",ms as f64/1000.)).unwrap_or_default();
+                label(format!("{name} · La ventana no entrega buffers recientes; comprueba el contenido y su visibilidad.{age}"),p.warn)
+            }))
             .child(label(format!("Render {} · retrasados {} · descartes preview {}",s["stats"]["rendered_frames"],s["stats"]["lagged_frames"],s["stats"]["preview_busy_drops"]),p.secondary))
             .child(self.action("record-preflight","Comprobar grabación",Command::PreflightOutput{target:OutputTarget::Recording},cx))
             .child(label(self.output_encoder_summary(&s),p.secondary))

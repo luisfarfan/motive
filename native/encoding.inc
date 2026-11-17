@@ -53,7 +53,7 @@ uint32_t motive_video_skipped_frames(void) { return video_output_get_skipped_fra
  * flags argument is ignored; unattached audio encoders are skipped. This makes
  * auto fallback specific to video initialization, before a mux helper starts.
  * A disk/mux/audio error must never silently retry or overwrite a partial file. */
-static bool prepare_encoded_video(motive_engine *e,output_slot *s,const char *path,const char *id,obs_data_t *profile,bool stream,const char *credential) {
+static bool prepare_encoded_video(motive_engine *e,output_slot *s,const char *path,const char *id,obs_data_t *profile,bool stream,const char *credential,const char *binding) {
     /* Encoder initialization also overlaps the live OBS render clock. Acquire
      * before it starts; release_output closes this scope on every failure and
      * an automatic fallback enters here again with a fresh activity. */
@@ -75,7 +75,8 @@ static bool prepare_encoded_video(motive_engine *e,output_slot *s,const char *pa
         obs_data_t *service=obs_data_create();
         obs_data_set_string(service,"server",path);
         obs_data_set_string(service,"credential_ref",credential ?: "");
-        s->service=obs_service_create("motive_local_service","Local receiver",service,NULL);
+        if(binding)obs_data_set_string(service,"destination_binding",binding);
+        s->service=obs_service_create(binding ? "motive_approved_service":"motive_local_service",binding ? "Approved RTMPS destination":"Local receiver",service,NULL);
         obs_data_release(service);
         if (!s->service) {snprintf(e->error,sizeof(e->error),"SERVICE_UNAVAILABLE");return false;}
         obs_output_set_service(s->output,s->service);
@@ -103,7 +104,7 @@ static bool prepare_encoded_video(motive_engine *e,output_slot *s,const char *pa
     return true;
 }
 
-static bool start_encoded(motive_engine *e,output_slot *s,const char *path,obs_data_t *profile,bool stream,const char *credential) {
+static bool start_encoded(motive_engine *e,output_slot *s,const char *path,obs_data_t *profile,bool stream,const char *credential,const char *binding) {
     const char *policy=obs_data_get_string(profile,"encoder");
     bool automatic=!strcmp(policy,"auto");
     bool use_vt=strcmp(policy,"x264") && e->vt_h264_id[0];
@@ -114,12 +115,12 @@ static bool start_encoded(motive_engine *e,output_slot *s,const char *path,obs_d
     if (automatic && !use_vt)
         snprintf(s->fallback_reason,sizeof(s->fallback_reason),"%s",e->vt_unavailable_reason);
     const char *id=use_vt ? e->vt_h264_id:"obs_x264";
-    bool ready=prepare_encoded_video(e,s,path,id,profile,stream,credential);
+    bool ready=prepare_encoded_video(e,s,path,id,profile,stream,credential,binding);
     if (!ready && automatic && use_vt && strncmp(e->error,"VIDEO_ENCODER_",14)==0) {
         snprintf(s->fallback_reason,sizeof(s->fallback_reason),"VIDEOTOOLBOX_INITIALIZATION_FAILED");
         release_output_slot(s);
         e->error[0]=0;use_vt=false;id="obs_x264";
-        ready=prepare_encoded_video(e,s,path,id,profile,stream,credential);
+        ready=prepare_encoded_video(e,s,path,id,profile,stream,credential,binding);
     }
     if (!ready) {release_output_slot(s);return false;}
     obs_data_t *a=obs_data_create();obs_data_set_int(a,"bitrate",160);
@@ -143,7 +144,7 @@ static bool start_encoded(motive_engine *e,output_slot *s,const char *path,obs_d
     return true;
 }
 
-static bool start_profile(motive_engine *e,output_slot *s,const char *path,const char *json,bool stream,const char *credential) {
+static bool start_profile(motive_engine *e,output_slot *s,const char *path,const char *json,bool stream,const char *credential,const char *binding) {
     obs_data_t *p=obs_data_create_from_json(json);
     const char *encoder=obs_data_get_string(p,"encoder");
     long long bitrate=obs_data_get_int(p,"bitrate_kbps"),keyint=obs_data_get_int(p,"keyframe_seconds");
@@ -151,5 +152,5 @@ static bool start_profile(motive_engine *e,output_slot *s,const char *path,const
         !strcmp(obs_data_get_string(p,"rate_control"),"cbr") &&
         (!strcmp(encoder,"auto") || !strcmp(encoder,"videotoolbox") || !strcmp(encoder,"x264"));
     if (!valid) {obs_data_release(p);snprintf(e->error,sizeof(e->error),"INVALID_PROFILE");return false;}
-    bool ok=start_encoded(e,s,path,p,stream,credential);obs_data_release(p);return ok;
+    bool ok=start_encoded(e,s,path,p,stream,credential,binding);obs_data_release(p);return ok;
 }

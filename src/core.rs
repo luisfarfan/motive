@@ -1,11 +1,19 @@
 #[path = "audio.rs"]
 pub mod audio;
+#[path = "creator_packs.rs"]
+pub mod creator_packs;
+#[path = "destination_runtime.rs"]
+mod destination_runtime;
+#[path = "destinations.rs"]
+pub mod destinations;
 #[path = "output.rs"]
 pub mod output;
 #[path = "output_runtime.rs"]
 mod output_runtime;
 #[path = "overlays/mod.rs"]
 pub mod overlays;
+#[path = "show_control.rs"]
+pub mod show_control;
 #[path = "video.rs"]
 pub mod video;
 use crate::{
@@ -57,6 +65,15 @@ impl RecordingEncoder {
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Command {
     Status,
+    Destinations,
+    MemoryDiagnostics,
+    CreatorPacks,
+    SelectApprovedDestination {
+        id: Option<String>,
+    },
+    PreflightDestination {
+        id: String,
+    },
     AudioMixer,
     SystemAudioSources,
     DisconnectAudioInput {
@@ -217,6 +234,8 @@ pub enum Command {
     },
     #[serde(untagged)]
     Overlay(overlays::OverlayCommand),
+    #[serde(untagged)]
+    ShowControl(show_control::ShowControlCommand),
 }
 // Applied after read-only queries: once either shutdown phase is reached, no
 // queued mutation may reopen an output before the owner dispatches native Quit.
@@ -306,6 +325,10 @@ struct WindowBinding {
     pid: i32,
 }
 pub struct Production {
+    creator_packs: Value,
+    destinations: destination_runtime::State,
+    show_control: Option<show_control::State>,
+    show_control_ledger: show_control::ledger::RevisionLedger,
     overlays: overlays::production::State,
     pub engine: Engine,
     audio_mixer: AudioStore,
@@ -342,6 +365,10 @@ impl Production {
         fs::create_dir_all(crate::paths::diagnostic_dir())?;
         create_tone()?;
         let mut p = Self {
+            creator_packs: json!({"phase":"not_installed"}),
+            destinations: destination_runtime::State::new(),
+            show_control: None,
+            show_control_ledger: show_control::ledger::RevisionLedger::default(),
             engine: Engine::new()?,
             overlays: overlays::production::State::new(data_dir())?,
             audio_mixer: AudioStore::default(),
@@ -401,7 +428,7 @@ impl Production {
         if outputs.recovery_required() {
             recovery_sources.insert("output".into());
         }
-        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"overlays":self.overlay_status(),"encoding":if legacy.is_some(){self.encoding_status(&outputs)}else{Value::Null},"output_configuration":self.output_configuration(),"issues":self.issues,
+        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"overlays":self.overlay_status(),"destinations":self.destinations_status(),"show_control":self.show_control_status(),"creator_packs":self.creator_packs_status(),"encoding":if legacy.is_some(){self.encoding_status(&outputs)}else{Value::Null},"output_configuration":self.output_configuration(),"issues":self.issues,
             "recovery_required":self.recovery.required() || outputs.recovery_required(),"recovery_sources":recovery_sources,"last_fault":self.last_fault,
             "sources":self.source_health,"window_id":self.window_id,"output":legacy.map_or("multiple", |slot|slot.legacy_state()),
             "output_code":legacy.map(|slot|slot.failure.as_ref().and_then(|f|f.native_code).unwrap_or(0)),
@@ -522,18 +549,22 @@ impl Production {
             );
         }
         if target == OutputTarget::Streaming {
-            self.stream_endpoint
-                .as_ref()
-                .ok_or_else(|| anyhow::anyhow!("ENDPOINT_REQUIRED"))?
-                .validate()?;
-            if let Some(reference) = &self.stream_credential {
-                let endpoint = self.stream_endpoint.as_ref().unwrap();
-                anyhow::ensure!(
-                    endpoint.transport == output::Transport::Rtmps,
-                    "CREDENTIAL_REQUIRES_TLS"
-                );
-                let code = self.engine.credential_status(reference, endpoint.port);
-                anyhow::ensure!(code == 0, "{}", output::credential_code(code));
+            if self.external_destination_selected() {
+                self.check_selected_destination()?;
+            } else {
+                self.stream_endpoint
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("ENDPOINT_REQUIRED"))?
+                    .validate()?;
+                if let Some(reference) = &self.stream_credential {
+                    let endpoint = self.stream_endpoint.as_ref().unwrap();
+                    anyhow::ensure!(
+                        endpoint.transport == output::Transport::Rtmps,
+                        "CREDENTIAL_REQUIRES_TLS"
+                    );
+                    let code = self.engine.credential_status(reference, endpoint.port);
+                    anyhow::ensure!(code == 0, "{}", output::credential_code(code));
+                }
             }
             anyhow::ensure!(
                 self.engine.encoding_info()["rtmp_available"] == true,
@@ -581,7 +612,8 @@ impl Production {
             self.shutdown_requested
                 && !outputs.busy()
                 && self.engine.output_state() == 0
-                && !self.recordings.busy(),
+                && !self.recordings.busy()
+                && !self.destination_credential_busy(),
             "OUTPUT_STILL_FINALIZING"
         );
         crate::diagnostics::write_shutdown(
@@ -597,6 +629,7 @@ impl Production {
         )
     }
     pub fn poll_health(&mut self) {
+        self.poll_destination_credential();
         self.recordings.poll();
         self.poll_overlays();
         self.engine.poll_audio();
@@ -604,7 +637,7 @@ impl Production {
         let lifecycle = audio.lifecycle();
         if self.observed_audio.as_ref() != Some(&lifecycle) {
             self.observed_audio = Some(lifecycle);
-            self.revision += 1;
+            self.bump_external_revision();
         }
         self.engine.poll_scene();
         let transition = self.engine.scene_state();
@@ -616,7 +649,9 @@ impl Production {
                 self.update_legacy();
                 self.retain_active_recovery();
             }
-            self.revision += 1;
+            self.bump_revision(show_control::ledger::Cause::Transition(
+                transition.operation_id,
+            ));
             if let Some(error) = transition.error {
                 self.last_action = format!("{error}: se conserva la escena anterior");
             }
@@ -636,7 +671,7 @@ impl Production {
                 .pending
                 .extend(faults.iter().map(|(id, _)| id.clone()));
             self.last_fault = self.issues.clone();
-            self.revision += 1;
+            self.bump_external_revision();
             self.last_action = format!(
                 "Fuente perdida: {}. Salidas finalizando.",
                 self.issues.join(", ")
@@ -647,6 +682,7 @@ impl Production {
             && self.engine.output_state() == 0
             && !self.overlays.busy()
             && !self.recordings.busy()
+            && !self.destination_credential_busy()
         {
             self.shutdown_requested = true;
         }
@@ -1097,7 +1133,13 @@ impl Production {
             // Select existing native scenes; do not reconcile capture resources,
             // reset video or touch the running output/encoders.
             anyhow::ensure!(!self.engine.overlay_animation_busy(), "ANIMATION_BUSY");
-            return self.engine.switch_scene(scene_id, self.transition);
+            let previous = self.engine.scene_state().operation_id;
+            self.engine.switch_scene(scene_id, self.transition)?;
+            let accepted = self.engine.scene_state().operation_id;
+            if accepted != previous {
+                self.show_control_ledger.bind_transition(accepted);
+            }
+            return Ok(());
         }
         self.scene_quiescent()?;
         let mut graph = self.graph().clone();
@@ -1253,7 +1295,15 @@ impl Production {
             .retain(|id| id == "audio" || id == "video" || relevant.contains(id));
     }
     pub fn apply(&mut self, command: Command, origin: &str) -> Value {
-        self.poll_health();
+        // A scoped Show Control dispatch already performed its final owner
+        // freshness check and durable intent. Do not poll between that check
+        // and this command; post-dispatch lifecycle bumps retain provenance.
+        if !self.show_control_ledger.in_dispatch() {
+            self.poll_health();
+        }
+        if let Command::ShowControl(command) = command {
+            return self.apply_show_control(command);
+        }
         if matches!(&command, Command::Overlay(overlay) if !overlay.query())
             && let Err(e) =
                 admit_shutdown_mutation(&command, self.shutdown_pending, self.shutdown_requested)
@@ -1265,6 +1315,21 @@ impl Production {
         }
         if matches!(command, Command::Status) {
             return json!({"ok":true,"state":self.status()});
+        }
+        if matches!(command, Command::Destinations) {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"destinations":self.destinations_status()});
+        }
+        if matches!(command, Command::MemoryDiagnostics) {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"memory":self.engine.memory_diagnostics()});
+        }
+        if matches!(command, Command::CreatorPacks) {
+            return json!({"ok":true,"creator_packs":self.creator_packs_status()});
+        }
+        if let Command::PreflightDestination { id } = &command {
+            return match self.preflight_destination(id) {
+                Ok(preflight) => json!({"ok":true,"preflight":preflight}),
+                Err(e) => command_error(e),
+            };
         }
         if matches!(command, Command::SystemAudioSources) {
             return match self.engine.system_audio_sources() {
@@ -1331,6 +1396,9 @@ impl Production {
         let result = (|| -> anyhow::Result<()> {
             admit_shutdown_mutation(&command, self.shutdown_pending, self.shutdown_requested)?;
             match command {
+                Command::SelectApprovedDestination { id } => {
+                    self.select_approved_destination(id.as_deref())?
+                }
                 Command::RefreshRecordings => {
                     self.recordings.refresh()?;
                 }
@@ -1584,6 +1652,7 @@ impl Production {
                 }
                 Command::RequestShutdown => {
                     self.shutdown_pending = true;
+                    self.cancel_destination_credential();
                     self.engine
                         .cancel_scene(self.engine.scene_state().operation_id)?;
                     self.cancel_all_outputs();
@@ -1592,6 +1661,7 @@ impl Production {
                     if !self.output_snapshot().busy()
                         && !self.overlays.busy()
                         && !self.recordings.busy()
+                        && !self.destination_credential_busy()
                     {
                         self.shutdown_requested = true;
                     }
@@ -1632,12 +1702,18 @@ impl Production {
                 Command::Shutdown => {
                     self.idle()?;
                     self.shutdown_pending = true;
-                    self.shutdown_requested = !self.recordings.busy();
+                    self.cancel_destination_credential();
+                    self.shutdown_requested =
+                        !self.recordings.busy() && !self.destination_credential_busy();
                 }
                 Command::SetTestWindow { open } => {
                     self.test_window_request = Some(open);
                 }
                 Command::Status
+                | Command::Destinations
+                | Command::MemoryDiagnostics
+                | Command::CreatorPacks
+                | Command::PreflightDestination { .. }
                 | Command::AudioMixer
                 | Command::SystemAudioSources
                 | Command::Scenes
@@ -1650,7 +1726,8 @@ impl Production {
                 | Command::VideoCapabilities
                 | Command::OutputProfiles
                 | Command::CredentialStatus { .. }
-                | Command::PreflightOutput { .. } => unreachable!(),
+                | Command::PreflightOutput { .. }
+                | Command::ShowControl(_) => unreachable!(),
                 graph_command => self.graph_command(graph_command)?,
             }
             Ok(())
@@ -1658,7 +1735,7 @@ impl Production {
         match result {
             Ok(()) => {
                 self.poll_health();
-                self.revision += 1;
+                self.bump_revision(show_control::ledger::Cause::Command);
                 self.last_action = format!("{origin} · {label} · revisión {}", self.revision);
                 json!({"ok":true,"state":self.status()})
             }

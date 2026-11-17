@@ -9,7 +9,7 @@ static visual_source *overlay_find(motive_engine *e,const char *id) {
 }
 char *motive_overlay_capabilities(motive_engine *e) {
     (void)e;NSMutableDictionary *sources=[NSMutableDictionary dictionary];
-    for(NSString *base in @[@"text_ft2_source",@"image_source",@"ffmpeg_source",@"color_source",@"fade_transition"]) {
+    for(NSString *base in @[@"motive_visual",@"text_ft2_source",@"image_source",@"ffmpeg_source",@"color_source",@"fade_transition"]) {
         const char *latest=obs_get_latest_input_type_id(base.UTF8String);
         if([base isEqualToString:@"fade_transition"])latest="fade_transition";
         sources[base]=@{@"available":latest && obs_get_source_output_flags(latest)!=0?@YES:@NO,@"registered_id":latest?@(latest):[NSNull null]};

@@ -175,6 +175,7 @@ static void private_log(int level,const char *format,va_list args,void *unused) 
         previous_log_handler(level,format,args,previous_log_context);
 }
 #include "local-service.inc"
+#include "approved-service.inc"
 static void discover_encoders(motive_engine *e);
 static void audio_mix_start(motive_engine *e);
 static void audio_mix_stop(motive_engine *e);
@@ -221,6 +222,7 @@ motive_engine *motive_create(const char *base,const char *output_module,const ch
     }
     obs_post_load_modules();
     obs_register_service(&local_service_info);
+    obs_register_service(&approved_service_info);
     e->rtmp_loaded=obs_get_output_flags("rtmp_output")!=0;
     discover_encoders(e);
     obs_register_source(&pattern_info);

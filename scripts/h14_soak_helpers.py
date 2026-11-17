@@ -210,6 +210,16 @@ def tail_candidates(initial, final, first_packets, pts_by_kind, tolerance=.0011)
     return retained, counts
 
 
+def tail_status_with_ambiguity(status, counts):
+    """Uncertain matches cannot erase an independently established failure."""
+    result = {'status': status}
+    if any(value['candidates_within_tolerance'] > 1 for value in counts):
+        result['ambiguity_reason'] = 'ambiguous_timestamp_matches'
+        if status != 'FAIL':
+            result['status'] = 'INCONCLUSIVE'
+    return result
+
+
 class PCMStats:
     """Stereo f32le, 100 ms windows, at most one selected second retained."""
     def __init__(self, window_sink, tone_sink, tone_seconds=(), sample_rate=48000):

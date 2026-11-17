@@ -23,7 +23,7 @@ import traceback
 
 from analyze_h14_memory import analyze as analyze_memory
 from h14_soak_helpers import (PCMStats, QuadrantFreshness, Timeline,
-                              packet_origin_proof, tail_candidates)
+                              packet_origin_proof, tail_candidates, tail_status_with_ambiguity)
 from verification_paths import verification_paths
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -262,9 +262,7 @@ def correlate(run, medium, first, pts):
     result['classification'] = correlate_tail(initial, final, candidates)
     result['candidate_counts'] = counts
     result['candidate_scope'] = 'first packets plus exact nearest/tolerance neighbors derived from all actual PTS'
-    result['status'] = result['classification']['status']
-    if any(value['candidates_within_tolerance'] > 1 for value in counts):
-        result.update(status='INCONCLUSIVE', reason='ambiguous_timestamp_matches')
+    result.update(tail_status_with_ambiguity(result['classification']['status'], counts))
     return result
 
 

@@ -5,7 +5,7 @@ import sys
 import unittest
 
 from h14_soak_helpers import (HashRuns, PCMStats, QuadrantFreshness, Timeline,
-                              packet_origin_proof, tail_candidates)
+                              packet_origin_proof, tail_candidates, tail_status_with_ambiguity)
 
 
 class SoakAnalysisTests(unittest.TestCase):
@@ -104,6 +104,14 @@ class SoakAnalysisTests(unittest.TestCase):
         trace['summary']['trace_missed_records'] = 0
         actual['audio'][1]['size'] = '9999'
         self.assertEqual(packet_origin_proof(trace, actual)['status'], 'INCONCLUSIVE')
+
+    def test_ambiguous_match_never_hides_independent_tail_failure(self):
+        counts = [{'candidates_within_tolerance': 0}, {'candidates_within_tolerance': 2}]
+        failed = tail_status_with_ambiguity('FAIL', counts)
+        self.assertEqual(failed['status'], 'FAIL')
+        self.assertEqual(failed['ambiguity_reason'], 'ambiguous_timestamp_matches')
+        self.assertEqual(tail_status_with_ambiguity('TRACED_TAIL_PRESENT', counts)['status'], 'INCONCLUSIVE')
+        self.assertEqual(tail_status_with_ambiguity('FAIL', [{'candidates_within_tolerance': 0}]), {'status': 'FAIL'})
 
 
 if __name__ == '__main__':

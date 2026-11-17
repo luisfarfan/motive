@@ -4,7 +4,9 @@ impl Studio {
         let p = Palette::new(self.dark);
         let graph = self.production.graph();
         let active = graph.active_scene.clone();
-        let live = matches!(status["output"].as_str(), Some("recording" | "streaming"));
+        let live = crate::core::output::OutputTarget::ALL
+            .iter()
+            .any(|target| status["outputs"][target.name()]["phase"] == "active");
         col()
             .flex_1()
             .min_h_0()

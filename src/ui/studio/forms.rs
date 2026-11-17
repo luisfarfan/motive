@@ -228,6 +228,17 @@ impl Studio {
             Command::LoadOutputProfiles => {
                 "Restaurar los perfiles guardados y reemplazar las definiciones actuales.".into()
             }
+            Command::StopOutputTarget { target } | Command::CancelOutputTarget { target } => {
+                match target {
+                    crate::core::output::OutputTarget::Recording =>
+                        "Finalizar solo la grabación MKV. La transmisión continúa si está activa.",
+                    crate::core::output::OutputTarget::Streaming =>
+                        "Finalizar solo la transmisión. La grabación continúa si está activa.",
+                }.into()
+            }
+            Command::CancelAllOutputs => {
+                "Solicitar la finalización de grabación y transmisión. Una conexión pendiente puede tardar en terminar. El estudio permanece abierto.".into()
+            }
             _ => "Finalizar la salida actual de forma controlada.".into(),
         };
         w.open_dialog(cx,move|d,_,_|{let weak=weak.clone();let command=command.clone();d.title("Confirmar operación")

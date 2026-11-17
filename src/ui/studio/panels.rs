@@ -9,7 +9,7 @@ impl Studio {
             "project" => "Mi producción",
             "add-source" => "Añadir fuente",
             "audio" => "Mixer de audio",
-            "output" => "Salida RTMP local",
+            "output" => "Salidas independientes",
             "agent" => "Control por agentes",
             "layer" => "Propiedades de capa",
             "profiles" => "Perfiles de salida",
@@ -69,7 +69,7 @@ impl Studio {
                 content = content.child(self.device_picker(cx));
             }
             "output" => {
-                content = content.child(self.output_settings(cx));
+                content = content.child(self.output_dashboard(cx));
             }
             "profiles" => {
                 content = content.child(self.profile_settings(cx));

@@ -47,11 +47,13 @@ unsafe extern "C" {
     fn motive_cancel_scene(engine: *mut c_void, operation: u64) -> bool;
     fn motive_scene_state(engine: *mut c_void) -> *mut c_char;
     fn motive_reset_output(engine: *mut c_void) -> bool;
+    fn motive_reset_output_target(engine: *mut c_void, target: u32) -> bool;
+    fn motive_output_info(engine: *mut c_void, target: u32) -> *mut c_char;
+    fn motive_stop_output_target(engine: *mut c_void, target: u32);
     fn motive_total_frames() -> u32;
     fn motive_lagged_frames() -> u32;
     fn motive_busy_drops(engine: *mut c_void) -> u64;
     fn motive_output_state(engine: *mut c_void) -> i32;
-    fn motive_output_code(engine: *mut c_void) -> i32;
     fn motive_output_bytes(engine: *mut c_void) -> u64;
     fn motive_output_frames(engine: *mut c_void) -> u32;
     fn motive_output_drops(engine: *mut c_void) -> i32;
@@ -265,6 +267,29 @@ impl Engine {
     pub fn reset_output(&mut self) -> anyhow::Result<()> {
         self.checked(unsafe { motive_reset_output(self.raw) })
     }
+    pub fn reset_output_target(
+        &mut self,
+        target: crate::core::output::OutputTarget,
+    ) -> anyhow::Result<()> {
+        self.checked(unsafe { motive_reset_output_target(self.raw, target.index()) })
+    }
+    pub fn output_observation(
+        &self,
+        target: crate::core::output::OutputTarget,
+    ) -> crate::core::output::NativeOutput {
+        let raw = unsafe { motive_output_info(self.raw, target.index()) };
+        assert!(!raw.is_null(), "native output observation unavailable");
+        let value = serde_json::from_slice::<crate::core::output::NativeOutput>(
+            unsafe { CStr::from_ptr(raw) }.to_bytes(),
+        );
+        unsafe { motive_free(raw) };
+        let value = value.expect("native output observation contract");
+        assert!(value.state <= 4, "native output state contract");
+        value
+    }
+    pub fn stop_output_target(&mut self, target: crate::core::output::OutputTarget) {
+        unsafe { motive_stop_output_target(self.raw, target.index()) };
+    }
     fn checked(&self, ok: bool) -> anyhow::Result<()> {
         anyhow::ensure!(
             ok,
@@ -351,8 +376,10 @@ impl Engine {
     }
     pub fn system_audio_sources(&self) -> anyhow::Result<crate::core::audio::SystemAudioSources> {
         serde_json::from_value(self.overlay_json(unsafe { motive_system_audio_sources(self.raw) }))
-            .map_err(|_| {
-                anyhow::anyhow!("AUDIO_STATE_UNAVAILABLE: invalid native system-audio inventory")
+            .map_err(|error| {
+                anyhow::anyhow!(
+                    "AUDIO_STATE_UNAVAILABLE: invalid native system-audio inventory: {error}"
+                )
             })
     }
     pub fn poll_audio(&mut self) {
@@ -442,9 +469,6 @@ impl Engine {
     }
     pub fn output_state(&self) -> i32 {
         unsafe { motive_output_state(self.raw) }
-    }
-    pub fn output_code(&self) -> i32 {
-        unsafe { motive_output_code(self.raw) }
     }
     pub fn audio_health(&self) -> i32 {
         unsafe { motive_audio_health(self.raw) }

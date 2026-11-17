@@ -36,6 +36,7 @@ pub struct Studio {
     forms: forms::Forms,
     mixer_ui: audio::MixerUi,
     creative: creative::Creative,
+    lifecycle: lifecycle::Lifecycle,
 }
 impl Studio {
     pub fn new(
@@ -67,8 +68,7 @@ impl Studio {
                             }
                             view.last_device_refresh = Instant::now();
                         }
-                        if view.production.shutdown_requested {
-                            cx.quit();
+                        if view.poll_lifecycle(cx) {
                             return;
                         }
                         if let Some(open) = view.production.test_window_request.take() {
@@ -139,16 +139,21 @@ impl Studio {
             forms,
             mixer_ui: audio::MixerUi::default(),
             creative: creative::Creative::default(),
+            lifecycle: lifecycle::Lifecycle::new(window.window_handle()),
         }
     }
     fn command(&mut self, cmd: Command, origin: &str, cx: &mut Context<Self>) -> Value {
         let revision = self.production.revision;
+        let requests_shutdown = matches!(cmd, Command::RequestShutdown);
         let preflight = matches!(cmd, Command::PreflightOutput { .. });
         let refresh_assets = matches!(
             &cmd,
             Command::Overlay(crate::core::overlays::OverlayCommand::RemoveAsset { .. })
         );
         let result = self.production.apply(cmd, origin);
+        if requests_shutdown && result["ok"] == true {
+            self.lifecycle.shutdown_waiting = true;
+        }
         if result["ok"] != true {
             self.message = format!(
                 "{} · {}",
@@ -187,6 +192,8 @@ mod workspace;
 
 mod configuration;
 mod forms;
+mod lifecycle;
+mod outputs;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Panel {

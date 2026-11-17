@@ -24,6 +24,7 @@ fn main() {
             ),
         )
         .file("native/engine.m")
+        .file("native/lifecycle.m")
         .include(root.join(".deps/obs-studio-33.0.1/libobs"))
         .include(root.join(".deps/simde-0.8.2"))
         .include("native")

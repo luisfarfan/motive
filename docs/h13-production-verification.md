@@ -1,8 +1,8 @@
 # H13 — verificación incremental
 
 H13 está en desarrollo. Este informe distingue incrementos observados de la
-aceptación completa: todavía no acredita producción GPUI, audio del sistema,
-dos outputs, sesión prolongada ni regresiones del bundle final.
+aceptación completa: todavía no acredita producción GPUI integrada, sincronía
+A/V de captura SCK, sesión prolongada ni regresiones del bundle final.
 
 ## Incremento 1: canvas real y coordenadas persistentes
 
@@ -70,3 +70,117 @@ Límites de este incremento:
   33 ms. Un preview de 30 Hz no dirige ni limita el reloj del compositor de 60.
 - La implementación inicial de entradas SCK está compilada y tipada, pero aún
   necesita sus grabaciones reales y operación GPUI antes de declararse verificada.
+
+## Incremento 2: audio del sistema y micrófono
+
+Bundle firmado SHA-256
+`be13f8555e1e06087be0d443e4040b23acf497337f43f5f363150119cb3ffd3d`.
+El inventario inicial detectó un error real de serialización: un booleano ObjC
+se emitía como número JSON. Se corrigió el tipo explícito, conservando
+`var/evidence/h13-build/system-inventory-failure.json`. Las pruebas siguientes
+usan la aplicación propia `local.motive.audiofixture`, con AVAudioEngine y tono
+997 Hz; el segundo tono de Motive es 440 Hz. No se cambió volumen ni ruteo global.
+
+Piloto MKV PASS: `var/evidence/h13-system-audio-1794932404437443000/report.json`.
+24,64 s de PCM decodificado, 741 frames, pico −23,72 dBFS. Cambios solicitados
+de −12 dB producen −11,993 dB en el tono y −11,992 dB en audio de aplicación.
+Mute/unmute de cada canal conserva el otro. Mediana RMS de bloques de 20 ms:
+error −0,068 dB en tono aislado y −0,006 dB en sistema aislado; error peak
+respectivo +0,027/+0,014 dB. Sin clipping, render lag, skips ni drops.
+
+Matriz `h13-system-audio-1794932515805158000/report.json`:
+
+- RTMP local PASS: 751 frames, audio presente con ganancia/mute y medidores
+  independientes; gaps AAC ≤22 ms e interior de video ≤34 ms.
+- Recuperación PASS: cerrar y reabrir la aplicación cambia PID; el canal queda
+  bloqueado hasta reconexión explícita, mientras el tono y la salida continúan.
+- Silencio PASS: ceros digitales y AVAudioEngine pausado no se confunden con
+  desconexión. SCK siguió entregando paquetes de ceros; este ensayo **no** ejercita
+  físicamente `awaiting_audio` por falta de paquetes.
+- El primer analizador de transiciones midió toda la placa en vez de su franja
+  de color. Corrección geométrica, mismo medio y mismos gates: PASS en
+  `transitions-reanalysis.json`; 258 frames menta, 148 rojos, 37 mezclados.
+
+Nueva ejecución `h13-system-audio-1794932730872027000/report.json`:
+Cut/Fade y persistencia PASS. Mixer v2 conserva identidades y reutilización sin
+modificar proyecto ni perfiles. Las colas finales VT de hasta 133 ms permanecen
+registradas; no se presentan como cadencia constante hasta el último frame.
+
+Micrófono físico PASS: `h13-system-audio-1794932987734593000/report.json`.
+Selección explícita `BuiltInMicrophoneDevice`, cinco intervalos mezclado/aislado/
+mute/restaurado, 547 frames, 18,176 s de PCM, pico −18,75 dBFS, cero lag/skips/drops.
+La recaptura acústica del fixture por el micrófono fue intencional y controlada;
+no equivale a demostrar ausencia de realimentación del propio proceso.
+
+**Gate A/V abierto:** los PTS continuos no bastan para probar sincronía perceptual.
+La prueba de pulsos conserva dos fallos de contenido: la primera captura quedó
+congelada; la segunda avanzó 491 veces y se congeló a los 21,233 s durante
+12,934 s, aunque el audio y `drawRect` seguían avanzando. Evidencia:
+`h13-system-audio-1794933205287443000/report.json` y `offline-av-diagnosis/audit.json`.
+Se corrigió previamente el `vsync` del analizador para comparar frames originales,
+sin ocultar el fallo real posterior. La causa no está atribuida a SCK, WindowServer
+ni App Nap; siguen pendientes comparación con snapshots locales y visibilidad.
+Los ensayos siguientes acotan ese gate a las condiciones visibles probadas;
+no explican ni borran los congelamientos previos.
+
+Exclusión propia PASS en
+`h13-self-audio-exclusion-1794934285059972000/report.json`, bundle `dc9c38a…`.
+Emisor AVAudioPlayer dentro de Motive, opt-in `MOTIVE_TEST_SELF_AUDIO=1`,
+2011 Hz/−30 dBFS; fixture externo 997 Hz/−30 dBFS y luego 2011 Hz al mismo nivel
+como control positivo. Solo escritorio principal en el mixer, sin monitoreo.
+El tono propio queda por debajo del gate de −45 dB relativo al control positivo;
+la estimación espectral fue −122,74 dB (limitada por el piso del análisis).
+401 frames, AAC sin gaps >22 ms, sin clipping/lag/skips/drops. Motive se cerró
+normalmente y volvió a abrir **sin** el emisor al terminar.
+
+Los intentos previos de ese verificador permanecen: `1794934183628345000`
+no alcanzó el estudio; el primer launcher no aislaba su grupo de procesos y
+dejó un socket obsoleto. Se verificó ausencia de proceso/conexión antes de
+retirarlo. `1794934251673534000` falló antes de capturar por `codesign --strict`:
+el bundle local usa un symlink externo de Frameworks OBS. La firma ordinaria
+sí pasa; strict se conserva como resultado y límite de portabilidad, sin
+confundirlo con corrupción de firma ni modificar los gates multimedia.
+
+A/V visible PASS, mismo bundle, dos ensayos:
+
+- `h13-system-audio-1794934345250779000/report.json`: snapshots NSView opt-in
+  y acción CUA Raise; siete pulsos, mediana audio−video −35,83 ms, rango de
+  desfase 33 ms. Los snapshots redibujan y pueden influir la publicación.
+- `h13-system-audio-1794934414391892000/report.json`: sin snapshots, ventana
+  elevada mediante CUA; siete parejas de pulsos, mediana −67,48 ms, rango 0 ms.
+
+Gate por pulso: |desfase| <250 ms y rango <100 ms. Mide alineación de extremo a
+extremo, incluida latencia de reproducción y redraw, no latencia cero. La
+visibilidad es una condición observada, **no** una causa demostrada del fallo.
+Quedan los logs, snapshots y timestamps de Raise para contrastar. No se cambió
+Stage Manager, permisos ni otra configuración global.
+
+## Incremento 3: primer ensayo de salidas independientes
+
+Bundle SHA-256
+`dc9c38a82d72c86cacd668a88c25ec26f0e12cbbb7b9d0c829d3e820a20ef38f`;
+67 tests Rust, Clippy y rustfmt PASS. `scripts/verify_h13_outputs.py --lock-held
+--stage smoke` ejercita dos pares VT/AAC con perfiles distintos sobre el mismo
+canvas 1080p30, fuentes y mezcla. Detener/reiniciar RTMP conserva grabación;
+detener grabación conserva RTMP. Barreras terminales observadas por destino.
+
+Control/lifecycle y los tres medios PASS:
+`var/evidence/h13-outputs-1794933571099068000/reanalysis-1794933732548210000/report.json`.
+El informe original conserva un fallo del verificador: recortaba PCM por PTS
+original y luego `-t 1` descartaba muestras con PTS mayor de un segundo.
+Se añadió `asetpts=PTS-STARTPTS` únicamente al sink PCM tras el recorte; se
+reanalisaron los archivos originales, sin cambiar umbrales ni producción.
+Matriz posterior `h13-outputs-1794933990447407000/report.json`: los cuatro casos
+de control/lifecycle pasan, incluidos widgets/Cut/Fade, pérdida de receptor y
+muerte del helper muxer propio. La salida superviviente conserva recursos y
+continúa; recuperación por destino es explícita. Once de doce medios pasan.
+
+**Fallo real retenido:** en el primer MKV aparece un hueco inicial de 1024
+muestras, 0,311083–0,332417 s. El intervalo RMS de 100 ms incumple el margen de
+1 dB (−34,076 frente a −33,010 dBFS). El centro del hueco cae a −104,2 dBFS y
+la fase posterior se retrasa exactamente un bloque de audio; ocurre antes de
+iniciar RTMP. PTS AAC continuos no ocultan esta pérdida. El primer smoke del
+mismo binario no la presenta. Diagnóstico:
+`offline-audio-diagnosis-1794934472450720000/report.json`. No se relajó el gate;
+se instrumentarán fuente y mezcla para separar starvation de encoder. No se
+declara la matriz completa PASS mientras esa causa siga abierta.

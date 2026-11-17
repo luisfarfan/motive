@@ -1,9 +1,13 @@
 # H13 — contrato de salidas independientes
 
-Estado: **diseño para implementación**, basado en `b52d135` y OBS 33.0.1.
-Este documento no acredita capacidades ni pruebas completadas. Los nombres y
-campos siguientes deben implementarse y verificarse juntos antes de anunciar el
-contrato. La evidencia del binario integrado tendrá su propio informe.
+Estado al 2026-11-17: **núcleo, CLI/MCP y presentación GPUI implementados;
+aceptación H13 pendiente**, sobre OBS 33.0.1. El registro y los comandos siguientes
+ya existen en el worktree H13. Las primeras pruebas reales acreditan control de
+dos salidas, supervivencia y recuperación por destino; una discontinuidad de
+audio conserva el resultado global de la matriz en FAIL. La nueva presentación
+GPUI aún requiere build integrado y operación nativa. Ver los límites y la
+evidencia concreta en las secciones 9 y 10; implementar no equivale a completar
+la aceptación.
 
 Decisión: [arquitectura H13](h13-production-architecture.md). Referencias de
 compatibilidad: [H8](h8-streaming-verification.md),
@@ -37,8 +41,8 @@ no puede retirar la actividad del otro. El graph se libera después del último.
 
 ## 2. Modelo de consulta
 
-`OutputTarget` conserva los valores `recording | streaming`. Añadir un tipo
-`OutputPhase` con `idle | starting | connecting | active | stopping | error`.
+`OutputTarget` conserva los valores `recording | streaming`; `OutputPhase`
+expone `idle | starting | connecting | active | stopping | error`.
 La fase describe el ciclo nativo; la necesidad de recuperación es un campo
 independiente. En particular, un error recibido mientras quedan workers se
 presenta como `stopping`, con el fallo y `recovery_required: true` visibles.
@@ -79,11 +83,11 @@ si fuesen pérdidas independientes de ambos outputs. Frames codificados proviene
 del encoder del slot; no equivalen a bytes entregados al receptor. Un contador
 no disponible debe informarse como `null`, no como cero observado.
 
-`output_capabilities` declarará `simultaneous_outputs: 2`, los dos destinos,
+`output_capabilities` declara `simultaneous_outputs: 2`, los dos destinos,
 `encoder_sharing: false`, `composition_shared: true`,
 `deferred_cancellation_supported: true` y
-`cancel_connecting_supported: false` cuando la implementación correspondiente
-exista. Mantener la identificación del parche H8 y la restricción loopback.
+`cancel_connecting_supported: false`. Conserva la identificación del parche H8
+y la restricción loopback.
 Disponibilidad de una opción de video no constituye verificación multimedia.
 
 ## 3. Fases y barreras
@@ -306,6 +310,44 @@ cambiar esos ajustes y funcionan con el otro output activo.
 
 ## 9. Implementación y verificación incremental
 
+### Evidencia real disponible y límites actuales
+
+La implementación vive en `native/output-slots.inc`, `native/encoding.inc`,
+`native/engine.m`, `src/output.rs`, `src/output_runtime.rs`, `src/engine.rs`,
+`src/core.rs` y `src/control.rs`. `scripts/verify_h13_outputs.py` realiza ensayos
+con patrón, overlays, tono y un receptor FFmpeg local propio; conserva cada
+archivo/segmento, operaciones, observaciones, hashes y errores. Los resultados
+siguientes corresponden al ejecutable SHA-256
+`dc9c38a82d72c86cacd668a88c25ec26f0e12cbbb7b9d0c829d3e820a20ef38f`, no al futuro
+bundle que incorpore la nueva presentación GPUI.
+
+| Ensayo conservado | Resultado y alcance |
+|---|---|
+| [Primer smoke](../var/evidence/h13-outputs-1794933571099068000/report.json) | Lifecycle/control PASS. El reporte inicial conserva un fallo del analizador PCM; no se sobrescribió. |
+| [Reanálisis del mismo smoke](../var/evidence/h13-outputs-1794933571099068000/reanalysis-1794933732548210000/report.json) | PASS con la corrección del analizador registrada en `analysis_correction`, sobre los mismos medios. |
+| [Matriz de cuatro casos](../var/evidence/h13-outputs-1794933990447407000/report.json) | Control/lifecycle PASS en `smoke`, `production`, `receiver-loss` y `muxer-loss`; 11 de 12 medios pasan su análisis. Resultado global **FAIL**, con un defecto de continuidad de audio pendiente. |
+
+La matriz demuestra dos salidas con perfiles separados, parada/reentrada de RTMP
+mientras MKV continúa, parada de MKV mientras RTMP continúa, pérdida real del
+receptor y terminación del muxer propio con recuperación explícita del destino.
+El caso `production` incluye Cut/Fade, edición de lower third, countdown/alerta y
+gain/mute. Los transcripts incluyen operaciones CLI y MCP. Esto no acredita
+interacción GPUI ni una sesión prolongada de producción.
+
+El fallo retenido es `smoke-recording`: una ventana PCM de 100 ms centrada en
+0,35 s mide −34,0759 dBFS frente a −33,0103 dBFS esperados. El diagnóstico en
+curso identifica un hueco real de aproximadamente 1024 muestras cerca de 0,32 s;
+la causa y corrección aún se investigan. No se ensancha la tolerancia ni se
+convierte el resultado global en PASS por haber pasado el control de estados.
+Los archivos parciales de los casos con fallo intencional se identifican como
+tales; que decodifiquen no acredita cierre limpio de esos destinos fallidos.
+
+Quedan gates de GPUI, handshake/cierre dual, sesión prolongada, comparación de
+carga con una/dos salidas, regresiones completas y corrección/repetición del
+caso de audio. Cada gate se cerrará con evidencia del binario integrado final.
+
+### Secuencia de integración
+
 1. Tipos, registro nativo, consultas por destino, guards conjuntos y wrappers.
    Pruebas de validación/compatibilidad; una sola salida conserva H7/H8.
 2. Primer MKV + RTMP concurrente con patrón móvil y tono, antes de incorporar
@@ -431,7 +473,52 @@ La aceptación final incluye controles GPUI para ambos destinos y evidencia de
 comandos CLI/MCP se verifica en otra etapa explícita. No declarar integración
 GPUI completa a partir de una ejecución realizada solamente por terminal.
 
-## 10. Fuentes oficiales
+## 10. Contrato de integración GPUI
+
+`src/ui/studio/outputs.rs` presenta el registro compartido obtenido mediante
+`Production::status()` y envía los mismos `Command` por `Studio::command` con
+origen `UI`. No conserva un segundo estado de salida, no consulta dispositivos,
+no crea workers ni llama directamente a libobs. `chrome.rs` compone los controles
+de cabecera; `panels.rs` enruta el panel Salidas; `forms.rs` usa la confirmación
+existente ligada a revisión. `mod.rs` declara el módulo. El aviso sobre el canvas
+abre Salidas para resolver el destino correcto; el indicador live de escenas
+consulta las fases del registro y admite ambos destinos activos.
+
+| Control / sección | API exacta y presentación |
+|---|---|
+| **Grabar** | `Command::StartOutput { target: OutputTarget::Recording }`; CLI/MCP `start_output` con `target: "recording"`. |
+| **Transmitir** | `Command::StartOutput { target: OutputTarget::Streaming }`; CLI/MCP `start_output` con `target: "streaming"`. Reutiliza el receptor local configurado. |
+| Botón de un destino activo / **Detener** | `Command::StopOutputTarget { target }`, `stop_output_target`; confirmación nombra únicamente ese destino. El otro continúa. |
+| **Cancelar inicio** | `Command::CancelOutputTarget { target }`, `cancel_output_target`; pide cancelación segura durante `starting`/`connecting`. El estado sigue ocupado hasta la barrera real. |
+| **Recuperar REC/RTMP** | `Command::RecoverOutputTarget { target }`, `recover_output_target`; habilitado para fallo terminal sin `native_busy`. No arranca otra salida automáticamente. |
+| **Detener todas las salidas** | `Command::CancelAllOutputs`, `cancel_all_outputs`; visible al principio del panel. Confirma ambos destinos y conserva abierto el estudio. |
+| **Comprobar** por destino | `Command::PreflightOutput { target }`, `preflight_output`; comprueba configuración y readiness, sin abrir conexión ni prometer entrega de medios. |
+| Tarjetas **Grabación MKV / Transmisión RTMP local** | `outputs.recording` / `outputs.streaming`: fase, fallo estructurado y código nativo si existe, intento, duración, perfil usado, encoder/fallback, dimensiones/FPS, bytes, frames y drops. Identifica UDP heredado cuando `kind: "local_stream"`. |
+| **Receptor de transmisión** | `ConfigureStream`, `SelectStreamCredential`, `CredentialStatus`; formularios existentes ligados a revisión. Configuración y vinculación solo con ambas salidas detenidas. Nunca muestra una clave. |
+
+Mientras hay cancelación o drenaje, el control muestra **Finalizando** y no
+permite iniciar ni recuperar el slot. `cancel_deferred` muestra que la conexión
+aún tiene trabajo pendiente. Un error de un destino no deshabilita por sí mismo
+el arranque/control del otro; la validación final pertenece siempre al núcleo,
+incluidos fallos compartidos, shutdown o un cambio ocurrido entre render y click.
+
+El tiempo se formatea exclusivamente desde `outputs.<target>.active_duration_ms`.
+No se usa `frames / 30`, un cronómetro GPUI ni timestamps de recepción MCP. Al
+detenerse, la tarjeta conserva la duración y el snapshot del intento hasta el
+siguiente arranque. El perfil seleccionado para el próximo intento se muestra
+separado del perfil realmente utilizado. La cabecera y el canvas ya no atribuyen
+`encoding: null` o métricas legacy agregadas a un destino cuando hay dos salidas.
+
+La implementación de UI pasó revisión estática, `rustfmt` y `git diff --check`.
+Esto **no** acredita build ni aceptación visual/nativa. Pendiente sobre el bundle
+final: layouts 1024×780 y 1440×980; ambos inicios por click; detener cada destino
+manteniendo el otro; error y recovery dirigidos; cancelación pendiente; detener
+todo; cambios recibidos desde MCP con el panel abierto; confirmación obsoleta
+rechazada; y evidencia `origin: UI` correlacionada con los medios decodificados.
+Los handlers heredados ambiguos `StartRecording`, `StartStream`, `StopOutput`,
+`CancelOutput` y `RecoverOutput` ya no se utilizan desde esta presentación.
+
+## 11. Fuentes oficiales
 
 - [API Output](https://docs.obsproject.com/reference-outputs): inicio asíncrono,
   encoders asignados y finalización de captura.

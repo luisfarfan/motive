@@ -1,10 +1,154 @@
 /* Only libobs sums audio, applies volume/mute and timestamps audio actions.
  * Global output channels 1..8 feed mix 0, independently of video channel 0.
  * Callbacks only measure/copy bounded metrics; they never modify audio samples. */
+
+/* Diagnostic only: set MOTIVE_TEST_AUDIO_TRACE=1 before starting Motive.
+ * Off by default; never persists and never contains PCM, device IDs or paths.
+ * One process-wide ring is bounded to 2048 records / <=384 KiB, plus a <=24 KiB
+ * owner stack batch. Capture stops after 65536 accepted records per process.
+ * Producers never wait, allocate, format or perform I/O: a busy/full ring loses
+ * diagnostic records and exposes separate contention/overflow counters.
+ *
+ * The owner drains JSONL to stderr in motive_audio_state / audio_mix_stop:
+ * event=motive_test_audio_trace, version=1, phase=enabled|blocks|summary.
+ * blocks[].point is tone_schedule, source_pre_fader_pre_mute, or
+ * mix_post_fader_post_mute_pre_clamp. All clocks are os_gettime_ns() nanoseconds.
+ * pts_ns is unchanged OBS PTS; seen_ns is wake/callback entry; done_ns is only
+ * the tone's return from obs_source_output_audio. observed_frame_offset counts
+ * samples at that observation point (tone offset is its sample-clock position).
+ * frames is per-channel. sum_squares / rms / peak are linear, channels_present
+ * identifies valid channels; nonfinite_samples makes invalid data explicit.
+ * source energy examines at most 8192 frames per callback; measured_frames and
+ * metrics_complete disclose any larger block without extra unbounded work.
+ * Output records can arrive in a different order from seen_ns: the tone record
+ * is enqueued AFTER its synchronous source callback, so compare PTS/offsets.
+ * Capture/measurement overhead can perturb timing; this is a localization aid,
+ * not production timing evidence. Lost records never imply missing PCM.
+ */
+#define AUDIO_TRACE_CAPACITY 2048
+#define AUDIO_TRACE_BATCH 128
+#define AUDIO_TRACE_BUDGET 65536
+typedef struct {
+    uint64_t sequence,pts_ns,seen_ns,done_ns,observed_frame_offset;
+    double sum_squares[2],peak[2];
+    uint32_t frames,measured_frames,nonfinite_samples;
+    unsigned char point,channels_present,muted;
+    char id[64];
+} audio_trace_record;
+_Static_assert(sizeof(audio_trace_record)<=192,"audio diagnostic ring memory bound");
+static struct {
+    atomic_flag lock;
+    atomic_bool capturing;
+    atomic_uint_fast64_t contention,overflow;
+    bool initialized,enabled;
+    uint64_t written,read,reported_contention,reported_overflow;
+    bool reported_budget;
+    audio_trace_record records[AUDIO_TRACE_CAPACITY];
+} audio_trace={.lock=ATOMIC_FLAG_INIT};
+
+static void audio_trace_push(audio_trace_record record) {
+    if(!atomic_load_explicit(&audio_trace.capturing,memory_order_relaxed))return;
+    if(atomic_flag_test_and_set_explicit(&audio_trace.lock,memory_order_acquire)) {
+        atomic_fetch_add_explicit(&audio_trace.contention,1,memory_order_relaxed);return;
+    }
+    if(audio_trace.written>=AUDIO_TRACE_BUDGET) {
+        atomic_store_explicit(&audio_trace.capturing,false,memory_order_relaxed);
+    } else if(audio_trace.written-audio_trace.read>=AUDIO_TRACE_CAPACITY) {
+        atomic_fetch_add_explicit(&audio_trace.overflow,1,memory_order_relaxed);
+    } else {
+        record.sequence=audio_trace.written+1;
+        audio_trace.records[audio_trace.written++%AUDIO_TRACE_CAPACITY]=record;
+        if(audio_trace.written==AUDIO_TRACE_BUDGET)
+            atomic_store_explicit(&audio_trace.capturing,false,memory_order_relaxed);
+    }
+    atomic_flag_clear_explicit(&audio_trace.lock,memory_order_release);
+}
+static id audio_trace_number(double value) {return isfinite(value)?@(value):[NSNull null];}
+static void audio_trace_log_owner(NSDictionary *event) {
+    NSData *json=[NSJSONSerialization dataWithJSONObject:event options:0 error:nil];
+    if(json) {
+        NSMutableData *line=[json mutableCopy];[line appendBytes:"\n" length:1];
+        // One stdio call keeps other libobs log writes out of the JSON line.
+        fwrite(line.bytes,1,line.length,stderr);
+    }
+}
+static void audio_trace_start_owner(void) {
+    if(audio_trace.initialized)return;
+    audio_trace.initialized=true;
+    const char *setting=getenv("MOTIVE_TEST_AUDIO_TRACE");
+    audio_trace.enabled=setting && !strcmp(setting,"1");
+    if(!audio_trace.enabled)return;
+    atomic_store_explicit(&audio_trace.capturing,true,memory_order_relaxed);
+    @autoreleasepool {
+        audio_trace_log_owner(@{@"event":@"motive_test_audio_trace",@"version":@1,@"phase":@"enabled",
+            @"pid":@(getpid()),@"clock":@"os_gettime_ns",@"sample_rate":@48000,
+            @"capacity":@(AUDIO_TRACE_CAPACITY),@"ring_bytes":@(sizeof(audio_trace.records)),
+            @"record_budget":@(AUDIO_TRACE_BUDGET),@"pcm_logged":@NO});
+    }
+}
+static void audio_trace_drain_owner(const char *reason,unsigned batches) {
+    if(!audio_trace.enabled)return;
+    // Only the core owner drains. Copy under the try-lock, then immediately
+    // release it before Foundation allocation or stderr I/O.
+    for(unsigned batch=0;batch<batches;batch++) {
+        audio_trace_record records[AUDIO_TRACE_BATCH];size_t count=0;
+        if(atomic_flag_test_and_set_explicit(&audio_trace.lock,memory_order_acquire))return;
+        while(count<AUDIO_TRACE_BATCH && audio_trace.read<audio_trace.written)
+            records[count++]=audio_trace.records[audio_trace.read++%AUDIO_TRACE_CAPACITY];
+        uint64_t queued=audio_trace.written-audio_trace.read,written=audio_trace.written;
+        atomic_flag_clear_explicit(&audio_trace.lock,memory_order_release);
+        uint64_t contention=atomic_load_explicit(&audio_trace.contention,memory_order_relaxed);
+        uint64_t overflow=atomic_load_explicit(&audio_trace.overflow,memory_order_relaxed);
+        bool exhausted=written>=AUDIO_TRACE_BUDGET;
+        if(!count && contention==audio_trace.reported_contention && overflow==audio_trace.reported_overflow &&
+            exhausted==audio_trace.reported_budget)return;
+        @autoreleasepool {
+            NSMutableArray *blocks=[NSMutableArray arrayWithCapacity:count];
+            for(size_t i=0;i<count;i++) {
+                audio_trace_record *r=&records[i];
+                NSString *point=r->point==0?@"tone_schedule":r->point==1?
+                    @"source_pre_fader_pre_mute":@"mix_post_fader_post_mute_pre_clamp";
+                NSMutableDictionary *block=[@{@"sequence":@(r->sequence),@"point":point,@"id":@(r->id),
+                    @"pts_ns":@(r->pts_ns),@"seen_ns":@(r->seen_ns),@"frames":@(r->frames),
+                    @"observed_frame_offset":@(r->observed_frame_offset),
+                    @"muted":@((bool)r->muted),@"channels_present":@(r->channels_present),
+                    @"nonfinite_samples":@(r->nonfinite_samples)} mutableCopy];
+                if(r->point==0) {
+                    block[@"done_ns"]=@(r->done_ns);
+                    block[@"lateness_ns"]=@((int64_t)r->seen_ns-(int64_t)r->pts_ns);
+                } else {
+                    block[@"measured_frames"]=@(r->measured_frames);
+                    block[@"metrics_complete"]=@((bool)(r->measured_frames==r->frames && !r->nonfinite_samples));
+                    NSMutableArray *energy=[NSMutableArray arrayWithCapacity:2];
+                    NSMutableArray *rms=[NSMutableArray arrayWithCapacity:2];
+                    NSMutableArray *peak=[NSMutableArray arrayWithCapacity:2];
+                    for(unsigned c=0;c<2;c++) {
+                        bool present=(r->channels_present&(1u<<c))!=0;
+                        [energy addObject:present?audio_trace_number(r->sum_squares[c]):[NSNull null]];
+                        [rms addObject:present && r->measured_frames?audio_trace_number(sqrt(r->sum_squares[c]/r->measured_frames)):[NSNull null]];
+                        [peak addObject:present?audio_trace_number(r->peak[c]):[NSNull null]];
+                    }
+                    block[@"sum_squares"]=energy;block[@"rms"]=rms;block[@"peak"]=peak;
+                }
+                [blocks addObject:block];
+            }
+            audio_trace_log_owner(@{@"event":@"motive_test_audio_trace",@"version":@1,
+                @"phase":count?@"blocks":@"summary",@"pid":@(getpid()),@"reason":@(reason),
+                @"drained_ns":@(os_gettime_ns()),@"accepted_records":@(written),@"queued_records":@(queued),
+                @"dropped_contention":@(contention),@"dropped_overflow":@(overflow),
+                @"budget_exhausted":@(exhausted),@"blocks":blocks});
+        }
+        audio_trace.reported_contention=contention;audio_trace.reported_overflow=overflow;
+        audio_trace.reported_budget=exhausted;
+        if(!queued)return;
+    }
+}
+
 typedef struct {
     obs_source_t *source;
     pthread_t thread;
     atomic_bool stop;
+    char trace_id[64];
 } tone_generator;
 static void *tone_run(void *param) {
     tone_generator *tone=param;
@@ -23,17 +167,26 @@ static void *tone_run(void *param) {
         uint64_t timestamp=start+(frames/480)*10000000ULL;
         os_sleepto_ns(timestamp);
         if(atomic_load(&tone->stop))break;
+        bool tracing=atomic_load_explicit(&audio_trace.capturing,memory_order_relaxed);
+        uint64_t wake_ns=tracing?os_gettime_ns():0;
         for(size_t i=0;i<480;i++) samples[i]=0.0630957344f*sinf((float)((frames+i)%48000)*2*M_PI*440/48000);
         struct obs_source_audio audio={.data={(const uint8_t *)samples,(const uint8_t *)samples},
             .frames=480,.speakers=SPEAKERS_STEREO,.format=AUDIO_FORMAT_FLOAT_PLANAR,
             .samples_per_sec=48000,.timestamp=timestamp};
-        obs_source_output_audio(tone->source,&audio);frames+=480;
+        obs_source_output_audio(tone->source,&audio);
+        if(tracing) {
+            audio_trace_record record={.point=0,.pts_ns=timestamp,.seen_ns=wake_ns,
+                .done_ns=os_gettime_ns(),.observed_frame_offset=frames,.frames=480};
+            memcpy(record.id,tone->trace_id,sizeof(record.id));audio_trace_push(record);
+        }
+        frames+=480;
     }
     return NULL;
 }
 static const char *tone_name(void *unused) {(void)unused;return "Motive controlled 440 Hz tone";}
 static void *tone_create(obs_data_t *settings,obs_source_t *source) {
     (void)settings;tone_generator *tone=calloc(1,sizeof(*tone));tone->source=source;
+    snprintf(tone->trace_id,sizeof(tone->trace_id),"%s",obs_source_get_name(source));
     if(pthread_create(&tone->thread,NULL,tone_run,tone)) {free(tone);return NULL;}
     return tone;
 }
@@ -69,10 +222,32 @@ struct audio_mix_meter { audio_metrics metrics; };
 static void audio_metrics_init(audio_metrics *m) { pthread_mutex_init(&m->lock,NULL); }
 static void audio_flow(void *param,obs_source_t *source,const struct audio_data *data,bool muted) {
     if(!data || !data->frames)return;
-    (void)source;(void)muted;audio_metrics *m=&((audio_input *)param)->metrics;
+    (void)source;audio_input *input=param;audio_metrics *m=&input->metrics;
+    bool tracing=atomic_load_explicit(&audio_trace.capturing,memory_order_relaxed);
+    uint64_t seen=tracing?os_gettime_ns():0,offset;
+    char trace_id[64]={0};
     pthread_mutex_lock(&m->lock);
-    m->frames+=data->frames;m->seen_ns=os_gettime_ns();m->timestamp=data->timestamp;
+    offset=m->frames;
+    if(tracing)memcpy(trace_id,input->id,sizeof(trace_id));
+    m->frames+=data->frames;m->seen_ns=tracing?seen:os_gettime_ns();m->timestamp=data->timestamp;
     pthread_mutex_unlock(&m->lock);
+    if(tracing) {
+        audio_trace_record record={.point=1,.pts_ns=data->timestamp,.seen_ns=seen,
+            .observed_frame_offset=offset,.frames=data->frames,.muted=muted,
+            .measured_frames=data->frames<8192?data->frames:8192};
+        memcpy(record.id,trace_id,sizeof(record.id));
+        for(unsigned c=0;c<2;c++) if(data->data[c]) {
+            record.channels_present|=1u<<c;
+            const float *samples=(const float *)data->data[c];
+            for(uint32_t i=0;i<record.measured_frames;i++) {
+                double value=samples[i];
+                if(!isfinite(value)) {record.nonfinite_samples++;continue;}
+                record.sum_squares[c]+=value*value;
+                record.peak[c]=fmax(record.peak[c],fabs(value));
+            }
+        }
+        audio_trace_push(record);
+    }
 }
 static void audio_levels(void *param,const float magnitude[MAX_AUDIO_CHANNELS],
                          const float peak[MAX_AUDIO_CHANNELS],const float input_peak[MAX_AUDIO_CHANNELS]) {
@@ -89,22 +264,30 @@ static void audio_levels(void *param,const float magnitude[MAX_AUDIO_CHANNELS],
 }
 static void mix_levels(void *param,size_t mix_idx,struct audio_data *data) {
     (void)mix_idx;audio_metrics *m=&((audio_mix_meter *)param)->metrics;
+    bool tracing=atomic_load_explicit(&audio_trace.capturing,memory_order_relaxed);
+    audio_trace_record record={.point=2,.pts_ns=data->timestamp,.frames=data->frames,
+        .measured_frames=data->frames,.seen_ns=tracing?os_gettime_ns():0};
     float peaks[2]={0},rms[2]={0};bool clipped=false;
     for (size_t c=0;c<2;c++) if (data->data[c]) {
         const float *samples=(const float *)data->data[c];double sum=0;
         for (size_t i=0;i<data->frames;i++) {
             float v=samples[i];peaks[c]=fmaxf(peaks[c],fabsf(v));sum+=(double)v*v;
+            if(tracing && !isfinite(v))record.nonfinite_samples++;
         }
         rms[c]=data->frames ? sqrt(sum/data->frames):0;
         clipped |= peaks[c]>=1.0f;
+        if(tracing) {record.channels_present|=1u<<c;record.sum_squares[c]=sum;record.peak[c]=peaks[c];}
     }
     pthread_mutex_lock(&m->lock);
+    record.observed_frame_offset=m->frames;
     m->frames+=data->frames;m->seen_ns=os_gettime_ns();m->timestamp=data->timestamp;
     memcpy(m->peak,peaks,sizeof(peaks));memcpy(m->rms,rms,sizeof(rms));
     if (clipped) m->clipped_blocks++;
     pthread_mutex_unlock(&m->lock);
+    if(tracing) {memcpy(record.id,"mix-0",6);audio_trace_push(record);}
 }
 static void audio_mix_start(motive_engine *e) {
+    audio_trace_start_owner();
     e->mix_meter=calloc(1,sizeof(*e->mix_meter));audio_metrics_init(&e->mix_meter->metrics);
     struct audio_convert_info conversion={.samples_per_sec=48000,.format=AUDIO_FORMAT_FLOAT_PLANAR,
         .speakers=SPEAKERS_STEREO,.allow_clipping=true};
@@ -133,6 +316,7 @@ static void audio_mix_stop(motive_engine *e) {
         pthread_mutex_destroy(&e->mix_meter->metrics.lock);free(e->mix_meter);e->mix_meter=NULL;
     }
     for (size_t i=0;i<8;i++) if (e->audio_inputs[i]) {audio_release(e->audio_inputs[i]);e->audio_inputs[i]=NULL;}
+    audio_trace_drain_owner("mixer_stop",AUDIO_TRACE_CAPACITY/AUDIO_TRACE_BATCH);
 }
 static bool audio_attach(motive_engine *e,audio_input *a,const char *tone_path,float gain,bool muted) {
     (void)tone_path;
@@ -264,7 +448,9 @@ bool motive_audio_restore_missing(motive_engine *e,const char *id,const char *de
 bool motive_audio_rename_id(motive_engine *e,const char *old_id,const char *new_id) {
     audio_input *a=audio_find(e,old_id);
     if(!a || audio_find(e,new_id))return false;
-    snprintf(a->id,sizeof(a->id),"%s",new_id);return true;
+    pthread_mutex_lock(&a->metrics.lock);
+    snprintf(a->id,sizeof(a->id),"%s",new_id);
+    pthread_mutex_unlock(&a->metrics.lock);return true;
 }
 static int audio_health(audio_input *a) {
     if (a->fault) return a->fault;
@@ -317,6 +503,7 @@ static NSDictionary *audio_metrics_json(audio_metrics *m) {
         @"clipped_blocks":@(clipped)};
 }
 char *motive_audio_state(motive_engine *e) {
+    audio_trace_drain_owner("mixer_query",2);
     NSMutableArray *inputs=[NSMutableArray array];
     for (size_t i=0;i<8;i++) if (e->audio_inputs[i]) {
         audio_input *a=e->audio_inputs[i];int health=audio_health(a);

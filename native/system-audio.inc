@@ -131,7 +131,7 @@ char *motive_system_audio_sources(motive_engine *e) {
             NSArray *running=[NSRunningApplication runningApplicationsWithBundleIdentifier:bundle];
             unsigned count=MAX([entry[@"running_instances"] unsignedIntValue],(unsigned)running.count);
             entry[@"running_instances"]=@(count);
-            entry[@"selectable"]=@(count==1 && audio_target_valid(2,bundle.UTF8String));
+            entry[@"selectable"]=@((bool)(count==1 && audio_target_valid(2,bundle.UTF8String)));
             [applications addObject:entry];
         }
         for(SCDisplay *display in content.displays) {

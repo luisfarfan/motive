@@ -2,6 +2,8 @@
 pub mod audio;
 #[path = "output.rs"]
 pub mod output;
+#[path = "output_runtime.rs"]
+mod output_runtime;
 #[path = "overlays/mod.rs"]
 pub mod overlays;
 #[path = "video.rs"]
@@ -14,14 +16,13 @@ use crate::{
     },
 };
 use audio::{AudioSource, AudioStore};
-use output::{LocalEndpoint, OutputProfile, OutputTarget, ProfileStore};
+use output::{LocalEndpoint, OutputProfile, OutputRegistry, OutputTarget, ProfileStore};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
 };
 use video::VideoConfig;
 pub fn data_dir() -> PathBuf {
@@ -91,6 +92,7 @@ pub enum Command {
     Devices,
     Encoders,
     OutputCapabilities,
+    Outputs,
     VideoCapabilities,
     ConfigureVideo {
         video: VideoConfig,
@@ -121,6 +123,19 @@ pub enum Command {
         target: OutputTarget,
     },
     StartStream,
+    StartOutput {
+        target: OutputTarget,
+    },
+    StopOutputTarget {
+        target: OutputTarget,
+    },
+    CancelOutputTarget {
+        target: OutputTarget,
+    },
+    RecoverOutputTarget {
+        target: OutputTarget,
+    },
+    CancelAllOutputs,
     RecoverOutput,
     SetEncoder {
         encoder: RecordingEncoder,
@@ -278,9 +293,7 @@ pub struct Production {
     pub project: Project,
     pub revision: u64,
     pub last_action: String,
-    pub output_kind: String,
-    pub output_path: Option<String>,
-    pub stopping: bool,
+    outputs: OutputRegistry,
     pub window_id: Option<u32>,
     pub issues: Vec<String>,
     pub recovery: Recovery,
@@ -288,7 +301,6 @@ pub struct Production {
     pub source_health: Value,
     bindings: BTreeMap<String, WindowBinding>,
     awaiting_recovery: BTreeSet<String>,
-    seen_output_error: i32,
     pub shutdown_requested: bool,
     shutdown_pending: bool,
     pub test_window_request: Option<bool>,
@@ -316,9 +328,7 @@ impl Production {
             project: Project::default(),
             revision: 0,
             last_action: "Estudio iniciado".into(),
-            output_kind: "idle".into(),
-            output_path: None,
-            stopping: false,
+            outputs: OutputRegistry::default(),
             window_id: None,
             issues: vec![],
             recovery: Recovery::default(),
@@ -326,7 +336,6 @@ impl Production {
             source_health: json!([]),
             bindings: BTreeMap::new(),
             awaiting_recovery: BTreeSet::new(),
-            seen_output_error: 0,
             shutdown_requested: false,
             shutdown_pending: false,
             test_window_request: None,
@@ -340,27 +349,39 @@ impl Production {
         self.project.graph.as_ref().expect("validated graph")
     }
     pub fn status(&self) -> Value {
-        let state = self.engine.output_state();
-        let output = if state == 0 && self.engine.output_code() != 0 {
-            "error"
-        } else if state == 0 {
-            "idle"
-        } else if self.stopping && state == 3 {
-            "cancel_pending"
-        } else if self.stopping {
-            "stopping"
-        } else if state == 3 {
-            "connecting"
-        } else {
-            &self.output_kind
-        };
-        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"overlays":self.overlay_status(),"encoding":self.encoding_status(),"output_configuration":self.output_configuration(),"issues":self.issues,
-            "recovery_required":self.recovery.required(),"recovery_sources":self.recovery.pending,"last_fault":self.last_fault,
-            "sources":self.source_health,"window_id":self.window_id,"output":output,"output_code":self.engine.output_code(),
+        let outputs = self.output_snapshot();
+        let legacy = outputs.legacy_target().map(|target| outputs.get(target));
+        let mut stats = self.engine.stats();
+        for key in [
+            "output_bytes",
+            "output_frames",
+            "output_dropped_frames",
+            "encoded_frames",
+        ] {
+            stats[key] = legacy.map_or(Value::Null, |slot| json!(slot.stats)[key].clone());
+        }
+        let mut recovery_sources = self.recovery.pending.clone();
+        for target in OutputTarget::ALL {
+            if outputs.get(target).recovery_required {
+                recovery_sources.insert(format!("output:{}", target.name()));
+            }
+        }
+        // Compatibility alias for clients that only know one output. New
+        // consumers use the per-target registry and never acknowledge by alias.
+        if outputs.recovery_required() {
+            recovery_sources.insert("output".into());
+        }
+        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"overlays":self.overlay_status(),"encoding":if legacy.is_some(){self.encoding_status(&outputs)}else{Value::Null},"output_configuration":self.output_configuration(),"issues":self.issues,
+            "recovery_required":self.recovery.required() || outputs.recovery_required(),"recovery_sources":recovery_sources,"last_fault":self.last_fault,
+            "sources":self.source_health,"window_id":self.window_id,"output":legacy.map_or("multiple", |slot|slot.legacy_state()),
+            "output_code":legacy.map(|slot|slot.failure.as_ref().and_then(|f|f.native_code).unwrap_or(0)),
             "transition_configuration":self.transition,"transition":self.engine.scene_state(),
-            "output_lifecycle":{"native_busy":state!=0,"cancel_requested":self.stopping,"cancel_deferred":self.stopping && state==3,"shutdown_pending":self.shutdown_pending},
-            "output_failure":output_failure(self.engine.output_code()),"output_path":self.output_path,"last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":self.engine.fps,"video":self.video_status(),"stats":self.engine.stats()})
+            "output_lifecycle":{"native_busy":outputs.busy(),"cancel_requested":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_requested && outputs.get(*t).native_busy),"cancel_deferred":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_deferred),"shutdown_pending":self.shutdown_pending},
+            "output_failure":legacy.and_then(|slot|slot.failure.as_ref()),"output_path":legacy.and_then(|slot|slot.path.as_ref()),
+            "output_contract_version":1,"outputs":outputs,
+            "last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":self.engine.fps,"video":self.video_status(),"stats":stats})
     }
+
     pub fn layout_dimensions(&self) -> (u32, u32) {
         video::layout_dimensions(self.project.variant)
     }
@@ -412,11 +433,11 @@ impl Production {
         );
         Ok(())
     }
-    fn encoding_status(&self) -> Value {
-        let mut value = self.engine.encoding_info();
-        value["preference"] = json!(self.profile(OutputTarget::Recording).encoder);
-        value["scope"] = json!("selected_recording_profile");
-        value
+    fn encoding_status(&self, outputs: &OutputRegistry) -> Value {
+        let future_preference = outputs
+            .legacy_target()
+            .map(|target| self.profile(target).encoder);
+        legacy_encoding_status(self.engine.encoding_info(), outputs, future_preference)
     }
     fn profile(&self, target: OutputTarget) -> &OutputProfile {
         let id = match target {
@@ -440,11 +461,20 @@ impl Production {
             "streaming":{"host":"127.0.0.1","port_min":1024,"path":"/live/motive","transport":["rtmp","rtmps"],
                 "rtmps_validation":"system_trust_required; trusted media delivery not yet verified",
                 "credentials_supported":true,"credential_storage":"macos_keychain","credential_transport":"rtmps_only",
-                "credential_logging":"freeform_obs_logs_suppressed_after_first_use","public_destinations":false},"simultaneous_outputs":1,"cancel_connecting_supported":false,
+                "credential_logging":"freeform_obs_logs_suppressed_after_first_use","public_destinations":false},"simultaneous_outputs":2,"targets":["recording","streaming"],"encoder_sharing":false,"composition_shared":true,"output_contract_version":1,"cancel_connecting_supported":false,
                 "deferred_cancellation_supported":true,"rtmp_lifecycle":"obs-33.0.1-pinned-joinable-workers"})
     }
     fn preflight(&self, target: OutputTarget) -> anyhow::Result<()> {
-        self.idle()?;
+        anyhow::ensure!(!self.shutdown_pending, "SHUTDOWN_PENDING");
+        anyhow::ensure!(!self.overlays.busy(), "ASSET_IMPORT_BUSY");
+        self.scene_quiescent()?;
+        let outputs = self.output_snapshot();
+        outputs.get(target).can_start()?;
+        anyhow::ensure!(
+            !(outputs.streaming.native_busy
+                && outputs.streaming.kind == Some(output::OutputKind::LocalStream)),
+            "OUTPUT_BUSY"
+        );
         self.source_ready()?;
         let p = self.profile(target);
         p.validate()?;
@@ -535,36 +565,27 @@ impl Production {
         self.source_health = self.engine.graph_health();
         let faults = self.faults_from(&self.source_health);
         self.issues = faults.iter().map(|(_, c)| c.clone()).collect();
-        if !faults.is_empty() && self.engine.output_state() != 0 && !self.stopping {
-            self.engine.stop_output();
-            self.stopping = true;
+        self.poll_outputs();
+        if !faults.is_empty()
+            && self.outputs.busy()
+            && OutputTarget::ALL
+                .iter()
+                .any(|t| self.outputs.get(*t).native_busy && !self.outputs.get(*t).cancel_requested)
+        {
+            self.cancel_all_outputs();
             self.recovery
                 .pending
                 .extend(faults.iter().map(|(id, _)| id.clone()));
             self.last_fault = self.issues.clone();
             self.revision += 1;
             self.last_action = format!(
-                "Fuente perdida: {}. Salida finalizando.",
+                "Fuente perdida: {}. Salidas finalizando.",
                 self.issues.join(", ")
             );
         }
-        if self.stopping && self.engine.output_state() == 1 {
-            self.engine.stop_output();
-        }
-        if self.shutdown_pending && self.engine.output_state() == 0 {
+        if self.shutdown_pending && !self.outputs.busy() && self.engine.output_state() == 0 {
             self.shutdown_requested = true;
         }
-        let output_error = self.engine.output_code();
-        if output_error != 0 && output_error != self.seen_output_error {
-            self.stopping = self.engine.output_state() != 0;
-            self.recovery.pending.insert("output".into());
-            self.last_fault.push("OUTPUT_FAILED".into());
-            self.revision += 1;
-            self.last_action = format!(
-                "OUTPUT_FAILED: código {output_error}; reconecta antes de volver a iniciar"
-            );
-        }
-        self.seen_output_error = output_error;
         let ready: Vec<_> = self
             .awaiting_recovery
             .iter()
@@ -1165,7 +1186,7 @@ impl Production {
             .collect();
         self.recovery
             .pending
-            .retain(|id| id == "audio" || id == "output" || relevant.contains(id));
+            .retain(|id| id == "audio" || id == "video" || relevant.contains(id));
     }
     pub fn apply(&mut self, command: Command, origin: &str) -> Value {
         self.poll_health();
@@ -1194,10 +1215,13 @@ impl Production {
             return json!({"ok":true,"devices":self.engine.devices()});
         }
         if matches!(command, Command::Encoders) {
-            return json!({"ok":true,"encoders":self.encoding_status()});
+            return json!({"ok":true,"encoders":self.encoding_status(&self.output_snapshot())});
         }
         if matches!(command, Command::VideoCapabilities) {
             return json!({"ok":true,"pid":std::process::id(),"capabilities":video::capabilities(),"video":self.video_status()});
+        }
+        if matches!(command, Command::Outputs) {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"output_contract_version":1,"outputs":self.output_snapshot()});
         }
         if matches!(command, Command::OutputCapabilities) {
             return json!({"ok":true,"capabilities":self.output_capabilities()});
@@ -1230,7 +1254,13 @@ impl Production {
         let result = (|| -> anyhow::Result<()> {
             anyhow::ensure!(
                 !self.shutdown_pending
-                    || matches!(command, Command::CancelOutput | Command::RequestShutdown),
+                    || matches!(
+                        command,
+                        Command::CancelOutput
+                            | Command::CancelOutputTarget { .. }
+                            | Command::CancelAllOutputs
+                            | Command::RequestShutdown
+                    ),
                 "SHUTDOWN_PENDING: native output must finish before exit"
             );
             match command {
@@ -1338,20 +1368,19 @@ impl Production {
                     self.profiles = profiles;
                 }
                 Command::StartStream => {
-                    self.preflight(OutputTarget::Streaming)?;
-                    self.engine.start_stream(
-                        &self.stream_endpoint.as_ref().unwrap().url(),
-                        &serde_json::to_string(self.profile(OutputTarget::Streaming))?,
-                        self.stream_credential.as_deref(),
-                    )?;
-                    self.output_kind = "streaming".into();
-                    self.output_path = None;
-                    self.stopping = false;
+                    self.legacy_start_guard()?;
+                    self.start_target(OutputTarget::Streaming, false)?;
                 }
+                Command::StartOutput { target } => self.start_target(target, false)?,
+                Command::StopOutputTarget { target } => self.stop_target(target, false)?,
+                Command::CancelOutputTarget { target } => self.stop_target(target, true)?,
+                Command::RecoverOutputTarget { target } => self.recover_target(target)?,
+                Command::CancelAllOutputs => self.cancel_all_outputs(),
                 Command::RecoverOutput => {
                     self.idle()?;
-                    self.engine.reset_output()?;
-                    self.recovery.resolve("output");
+                    if let Some(target) = self.output_snapshot().legacy_recovery_target()? {
+                        self.recover_target(target)?;
+                    }
                 }
                 Command::SetOverlay { visible } => {
                     let mut graph = self.graph().clone();
@@ -1452,12 +1481,15 @@ impl Production {
                 }
                 Command::ReconnectSources => {
                     self.idle()?;
+                    let recover = self.output_snapshot().legacy_recovery_target()?;
                     self.sync(self.graph().clone(), self.bindings.clone(), "*")?;
                     for input in &self.audio_mixer.inputs {
                         self.engine.audio_reconnect(input)?;
                     }
                     self.engine.reset_output()?;
-                    self.recovery.resolve("output");
+                    if let Some(target) = recover {
+                        self.outputs.get_mut(target).recover()?;
+                    }
                     self.awaiting_recovery.extend(
                         self.graph()
                             .sources
@@ -1468,61 +1500,24 @@ impl Production {
                     self.awaiting_recovery.insert("audio".into());
                 }
                 Command::StartRecording => {
-                    self.idle()?;
-                    self.preflight(OutputTarget::Recording)?;
-                    let stamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros();
-                    let path = data_dir()
-                        .join("recordings")
-                        .join(format!("motive-{stamp}.mkv"));
-                    fs::OpenOptions::new()
-                        .write(true)
-                        .create_new(true)
-                        .open(&path)?;
-                    if let Err(e) = self.engine.start_output(
-                        &path.to_string_lossy(),
-                        false,
-                        &serde_json::to_string(self.profile(OutputTarget::Recording))?,
-                    ) {
-                        if fs::metadata(&path).is_ok_and(|m| m.len() == 0) {
-                            let _ = fs::remove_file(&path);
-                        }
-                        return Err(e);
-                    }
-                    self.output_kind = "recording".into();
-                    self.output_path = Some(path.to_string_lossy().into_owned());
-                    self.stopping = false;
+                    self.legacy_start_guard()?;
+                    self.start_target(OutputTarget::Recording, false)?;
                 }
                 Command::StartLocalStream => {
-                    self.idle()?;
-                    self.source_ready()?;
-                    self.engine.start_output(
-                        "",
-                        true,
-                        &serde_json::to_string(self.profile(OutputTarget::Recording))?,
-                    )?;
-                    self.output_kind = "local_stream".into();
-                    self.output_path = None;
-                    self.stopping = false;
+                    self.legacy_start_guard()?;
+                    self.start_target(OutputTarget::Streaming, true)?;
                 }
-                Command::StopOutput => {
-                    anyhow::ensure!(
-                        self.engine.output_state() != 3,
-                        "OUTPUT_CONNECTING: OBS 33.0.1 cannot safely cancel its handshake; wait for connection result, then stop or recover"
-                    );
-                    self.engine.stop_output();
-                    self.stopping = self.engine.output_state() != 0;
-                }
-                Command::CancelOutput | Command::RequestShutdown => {
-                    self.shutdown_pending |= matches!(command, Command::RequestShutdown);
-                    if self.shutdown_pending {
-                        self.engine
-                            .cancel_scene(self.engine.scene_state().operation_id)?;
+                Command::StopOutput | Command::CancelOutput => {
+                    if let Some(target) = self.output_snapshot().unique_busy()? {
+                        self.stop_target(target, matches!(command, Command::CancelOutput))?;
                     }
-                    // Only the existing owner calls libobs. A pending handshake
-                    // is left running; poll_health stops after worker completion.
-                    self.engine.stop_output();
-                    self.stopping = self.engine.output_state() != 0;
-                    if self.shutdown_pending && !self.stopping {
+                }
+                Command::RequestShutdown => {
+                    self.shutdown_pending = true;
+                    self.engine
+                        .cancel_scene(self.engine.scene_state().operation_id)?;
+                    self.cancel_all_outputs();
+                    if !self.output_snapshot().busy() {
                         self.shutdown_requested = true;
                     }
                 }
@@ -1573,6 +1568,7 @@ impl Production {
                 | Command::Devices
                 | Command::Encoders
                 | Command::OutputCapabilities
+                | Command::Outputs
                 | Command::VideoCapabilities
                 | Command::OutputProfiles
                 | Command::CredentialStatus { .. }
@@ -1595,27 +1591,43 @@ impl Production {
                 response["revision"] = json!(self.revision);
                 response["transition"] = json!(self.engine.scene_state());
                 response["audio_mixer"] = self.audio_mixer_status();
+                response["outputs"] = json!(self.output_snapshot());
                 response
             }
         }
     }
 }
-fn output_failure(code: i32) -> Value {
-    if code == 0 {
-        return Value::Null;
+fn legacy_encoding_status(
+    mut value: Value,
+    outputs: &OutputRegistry,
+    future_preference: Option<RecordingEncoder>,
+) -> Value {
+    if let Some(target) = outputs.legacy_target() {
+        let slot = outputs.get(target);
+        // The FFI supplies inventory only. Its legacy selector cannot see a
+        // synchronous start failure retained by Rust without a native code.
+        value["selected_id"] = json!(slot.encoding.selected_id);
+        value["selected_hardware"] = json!(slot.encoding.selected_hardware);
+        value["fallback_reason"] = json!(slot.encoding.fallback_reason);
+        value["preference"] = json!(
+            slot.profile
+                .as_ref()
+                .map(|profile| profile.encoder)
+                .or(future_preference)
+        );
+        value["scope"] = json!(format!("selected_{}_profile", target.name()));
+    } else {
+        for key in [
+            "selected_id",
+            "selected_hardware",
+            "fallback_reason",
+            "preference",
+        ] {
+            value[key] = Value::Null;
+        }
+        value["scope"] = json!("inventory; inspect outputs for effective encoders");
     }
-    let name = match code {
-        -1 => "OUTPUT_BAD_PATH",
-        -2 => "OUTPUT_CONNECT_FAILED",
-        -3 => "OUTPUT_INVALID_STREAM",
-        -5 => "OUTPUT_DISCONNECTED",
-        -6 => "OUTPUT_UNSUPPORTED",
-        -7 => "OUTPUT_NO_SPACE",
-        -8 => "OUTPUT_ENCODE_ERROR",
-        -9 => "OUTPUT_HDR_DISABLED",
-        _ => "OUTPUT_FAILED",
-    };
-    json!({"code":name,"native_code":code,"recovery":"explicit"})
+    value
 }
 fn command_error(e: anyhow::Error) -> Value {
     let msg = e.to_string();
@@ -1991,5 +2003,146 @@ mod tests {
             .unwrap(),
             10
         );
+    }
+    #[test]
+    fn output_commands_are_targeted_and_closed() {
+        for op in [
+            "start_output",
+            "stop_output_target",
+            "cancel_output_target",
+            "recover_output_target",
+        ] {
+            for target in ["recording", "streaming"] {
+                assert!(parse_command(json!({"op":op,"target":target})).is_ok());
+            }
+            for command in [
+                json!({"op":op}),
+                json!({"op":op,"target":"public"}),
+                json!({"op":op,"target":"recording","path":"/tmp/not-a-capability"}),
+                json!({"op":op,"target":"streaming","url":"rtmp://example.invalid"}),
+            ] {
+                assert!(parse_command(command).is_err());
+            }
+        }
+        for op in [
+            "outputs",
+            "cancel_all_outputs",
+            "start_recording",
+            "start_stream",
+            "stop_output",
+            "cancel_output",
+        ] {
+            assert!(parse_command(json!({"op":op})).is_ok());
+            assert!(parse_command(json!({"op":op,"target":"recording"})).is_err());
+        }
+    }
+    #[test]
+    fn encoder_projection_follows_failed_target_and_retains_attempt_profile() {
+        use output::{NativeOutput, OutputEncoding, OutputKind, OutputStats, OutputVideo};
+        let mut outputs = OutputRegistry::default();
+        let video = OutputVideo {
+            width: 1920,
+            height: 1080,
+            fps: 30,
+        };
+        let observation = |state, encoding| NativeOutput {
+            state,
+            code: 0,
+            active_duration_ms: 1000,
+            encoding,
+            stats: OutputStats::default(),
+        };
+        outputs.streaming.begin(
+            OutputKind::Streaming,
+            OutputProfile {
+                encoder: RecordingEncoder::Videotoolbox,
+                ..OutputProfile::default()
+            },
+            video.clone(),
+            None,
+        );
+        outputs
+            .streaming
+            .observe(observation(0, OutputEncoding::default()));
+        outputs
+            .streaming
+            .fail_start(&anyhow::anyhow!("VIDEO_ENCODER_INIT_FAILED"));
+        outputs.recording.begin(
+            OutputKind::Recording,
+            OutputProfile::default(),
+            video.clone(),
+            Some("owned-recording.mkv".into()),
+        );
+        let recorded_encoding = OutputEncoding {
+            selected_id: Some("obs_x264".into()),
+            fallback_reason: Some("VIDEOTOOLBOX_INITIALIZATION_FAILED".into()),
+            ..OutputEncoding::default()
+        };
+        outputs
+            .recording
+            .observe(observation(1, recorded_encoding.clone()));
+        outputs.recording.observe(observation(0, recorded_encoding));
+        outputs.last_target = OutputTarget::Recording;
+        // Native legacy selection now describes the healthy last recording;
+        // Rust still projects the streaming failure, whose native code is null.
+        let inventory = json!({
+            "available":[{"id":"obs_x264"}], "videotoolbox_id":"hardware.h264",
+            "native_logs_suppressed":true, "selected_id":"obs_x264",
+            "selected_hardware":false, "fallback_reason":"VIDEOTOOLBOX_INITIALIZATION_FAILED"
+        });
+        let failed =
+            legacy_encoding_status(inventory.clone(), &outputs, Some(RecordingEncoder::X264));
+        assert_eq!(outputs.legacy_target(), Some(OutputTarget::Streaming));
+        assert!(failed["selected_id"].is_null());
+        assert_eq!(failed["selected_hardware"], false);
+        assert!(failed["fallback_reason"].is_null());
+        assert_eq!(failed["preference"], "videotoolbox");
+        assert_eq!(failed["available"], inventory["available"]);
+        assert_eq!(failed["videotoolbox_id"], inventory["videotoolbox_id"]);
+        assert_eq!(failed["native_logs_suppressed"], true);
+
+        outputs.streaming.recover().unwrap();
+        // Changing the next selected profile cannot rewrite the completed
+        // recording's requested policy or the fallback that actually occurred.
+        let completed = legacy_encoding_status(
+            inventory.clone(),
+            &outputs,
+            Some(RecordingEncoder::Videotoolbox),
+        );
+        assert_eq!(completed["preference"], "auto");
+        assert_eq!(completed["selected_id"], "obs_x264");
+        assert_eq!(
+            completed["fallback_reason"],
+            "VIDEOTOOLBOX_INITIALIZATION_FAILED"
+        );
+
+        for (target, kind) in [
+            (OutputTarget::Recording, OutputKind::Recording),
+            (OutputTarget::Streaming, OutputKind::Streaming),
+        ] {
+            outputs
+                .get_mut(target)
+                .begin(kind, OutputProfile::default(), video.clone(), None);
+        }
+        let multiple = legacy_encoding_status(inventory.clone(), &outputs, None);
+        for key in [
+            "selected_id",
+            "selected_hardware",
+            "fallback_reason",
+            "preference",
+        ] {
+            assert!(multiple[key].is_null());
+        }
+        assert_eq!(multiple["available"], inventory["available"]);
+    }
+    #[test]
+    fn encoder_projection_preserves_future_preference_before_first_attempt() {
+        let value = legacy_encoding_status(
+            json!({"available":[]}),
+            &OutputRegistry::default(),
+            Some(RecordingEncoder::X264),
+        );
+        assert_eq!(value["preference"], "x264");
+        assert!(value["selected_id"].is_null());
     }
 }

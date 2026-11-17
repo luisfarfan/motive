@@ -3,8 +3,85 @@ use super::*;
 use crate::core::{
     RecordingEncoder,
     output::{OutputTarget, Transport, valid_credential_ref},
+    video::Resolution,
 };
 impl Studio {
+    pub(super) fn video_configuration_busy(&self, status: &Value) -> bool {
+        self.production.engine.output_state() != 0
+            || status["output_lifecycle"]["native_busy"] == true
+            || status["output_lifecycle"]["shutdown_pending"] == true
+            || self.production.engine.scene_state().busy()
+            || self.production.engine.overlay_animation_busy()
+    }
+    fn video_settings(&self, cx: &mut Context<Self>) -> Div {
+        let p = Palette::new(self.dark);
+        let status = self.production.status();
+        let video = self.production.project.video.unwrap_or_default();
+        let busy = self.video_configuration_busy(&status);
+        let stale = self.forms.revision != self.production.revision;
+        let disabled = busy || stale;
+        let available = status["video"]["available"] == true;
+        let (layout_width, layout_height) = self.production.layout_dimensions();
+        col()
+            .gap(px(8.))
+            .child(label("Video de producción", p.ink).font_weight(FontWeight::SEMIBOLD))
+            .child(label(
+                if available {
+                    format!("Composición y salida: {} × {} · {} FPS", status["video"]["width"], status["video"]["height"], status["video"]["fps"])
+                } else {
+                    "Video no disponible: restaura la configuración antes de iniciar una salida.".into()
+                },
+                if available { p.secondary } else { p.warn },
+            ))
+            .child(label("Resolución", p.secondary))
+            .child(row().children([
+                (Resolution::Legacy540, "540p"),
+                (Resolution::Hd720, "720p"),
+                (Resolution::FullHd1080, "1080p"),
+            ].into_iter().enumerate().map(|(index, (resolution, name))| {
+                quiet(("video-resolution", index), name)
+                    .selected(video.resolution == resolution)
+                    .disabled(disabled)
+                    .on_click(cx.listener(move |v, _, _, cx| {
+                        let mut current = v.production.project.video.unwrap_or_default();
+                        current.resolution = resolution;
+                        v.form_submit(Command::ConfigureVideo { video: current }, cx);
+                    }))
+            })))
+            .child(label("Fotogramas por segundo", p.secondary))
+            .child(row().children([(30, "30 FPS"), (60, "60 FPS · candidato")]
+                .into_iter().enumerate().map(|(index, (fps, name))| {
+                    quiet(("video-fps", index), name)
+                        .selected(video.fps == fps)
+                        .disabled(disabled)
+                        .on_click(cx.listener(move |v, _, _, cx| {
+                            let mut current = v.production.project.video.unwrap_or_default();
+                            current.fps = fps;
+                            v.form_submit(Command::ConfigureVideo { video: current }, cx);
+                        }))
+                })))
+            .when(busy, |d| d.child(label("Espera a que terminen las salidas, transiciones y animaciones para cambiar el video.", p.warn)))
+            .when(!available, |d| d.child(
+                quiet("recover-video-settings", "Restaurar video")
+                    .disabled(disabled)
+                    .on_click(cx.listener(|v, _, _, cx| {
+                        let video = v.production.project.video.unwrap_or_default();
+                        v.form_submit(Command::ConfigureVideo { video }, cx);
+                    })),
+            ))
+            .when(status["video"]["error"].is_string(), |d| d.child(label(
+                format!("Video: {}", status["video"]["error"].as_str().unwrap_or("Error de configuración")), p.warn,
+            )))
+            .child(label("Los presets son configuraciones disponibles; seleccionarlos no acredita el rendimiento. 60 FPS requiere verificar una grabación real y la cadencia de cada fuente.", p.muted))
+            .child(label(format!("Edición: {layout_width} × {layout_height} unidades. Cambiar resolución conserva posiciones, tamaños y los dos layouts."), p.secondary))
+            .child(label("Cámara: se solicita 720p y conserva su propia cadencia. Cambiar FPS renueva las capturas de ventana con las salidas detenidas.", p.muted))
+            .child(label("Textos, widgets y archivos conservan su resolución de origen; subir el canvas no añade detalle a esas fuentes.", p.muted))
+            .child(quiet("save-video-project", "Guardar proyecto con este video")
+                .disabled(disabled)
+                .on_click(cx.listener(|v, _, _, cx| v.form_submit(Command::SaveProject, cx))))
+            .child(label("Los cambios se aplican al estudio. Guardar proyecto los conserva en v5; los proyectos anteriores mantienen su configuración original de 540p30. Los perfiles de salida se guardan por separado.", p.muted))
+    }
+
     pub(super) fn scene_settings(&self, cx: &mut Context<Self>) -> Div {
         let p = Palette::new(self.dark);
         let scene = self.production.graph().active_scene.clone();
@@ -256,7 +333,10 @@ impl Studio {
                     )),
             )
             .child(label(
-                "960×540 / 540×960 · 30 FPS fijos · H.264/AAC · solo CBR",
+                format!(
+                    "{}×{} · {} FPS · H.264/AAC · CBR. Ajusta el video en Preferencias.",
+                    state["width"], state["height"], state["fps"]
+                ),
                 p.muted,
             ))
             .child(label(
@@ -267,35 +347,41 @@ impl Studio {
     pub(super) fn output_settings(&self, cx: &mut Context<Self>) -> Div {
         let p = Palette::new(self.dark);
         let s = self.production.status();
-        col().gap(px(10.)).child(label("Receptor exclusivo en 127.0.0.1 · /live · una salida",p.secondary))
-            .child(row().children([(Transport::Rtmp,"RTMP"),(Transport::Rtmps,"RTMPS")].map(|(transport,name)|quiet(name,name).selected(self.forms.transport==transport).on_click(cx.listener(move|v,_,_,cx|{v.forms.transport=transport;cx.notify();})))))
+        let disabled = s["output_lifecycle"]["native_busy"] == true
+            || s["output_lifecycle"]["shutdown_pending"] == true
+            || self.forms.revision != self.production.revision;
+        col().gap(px(10.))
+            .child(label("Receptor de transmisión",p.ink).font_weight(FontWeight::SEMIBOLD))
+            .child(label("127.0.0.1 · /live/motive · configura con ambas salidas detenidas",p.secondary))
+            .child(label(if s["output_configuration"]["endpoint"].is_object() { format!("Configurado: {} · puerto {}",s["output_configuration"]["endpoint"]["transport"].as_str().unwrap_or("—"),s["output_configuration"]["endpoint"]["port"]) } else { "Falta configurar el receptor local antes de transmitir.".into() },p.secondary))
+            .child(row().children([(Transport::Rtmp,"RTMP"),(Transport::Rtmps,"RTMPS")].map(|(transport,name)|quiet(name,name).selected(self.forms.transport==transport).disabled(disabled).on_click(cx.listener(move|v,_,_,cx|{v.forms.transport=transport;cx.notify();})))))
             .child(field("Puerto local (1024–65535)",&self.forms.port,p))
-            .child(quiet("apply-endpoint","Configurar receptor local").on_click(cx.listener(|v,_,_,cx|{match v.forms.endpoint(cx){Ok(endpoint)=>v.form_submit(Command::ConfigureStream{endpoint},cx),Err(e)=>{v.message=e.into();cx.notify();}}})))
+            .child(quiet("apply-endpoint","Configurar receptor local").disabled(disabled).on_click(cx.listener(|v,_,_,cx|{match v.forms.endpoint(cx){Ok(endpoint)=>v.form_submit(Command::ConfigureStream{endpoint},cx),Err(e)=>{v.message=e.into();cx.notify();}}})))
             .child(label(format!("Perfil de streaming: {}",s["output_configuration"]["streaming_profile"].as_str().unwrap_or("—")),p.secondary))
             .child(label("Selecciona el perfil con Perfiles de salida en la barra superior.",p.muted))
-            .child(self.action("preflight-stream","Comprobar streaming",Command::PreflightOutput{target:OutputTarget::Streaming},cx))
-            .child(self.action("start-stream","Iniciar transmisión local",Command::StartStream,cx))
-            .child(self.action("recover-output","Recuperar salida",Command::RecoverOutput,cx))
             .child(label("RTMPS verifica el certificado y el nombre del receptor.",p.muted))
             .child(field("Referencia Keychain (kc_…; nunca la clave)",&self.forms.credential,p))
-            .child(row().child(quiet("bind-credential","Vincular referencia").on_click(cx.listener(|v,_,_,cx|{let credential_ref=v.forms.credential.read(cx).value().to_string();if valid_credential_ref(&credential_ref){v.form_submit(Command::SelectStreamCredential{credential_ref:Some(credential_ref)},cx)}else{v.message="Referencia opaca inválida; no se envió ningún valor al núcleo.".into();cx.notify();}})))
-                .child(self.action("clear-credential","Desvincular",Command::SelectStreamCredential{credential_ref:None},cx)))
+            .child(row().child(quiet("bind-credential","Vincular referencia").disabled(disabled).on_click(cx.listener(|v,_,_,cx|{let credential_ref=v.forms.credential.read(cx).value().to_string();if valid_credential_ref(&credential_ref){v.form_submit(Command::SelectStreamCredential{credential_ref:Some(credential_ref)},cx)}else{v.message="Referencia opaca inválida; no se envió ningún valor al núcleo.".into();cx.notify();}})))
+                .child(self.action("clear-credential","Desvincular",Command::SelectStreamCredential{credential_ref:None},cx).disabled(disabled)))
             .child(quiet("credential-status","Consultar acceso Keychain").on_click(cx.listener(|v,_,_,cx|{let credential_ref=v.forms.credential.read(cx).value().to_string();if valid_credential_ref(&credential_ref){let r=v.command(Command::CredentialStatus{credential_ref},"UI",cx);v.message=format!("Keychain: {}",r["access"].as_str().unwrap_or("Error de consulta"));}else{v.message="Referencia opaca inválida".into();}cx.notify();})))
             .child(label("Gestiona los secretos con el asistente local de credenciales. Aquí solo se vinculan sus referencias.",p.muted))
     }
     pub(super) fn studio_settings(&self, cx: &mut Context<Self>) -> Div {
         let p = Palette::new(self.dark);
         let s = self.production.status();
-        col().gap(px(10.)).child(label("Proyecto y apariencia se guardan por separado.",p.secondary))
+        col().gap(px(10.)).child(self.video_settings(cx))
+            .child(label("Apariencia y diagnóstico",p.ink).font_weight(FontWeight::SEMIBOLD))
+            .child(label("Proyecto y apariencia se guardan por separado.",p.secondary))
             .child(quiet("theme-setting",if self.dark{"Cambiar a tema claro"}else{"Cambiar a tema oscuro"}).on_click(cx.listener(|v,_,w,cx|{v.dark = !v.dark;Palette::apply(v.dark,Some(w),cx);cx.notify();})))
             .child(quiet("safe-setting","Mostrar / ocultar margen seguro (⇧S)").on_click(cx.listener(|v,_,_,cx|{v.toggle_safe();cx.notify();})))
             .child(quiet("save-ui-preferences","Guardar apariencia y guías").on_click(cx.listener(|v,_,_,cx|{let prefs=crate::ui::preferences::Preferences{version:1,dark:v.dark,safe_margin:v.safe_margin()};v.message=match prefs.save(){Ok(())=>"Preferencias visuales guardadas".into(),Err(_)=>"No se pudieron guardar las preferencias visuales".into()};cx.notify();})))
             .child(label("Arrastre: una confirmación al soltar. ⌘ desactiva snapping; ⇧ restringe eje. ⌘Z / ⇧⌘Z: transformaciones compatibles.",p.secondary))
             .child(label(format!("libobs {} · {}×{} · {} FPS · revisión {}",s["libobs"].as_str().unwrap_or("—"),s["width"],s["height"],s["fps"],self.production.revision),p.secondary))
             .child(label(format!("Permisos · pantalla {} · cámara {} · micrófono {}",self.devices["screen_permission"],self.devices["camera_permission"],self.devices["microphone_permission"]),p.secondary))
-            .child(label(format!("Render {} · retrasados {} · descartes preview {} · descartes salida {}",s["stats"]["rendered_frames"],s["stats"]["lagged_frames"],s["stats"]["preview_busy_drops"],s["stats"]["output_dropped_frames"]),p.secondary))
+            .child(label(format!("Render {} · retrasados {} · descartes preview {}",s["stats"]["rendered_frames"],s["stats"]["lagged_frames"],s["stats"]["preview_busy_drops"]),p.secondary))
             .child(self.action("record-preflight","Comprobar grabación",Command::PreflightOutput{target:OutputTarget::Recording},cx))
-            .child(label(format!("Encoder: {}",s["encoding"]["selected_id"].as_str().unwrap_or("sin selección activa")),p.secondary))
-            .child(label(format!("Último archivo de esta sesión: {}",s["output_path"].as_str().unwrap_or("ninguno")),p.secondary))
+            .child(label(self.output_encoder_summary(&s),p.secondary))
+            .child(label("Duración, descartes y errores por destino en Salidas.",p.muted))
+            .child(label(format!("Destino de la última grabación: {}",s["outputs"]["recording"]["path"].as_str().unwrap_or("ninguno")),p.secondary))
     }
 }

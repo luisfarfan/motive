@@ -153,3 +153,19 @@ opcionales mediante v4. UI, CLI y MCP usan `Production`; `tools/list` y
 de composición y recuperación están en
 [scene-graph-verification.md](scene-graph-verification.md); la repetición actual
 sobre H11 y sus fallos quedan en el [informe H11](h11-overlay-verification.md).
+
+## H12 — integración y estabilización en curso
+
+Worktree separado sobre `d2fb22e`. Los cinco grupos de regresión H11 abiertos
+pasan en el baseline integrado exacto, con cámara preparada, sesión desbloqueada
+y sin relajar gates. H10 requirió corregir el estadístico del verificador RMS,
+conservando el margen de 2 dB, los fallos originales y nuevas grabaciones físicas.
+Detalle y hashes: [H12 verificación](h12-creative-studio-verification.md).
+
+Implementados en GPUI: biblioteca, selector nativo seguro, definición tipada por
+tipo, eventos, presets, Fade/Slide/Scale con op IDs y persistencia existente v4.
+[Contrato de integración](h12-creative-studio-contract.md). El primer flujo nativo
+ya produjo texto creado/editado y animaciones visibles en una grabación VT real;
+la aceptación completa requiere también la producción conjunta y suites del
+bundle final. No se cambia el estado histórico del informe H11 ni se declara
+aceptación mediante tests unitarios. Browser/CEF permanece restringido.

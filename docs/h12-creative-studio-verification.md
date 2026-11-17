@@ -177,7 +177,8 @@ Informe completo: `h12-performance-1794924031260448000/report.json`. Cuatro vide
 Ocultar no pausa los decodificadores: el reloj media continúa y la UI explica
 Pause/Stop. Se conserva la semántica existente de libobs. Reconciliar cuatro IDs
 nuevos llegó a 901,9 MiB en la fase posterior (el informe contiene además el pico
-muestreado durante la operación). Una instancia/hijo por video, audio del video
+muestreado durante la operación: 910,25 MiB). Primer video: 483,2 ms; siguientes
+36,2–38,5 ms; reconciliar cuatro: 490,8 ms. Una instancia/hijo por video, audio del video
 desactivado. Cancelación y finalización de Scale de 10 s verificadas por op ID.
 
 Tres ciclos de reapertura/liberación dieron medianas activas 896,9 / 861,6 /
@@ -190,3 +191,42 @@ fuentes y catálogo; no modifica perfiles ni preferencias globales.
 Rust: 55 PASS; Clippy all-targets con warnings como errores: PASS. Verificador
 RMS: 3 tests PASS. El observador `observe_h12_native.py` solo consulta status MCP
 a 4 Hz, guarda revisiones/origen/IDs/medidores/outputs y no controla producción.
+
+## Reproducción del bundle H12
+
+Ejecutar serialmente con el lock compartido, sesión desbloqueada y cámara
+apuntando a contenido controlado. No reconstruir el bundle entre suites.
+
+```sh
+cargo test --all-targets
+cargo clippy --all-targets -- -D warnings
+python3 -m unittest discover -s scripts -p test_h10_meter_statistic.py
+python3 scripts/verify_h12_regressions.py --camera-id ID_CONTROLADO --microphone-id ID_CONTROLADO
+```
+
+El runner no instala dependencias ni cambia permisos: requiere el bundle firmado
+existente y `var/verify-python` preparado con `requirements-h11.txt`. Guarda hash
+del ejecutable, commit, scripts, salida de cada suite y copias de los informes.
+`--stage legacy` ejecuta los 19 gates H1–H10; `--stage overlays`, las tres suites
+H11 (runtime ambos transportes, visuales con video y lifecycle). Visuales conserva
+su fixture x264 explícito y restaura Auto después. Un fallo de preparación detiene
+el runner para no interrumpir una salida ajena o un fixture sin limpiar.
+
+`verify_encoding.py` ahora conserva `in_progress_trial` si una aserción falla
+antes de devolver el ensayo. No añade polling ni I/O durante la grabación y
+conserva el gate de cero lag, las duraciones y la decodificación originales.
+La primera batería H12 registró 2 frames de render lag en el tercer ensayo VT;
+el fallo y medios se mantienen en `h11-regressions-1794924688808193000`. No hubo
+frames omitidos por encoder ni drops de salida. Investigación posterior pendiente.
+
+Para observar un recorrido realizado íntegramente desde GPUI:
+
+```sh
+python3 scripts/observe_h12_native.py --seconds 1200
+```
+
+El observador solo consulta status; el operador crea/edita, importa, anima,
+configura mixer y controla salidas con los controles nativos. Un receptor FFmpeg
+externo escucha únicamente loopback. El informe debe vincular sus medios con
+las revisiones de origen UI y decodificar píxeles, audio y timestamps; no basta
+con una captura del preview o una respuesta de comando aceptado.

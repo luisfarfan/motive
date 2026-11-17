@@ -142,6 +142,9 @@ def trial(policy, index, project):
     assert len(helpers)==1, helpers
     pids=[start['pid'],*helpers]
     previous=ps(pids);t0=last=time.monotonic();samples=[]
+    # Preserve the failing trial too. No extra polling or disk I/O during output.
+    # Previously its samples were lost when a strict assertion fired before return.
+    report['in_progress_trial']={'index':index,'policy':policy,'before':before,'start':start,'samples':samples}
     print(f'Trial {index}: {policy}, {args.seconds}s, same scene and process',flush=True)
     while time.monotonic()-t0<args.seconds:
         time.sleep(1)
@@ -158,9 +161,11 @@ def trial(policy, index, project):
     metrics={key:{'median':statistics.median(s[key] for s in steady),'max':max(s[key] for s in steady),
                   'min':min(s[key] for s in steady)} for key in ['app_cpu_percent','helper_cpu_percent','app_rss_mib','helper_rss_mib']}
     counters={key:end['stats'][key]-before['stats'][key] for key in ['rendered_frames','lagged_frames','video_skipped_frames','preview_busy_drops','preview_copies']}
+    report['in_progress_trial'].update({'end':end,'metrics':metrics,'counter_delta':counters})
     assert counters['lagged_frames']==0 and counters['video_skipped_frames']==0 and end['stats']['output_dropped_frames']==0, counters
     media=verify_media(start['output_path'],args.seconds-1)
     print(f'  Decoded {media["frames"]} frames; CPU median {metrics["app_cpu_percent"]["median"]:.1f}%',flush=True)
+    report.pop('in_progress_trial',None)
     return {'policy':policy,'start':start,'end':end,'samples':samples,'metrics':metrics,'counter_delta':counters,'media':media}
 
 

@@ -143,6 +143,14 @@ mix meter is post-mute and detects saturation before libobs clamps the output.
 See the [UI/CLI/MCP contract](docs/h10-audio-ui-contract.md) and
 [real audio verification](docs/h10-audio-verification.md).
 
+The H12 GPUI adapter adds **Library → Create / Assets / Presets / Sources** and
+a typed inspector with **Content / Live / Animation** tabs. Import files with the
+native picker; completion appears only after the core worker confirms its result.
+Source properties are shared across scenes; layer transforms remain independent.
+See the [H12 integration contract](docs/h12-creative-studio-contract.md) and
+[verification report](docs/h12-creative-studio-verification.md) for tested scope
+and outstanding acceptance work.
+
 H11 exposes typed overlay definitions and runtime state through that same owner:
 
 ```sh
@@ -183,7 +191,7 @@ For an MCP client, use an absolute path to your checkout:
 
 `cancel_output` · `request_shutdown` · `credential_status` · `select_stream_credential`
 
-`overlay_capabilities` · `overlay_state` · `list_assets` · `import_asset` · `remove_asset` · `create_overlay` · `update_overlay` · `overlay_event` · `animate_overlay` · `cancel_overlay_animation` · `overlay_presets` · `instantiate_overlay_preset`
+`overlay_capabilities` · `overlay_state` · `asset_inventory` · `list_assets` · `import_asset` · `remove_asset` · `create_overlay` · `update_overlay` · `overlay_event` · `animate_overlay` · `cancel_overlay_animation` · `overlay_presets` · `instantiate_overlay_preset`
 
 Responses include the shared PID/revision, source issues and real engine counters. Inputs reject unknown fields. Disconnecting the MCP client leaves the production engine running.
 

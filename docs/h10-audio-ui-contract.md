@@ -83,15 +83,21 @@ Revision changes on lifecycle/control changes, not on every meter sample.
 | `failed` / `MICROPHONE_PERMISSION_DENIED` | Restore normal macOS permission, then reconnect |
 | `failed` / `AUDIO_STALLED` | No recent packets (3 s), after a 4 s initial grace; reconnect explicitly |
 | `failed` / `AUDIO_CREATE_FAILED` | libobs failed to create the source/meter |
+| `AUDIO_STATE_UNAVAILABLE` | Native snapshot unavailable (`runtime.available=false`); preflight rejects start; restart the studio |
 | `AUDIO_INPUT_CLIPPING` | Warning: pre-fader input reached full scale; lower device gain |
 | `AUDIO_MIX_CLIPPING` | Warning: native sum reached full scale; lower input gain |
 | `AUDIO_HEADROOM_LOW` | Warning: current native sum above −1 dBFS |
+
+Each issue includes `input_id` (null for the overall mix), `code`, `severity`
+(`info`, `warning`, `error`) and a recovery hint. Render these fields directly;
+do not infer device health from meter amplitude or the display name.
 
 Clipped-block counters latch observations for the lifetime of the native input or
 mix. They are not counts of individual clipped samples, nor evidence of clipping
 in every later recording. The first two clipping warnings remain while their
 counters are nonzero; the low-headroom warning follows current samples. No hidden
-limiter, normalization or automatic gain is applied. Meter sample peaks do not
+limiter, normalization or automatic gain is applied. A latched mix-clipping
+warning takes precedence over low headroom. Meter sample peaks do not
 predict all AAC/inter-sample overshoot.
 
 A failed channel is removed from mix 0 and remains latched until explicit

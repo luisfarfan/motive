@@ -16,6 +16,7 @@ para esta fase y REA no bloqueó los hitos.
 | 7 — Salidas configurables | Perfiles v1 separados de escenas v3; RTMP local H.264/AAC, preflight y recuperación por CLI/MCP; rechazo TLS no confiable | Ver [verificación H7](h7-output-verification.md); sin claves ni destinos públicos, RTMPS positivo y cancelación inmediata de handshake pendientes |
 | 8 — Streaming confiable | Cancelación diferida con workers finalizados, cierre explícito, Keychain con referencias opacas y pruebas reales | Ver [H8](h8-streaming-verification.md); RTMPS positivo pendiente por falta de destino/cadena confiable, sin cambios a la confianza global |
 | 9 — Escenas en vivo | Cut/Fade oficiales durante grabación y RTMP, webcam compartida, preparación, cancelación, fallos y restauración v3 | Ver [H9](h9-scene-transitions-verification.md); núcleo/CLI/MCP sin cambios GPUI, audio global, huecos finales VT y pruebas largas pendientes |
+| 10 — Audio Mixer | Micrófono + tono, ganancia/mute, medidores, recuperación por entrada, persistencia v1 y Cut/Fade durante grabación/RTMP reales | [H10](h10-audio-verification.md): CLI/MCP reales y 17 suites H1–H9 aprobadas; USB hot-unplug/permisos/sleep y sesiones largas pendientes |
 
 ## Reproducir y consultar evidencia
 
@@ -66,10 +67,13 @@ de compatibilidad ejecutada.
 
 ## Siguiente hito recomendado
 
-Después de H9, iniciar Audio Mixer en el mismo núcleo: canales con IDs estables,
-ganancia/mute validados y medidores peak/RMS; probar micrófono + tono, continuidad,
-clipping, pérdida/recuperación y persistencia antes de filtros, monitorización o
-crossfade de audio por escena. Ver [H9](h9-scene-transitions-verification.md).
+H10 implementa Audio Mixer en el núcleo compartido, con aceptación real de
+micrófono + tono, ganancia/mute, medidores, reapertura por entrada y persistencia
+separada. Ver [H10](h10-audio-verification.md) y el
+[contrato GPUI](h10-audio-ui-contract.md). Captura de audio del sistema queda
+como incremento independiente: [evaluación y pruebas propuestas](h10-system-audio-next.md).
+Conservar pendientes USB hot-unplug, revocación de permisos y sesiones largas;
+no añadir filtros, monitorización ni audio por escena en este alcance.
 
 Sigue pendiente validar RTMPS positivo con un destino controlado y certificado
 públicamente confiable. Antes de habilitarlo, registrar localmente destinos

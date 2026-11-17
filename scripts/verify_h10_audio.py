@@ -18,11 +18,11 @@ EXE = ROOT / 'target/debug/motive'
 OUT = ROOT / 'var/evidence'
 
 
-def ctl(op, **fields):
+def ctl(op, expect=True, **fields):
     result = subprocess.run([str(EXE), 'ctl', json.dumps({'op': op, **fields})],
-                            capture_output=True, text=True, timeout=12, check=True)
+                            capture_output=True, text=True, timeout=12)
     value = json.loads(result.stdout)
-    assert value['ok'], value
+    assert value['ok'] == expect, value
     return value
 
 
@@ -41,6 +41,23 @@ def power(samples, freq):
     re = sum(x * math.cos(2 * math.pi * freq * i / 48000) for i, x in enumerate(samples))
     im = sum(x * math.sin(2 * math.pi * freq * i / 48000) for i, x in enumerate(samples))
     return 2 * math.hypot(re, im) / len(samples)
+
+
+def tonal_amplitude(samples, freq):
+    # RMS of 100 ms Hann-windowed frequency amplitudes, never a coherent
+    # average of phases over a second. Retains all windows, including dips.
+    # This avoids cancelling a tone when phase changes within the measurement window.
+    size = 4800
+    weights = [.5-.5*math.cos(2*math.pi*i/(size-1)) for i in range(size)]
+    cosine = [w*math.cos(2*math.pi*freq*i/48000) for i,w in enumerate(weights)]
+    sine = [w*math.sin(2*math.pi*freq*i/48000) for i,w in enumerate(weights)]
+    amplitudes = []
+    for offset in range(0, len(samples)-size+1, size):
+        chunk = samples[offset:offset+size]
+        re = sum(x*w for x,w in zip(chunk,cosine))
+        im = sum(x*w for x,w in zip(chunk,sine))
+        amplitudes.append(2*math.hypot(re,im)/sum(weights))
+    return math.sqrt(sum(x*x for x in amplitudes)/len(amplitudes))
 
 
 def decode(path):
@@ -71,11 +88,15 @@ def main():
         assert state['output'] == 'idle' and not state['audio_mixer']['store']['inputs']
         ctl('add_audio_input', name='Micrófono físico', source={'kind': 'microphone', 'device_id': args.microphone_id})
         state = ctl('add_audio_input', name='Tono controlado', source={'kind': 'tone'})['state']
+        initial_instances = state['audio_mixer']['runtime']['instances_created'] - 2
+        project = state['project']
+        profiles = ctl('output_profiles')['store']
         inputs = state['audio_mixer']['store']['inputs']
         mic, tone = inputs[0]['id'], inputs[1]['id']
         reused = ctl('add_audio_input', name='Reutilizar micrófono', source=inputs[0]['source'])['state']
         assert reused['audio_mixer']['store'] == state['audio_mixer']['store']
-        assert reused['audio_mixer']['runtime']['instances_created'] == 2
+        assert reused['audio_mixer']['runtime']['instances_created'] == initial_instances + 2
+        assert ctl('set_audio_gain', expect=False, input_id=tone, gain_db=25)['error']['code'] == 'INVALID_AUDIO_GAIN'
         ctl('set_audio_gain', input_id=mic, gain_db=6)
         wait(lambda s: all(i['phase'] == 'ready' for i in s['audio_mixer']['runtime']['inputs']))
         fixture = ROOT / 'var/h10-speaker-997.wav'
@@ -91,6 +112,8 @@ def main():
             ('tone_lower', ('set_audio_gain', {'input_id': tone, 'gain_db': -18})),
             ('mic_muted', ('set_audio_mute', {'input_id': mic, 'muted': True})),
             ('mic_unmuted', ('set_audio_mute', {'input_id': mic, 'muted': False})),
+            ('mic_disconnected', ('disconnect_audio_input', {'input_id': mic})),
+            ('mic_reconnected', ('reconnect_audio_input', {'input_id': mic})),
         ]:
             if operation:
                 ctl(operation[0], **operation[1])
@@ -99,7 +122,7 @@ def main():
                 time.sleep(.25)
                 current = ctl('status')['state']
                 assert current['output'] == 'recording' and current['pid'] == initial['pid']
-                assert current['audio_mixer']['runtime']['instances_created'] == 2
+                assert current['audio_mixer']['runtime']['instances_created'] == initial_instances + (3 if label == 'mic_reconnected' else 2)
                 stage['samples'].append(current)
             stage['end'] = time.monotonic() - started
             report['stages'].append(stage)
@@ -112,8 +135,9 @@ def main():
             chunk = samples[offset:offset + 48000]
             stage['decoded'] = {'rms': math.sqrt(sum(x*x for x in chunk)/len(chunk)),
                                 'peak': max(abs(x) for x in chunk),
-                                'amplitude_440': power(chunk, 440), 'amplitude_997': power(chunk, 997)}
-        both, lower, muted, unmuted = [s['decoded'] for s in report['stages']]
+                                'coherent_amplitude_440': power(chunk, 440),
+                                'amplitude_440': tonal_amplitude(chunk, 440), 'amplitude_997': tonal_amplitude(chunk, 997)}
+        both, lower, muted, unmuted, disconnected, reconnected = [s['decoded'] for s in report['stages']]
         assert both['amplitude_440'] > .005 and both['amplitude_997'] > .00001, report['stages'][0]['decoded']
         report['gain_delta_db'] = 20*math.log10(lower['amplitude_440']/both['amplitude_440'])
         assert -13 < report['gain_delta_db'] < -11, report['gain_delta_db']
@@ -123,6 +147,17 @@ def main():
         report['peak'] = max(abs(x) for x in samples)
         assert report['peak'] < .98, report['peak']
         assert final['audio_mixer']['runtime']['mix']['clipped_blocks'] == 0
+        assert disconnected['amplitude_997'] < lower['amplitude_997']*.1
+        assert abs(20*math.log10(disconnected['amplitude_440']/lower['amplitude_440'])) < .5
+        assert reconnected['amplitude_997'] > disconnected['amplitude_997']*10
+        store = ctl('save_audio_mixer')['state']['audio_mixer']['store']
+        for entry in store['inputs']: ctl('remove_audio_input', input_id=entry['id'])
+        restored = ctl('load_audio_mixer')['state']
+        wait(lambda s: all(i['phase'] == 'ready' for i in s['audio_mixer']['runtime']['inputs']))
+        assert restored['audio_mixer']['store'] == store and restored['project'] == project
+        assert ctl('output_profiles')['store'] == profiles
+        assert ctl('audio_mixer')['audio_mixer']['store'] == store
+        report['restored_store'] = store
         report['ok'] = True
     except BaseException as failure:
         report['error'] = repr(failure)
@@ -134,6 +169,8 @@ def main():
         try:
             ctl('stop_output')
             wait(lambda s: s['output'] == 'idle')
+            for entry in ctl('audio_mixer')['audio_mixer']['store']['inputs']:
+                ctl('remove_audio_input', input_id=entry['id'])
         except Exception as failure:
             report['cleanup_error'] = repr(failure)
         app = ROOT / 'target/Motive.app/Contents/MacOS/motive'

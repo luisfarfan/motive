@@ -7,7 +7,7 @@ import argparse
 import socket
 from h7_support import Client, ROOT, EVIDENCE, EXE, process_sample
 import hashlib, json, math, statistics, struct, subprocess, time
-from verify_h10_audio import stimulus, power
+from verify_h10_audio import stimulus, power, tonal_amplitude
 
 
 def cli(op, expect=True, **args):
@@ -39,7 +39,7 @@ def analyse(path, stages):
         chunk = samples[offset:offset+48000]
         assert len(chunk) == 48000
         result['stages'][stage['name']] = {'rms_dbfs': db(math.sqrt(sum(x*x for x in chunk)/len(chunk))),
-                                          'a440': power(chunk, 440), 'a997': power(chunk, 997)}
+                                          'coherent_a440':power(chunk,440), 'a440': tonal_amplitude(chunk, 440), 'a997': tonal_amplitude(chunk, 997)}
     r = result['stages']
     assert r['both']['a440'] > .005 and r['both']['a997'] > .00001, r['both']
     result['gain_delta_db'] = db(r['lower']['a440']/r['both']['a440'])
@@ -49,7 +49,8 @@ def analyse(path, stages):
         assert abs(db(r[name]['a440']/r['lower']['a440'])) < .6, (name, r[name])
     for name in ('mic_unmuted', 'mic_recovered', 'video_changes'):
         assert r[name]['a997'] > r['both']['a997']*.4, (name, r[name])
-    assert r['tone_muted']['a440'] < r['lower']['a440']*.03, r['tone_muted']
+    assert r['tone_muted']['a440'] < r['tone_before_mute']['a440']*.03, r['tone_muted']
+    assert r['both_muted']['rms_dbfs'] < -100, r['both_muted']
     # Match native per-input RMS to decoded isolated channels. Physical speaker
     # acoustics can vary, so retain all samples and allow a measured 2 dB margin.
     errors = {}
@@ -161,8 +162,14 @@ def exercise(c, mic, tone, scene_a, scene_b, kind, path=None):
     c.call('set_audio_mute', input_id=mic, muted=False); hold('mic_unmuted')
     c.call('set_audio_gain', input_id=mic, gain_db=-6); hold('mic_lower')
     c.call('set_audio_gain', input_id=mic, gain_db=6)
+    # Use a clearly measurable reference above the physical microphone's
+    # ambient 440 Hz-band noise, retaining the same >30 dB mute suppression gate.
+    c.call('set_audio_gain', input_id=tone, gain_db=0); hold('tone_before_mute')
     c.call('set_audio_mute', input_id=tone, muted=True); hold('tone_muted')
+    c.call('set_audio_mute', input_id=mic, muted=True); hold('both_muted')
+    c.call('set_audio_mute', input_id=mic, muted=False)
     c.call('set_audio_mute', input_id=tone, muted=False)
+    c.call('set_audio_gain', input_id=tone, gain_db=-18)
     c.call('disconnect_audio_input', input_id=mic)
     disconnected = c.state(); assert disconnected['audio_mixer']['runtime']['inputs'][0]['phase']=='disconnected'
     hold('mic_disconnected')
@@ -182,6 +189,7 @@ def exercise(c, mic, tone, scene_a, scene_b, kind, path=None):
         time.sleep(.3)
     stage['end']=time.monotonic()-start
     stopped=c.stop(); assert stopped['end']['output']=='idle'
+    assert stopped['end']['audio_mixer']['runtime']['mix']['clipped_blocks']==0
     observations=[v for s in stages for v in s['samples']]
     return {'before':before, 'started':ready, 'stopped':stopped, 'stages':stages, 'path':path,
             'cpu_median':statistics.median(v['cpu_percent'] for v in observations),
@@ -267,7 +275,14 @@ def main():
         restored=c.wait(lambda s:all(i['phase']=='ready' for i in s['audio_mixer']['runtime']['inputs']))
         assert restored['audio_mixer']['store']==saved and restored['project']==project and c.call('output_profiles')['store']==profiles
         assert (ROOT/'var/project.json').read_bytes()==scene_bytes and (ROOT/'var/output-profiles.json').read_bytes()==profile_bytes
-        report['persistence']={'saved':saved,'boot':boot,'restored':restored,'project_sha256':hashlib.sha256(scene_bytes).hexdigest(),'profile_sha256':hashlib.sha256(profile_bytes).hexdigest()}
+        restored_path=c.call('start_recording')['state']['output_path'];time.sleep(3);c.stop()
+        restored_samples=decoded(restored_path)[48000:96000]
+        restored_audio={'path':restored_path,'tone_amplitude':tonal_amplitude(restored_samples,440),
+                        'microphone_amplitude':tonal_amplitude(restored_samples,997)}
+        assert abs(db(restored_audio['tone_amplitude']) - (-24-18)) < .5, restored_audio
+        assert restored_audio['microphone_amplitude'] < 1e-5, restored_audio
+        report['persistence']={'saved':saved,'boot':boot,'restored':restored,'restored_audio':restored_audio,
+            'project_sha256':hashlib.sha256(scene_bytes).hexdigest(),'profile_sha256':hashlib.sha256(profile_bytes).hexdigest()}
         report['ok']=True
     except BaseException as failure:
         report['error']=repr(failure);raise

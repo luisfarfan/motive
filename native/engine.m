@@ -10,8 +10,10 @@
 #import <AVFoundation/AVFoundation.h>
 #import <VideoToolbox/VideoToolbox.h>
 
-/* All functions except the frame callback run on the main/GPUI thread.
- * OBS owns render/audio/output threads. No GPUI object crosses that boundary. */
+/* Control entry points run on the main/GPUI owner. OBS owns rendering, mixing
+ * and output threads; source/media callbacks only publish bounded observations.
+ * The controlled tone has a sample-clocked producer. No GPUI object crosses
+ * any of these thread boundaries. */
 typedef struct audio_input audio_input;
 typedef struct audio_mix_meter audio_mix_meter;
 typedef struct visual_source visual_source;

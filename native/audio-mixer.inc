@@ -13,12 +13,14 @@ static void *tone_run(void *param) {
     // A source fixture, not a mixer. Sample position determines phase and PTS;
     // scheduling never accumulates timestamps from MCP/UI or repeated sleeps.
     while(!atomic_load(&tone->stop)) {
+        // Divide exact 480-frame blocks first, avoiding frames*1e9 overflow
+        // after a few days of continuous capture.
         uint64_t now=os_gettime_ns();
         // Skip elapsed blocks after a scheduler stall/sleep instead of bursting
         // old samples into OBS. The sample clock/phase remain anchored to start.
-        if(now>start+frames*1000000000ULL/48000+1000000000ULL)
+        if(now>start+(frames/480)*10000000ULL+1000000000ULL)
             frames=((now-start)/10000000ULL)*480;
-        uint64_t timestamp=start+frames*1000000000ULL/48000;
+        uint64_t timestamp=start+(frames/480)*10000000ULL;
         os_sleepto_ns(timestamp);
         if(atomic_load(&tone->stop))break;
         for(size_t i=0;i<480;i++) samples[i]=0.0630957344f*sinf((float)((frames+i)%48000)*2*M_PI*440/48000);
@@ -241,16 +243,21 @@ void motive_poll_audio(motive_engine *e) {
 }
 static id audio_db(float value) { return value>0 && isfinite(value) ? @(20*log10f(value)):[NSNull null]; }
 static NSDictionary *audio_metrics_json(audio_metrics *m) {
+    // Copy under the callback lock; Foundation allocation/formatting stays on
+    // the owner AFTER unlocking, never delaying the media callback on JSON work.
     pthread_mutex_lock(&m->lock);
-    uint64_t age=m->seen_ns ? (os_gettime_ns()-m->seen_ns)/1000000:0;
-    bool stale=!m->seen_ns || age>=1000;
-    float p0=stale?0:m->peak[0],p1=stale?0:m->peak[1];
-    float r0=stale?0:m->rms[0],r1=stale?0:m->rms[1];
-    NSDictionary *v=@{@"frames":@(m->frames),@"timestamp_ns":@(m->timestamp),@"age_ms":m->seen_ns?@(age):[NSNull null],
+    uint64_t frames=m->frames,seen=m->seen_ns,timestamp=m->timestamp,clipped=m->clipped_blocks;
+    float peak[2],rms[2],input_peak[2];
+    memcpy(peak,m->peak,sizeof(peak));memcpy(rms,m->rms,sizeof(rms));memcpy(input_peak,m->input_peak,sizeof(input_peak));
+    pthread_mutex_unlock(&m->lock);
+    uint64_t age=seen ? (os_gettime_ns()-seen)/1000000:0;
+    bool stale=!seen || age>=1000;
+    float p0=stale?0:peak[0],p1=stale?0:peak[1];
+    float r0=stale?0:rms[0],r1=stale?0:rms[1];
+    return @{@"frames":@(frames),@"timestamp_ns":@(timestamp),@"age_ms":seen?@(age):[NSNull null],
         @"stale":@(stale),@"peak_dbfs":@[audio_db(p0),audio_db(p1)],@"rms_dbfs":@[audio_db(r0),audio_db(r1)],
-        @"input_peak_dbfs":@[audio_db(stale?0:m->input_peak[0]),audio_db(stale?0:m->input_peak[1])],
-        @"clipped_blocks":@(m->clipped_blocks)};
-    pthread_mutex_unlock(&m->lock);return v;
+        @"input_peak_dbfs":@[audio_db(stale?0:input_peak[0]),audio_db(stale?0:input_peak[1])],
+        @"clipped_blocks":@(clipped)};
 }
 char *motive_audio_state(motive_engine *e) {
     NSMutableArray *inputs=[NSMutableArray array];

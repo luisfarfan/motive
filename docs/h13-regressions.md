@@ -66,8 +66,17 @@ python3 scripts/verify_h13_regressions.py --lock-held --suite verify_rtmp.py
 python3 scripts/verify_h13_regressions.py --lock-held --stage overlays
 ```
 
-No se instalan dependencias: el Python local `var/verify-python/bin/python` con
-Pillow debe existir para H11/H12. Cámara y micrófono se validan por los IDs
+No se instalan dependencias: por defecto se usa `var/verify-python/bin/python`
+para H11/H12. `--verification-python /ruta/absoluta/al/venv/bin/python` permite
+reutilizar explícitamente un venv existente; el coordinador H14 reenvía la misma
+opción. Antes de consultar o reiniciar el owner se comprueban, solo para esos
+grupos, el intérprete, su prefijo de venv y Pillow 12.0.0 mediante imports aislados
+sin escribir bytecode. El manifest conserva `sys.executable`, prefijo, versión
+de Python y versión/ruta de Pillow. Los subconjuntos legacy no requieren ese
+venv. Se conserva la ruta `bin/python` al ejecutarla: resolver su enlace final
+al Python global perdería la selección del entorno.
+
+Cámara y micrófono se validan por los IDs
 explícitos contra el inventario y los permisos reales de macOS. La bandera de
 cámara declara la preparación ya confirmada, no modifica TCC ni concede permiso.
 

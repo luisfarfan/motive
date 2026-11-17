@@ -18,6 +18,7 @@ import sys
 import time
 
 from verification_paths import verification_paths
+from verification_python import verification_python
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGES = ('static', 'regressions', 'memory30', 'memory60-soak',
@@ -159,6 +160,8 @@ def commands(args, directory):
               'output-integrity': 'verify_h14_output_integrity.py'}[args.stage]
     command = [python, str(ROOT / 'scripts' / script), '--lock-held']
     if args.stage == 'regressions':
+        if args.verification_python is not None:
+            command += ['--verification-python', str(args.verification_python)]
         for suite in args.suite:
             require(suite.endswith('.py') and Path(suite).name == suite,
                     'Regression suite must be a basename accepted by its runner')
@@ -248,6 +251,8 @@ def execute(args, directory, planned):
         require(report['source_binding']['tracked_match'] and not report['source_binding']['untracked_inputs'],
                 'Product inputs differ from the compiled source commit')
         report['script_hashes'] = script_hashes()
+        if args.stage == 'regressions':
+            report['verification_python'] = verification_python(ROOT, args.suite, args.verification_python)
         state = owner_observation(args.app)
         if args.stage == 'static':
             require(state is None, 'Close Motive normally before static checks to avoid contaminating measurements')
@@ -387,6 +392,7 @@ def main():
     parser.add_argument('--camera-id')
     parser.add_argument('--camera-prepared', action='store_true')
     parser.add_argument('--microphone-id')
+    parser.add_argument('--verification-python', type=Path, help='Existing H11/H12 verification venv interpreter; forwarded unchanged to regressions.')
     parser.add_argument('--encoder', choices=('videotoolbox', 'x264'), default='videotoolbox')
     parser.add_argument('--output-mode', choices=('recording', 'streaming', 'dual'), default='dual')
     parser.add_argument('--ending', choices=('stop', 'cancel', 'receiver-loss', 'shutdown'), default='stop')

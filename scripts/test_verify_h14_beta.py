@@ -102,6 +102,25 @@ class CoordinatorTests(unittest.TestCase):
         self.spawn.assert_not_called()
         self.assertEqual(owner_file.read_text(), 'prior owner')
 
+    def test_missing_required_python_rejects_before_owner_probe_or_child(self):
+        self.args.stage = 'regressions'
+        self.args.suite = ['verify_h11_runtime.py']
+        self.args.verification_python = None
+        code, report = self.execute()
+        self.assertEqual(code, 1)
+        self.owner.assert_not_called()
+        self.spawn.assert_not_called()
+        self.assertFalse(self.lease.exists())
+        self.assertIn('Verification Python', report['error'])
+
+    def test_legacy_regression_subset_does_not_require_a_venv(self):
+        self.args.stage = 'regressions'
+        self.args.suite = ['verify_control.py', 'verify_control_delivery.py']
+        self.args.verification_python = None
+        code, report = self.execute()
+        self.assertEqual(code, 0)
+        self.assertEqual(report['verification_python']['status'], 'NOT_REQUIRED')
+
     def test_lease_exists_at_admission_and_rejected_admission_releases_own_lease(self):
         def reject(_app):
             self.assertTrue((self.lease / 'owner.json').exists())

@@ -36,6 +36,7 @@ import traceback
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 from verification_paths import verification_paths
 from regression_reports import primary_acceptance, primary_report_path
+from verification_python import verification_python
 VERIFY = verification_paths(ROOT)
 APP = VERIFY.app_executable
 CLIENT = VERIFY.client_executable
@@ -255,6 +256,7 @@ def main():
     parser.add_argument('--camera-id')
     parser.add_argument('--camera-prepared', action='store_true')
     parser.add_argument('--microphone-id')
+    parser.add_argument('--verification-python', help='Existing H11/H12 venv interpreter; default: ROOT/var/verify-python/bin/python. Installs nothing.')
     parser.add_argument('--stage', choices=('all', 'legacy', 'overlays', 'performance'), default='all')
     parser.add_argument('--suite', choices=ALL, action='append')
     args = parser.parse_args()
@@ -285,6 +287,7 @@ def main():
         lock_owner = lock.read_text()
         check(VERIFY.lock_matches(lock_owner), 'canonical lock belongs to this verification worktree')
         report['shared_lock'] = {'path': str(lock), 'owner': lock_owner}
+        report['verification_python'] = verification_python(ROOT, suites, args.verification_python)
         verified = subprocess.run(['codesign', '--verify', '--verbose=2', str(APP.parents[2])],
                                   capture_output=True, text=True, timeout=60)
         report['codesign'] = vars(verified)
@@ -349,7 +352,7 @@ def main():
                 options += ['--transport', 'both']
             if name == 'verify_h11_visuals.py':
                 options += ['--with-video']
-            python = str(ROOT/'var/verify-python/bin/python') if name in OVERLAYS+PERFORMANCE else 'python3'
+            python = report['verification_python']['requested'] if name in OVERLAYS+PERFORMANCE else 'python3'
             timeout = 900 if name in OVERLAYS+PERFORMANCE else 420
             before = {p: p.stat().st_mtime_ns for p in EVIDENCE.rglob('*.json')}
             started = time.monotonic()

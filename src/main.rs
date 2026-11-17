@@ -1,6 +1,8 @@
 mod control;
 mod core;
+mod diagnostics;
 mod engine;
+mod paths;
 mod scene;
 
 use core::Production;
@@ -37,6 +39,7 @@ fn window_options(title: &str, w: f32, h: f32, cx: &App) -> WindowOptions {
     }
 }
 fn main() -> anyhow::Result<()> {
+    paths::init()?;
     let args: Vec<String> = std::env::args().collect();
     if args.get(1).is_some_and(|a| a == "mcp") {
         return control::run_mcp();

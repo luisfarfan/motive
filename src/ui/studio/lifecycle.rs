@@ -9,6 +9,7 @@ pub(super) struct Lifecycle {
     confirmation_open: bool,
     pub(super) shutdown_waiting: bool,
     quit_dispatched: bool,
+    diagnostics_saved: bool,
 }
 impl Lifecycle {
     pub(super) fn new(window: AnyWindowHandle) -> Self {
@@ -17,6 +18,7 @@ impl Lifecycle {
             confirmation_open: false,
             shutdown_waiting: false,
             quit_dispatched: false,
+            diagnostics_saved: false,
         }
     }
 }
@@ -91,6 +93,12 @@ impl Studio {
             });
         }
         if self.production.shutdown_requested {
+            if !self.lifecycle.diagnostics_saved {
+                if self.production.persist_shutdown_diagnostics().is_err() {
+                    eprintln!("{{\"code\":\"SHUTDOWN_DIAGNOSTIC_WRITE_FAILED\"}}");
+                }
+                self.lifecycle.diagnostics_saved = true;
+            }
             if !self.lifecycle.quit_dispatched {
                 if crate::authorize_native_quit() {
                     self.lifecycle.quit_dispatched = true;

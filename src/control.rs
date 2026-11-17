@@ -167,6 +167,7 @@ pub fn send(command: Value, origin: &str) -> Value {
                     | "encoders"
                     | "output_capabilities"
                     | "outputs"
+                    | "output_diagnostics"
                     | "output_profiles"
                     | "preflight_output"
                     | "credential_status"
@@ -453,6 +454,7 @@ pub fn tools() -> Vec<Value> {
     ];
     let target = json!({"type":"string","enum":["recording","streaming"]});
     result.push(tool("outputs", "Registro compartido recording/streaming: fases, workers, perfiles efectivos, recuperación y métricas por intento.", json!({}), &[], true));
+    result.push(tool("output_diagnostics", "Observaciones acotadas de paquetes y finalización del destino. Despacho no confirma escritura ni recepción; no transporta audio/video.", json!({"target":target.clone()}), &["target"], true));
     for (name, description) in [
         (
             "start_output",

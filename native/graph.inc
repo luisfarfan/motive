@@ -119,6 +119,17 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
 fail:
     obs_data_release(settings);free(s);return NULL;
 }
+static NSDictionary *capture_diagnostics(visual_source *s) {
+    if(!s->source || strcmp(s->kind,"window"))return nil;
+    calldata_t params;calldata_init(&params);
+    NSDictionary *result=nil;
+    if(proc_handler_call(obs_source_get_proc_handler(s->source),"motive_capture_diagnostics",&params)) {
+        const char *text=calldata_string(&params,"json");
+        if(text)result=[NSJSONSerialization JSONObjectWithData:[@(text) dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil];
+    }
+    calldata_free(&params);
+    return result;
+}
 static const char *visual_health(visual_source *s) {
     if(!s->source) return !strcmp(s->kind,"camera") ? "CAMERA_UNAVAILABLE":"SOURCE_UNAVAILABLE";
     if(s->extended)return overlay_source_health(s->source);
@@ -126,6 +137,11 @@ static const char *visual_health(visual_source *s) {
         if (!CGPreflightScreenCaptureAccess()) return "SCREEN_PERMISSION_DENIED";
         NSDictionary *w=find_window(s->window);
         if (!w || [w[@"pid"] intValue]!=s->owner) return "SOURCE_UNAVAILABLE";
+        NSDictionary *capture=capture_diagnostics(s);
+        if([capture[@"phase"] isEqual:@"failed"])return "CAPTURE_SESSION_FAILED";
+        if([capture[@"sample_status"] isEqual:@"stopped"])return "CAPTURE_STOPPED";
+        // Idle or absent buffers alone cannot distinguish static content from
+        // an occluded producer. Expose their age/status without inventing loss.
     } else if (!strcmp(s->kind,"camera")) {
         if ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]!=AVAuthorizationStatusAuthorized) return "CAMERA_PERMISSION_DENIED";
         if (!find_camera(s->device)) return "CAMERA_UNAVAILABLE";
@@ -229,13 +245,21 @@ char *motive_graph_health(motive_engine *e) {
         // activation is still asynchronous. Never call them ready by omission.
         const char *issue=active ? visual_health(s):"";
         frame_watch *w=s->watch ? obs_obj_get_data(s->watch):NULL;uint64_t seen=w ? atomic_load(&w->seen_ns):0;
+        NSDictionary *capture=capture_diagnostics(s);
+        uint64_t captured=capture ? [capture[@"last_surface_ns"] unsignedLongLongValue]:0;
+        if(captured)seen=captured;
         uint64_t now=os_gettime_ns();
+        NSString *notice=@"";
+        if(capture && captured && now>captured && now-captured>3000000000ULL)notice=@"NO_RECENT_CAPTURE_BUFFER";
         [states addObject:@{@"id":@(s->id),@"active":@(active),@"issue":@(issue),
             @"warming":@(s->warming),@"instance_id":@(s->instance_id),@"kind":@(s->kind),
             @"width":@(s->source ? obs_source_get_width(s->source):0),@"height":@(s->source ? obs_source_get_height(s->source):0),
             @"capture_fps_requested":s->capture_fps ? @(s->capture_fps):[NSNull null],
-            @"capture_fps_measured":[NSNull null],@"frames":@(w ? atomic_load(&w->frames):0),
-            @"frame_age_ms":seen ? @((now-seen)/1000000):[NSNull null]}];
+            @"capture_fps_measured":capture ? capture[@"surface_fps_lifetime"]:[NSNull null],
+            @"frames":capture ? capture[@"surface_samples"]:@(w ? atomic_load(&w->frames):0),
+            @"capture_diagnostics":capture ?: [NSNull null],@"freshness_notice":notice,
+            @"content_freshness":@"not_inferred_from_timestamps",
+            @"frame_age_ms":seen && now>=seen ? @((now-seen)/1000000):[NSNull null]}];
     }
     NSData *data=[NSJSONSerialization dataWithJSONObject:states options:0 error:nil];
     return strdup([[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding].UTF8String);

@@ -1,0 +1,36 @@
+--- a/mac-sck-common.h
++++ b/mac-sck-common.h
+@@ -7,0 +8 @@
++#include "sck-diagnostics.h"
+@@ -38,0 +40 @@
++    motive_sck_diagnostics motive_diagnostics;
+--- a/mac-sck-common.m
++++ b/mac-sck-common.m
+@@ -46,0 +47,4 @@
++    if (!self.sc->audio_only) {
++        motive_sck_diagnostics_error(&self.sc->motive_diagnostics, error.code);
++        motive_sck_diagnostics_phase(&self.sc->motive_diagnostics, 4);
++    }
+@@ -214,0 +219 @@
++    motive_sck_diagnostics_sample(&sc->motive_diagnostics, sample_buffer);
+@@ -297,0 +303 @@
++                    motive_sck_diagnostics_error(&sc->motive_diagnostics, error.code);
+--- a/mac-sck-video-capture.m
++++ b/mac-sck-video-capture.m
+@@ -5,0 +6 @@
++    motive_sck_diagnostics_phase(&sc->motive_diagnostics, 3);
+@@ -75,0 +77 @@
++    motive_sck_diagnostics_phase(&sc->motive_diagnostics, 1);
+@@ -264,0 +267,2 @@
++        motive_sck_diagnostics_phase(&sc->motive_diagnostics, did_stream_start ? 2 : 4);
++        if (error) motive_sck_diagnostics_error(&sc->motive_diagnostics, error.code);
+@@ -283,0 +288 @@
++    motive_sck_diagnostics_init(&sc->motive_diagnostics);
+@@ -316,0 +322 @@
++    motive_sck_diagnostics_register(&sc->motive_diagnostics, source);
+@@ -337,0 +344 @@
++    motive_sck_diagnostics_present(&sc->motive_diagnostics, sc->prev);
+@@ -343,0 +351 @@
++    atomic_fetch_add(&sc->motive_diagnostics.texture_bind_attempts, 1);
+@@ -362,0 +371 @@
++    motive_sck_diagnostics_render(&sc->motive_diagnostics);

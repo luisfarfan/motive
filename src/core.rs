@@ -26,7 +26,7 @@ use std::{
 };
 use video::VideoConfig;
 pub fn data_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("var")
+    crate::paths::data_dir()
 }
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -93,6 +93,9 @@ pub enum Command {
     Encoders,
     OutputCapabilities,
     Outputs,
+    OutputDiagnostics {
+        target: OutputTarget,
+    },
     VideoCapabilities,
     ConfigureVideo {
         video: VideoConfig,
@@ -332,8 +335,8 @@ pub fn error(code: &str, message: impl ToString) -> Value {
 }
 impl Production {
     pub fn new() -> anyhow::Result<Self> {
-        fs::create_dir_all(data_dir().join("recordings"))?;
-        fs::create_dir_all(data_dir().join("evidence"))?;
+        fs::create_dir_all(crate::paths::recordings_dir())?;
+        fs::create_dir_all(crate::paths::diagnostic_dir())?;
         create_tone()?;
         let mut p = Self {
             engine: Engine::new()?,
@@ -561,6 +564,24 @@ impl Production {
             result.push(("audio".into(), code.into()));
         }
         result
+    }
+    pub fn persist_shutdown_diagnostics(&self) -> anyhow::Result<()> {
+        let outputs = self.output_snapshot();
+        anyhow::ensure!(
+            self.shutdown_requested && !outputs.busy() && self.engine.output_state() == 0,
+            "OUTPUT_STILL_FINALIZING"
+        );
+        crate::diagnostics::write_shutdown(
+            &crate::paths::diagnostic_dir(),
+            &json!({
+                "version":1,"pid":std::process::id(),"revision":self.revision,"outputs":outputs,
+                "packet_traces":{
+                    "recording":self.engine.output_packet_trace(OutputTarget::Recording),
+                    "streaming":self.engine.output_packet_trace(OutputTarget::Streaming)
+                },
+                "delivery_verified":false
+            }),
+        )
     }
     pub fn poll_health(&mut self) {
         self.poll_overlays();
@@ -1257,6 +1278,10 @@ impl Production {
         if matches!(command, Command::Outputs) {
             return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"output_contract_version":1,"outputs":self.output_snapshot()});
         }
+        if let Command::OutputDiagnostics { target } = &command {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,
+                "output":self.output_snapshot().get(*target),"packet_trace":self.engine.output_packet_trace(*target)});
+        }
         if matches!(command, Command::OutputCapabilities) {
             return json!({"ok":true,"capabilities":self.output_capabilities()});
         }
@@ -1573,7 +1598,7 @@ impl Production {
                         p.swap(0, 2);
                     }
                     image::save_buffer(
-                        data_dir().join("evidence/preview.png"),
+                        crate::paths::diagnostic_dir().join("preview.png"),
                         &pixels,
                         self.engine.width,
                         self.engine.height,
@@ -1596,6 +1621,7 @@ impl Production {
                 | Command::Encoders
                 | Command::OutputCapabilities
                 | Command::Outputs
+                | Command::OutputDiagnostics { .. }
                 | Command::VideoCapabilities
                 | Command::OutputProfiles
                 | Command::CredentialStatus { .. }
@@ -2116,6 +2142,7 @@ mod tests {
             active_duration_ms: 1000,
             encoding,
             stats: OutputStats::default(),
+            diagnostics: None,
         };
         outputs.streaming.begin(
             OutputKind::Streaming,

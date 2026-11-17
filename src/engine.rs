@@ -5,7 +5,11 @@ use std::{
 };
 
 unsafe extern "C" {
-    fn motive_create(base: *const c_char) -> *mut c_void;
+    fn motive_create(
+        base: *const c_char,
+        output_module: *const c_char,
+        capture_module: *const c_char,
+    ) -> *mut c_void;
     fn motive_destroy(engine: *mut c_void);
     fn motive_error(engine: *mut c_void) -> *const c_char;
     fn motive_version() -> *const c_char;
@@ -49,6 +53,7 @@ unsafe extern "C" {
     fn motive_reset_output(engine: *mut c_void) -> bool;
     fn motive_reset_output_target(engine: *mut c_void, target: u32) -> bool;
     fn motive_output_info(engine: *mut c_void, target: u32) -> *mut c_char;
+    fn motive_output_packet_trace(engine: *mut c_void, target: u32) -> *mut c_char;
     fn motive_stop_output_target(engine: *mut c_void, target: u32);
     fn motive_total_frames() -> u32;
     fn motive_lagged_frames() -> u32;
@@ -126,11 +131,27 @@ pub struct Engine {
 }
 impl Engine {
     pub fn new() -> anyhow::Result<Self> {
-        let path = CString::new(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/.deps/OBS.app/Contents"
-        ))?;
-        let raw = unsafe { motive_create(path.as_ptr()) };
+        let path = CString::new(crate::paths::obs_contents().as_os_str().as_encoded_bytes())?;
+        let output_module =
+            CString::new(crate::paths::output_module().as_os_str().as_encoded_bytes())?;
+        let capture_module = CString::new(
+            crate::paths::mac_capture_module()
+                .as_os_str()
+                .as_encoded_bytes(),
+        )?;
+        anyhow::ensure!(
+            [&path, &output_module, &capture_module]
+                .iter()
+                .all(|p| p.as_bytes().len() < 4096),
+            "RUNTIME_PATH_TOO_LONG"
+        );
+        let raw = unsafe {
+            motive_create(
+                path.as_ptr(),
+                output_module.as_ptr(),
+                capture_module.as_ptr(),
+            )
+        };
         anyhow::ensure!(!raw.is_null(), "No se pudo crear libobs");
         let engine = Self {
             raw,
@@ -289,6 +310,12 @@ impl Engine {
     }
     pub fn stop_output_target(&mut self, target: crate::core::output::OutputTarget) {
         unsafe { motive_stop_output_target(self.raw, target.index()) };
+    }
+    pub fn output_packet_trace(
+        &self,
+        target: crate::core::output::OutputTarget,
+    ) -> serde_json::Value {
+        self.overlay_json(unsafe { motive_output_packet_trace(self.raw, target.index()) })
     }
     fn checked(&self, ok: bool) -> anyhow::Result<()> {
         anyhow::ensure!(

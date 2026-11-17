@@ -83,6 +83,30 @@ pub struct OutputStats {
     pub output_dropped_frames: i32,
     pub encoded_frames: Option<u32>,
 }
+/// Dispatch observations from official libobs callbacks, not delivery receipts.
+/// Missing disk/network/decode counts remain unavailable until independently
+/// measured; a successful native stop does not verify the resulting file.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct OutputDiagnostics {
+    pub version: u8,
+    pub packet_observer_available: bool,
+    pub observed_video_packets: Option<u64>,
+    pub observed_audio_packets: Option<u64>,
+    pub trace_capacity: u32,
+    pub trace_retained_records: u32,
+    pub trace_overwritten_records: u64,
+    pub trace_missed_records: u64,
+    pub stop_requested_ns: Option<u64>,
+    pub stop_call_returned_ns: Option<u64>,
+    pub stop_signal_ns: Option<u64>,
+    pub quiescent_observed_ns: Option<u64>,
+    pub stop_to_quiescence_ms: Option<u64>,
+    pub frames_written: Option<u64>,
+    pub frames_received: Option<u64>,
+    pub frames_decoded: Option<u64>,
+    pub delivery_verified: bool,
+}
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct OutputEncoding {
@@ -102,6 +126,8 @@ pub struct NativeOutput {
     pub active_duration_ms: u64,
     pub encoding: OutputEncoding,
     pub stats: OutputStats,
+    #[serde(default)]
+    pub diagnostics: Option<OutputDiagnostics>,
 }
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct OutputFailure {
@@ -150,6 +176,7 @@ pub struct OutputRuntime {
     pub encoding: OutputEncoding,
     pub path: Option<String>,
     pub stats: OutputStats,
+    pub diagnostics: Option<OutputDiagnostics>,
     pub active_duration_ms: u64,
     #[serde(skip)]
     pub native_state: u8,
@@ -171,6 +198,7 @@ impl OutputRuntime {
             encoding: OutputEncoding::default(),
             path: None,
             stats: OutputStats::default(),
+            diagnostics: None,
             active_duration_ms: 0,
             native_state: 0,
         }
@@ -215,6 +243,7 @@ impl OutputRuntime {
         self.native_busy = observation.state != 0;
         self.active_duration_ms = observation.active_duration_ms;
         self.stats = observation.stats;
+        self.diagnostics = observation.diagnostics;
         self.encoding = observation.encoding;
         self.encoding.preference = self.profile.as_ref().map(|p| p.encoder);
         if let Some(failure) = native_failure(observation.code) {
@@ -495,6 +524,7 @@ mod tests {
             code,
             active_duration_ms: u64::from(frames) * 33,
             encoding: OutputEncoding::default(),
+            diagnostics: None,
             stats: OutputStats {
                 output_frames: frames,
                 encoded_frames: Some(frames),

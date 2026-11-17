@@ -443,7 +443,7 @@ impl AssetCatalog {
         if mov {
             args.extend(["-enable_drefs", "0", "-use_absolute_path", "0"]);
         }
-        let mut probe = Command::new("ffprobe");
+        let mut probe = Command::new(crate::paths::media_tool("ffprobe")?);
         probe.args(&args).args(["-count_frames", "-show_entries", "stream=codec_type,codec_name,width,height,avg_frame_rate,nb_read_frames:format=duration", "-of", "json", "-i", &input_path]);
         let result = run_bounded(&mut probe, &[&input.file], 30)?;
         let info: serde_json::Value =
@@ -501,7 +501,7 @@ impl AssetCatalog {
         // Decode validated streams and reject decoder warnings/errors. ffprobe's
         // frame count alone can skip corrupt packets while returning success.
         input.file.seek(SeekFrom::Start(0))?;
-        let mut decode = Command::new("ffmpeg");
+        let mut decode = Command::new(crate::paths::media_tool("ffmpeg")?);
         decode
             .args(["-nostdin", "-xerror", "-err_detect", "explode"])
             .args(&args)
@@ -520,7 +520,7 @@ impl AssetCatalog {
         input.file.seek(SeekFrom::Start(0))?;
         let mut output = Temporary::new(&self.assets)?;
         let output_path = format!("/dev/fd/{}", output.file.as_raw_fd());
-        let mut remux = Command::new("ffmpeg");
+        let mut remux = Command::new(crate::paths::media_tool("ffmpeg")?);
         remux.args(["-nostdin", "-y"]).args(&args).args([
             "-i",
             &input_path,

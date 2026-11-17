@@ -1,6 +1,6 @@
 //! Output policy on the existing Production owner; no multimedia worker here.
 use super::{
-    Production, data_dir,
+    Production,
     output::{OutputKind, OutputRegistry, OutputTarget, OutputVideo},
 };
 use std::{
@@ -72,9 +72,7 @@ impl Production {
         let profile_json = serde_json::to_string(&profile)?;
         let path = if target == OutputTarget::Recording {
             let stamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros();
-            let path = data_dir()
-                .join("recordings")
-                .join(format!("motive-{stamp}.mkv"));
+            let path = crate::paths::recordings_dir().join(format!("motive-{stamp}.mkv"));
             fs::OpenOptions::new()
                 .write(true)
                 .create_new(true)

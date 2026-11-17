@@ -132,6 +132,8 @@ static bool start_encoded(motive_engine *e,output_slot *s,const char *path,obs_d
     s->network_output=stream;
     signal_handler_connect(obs_output_get_signal_handler(s->output),"start",output_started,s);
     signal_handler_connect(obs_output_get_signal_handler(s->output),"stop",output_stopped,s);
+    obs_output_add_packet_callback(s->output,output_packet_observed,s);
+    s->packet_observer_registered=true;
     if (!obs_output_start(s->output)) {
         snprintf(e->error,sizeof(e->error),"OUTPUT_START_FAILED");
         release_output_slot(s);atomic_store(&s->output_stopped,true);return false;

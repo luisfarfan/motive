@@ -12,17 +12,14 @@ fn main() {
             .expect("build OBS output module")
             .success()
     );
+    assert!(
+        std::process::Command::new("python3")
+            .arg(root.join("scripts/build_obs_capture.py"))
+            .status()
+            .expect("build OBS capture diagnostics module")
+            .success()
+    );
     cc::Build::new()
-        .define(
-            "MOTIVE_RTMP_MODULE",
-            Some(
-                format!(
-                    "\"{}\"",
-                    root.join("target/obs-outputs-h8/obs-outputs.so").display()
-                )
-                .as_str(),
-            ),
-        )
         .file("native/engine.m")
         .file("native/lifecycle.m")
         .include(root.join(".deps/obs-studio-33.0.1/libobs"))
@@ -47,4 +44,5 @@ fn main() {
     println!("cargo:rustc-link-arg=-Wl,-rpath,{}", obs.display());
     println!("cargo:rerun-if-changed=native");
     println!("cargo:rerun-if-changed=scripts/build_obs_outputs.py");
+    println!("cargo:rerun-if-changed=scripts/build_obs_capture.py");
 }

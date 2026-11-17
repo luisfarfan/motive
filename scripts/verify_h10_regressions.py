@@ -13,6 +13,44 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
+def prepare(name, output):
+    """Each old suite gets its documented fresh, idle fixture prerequisites."""
+    exe = ROOT / 'target/debug/motive'
+
+    def ctl(op, **args):
+        p = subprocess.run([str(exe), 'ctl', json.dumps({'op': op, **args})],
+                           capture_output=True, text=True, timeout=12)
+        return json.loads(p.stdout)
+
+    current = ctl('status')
+    if current['ok']:
+        assert current['state']['output'] == 'idle', current
+        pid = current['state']['pid']
+        assert ctl('shutdown')['ok']
+        deadline = time.monotonic() + 15
+        while subprocess.run(['kill', '-0', str(pid)], capture_output=True).returncode == 0:
+            assert time.monotonic() < deadline, 'Previous app did not exit'
+            time.sleep(.1)
+    subprocess.run(['open', '-n', '--stdout', str(output / (name + '.runtime.log')),
+                    '--stderr', str(output / (name + '.stderr.log')),
+                    str(ROOT / 'target/Motive.app')], check=True)
+    deadline = time.monotonic() + 15
+    while True:
+        current = ctl('status')
+        if current['ok']:
+            break
+        assert time.monotonic() < deadline, current
+        time.sleep(.2)
+    assert current['state']['output'] == 'idle'
+    if name == 'verify.py':
+        assert ctl('set_test_window', open=True)['ok']
+        deadline = time.monotonic() + 10
+        while not any(w.get('test') for w in ctl('devices')['devices']['windows']):
+            assert time.monotonic() < deadline, 'Owned source window did not appear'
+            time.sleep(.2)
+    return current['state']['pid']
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--camera-id', required=True)
@@ -45,11 +83,13 @@ def main():
     try:
         for name, options in suites:
             started = time.monotonic()
+            pid = prepare(name, output)
             before = {p: p.stat().st_mtime_ns for p in (ROOT / 'var/evidence').glob('*.json')}
             with (output / (name + '.log')).open('w') as log:
                 result = subprocess.run(['python3', str(ROOT / 'scripts' / name), *options],
-                                        cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, timeout=300)
-            entry = {'suite': name, 'exit_code': result.returncode, 'seconds': time.monotonic()-started, 'reports': {}}
+                                        cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, timeout=420)
+            entry = {'suite': name, 'initial_pid': pid, 'exit_code': result.returncode,
+                     'seconds': time.monotonic()-started, 'reports': {}}
             for path in (ROOT / 'var/evidence').glob('*.json'):
                 if before.get(path) != path.stat().st_mtime_ns:
                     contents = path.read_bytes()

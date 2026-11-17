@@ -35,10 +35,13 @@ import time
 from analyse_h13_native import read_manifest, sha, write_json
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-IDS = {'window': 'source-2', 'camera': 'source-4', 'lower': 'source-6', 'timer': 'source-8'}
-# Logical design960 coordinates. No ROI crosses the timer/PiP/lower boundaries.
+IDS = {'window': 'source-2', 'camera': 'source-4', 'lower': 'source-6', 'timer': 'source-8',
+       'alert': 'source-15'}
+# Logical design960 coordinates. The scene probe avoids timer/PiP/lower,
+# but the later alert can cover it: such transitions remain inconclusive.
 BOXES = {'scene_probe': [360, 48, 240, 40], 'lower': [32, 368, 640, 140],
-         'timer': [32, 32, 280, 130], 'camera_pip': [640, 32, 288, 162]}
+         'timer': [32, 32, 280, 130], 'camera_pip': [640, 32, 288, 162],
+         'alert': [340, 32, 280, 110]}
 POLICY = {
     'canvas': [1920, 1080], 'logical_canvas': [960, 540], 'search_margin_seconds': 3,
     'contact_sheet_fps': 4, 'maximum_events': 24, 'maximum_window_seconds': 12,
@@ -80,6 +83,7 @@ def descriptor(row):
               for scene in graph['scenes'] for layer in scene['layers'] if layer['source_id'] == IDS['camera']]
     return {'title': lower.get('title'), 'timer_phase': timer.get('phase'),
             'timer_remaining_ms': timer.get('remaining_ms'), 'camera_visibility': camera,
+            'alert': runtime.get(IDS['alert'], {}),
             'scene': graph['active_scene'], 'transition': s['transition']}
 
 
@@ -101,7 +105,8 @@ def search_estimates(previous, current):
 
 def derive_events(rows):
     iterator = iter(rows)
-    events = []; transitions = {}; previous = next(iterator); before = descriptor(previous)
+    events = []; transitions = {}; alert_event = None
+    previous = next(iterator); before = descriptor(previous)
     for row in iterator:
         after = descriptor(row); state = row['state']; tr = after['transition']
         estimates = search_estimates(previous, row)
@@ -122,6 +127,22 @@ def derive_events(rows):
         if estimates and after['camera_visibility'] != before['camera_visibility']:
             details.append({'kind': 'camera_visibility', 'before': before['camera_visibility'],
                             'after': after['camera_visibility']})
+        alert = after['alert']
+        if estimates and alert.get('visible') and not before['alert'].get('visible', False):
+            definition = next(s['overlay']['widget'] for s in state['project']['graph']['sources']
+                              if s['id'] == IDS['alert'])
+            alert_event = {'kind': 'alert', 'source_id': IDS['alert'], 'definition': definition,
+                           'phase_observations': []}
+            details.append(alert_event)
+        if alert_event and alert:
+            phases = alert_event['phase_observations']
+            if not phases or (phases[-1]['phase'], phases[-1]['visible']) != (alert['phase'], alert['visible']):
+                phases.append({'monotonic': row['monotonic'], 'phase': alert['phase'],
+                               'visible': alert['visible'], 'remaining_ms': alert['remaining_ms'],
+                               'appearance_opacity': alert['appearance_opacity'],
+                               'native_search_estimates': estimates})
+            alert_event['last_runtime'] = {k: alert[k] for k in
+                                           ('phase', 'visible', 'remaining_ms', 'appearance_opacity')}
         for detail in details:
             detail.update(event_id=f'event-{len(events)+1:02d}', revision=state['revision'],
                           action=state['last_action'], observer_bracket=[previous['monotonic'], row['monotonic']],
@@ -157,7 +178,11 @@ def plan(args):
             tasks.append({'event_id': event['event_id'], 'kind': event['kind'], 'media': matches[0],
                           'search_start_seconds': max(0, estimate['native_search_seconds']-3),
                           'search_duration_seconds': length,
-                          'cancelled': event.get('last_transition', {}).get('phase') == 'cancelled'})
+                          'cancelled': event.get('last_transition', {}).get('phase') == 'cancelled',
+                          'probe_occluded_by_alert': any(
+                              event['observer_bracket'][0]-3 <= r['monotonic'] <= event['observer_bracket'][1]+length-3
+                              and any(s['id'] == IDS['alert'] and s['visible'] for s in r['state']['overlays']['runtime']['sources'])
+                              for r in rows)})
     periodic = []
     for item in media:
         durations = [r['state']['outputs'][item['target']]['active_duration_ms']/1000
@@ -231,6 +256,9 @@ def transition_metrics(rgb, pts, task):
     result = {'status':'INCONCLUSIVE', 'original_pts':pts, 'rgb':colors,
               'endpoint_before':a, 'endpoint_after':b, 'endpoint_distance':contrast,
               'endpoint_max_channel_span':span}
+    if task.get('probe_occluded_by_alert'):
+        result['reason']='native alert visible in search window covers fixed scene probe; no alternate ROI chosen'
+        return result
     if task['cancelled']:
         result['reason']='cancelled transition: inspect excursion and return; not a complete-Fade gate'
         return result
@@ -288,16 +316,18 @@ def extract(args):
             files = sorted(output.glob('frame-*.png'))
             if not files: raise ValueError('bounded search returned no frames')
             sheet = Image.new('RGB',(960, len(files)*155),'#18202b'); draw=ImageDraw.Draw(sheet)
-            masks = {'lower':[], 'timer':[]}
+            masks = {'lower':[], 'timer':[], 'alert':[]}
             for i, filename in enumerate(files):
                 with Image.open(filename) as image:
                     image=image.convert('RGB'); thumbnail=image.resize((240,135))
                     sheet.paste(thumbnail,(0,i*155+20))
                     draw.text((0,i*155),f'{filename.name} sampled offset ~{i/4:.2f}s',fill='white')
-                    for name,xpos in [('lower',250),('timer',680)]:
+                    for name in masks:
                         x,y,w,h=BOXES[name]; crop=image.crop((x,y,x+w,y+h))
                         masks[name].append(white_mask(crop))
-                        crop.thumbnail((420 if name=='lower' else 280,130)); sheet.paste(crop,(xpos,i*155+20))
+                        if name == 'lower' or name == ('alert' if task['kind']=='alert' else 'timer'):
+                            xpos = 250 if name=='lower' else 680
+                            crop.thumbnail((420 if name=='lower' else 280,130)); sheet.paste(crop,(xpos,i*155+20))
             sheet.save(output/'contact-sheet.png')
             entry={'task':task, 'frames_sampled':len(files), 'contact_sheet':str(output/'contact-sheet.png'),
                    'status':'INCONCLUSIVE', 'reason':'human mapping/spelling/phase review required', 'glyph_metrics':{}}

@@ -1,5 +1,12 @@
 # Decisiones y evidencia
 
+Estado vigente, 2026-11-17: **H13 implementado; aceptación final EN CURSO**.
+La decisión D11 amplía el canvas fijo, el único output y el mixer v1 de fases
+anteriores. Las entradas D1–D10 conservan su contexto histórico; no son una
+lista de límites actuales. Contratos vigentes: [canvas/audio](h13-video-audio-contract.md)
+y [salidas](h13-output-contract.md). Resultados y gates pendientes:
+[verificación H13](h13-production-verification.md).
+
 ## Inspección inicial — 2026-11-16
 
 - Directorio vacío, sin Git ni trabajo previo.
@@ -105,7 +112,10 @@ Las pruebas futuras usarán contenido propio, permisos normales y ninguna
 emisión pública. La búsqueda inicial de apps fue limitada a nombres inmediatos
 en /Applications y ~/Applications; no descarta otras rutas.
 
-## D3 — Integración implementada y límites
+## D3 — Integración inicial y límites de esa etapa
+
+Registro de la primera arquitectura ejecutable. D5–D11 amplían esta base;
+en particular, H13 reemplaza el límite de un output y el canvas físico fijo.
 
 - `src/core.rs`: estado autoritativo, comandos, validación y persistencia.
   `src/main.rs`: UI GPUI y cola de comandos en su hilo principal.
@@ -133,9 +143,9 @@ en /Applications y ~/Applications; no descarta otras rutas.
   fuera de la persistencia v3. Ver [mediciones y límites](videotoolbox-verification.md).
   Streaming local: `ffmpeg_output`, libx264/AAC y MPEG-TS a UDP loopback fijo.
   El soporte de protocolos no prueba integración con YouTube/TikTok.
-- Un solo output simultáneo. `stop_output` es asíncrono: observar `idle` y
+- En esa etapa, un solo output simultáneo. `stop_output` es asíncrono: observar `idle` y
   `output_code == 0` antes de cambiar formato o dar un archivo por terminado.
-- Dos composiciones: 960×540 y 540×960. Captura con ajuste `contain`, anclada
+- Dos composiciones iniciales: 960×540 y 540×960. Captura con ajuste `contain`, anclada
   al centro y prioridad inferior; overlay de 320×72, anclaje inferior izquierdo,
   margen seguro de 32 px y prioridad superior. Es una política mínima propia,
   no un editor adaptativo completo ni un simple estiramiento.
@@ -321,13 +331,15 @@ Fuentes públicas utilizadas: `libobs/obs-scene.c`, `libobs/obs-output.c`,
 Escenas v3 permanecen intactas. Definiciones de perfiles usan un archivo v1
 separado, con guardado/carga explícitos; selección y endpoint son preferencias
 runtime. Grabación y RTMP comparten creación de encoders, fallback y parámetros.
-Solo CBR y canvas existentes a 30 FPS; no se declara resolución/FPS configurable.
+El alcance H7 admite solo CBR y canvas existentes a 30 FPS; H13 añade
+resolución/FPS de producción configurables y pares de encoders por destino.
 
 RTMP/TLS usan `rtmp_output` oficial con un adaptador mínimo de servicio local
 vía API pública. No se carga el catálogo `rtmp-services` ni su actualizador.
 Endpoint limitado a 127.0.0.1 y puerto, sin claves/URLs arbitrarias. Las claves
 futuras deberán resolverse desde Keychain dentro del núcleo, no desde MCP ni
-archivos de escena/perfil. No hay administrador de credenciales implementado.
+archivos de escena/perfil. En H7 todavía no había administrador de credenciales;
+H8 añadió referencias opacas Keychain, manteniendo loopback y los límites TLS.
 
 Un receptor silencioso reprodujo bloqueo al forzar stop durante conexión y
 una carrera nativa al trasladar esa espera a un worker. Se descartó el worker:
@@ -381,8 +393,9 @@ reconexión propia, por lo que un fallo latched libera la fuente para impedir qu
 vuelva al aire sin acción explícita.
 
 La aceptación física, espectral, de timestamps y de restauración está en
-[informe H10](h10-audio-verification.md). Captura de audio del sistema se evalúa
-para después, sin habilitarla ni cambiar el ruteo/permisos globales en H10.
+[informe H10](h10-audio-verification.md). H10 pospuso la captura de audio del
+sistema; H13 la implementa como adaptador del mixer mediante el módulo oficial
+SCK, sin cambiar ruteo, volumen ni permisos globales. Ver D11.
 
 ## D9 — Overlays nativos, recursos administrados y proyecto v4 (H11)
 
@@ -390,7 +403,8 @@ para después, sin habilitarla ni cambiar el ruteo/permisos globales en H10.
 adaptación del propietario. Un wrapper nativo por ID mantiene hijos oficiales
 FreeType, image_source o ffmpeg_source; formas y placas usan gráficos libobs.
 No hay compositor, mezclador, reloj de frames ni runtime de JavaScript paralelo.
-CLI/MCP y la futura UI llaman a `Production::apply` sobre el mismo propietario.
+CLI/MCP llaman a `Production::apply` sobre el mismo propietario; H12 incorpora
+la UI al contrato que H11 dejó preparado.
 
 Una definición extendida opcional en `VisualSource` evita romper los matches
 GPUI de `SourceKind`. Solo los proyectos que la necesitan se guardan como v4;
@@ -450,3 +464,80 @@ bloque) con PCM sobre el mismo intervalo; mantiene el margen de 2 dB. Encoding
 conserva muestras del ensayo fallido sin reducir el gate de cero render lag.
 Los informes históricos no se reescriben y pasar tests unitarios no sustituye
 medios reales. [Evidencia y límites](h12-creative-studio-verification.md).
+
+## D11 — Producción compartida y destinos independientes (H13)
+
+Implementado, con aceptación final **EN CURSO**. La
+[decisión previa](h13-production-architecture.md) conserva la comparación de
+alternativas y fuentes oficiales fijadas en OBS 33.0.1; los contratos de
+[canvas/audio](h13-video-audio-contract.md) y [salidas](h13-output-contract.md)
+describen la API vigente. No se añade otra `Production`, compositor, mixer DSP
+ni reloj de UI/MCP. GPUI presenta el estado del mismo propietario.
+
+La composición OBS usa las dimensiones elegidas: `legacy540`, `hd720` o
+`full_hd1080`, a 30/60 FPS y en ambas orientaciones. Las coordenadas editables
+continúan siendo `design960`; posición, tamaño y animación se escalan al motor
+sin reescribir las transformaciones persistidas. Un proyecto explícito v5
+declara `video.version=1`; v1–v4 conservan 540p30. `configure_video` exige
+salidas, transición, animaciones e importación quiescentes. Antes de resetear
+video se reservan recursos y se liberan encoders detenidos; ante fallo se
+intenta restaurar la configuración anterior. `VIDEO_RECOVERY_REQUIRED` impide
+arrancar si esa recuperación falla. Esto no acredita 1080p60 de cada captura:
+la cámara solicita 720p y SCK renueva su stream al cambiar FPS.
+
+Cada destino estable, `recording` y `streaming`, tiene output, par H.264/AAC,
+perfil efectivo por intento, métricas, duración monotónica y fallo propios.
+Ambos consumen el mismo `obs_get_video()` y mix 0 de `obs_get_audio()`. Se eligen
+encoders independientes porque un fallo del encoder compartido se propaga a
+todos sus outputs en OBS 33.0.1, además de acoplar bitrate/GOP/reordering.
+El coste de los dos pares se mide; compartirlos queda como optimización futura
+con su propia aceptación. No se duplican cámaras, ventanas ni captura de audio.
+
+La identidad de observación es `(pid, target, attempt_id)`. `outputs` expone
+ambos slots; los comandos dirigidos permiten detener/recuperar uno mientras
+continúa el otro. Los arranques antiguos siguen exclusivos. Stop/cancel sin
+destino rechaza dos slots ocupados con `OUTPUT_TARGET_REQUIRED`; el estado
+legacy puede ser `multiple` y sus campos específicos quedan `null`, sin
+atribuir a toda la producción las métricas de un destino. Perfiles permanecen
+v1 y su selección/endpoint son runtime; reiniciar nunca inicia una salida.
+
+El módulo oficial `sck_audio_capture` aporta aplicación por bundle ID único
+y escritorio principal por UUID. Se revalida identidad al crear/reconectar;
+PIDs efímeros no se persisten. Escritorio junto a cualquier aplicación se
+rechaza por solapamiento incluso si un canal está silenciado/desconectado.
+El propio proceso queda excluido. Mixer v1 sigue cargando; las fuentes SCK
+requieren v2, separado de proyecto y perfiles. Ganancia, mute y recuperación
+reutilizan H10; `ready` significa paquetes, `awaiting_audio` ausencia reciente
+de muestras y un fallo retenido exige reconexión explícita. Medidores mantienen
+post-fader/pre-mute por entrada y post-mute/pre-clamp en master. No se activa
+monitoreo, audio por escena ni audio de los videos H11.
+
+La barrera RTMP H8 `get_thread_state` se conserva por slot. Stop no demuestra
+que todos los workers terminaron; no se fuerza su liberación ni se oculta la
+espera del handshake. `request_shutdown` solicita la finalización conjunta y
+espera también una importación existente antes de permitir el destructor del
+worker. `shutdown` legacy establece el mismo sello de cierre. Tanto pendiente
+como listo para salir, el núcleo rechaza nuevo trabajo, incluidas mutaciones
+de overlays que antes entraban por una ruta temprana. Las consultas siguen
+disponibles. Ventana, menú y Cmd+Q pasan por la confirmación/ciclo compartidos;
+su matriz final de aceptación GPUI sigue abierta.
+
+El bundle `d9b8d702…e0e2d93` tiene 71 tests, Clippy y formato PASS. El ensayo H8
+comprueba rechazos `SHUTDOWN_PENDING` y cierre tras liberar el peer; otro ensayo
+observa 29 consultas durante un import real y el resultado `completed` antes
+de salir. La matriz dual y el audio/video tienen evidencia incremental con
+sus propios hashes. Regresiones finales, producción GPUI integrada y sesión
+prolongada no están completas: [informe y evidencia](h13-production-verification.md),
+[runner de regresiones](h13-regressions.md), [aceptación nativa](h13-native-acceptance.md).
+
+Se conserva el fallo de audio inicial de 1024 muestras y su
+[investigación](h13-audio-startup-investigation.md): adelantar 20 ms la entrega
+del tono conserva fase/PTS y no modifica el buffering de micrófono/SCK.
+Persisten límites de [colas de video](h13-encoder-tail-investigation.md) y
+congelamientos previos de captura cuya causa no está demostrada. A/V pasó bajo
+las condiciones visibles documentadas, sin acreditar latencia cero. Preview
+sigue copiando BGRA por CPU; presupuestos visuales no son límites de RSS.
+USB hot-unplug, permisos revocados, display físico, sleep/wake, otros macOS,
+RTMPS positivo confiable, sesión prolongada y bundle portable siguen pendientes.
+No se habilitan destinos públicos, multistream, dos canvases simultáneos,
+Browser/CEF ni nuevas dependencias globales.

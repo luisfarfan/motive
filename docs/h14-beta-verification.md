@@ -61,10 +61,10 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 | Frescura y detección de captura | FAIL | GPUI propio avanza en MKV/RTMP; fixture suspendida y recuperación fallida conservadas; repetir final |
 | Integridad/finalización de salidas | PARTIAL | Matriz A/B ejecutada; reordering falla al cerrar, mitigación por defecto sin reordering; repetir final |
 | Memoria y sesión prolongada | PARTIAL | Instrumento y self-test PASS; runner y fixture listos, owner/soak pendientes |
-| Bundle autocontenido | PARTIAL | Cierre Mach-O estático preparado; ejecución fuera del checkout pendiente |
-| RTMPS externo seguro | PARTIAL | Dominio/native sheet/Keychain/servicio implementados; persistencia en revisión; destino YouTube indicado, clave y prueba privada pendientes |
-| Show Control real | PARTIAL | Adapter owner, journal y persistencia integrados; medios reales pendientes |
-| Live Deck y MATCHDAY | PARTIAL | GPUI e instalación revisable implementados, prueba nativa y medios pendientes |
+| Bundle autocontenido | PARTIAL | B1/B2 ejecutados fuera del checkout, firma/closure/tools PASS; segunda Mac, notarización y reconstrucción pendientes |
+| RTMPS externo seguro | PARTIAL | Persistencia revisada; destino privado YouTube aprobado localmente; pegado corregido en B2, entrada segura y emisión pendientes |
+| Show Control real | PARTIAL | B1 aceptó evento real de GPUI y completó animación; harness falló durante espera, repetición B2 pendiente |
+| Live Deck y MATCHDAY | PARTIAL | Instalación GPUI 73/73 y celebración visibles en B1; comprobación completa de medios y repetición B2 pendientes |
 | Voz opcional | PARTIAL | Benchmark offline ejecutado, recall 50% falla fiabilidad; voz en vivo NOT IMPLEMENTED |
 | UX y biblioteca de grabaciones | PARTIAL | Biblioteca y controles integrados; recorrido nativo final pendiente |
 | Suite unificada sobre binario final | NOT IMPLEMENTED | Identidad final, medios y manifiesto |
@@ -100,3 +100,42 @@ el bundle integrado. Ninguna prueba de fuente sustituye esa aceptación final.
 
 Pruebas físicas exclusivamente bajo `motive/var/run/physical-test.lock`, owner
 H14 root. Cada fallo y cada repetición conservarán su directorio de evidencia.
+
+## Checkpoint portable B1/B2 — 17 de noviembre
+
+B1 se ejecutó desde `/Users/luisfarfan/Developer/motive-h14-portable/b1/Motive.app`
+con PATH del sistema y sin overrides DYLD. Cargó 36 rutas nativas sin dependencia
+del checkout; no se modificó HOME. Desde GPUI se revisó e instaló MATCHDAY
+(73/73 operaciones, 5 escenas/14 fuentes/25 capas totales, incluidas las previas).
+La pulsación de celebración creó el evento `ui-54774-1` y una animación nativa,
+observada también en la interfaz. El harness conservó un FAIL propio por un
+argumento Python duplicado durante la espera y detuvo ambas salidas. El owner
+sí completó posteriormente el trabajo. El fallo original y los medios quedan en
+`var/evidence/h14-show-control-b1-01`; no se convierten en PASS por corregir el
+verificador. La repetición es obligatoria.
+
+Antes de salir se guardaron explícitamente proyecto v5, mixer vacío y Show
+Control; Cmd+Q cerró normalmente. Su `last-shutdown.json` fue copiado a
+`var/evidence/h14-portable-b1-1794952716958645000/normal-shutdown.json`.
+No hubo transmisión externa. El intento de entrada de credencial se canceló
+sin guardar; el reporte del usuario de pegado fallido motivó una corrección
+local de AppKit, documentada en [pegado seguro](h14-secure-paste.md).
+
+B2 incorpora esa corrección, compilada desde `d188bb0` y empaquetada desde
+`587402c` (el segundo commit cambia solo preparación/documentación de fuentes).
+Ejecutable firmado SHA-256:
+`16294752571dc8599df8fdadfa4710963c4d51bd957d5cf569be2ff53a539ceb`.
+Ruta: `/Users/luisfarfan/Developer/motive-h14-portable/b2/Motive.app`.
+La firma estricta, closure ARM64/rpaths y smoke de ffmpeg/ffprobe dan PASS en
+`var/evidence/h14-build/portable-b2-verification.json`. El proceso 75663 cargó
+41 rutas nativas sin dependencia del checkout; contexto y rutas en
+`var/evidence/h14-portable-b2-1794953837847861000`. El nuevo arranque no restauró
+ni inició automáticamente proyectos o salidas. El destino aprobado permaneció
+sin selección ni clave. El botón Pegar del campo seguro se observó por
+accesibilidad; el pegado real por el usuario todavía está pendiente.
+
+Sobre estas fuentes: 111 tests raíz + 111 Show Control, ambos Clippy
+`--all-targets -D warnings`, formato, prueba de routing nativo de pegado y
+3 tests de harness pasan. Logs `var/evidence/h14-build/*-b2.log` y
+`secure-paste-native-test.log`. Estas pruebas no sustituyen aceptación multimedia
+sobre B2 ni prueban entrega a YouTube.

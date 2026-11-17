@@ -4,6 +4,7 @@ import hashlib
 import json
 import pathlib
 import urllib.request
+from portable_cache import regular_cache_file, write_cache_atomically
 
 
 def relative_path(value):
@@ -58,7 +59,7 @@ def prepare_proofs(specs, cache, allow_fetch):
         path = cache / name
         result = {**spec, 'file': name}
         try:
-            if not path.exists():
+            if not regular_cache_file(path):
                 if not allow_fetch:
                     raise ValueError('Pinned gitlink proof not cached; use --fetch')
                 request = urllib.request.Request(spec['url'], headers={'User-Agent': 'Motive-source-review'})
@@ -67,8 +68,8 @@ def prepare_proofs(specs, cache, allow_fetch):
                 if len(data) > 8 * 1024 * 1024:
                     raise ValueError('Git tree proof exceeds bound')
                 validate_tree(data, spec)
-                path.write_bytes(data)
-            if path.is_symlink() or path.stat().st_size > 8 * 1024 * 1024:
+                write_cache_atomically(path, lambda stream: stream.write(data))
+            if path.stat().st_size > 8 * 1024 * 1024:
                 raise ValueError('Invalid cached gitlink proof')
             links = validate_tree(path.read_bytes(), spec)
             result.update(status='PASS', gitlinks=links)
@@ -110,6 +111,8 @@ def review(records, proofs):
                 raise ValueError('Source archive or git tree proof is blocked')
             if record['revision'] != proof['revision']:
                 raise ValueError('Source revision differs from tree proof')
+            if record.get('archive_revision') != proof['revision']:
+                raise ValueError('Source archive revision differs from tree proof')
             links = proof['gitlinks']
             mapped = {path: child for (parent, path), child in children.items() if parent == name}
             if set(links) != set(declared) or set(links) != set(mapped):

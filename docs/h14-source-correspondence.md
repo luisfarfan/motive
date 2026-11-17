@@ -56,8 +56,14 @@ revisión del padre, subruta y función. `source_tree_proofs` fija URL y hash de
 cada árbol recursivo. El preparador compara las declaraciones `.gitmodules`,
 gitlinks y mappings completos; rechaza diferencias, árboles truncados,
 revisiones incorrectas, rutas ascendentes y archivos no comprobados. También
-comprueba que el comentario PAX del archivo de cada submódulo identifica el
-commit esperado.
+comprueba que el comentario PAX del archivo de cada submódulo y padre con
+prueba identifica el commit esperado.
+
+Las nuevas escrituras de caché rechazan destinos que no sean archivos
+regulares mediante lstat antes de descargar o copiar. Preparan el contenido
+en un archivo temporal exclusivo, comprueban su hash y publican con replace
+después de revalidar el destino. No usan un nombre .part predecible ni siguen
+enlaces simbólicos colgantes para escribir.
 
 `submodule_material.layout` registra el padre, la subruta inmediata y la
 ubicación lógica acumulada de cada archivo. Al ensamblar las fuentes se
@@ -79,9 +85,13 @@ el siguiente snapshot debe crearse tras el commit correspondiente.
 de los 103 archivos y las fuentes oficiales consultadas. Los miembros de
 recetas/CMake usados para la clasificación están copiados verbatim con sus
 hashes. `submodule-material-check.json` conserva el inventario real y confirma
-el hash intacto de B1. El resolver tiene **4/4 pruebas** de integridad: mapping
+el hash intacto de B1. El resolver tiene **5/5 pruebas** de integridad: mapping
 transitivo, omisión/hijo equivocado, rutas/repositorios inválidos y pruebas
-de árbol truncadas o modificadas. No sustituyen el chequeo de archivos reales.
+de árbol truncadas o modificadas, incluida una revisión PAX incorrecta del
+padre. Otras **6/6 pruebas** cubren caché, enlaces colgantes, un enlace
+introducido durante staging, un .part previo y fallos de validación; junto
+con las tres pruebas de avisos, la suite portable pasa **14/14**. No sustituyen
+el chequeo de archivos reales.
 
 La reconstrucción completa desde el material entregable, su relación con
 cada Mach-O y la suficiencia de las instrucciones siguen pendientes. Las

@@ -71,6 +71,17 @@ class SubmoduleTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_tree(data, {**spec, 'sha256': hashlib.sha256(data).hexdigest()})
 
+    def test_parent_archive_must_identify_the_proven_revision(self):
+        # All configured fields and the git tree can agree while the parent
+        # archive is the wrong checkout. It must not close the material gate.
+        for archive_revision in ['WRONG_COMMIT', None]:
+            changed = copy.deepcopy(self.sources)
+            changed[0]['archive_revision'] = archive_revision
+            result = review(changed, self.proofs)
+            self.assertEqual(result['status'], 'PARTIAL')
+            self.assertTrue(any(item['source'] == 'root' and 'archive revision' in item['error']
+                                for item in result['issues']))
+
 
 if __name__ == '__main__':
     unittest.main()

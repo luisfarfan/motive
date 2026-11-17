@@ -19,6 +19,7 @@ import urllib.request
 from portable_support import sha256
 from build_portable_media_tools import SOURCE_SHA256, SOURCE_URL, COMMIT
 from portable_source_submodules import prepare_proofs, review as review_submodules
+from portable_cache import regular_cache_file, write_cache_atomically
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CACHE = ROOT / 'target/portable-sources/archives'
@@ -31,21 +32,28 @@ def fetch_source(record, allow_fetch):
     path = CACHE / f"{name}-{cache_version}{extension}"
     result = {**record, 'file': path.name}
     try:
+        def validate_archive(temporary):
+            if record.get('sha256') and sha256(temporary) != record['sha256']:
+                raise ValueError('Source archive checksum differs from pinned recipe')
+
         local = record.get('local')
-        if not path.exists() and local and pathlib.Path(local).is_file():
-            shutil.copy2(local, path)
-        if not path.exists():
+        if not regular_cache_file(path) and local and pathlib.Path(local).is_file():
+            def copy_local(target):
+                with pathlib.Path(local).open('rb') as original:
+                    shutil.copyfileobj(original, target)
+            write_cache_atomically(path, copy_local, validate_archive)
+        if not regular_cache_file(path):
             if not allow_fetch:
                 raise ValueError('Archive not cached; use --fetch for the pinned source')
-            temporary = path.with_suffix(path.suffix + '.part')
-            with urllib.request.urlopen(record['archive_url'], timeout=45) as response, temporary.open('wb') as target:
-                size = 0
-                while chunk := response.read(1024 * 1024):
-                    size += len(chunk)
-                    if size > 256 * 1024 * 1024:
-                        raise ValueError('Source archive exceeds bound')
-                    target.write(chunk)
-            temporary.rename(path)
+            def download(target):
+                with urllib.request.urlopen(record['archive_url'], timeout=45) as response:
+                    size = 0
+                    while chunk := response.read(1024 * 1024):
+                        size += len(chunk)
+                        if size > 256 * 1024 * 1024:
+                            raise ValueError('Source archive exceeds bound')
+                        target.write(chunk)
+            write_cache_atomically(path, download, validate_archive)
         digest = sha256(path)
         if record.get('sha256') and digest != record['sha256']:
             raise ValueError('Source archive checksum differs from pinned recipe')

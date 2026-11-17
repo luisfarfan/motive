@@ -65,9 +65,12 @@ reglas no imponen exclusividad automática.
 No se introducen bucles continuos, destellos ni partículas que el motor no tenga.
 
 Cada entrada del catálogo enlaza al manifest, scene/layer e ID de animación real.
-La galería reproduce seis ejemplos representativos y una transición a BRB;
-el selector permite inspeccionar la composición de las 22 entradas. Ofrece
-movimiento reducido. Ese ensayo
+La galería reproduce cualquiera de las 22 entradas sobre su capa y composición
+reales, en horizontal o vertical, además de la transición a BRB. Se pueden
+ensayar duración, easing y, según el tipo, distancia o escala dentro de los
+límites del contrato. Restaurar recupera los valores declarados; los ensayos
+no modifican el manifest. Cada entrada muestra propósito, escena, capa y fuente.
+Ofrece movimiento reducido local, por receta y por preferencia del sistema. Ese ensayo
 no es prueba nativa ni implementación de una preferencia del producto.
 
 ## Movimiento reducido

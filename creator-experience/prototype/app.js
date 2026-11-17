@@ -1,3 +1,5 @@
+import {renderMotionWorkbench} from './motion.js';
+import {renderLifecycleStudy} from './lifecycle.js';
 /* Original Motive Creator Experience presentation prototype, GPL-3.0-or-later.
  * All actions below are local UI rehearsals. No Production/socket/device/provider calls.
  * Manifest and deck documents are read-only inputs; exports are explicit local downloads.
@@ -6,7 +8,7 @@ const main = document.querySelector('#main');
 const dialog = document.querySelector('#confirm-dialog');
 const ids = ['creator-tech', 'neon-arena'];
 const packs = new Map();
-const state = {route:'library', selected:'creator-tech', scene:0, orientation:'horizontal', tab:'customize', query:'', category:'all', filter:'all', reduced:matchMedia('(prefers-reduced-motion: reduce)').matches, project:'empty', imageCapability:true, approved:false, planReviewed:false, deckHold:false, missingCapability:false, nextRequest:1, history:[], pending:new Map(), cooldowns:new Map()};
+const state = {motionKey:'creator-tech/tech-title-in',motionOrientation:'horizontal',motionDrafts:new Map(),lifecycle:'ready',lifecycleRevision:7,lifecycleApprovedRevision:null,lifecycleSnapshot:null,lifecycleStep:0,lifecycleDetail:false,lifecycleNote:'',route:'library', selected:'creator-tech', scene:0, orientation:'horizontal', tab:'customize', query:'', category:'all', filter:'all', reduced:false, project:'empty', imageCapability:true, approved:false, planReviewed:false, deckHold:false, missingCapability:false, nextRequest:1, history:[], pending:new Map(), cooldowns:new Map()};
 let toastTimer;
 let routeRevision=0;
 // Keep the skip link out of the hash router so it never changes the current view.
@@ -52,6 +54,7 @@ function selectPack(id) {
     state.planReviewed=false;
     state.approved=false;
     state.selected=id;
+    state.lifecycle='ready';state.lifecycleRevision=7;state.lifecycleApprovedRevision=null;state.lifecycleSnapshot=null;state.lifecycleStep=0;state.lifecycleDetail=false;state.lifecycleNote='';
   }
 }
 function route() {
@@ -59,9 +62,10 @@ function route() {
   // A different route invalidates an open local confirmation, even on the same pack.
   if(dialog.open)dialog.close('cancel');
   const hash = location.hash.slice(1) || 'library';
-  const [section,id] = hash.split('/');
+  const [section,id,entry] = hash.split('/');
   state.route = ['library','pack','deck','motion'].includes(section) ? section : 'library';
   if(ids.includes(id))selectPack(id);
+  if(section==='motion'&&ids.includes(id)&&packs.get(id).draft.animations.some(animation=>animation.id===entry))state.motionKey=`${id}/${entry}`;
   document.querySelectorAll('[data-nav]').forEach(el => {const active=el.dataset.nav === (state.route==='pack'?'library':state.route);el.classList.toggle('active',active);if(active)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');});
   render();
 }
@@ -90,27 +94,44 @@ function renderCards() {
   });
   document.querySelector('#pack-results').innerHTML=matches.length?matches.map((id)=>{
     const p=packs.get(id).original;
-    return `<article class="pack-card"><a class="cover-link" href="#pack/${id}" aria-label="Explorar ${title(id)}"><img src="${previewURL(id)}" alt="${title(id)}: composición Starting Soon en horizontal" width="960" height="540"></a><div class="card-heading"><h2><a href="#pack/${id}">${title(id)}</a></h2><span class="category-label">${category(id)}</span></div><p class="card-copy">${description(id)}</p><div class="card-footer"><span>${p.scenes.length} composiciones</span><span aria-hidden="true">·</span><span>16:9 + 9:16</span><span aria-hidden="true">·</span><span>v${escape(p.version)}</span><a href="#pack/${id}">Explorar colección →</a></div></article>`;
+    return `<article class="pack-card"><a class="cover-link" href="#pack/${id}" aria-label="Explorar ${title(id)}"><img src="${previewURL(id)}" alt="${title(id)}: composición Starting Soon en horizontal" width="960" height="540"></a><div class="card-heading"><h2><a href="#pack/${id}">${title(id)}</a></h2><span class="category-label">${category(id)}</span></div><p class="card-copy">${description(id)}</p><div class="pack-compatibility">Instalación pendiente · H14 admite MATCHDAY</div><p class="card-capabilities">${p.requires.map(capability=>({text:'Texto',shape:'Formas',widget:'Widgets',image_asset:'PNG',layer_animation:'Animación',scene_transition:'Cut/Fade'}[capability]||capability)).join(' · ')}</p><div class="card-footer"><span>${p.scenes.length} composiciones</span><span aria-hidden="true">·</span><span>${p.resources.length} PNG</span><span aria-hidden="true">·</span><span>16:9 + 9:16</span><span aria-hidden="true">·</span><span>v${escape(p.version)}</span><a href="#pack/${id}">Explorar colección →</a></div></article>`;
   }).join(''):'<div class="empty"><h2>No hay colecciones con esos filtros.</h2><p>Prueba otro término o vuelve a ver todos los recursos.</p><button class="button" id="clear-filters" style="margin-top:18px">Restablecer filtros</button></div>';
   document.querySelector('#clear-filters')?.addEventListener('click',()=>{state.query='';state.category='all';state.filter='all';renderLibrary();});
 }
 function renderPack() {
   const p=manifest();
-  main.innerHTML=`<a class="back" href="#library">← Biblioteca de colecciones</a><div class="page-heading detail-heading"><div><div class="eyebrow">${category(p.id)}</div><h1>${title(p.id)}</h1><p>${subtitle(p.id)}</p></div><div class="detail-actions"><a class="button" href="#deck/${p.id}">Abrir Live Deck</a><button class="button primary" id="open-plan">Revisar plan</button></div></div><div class="tabs" aria-label="Secciones de la colección">${[['customize','Personalizar'],['details','La colección'],['plan','Plan de instalación']].map(([id,label])=>`<button class="tab ${state.tab===id?'active':''}" data-tab="${id}" aria-pressed="${state.tab===id}">${label}</button>`).join('')}</div><div id="pack-content"></div>${footer()}`;
-  document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>{state.tab=el.dataset.tab;renderPack();}));
+  main.innerHTML=`<a class="back" href="#library">← Biblioteca de colecciones</a><div class="page-heading detail-heading"><div><div class="eyebrow">${category(p.id)}</div><h1>${title(p.id)}</h1><p>${subtitle(p.id)}</p></div><div class="detail-actions"><a class="button" href="#deck/${p.id}">Abrir Live Deck</a><button class="button primary" id="open-plan">Revisar plan</button></div></div><div class="tabs" aria-label="Secciones de la colección">${[['customize','Personalizar'],['details','La colección'],['plan','Plan de instalación'],['lifecycle','Estados de instalación']].map(([id,label])=>`<button class="tab ${state.tab===id?'active':''}" data-tab="${id}" aria-pressed="${state.tab===id}">${label}</button>`).join('')}</div><div id="pack-content"></div>${footer()}`;
+  document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>{state.tab=el.dataset.tab;renderPack();document.querySelector(`[data-tab="${state.tab}"]`).focus({preventScroll:true});}));
   document.querySelector('#open-plan').addEventListener('click',()=>{state.tab='plan';renderPack();});
   if(state.tab==='customize') renderCustomizer();
   if(state.tab==='details') renderDetails();
   if(state.tab==='plan') renderPlan();
+  if(state.tab==='lifecycle') renderLifecycle();
 }
 function renderCustomizer() {
   const p=manifest(); const scene=p.scenes[state.scene]||p.scenes[0];
-  document.querySelector('#pack-content').innerHTML=`<div class="detail-grid"><section aria-label="Vista previa de la colección"><div class="stage-toolbar"><span class="stage-title">${escape(scene.name)}</span><div class="segmented" aria-label="Orientación">${[['horizontal','16:9'],['vertical','9:16']].map(([id,label])=>`<button data-orientation="${id}" class="${state.orientation===id?'active':''}" aria-pressed="${state.orientation===id}">${label}</button>`).join('')}</div></div><div class="preview-stage ${state.orientation}" id="stage"></div><p class="preview-caption">${state.orientation==='horizontal'?'960 × 540':'540 × 960'} · Vista de diseño aproximada. Widgets ilustrados activos; la importación no los dispara. Tipografía final por verificar en Motive.</p><div class="scene-rail" aria-label="Composiciones">${p.scenes.map((s,i)=>`<button class="scene-thumb ${state.scene===i?'active':''}" data-scene="${i}" aria-pressed="${state.scene===i}"><img src="${previewURL(p.id,i)}" alt="" width="960" height="540"><span>${escape(s.name)}</span></button>`).join('')}</div></section><aside class="inspector" aria-label="Personalización"><h3>Tu identidad, en escena</h3><p>Las propiedades se comparten entre escenas. Los cambios permanecen en esta vista hasta que descargues el manifiesto.</p><div class="inspector-fields">${p.properties.map(property=>propertyField(property,p)).join('')}</div><p id="property-error" class="field-error" role="alert"></p><div class="inspector-footer"><button class="button" id="reset-properties">Restablecer</button><button class="button primary" id="export-manifest">Descargar manifiesto</button></div></aside></div>`;
+  document.querySelector('#pack-content').innerHTML=`<div class="detail-grid"><section aria-label="Vista previa de la colección"><div class="stage-toolbar"><span class="stage-title">${escape(scene.name)}</span><div class="segmented" aria-label="Orientación">${[['horizontal','16:9'],['vertical','9:16']].map(([id,label])=>`<button data-orientation="${id}" class="${state.orientation===id?'active':''}" aria-pressed="${state.orientation===id}">${label}</button>`).join('')}</div></div><div class="preview-stage ${state.orientation}" id="stage"></div><p class="preview-caption">${state.orientation==='horizontal'?'960 × 540':'540 × 960'} · Vista de diseño aproximada. Widgets ilustrados activos; la importación no los dispara. Tipografía final por verificar en Motive.</p><div class="scene-rail" aria-label="Composiciones">${p.scenes.map((s,i)=>`<button class="scene-thumb ${state.scene===i?'active':''}" data-scene="${i}" aria-pressed="${state.scene===i}"><img src="${previewURL(p.id,i)}" alt="" width="960" height="540"><span>${escape(s.name)}</span></button>`).join('')}</div></section><aside class="inspector" aria-label="Personalización"><h3>Tu identidad, en escena</h3><p>Las propiedades se comparten entre escenas. Los cambios permanecen en esta vista hasta que descargues el manifiesto.</p><label class="field"><span class="field-label">Estilo de fondo</span><select id="visual-style"><option value="original">Fondo original de la colección</option><option value="deep-ink">Tinta profunda · fondo neutro</option><option value="custom" disabled>Color de fondo personalizado</option></select><small>Solo modifica la propiedad de color del fondo. El motivo, marco, texto y widgets conservan sus colores.</small></label><label class="field"><span class="field-label">Variante de movimiento</span><select id="style-variant"><option value="original">Colección original</option><option value="reduced-motion">Receta de movimiento reducido</option></select><small id="style-description">${current().style==='reduced-motion'?'Receta: Show/Hide o Fade100 y Cut. No añade un campo al manifiesto v1.':'Textos, formas y gráficos originales de la colección.'}</small></label><div class="inspector-fields">${p.properties.map(property=>propertyField(property,p)).join('')}</div><p id="property-error" class="field-error" role="alert"></p><details class="resource-controls"><summary>Recursos gráficos · ${p.resources.length} PNG</summary><p id="resource-replacement-limit">Pack v1 no declara una propiedad para sustituir imágenes. Los recursos conservan sus checksums y dimensiones.</p>${p.resources.map(resource=>`<div class="resource-control"><code>${escape(resource.file_name)}</code><button class="button" disabled aria-describedby="resource-replacement-limit">Sustituir recurso</button></div>`).join('')}</details><div class="inspector-footer"><button class="button" id="reset-properties">Restablecer</button><button class="button primary" id="export-manifest">Descargar manifiesto</button></div></aside></div>`;
   paintStage();
-  document.querySelectorAll('[data-orientation]').forEach(el=>el.addEventListener('click',()=>{state.orientation=el.dataset.orientation;renderCustomizer();}));
-  document.querySelectorAll('[data-scene]').forEach(el=>el.addEventListener('click',()=>{state.scene=Number(el.dataset.scene);renderCustomizer();}));
+  const background=p.properties.find(property=>property.id==='background'&&property.target==='shape_color');
+  const originalBackground=current().original.properties.find(property=>property.id===background?.id)?.value.value;
+  const visualStyle=document.querySelector('#visual-style');
+  visualStyle.value=background?.value.value===originalBackground?'original':background?.value.value===0x101216?'deep-ink':'custom';
+  visualStyle.disabled=!background;
+  visualStyle.addEventListener('change',event=>{
+    const color=event.target.value==='deep-ink'?0x101216:originalBackground;
+    background.value.value=color;
+    p.overlays.find(overlay=>overlay.id===background.overlay_id).definition.color=color;
+    state.planReviewed=false;state.approved=false;
+    renderCustomizer();
+    document.querySelector('#visual-style').focus({preventScroll:true});
+    toast('Estilo aplicado solo a background.shape_color. Los demás recursos conservan su identidad.');
+  });
+  document.querySelector('#style-variant').value=current().style||'original';
+  document.querySelector('#style-variant').addEventListener('change',event=>{current().style=event.target.value;renderCustomizer();document.querySelector('#style-variant').focus({preventScroll:true});toast(event.target.value==='reduced-motion'?'Receta reducida seleccionada para los previews; no se modifica el esquema v1.':'Colección original seleccionada para los previews.');});
+  document.querySelectorAll('[data-orientation]').forEach(el=>el.addEventListener('click',()=>{state.orientation=el.dataset.orientation;renderCustomizer();document.querySelector(`[data-orientation="${state.orientation}"]`).focus({preventScroll:true});}));
+  document.querySelectorAll('[data-scene]').forEach(el=>el.addEventListener('click',()=>{state.scene=Number(el.dataset.scene);renderCustomizer();document.querySelector(`[data-scene="${state.scene}"]`).focus({preventScroll:true});}));
   document.querySelectorAll('[data-property]').forEach(el=>el.addEventListener('input',()=>updateProperty(el)));
-  document.querySelector('#reset-properties').addEventListener('click',()=>{current().draft=clone(current().original);state.planReviewed=false;state.approved=false;renderCustomizer();toast('Propiedades originales restauradas en el prototipo.');});
+  document.querySelector('#reset-properties').addEventListener('click',()=>{current().draft=clone(current().original);current().style='original';state.planReviewed=false;state.approved=false;renderCustomizer();toast('Propiedades originales restauradas en el prototipo.');});
   document.querySelector('#export-manifest').addEventListener('click',()=>{
     if(document.querySelector('[aria-invalid="true"]')){toast('Corrige el campo señalado antes de descargar.');return;}
     downloadJSON(`${p.id}-customized.json`,manifest());toast('Manifiesto descargado. Valídalo con el validador Rust antes de instalar.');
@@ -141,7 +162,13 @@ function updateProperty(input) {
   if(property.target==='text_content')d.text=value;
   if(property.target==='widget_title')d.widget.title=value;
   if(property.target==='widget_subtitle')d.widget.subtitle=value;
-  if(property.target==='shape_color')d.color=value;
+  if(property.target==='shape_color') {
+    d.color=value;
+    if(property.id==='background') {
+      const original=current().original.properties.find(item=>item.id===property.id).value.value;
+      document.querySelector('#visual-style').value=value===original?'original':value===0x101216?'deep-ink':'custom';
+    }
+  }
   state.planReviewed=false;state.approved=false;paintStage();
 }
 function paintStage() {document.querySelector('#stage').innerHTML=sceneSVG(manifest(),manifest().scenes[state.scene],state.orientation);}
@@ -187,7 +214,8 @@ function textureEstimate(p) {
 }
 function renderDetails() {
   const p=manifest();const meta=current().metadata;
-  document.querySelector('#pack-content').innerHTML=`<div class="notice neutral">Colección declarativa v${escape(p.version)}. Los recursos y el manifiesto están disponibles localmente; la instalación real y los bindings de Show Control requieren el adaptador oficial de Motive. El instalador H14 observado solo admite MATCHDAY sin recursos externos; estos dos packs aún no son instalables por esa ruta.</div><div class="stat-grid"><div class="stat"><strong>${p.scenes.length}</strong><span>Escenas con ambos layouts</span></div><div class="stat"><strong>${p.overlays.length}</strong><span>Fuentes reutilizables</span></div><div class="stat"><strong>${p.animations.length}</strong><span>Animaciones declaradas</span></div><div class="stat"><strong>${p.properties.length}</strong><span>Propiedades editables</span></div></div><div class="info-columns"><section><h3>Una identidad visual completa</h3><p>${description(p.id)}</p><div class="tag-list">${(meta.tags||[category(p.id),'Offline','16:9','9:16']).map(tag=>`<span class="tag">${escape(tag)}</span>`).join('')}</div><h3 style="margin-top:25px">Escenas incluidas</h3><ul>${p.scenes.map(s=>`<li>${escape(s.name)}</li>`).join('')}</ul><h3 style="margin-top:25px">Autor y licencia</h3><p>${escape(p.author)}<br>${escape(p.license)} · Recursos originales.<br>Fuentes nativas Helvetica, Arial o Menlo; no se distribuyen tipografías.</p></section><section><h3>Recursos y compatibilidad</h3>${p.resources.map(r=>`<div class="asset-row"><code>${escape(r.file_name)}</code><span>${r.width} × ${r.height}</span></div>`).join('')}<p style="margin:15px 0">${bytes(textureEstimate(p))} estimados de texturas. Este cálculo de planificación no mide RSS ni decodificación nativa.</p><h3>Capacidades declaradas</h3><div class="tag-list">${p.requires.map(c=>`<span class="tag">${escape(c)}</span>`).join('')}</div><h3 style="margin-top:25px">Límites que importan</h3><p>Cámaras y capturas se añaden después, con selección explícita. Los marcos son imágenes; no son dispositivos. Widgets y animaciones necesitan activación explícita. Los eventos de comunidad son ejemplos de reglas, sin proveedor conectado.</p><a class="button" href="../packs/${p.id}/README.md" style="margin-top:18px">Leer documentación del pack</a></section></div>`;
+  document.querySelector('#pack-content').innerHTML=`<div class="notice neutral">Colección declarativa v${escape(p.version)}. Los recursos y el manifiesto están disponibles localmente; la instalación real y los bindings de Show Control requieren el adaptador oficial de Motive. El instalador H14 observado solo admite MATCHDAY sin recursos externos; estos dos packs aún no son instalables por esa ruta.</div><div class="stat-grid"><div class="stat"><strong>${p.scenes.length}</strong><span>Escenas con ambos layouts</span></div><div class="stat"><strong>${p.overlays.length}</strong><span>Fuentes reutilizables</span></div><div class="stat"><strong>${p.animations.length}</strong><span>Animaciones declaradas</span></div><div class="stat"><strong>${p.properties.length}</strong><span>Propiedades editables</span></div></div><div class="info-columns"><section><h3>Una identidad visual completa</h3><p>${description(p.id)}</p><div class="tag-list">${(meta.tags||[category(p.id),'Offline','16:9','9:16']).map(tag=>`<span class="tag">${escape(tag)}</span>`).join('')}</div><h3 style="margin-top:25px">Escenas incluidas</h3><ul>${p.scenes.map(s=>`<li><button class="detail-link" data-detail-scene="${escape(s.id)}">${escape(s.name)} · Ver ambos layouts</button></li>`).join('')}</ul><h3 style="margin-top:25px">Propiedades editables</h3><ul>${p.properties.map(property=>`<li>${escape(property.label)} <code>${escape(property.target)}</code></li>`).join('')}</ul><h3 style="margin-top:25px">Autor y licencia</h3><p>${escape(p.author)}<br>${escape(p.license)} · Recursos originales.<br>Fuentes nativas Helvetica, Arial o Menlo; no se distribuyen tipografías.</p></section><section><h3>Recursos y compatibilidad</h3>${p.resources.map(r=>`<div class="asset-row"><code>${escape(r.file_name)}</code><span>${r.width} × ${r.height}</span></div>`).join('')}<p style="margin:15px 0">${bytes(textureEstimate(p))} estimados de texturas. Este cálculo de planificación no mide RSS ni decodificación nativa.</p><h3>Capacidades declaradas</h3><div class="tag-list">${p.requires.map(c=>`<span class="tag">${escape(c)}</span>`).join('')}</div><h3 style="margin-top:25px">Límites que importan</h3><p>Cámaras y capturas se añaden después, con selección explícita. Los marcos son imágenes; no son dispositivos. Widgets y animaciones necesitan activación explícita. Los eventos de comunidad son ejemplos de reglas, sin proveedor conectado.</p><h3 style="margin-top:25px">Animaciones incluidas</h3><ul>${p.animations.map(animation=>`<li><a class="detail-link" href="#motion/${p.id}/${escape(animation.id)}">${escape(animation.id)} · ${animation.duration_ms} ms</a></li>`).join('')}</ul><a class="button" href="../packs/${p.id}/README.md" style="margin-top:18px">Leer documentación del pack</a></section></div>`;
+  document.querySelectorAll('[data-detail-scene]').forEach(button=>button.addEventListener('click',()=>{state.scene=p.scenes.findIndex(scene=>scene.id===button.dataset.detailScene);state.tab='customize';renderPack();}));
 }
 function planFacts() {
   const p=manifest();const existing=state.project==='empty'?[0,0,0]:state.project==='matchday'?[4,12,23]:[6,12,27];
@@ -202,11 +230,19 @@ function renderPlan() {
   document.querySelector('#pack-content').innerHTML=`<div class="plan-layout"><section><h3>Comprueba el espacio antes de instalar</h3><p style="font-size:12px">Este plan es una propuesta local. La capacidad definitiva y la revisión del proyecto las comprueba el instalador de Motive.</p><div class="plan-controls"><label class="field"><span class="field-label">Proyecto de ejemplo</span><select id="project-state"><option value="empty">Proyecto vacío</option><option value="matchday">Con MATCHDAY (4 / 12 / 23)</option><option value="duplicate">Ya contiene esta colección</option></select></label><label class="field"><span class="field-label">Capacidad de imágenes</span><select id="image-capability"><option value="yes">Disponible en el ejemplo</option><option value="no">No disponible en el ejemplo</option></select></label></div><table class="plan-table"><thead><tr><th>Recurso</th><th>Existente</th><th>Pack</th><th>Total / Límite</th></tr></thead><tbody>${['Escenas','Fuentes','Capas'].map((name,i)=>`<tr><td>${name}</td><td>${facts.existing[i]}</td><td>+${facts.added[i]}</td><td class="${facts.existing[i]+facts.added[i]>facts.limits[i]?'over':''}">${facts.existing[i]+facts.added[i]} / ${facts.limits[i]}</td></tr>`).join('')}</tbody></table>${facts.errors.length?`<div class="notice" role="alert"><strong>El plan requiere cambios.</strong><ul style="margin:5px 0;padding-left:17px">${facts.errors.map(e=>`<li>${escape(e)}</li>`).join('')}</ul>Usa un proyecto vacío o prepara una selección compatible con el instalador oficial.</div>`:`<div class="notice good">La composición cabe en este ejemplo. Quedan ${facts.limits[0]-facts.added[0]} escenas, ${facts.limits[1]-facts.added[1]} fuentes y ${facts.limits[2]-facts.added[2]} capas antes de añadir capturas.</div>`}<ol class="steps"><li>Verificar licencia, metadatos, checksums y bytes de los recursos.</li><li>Consultar capacidades, estado idle y revisión del proyecto.</li><li>Crear escenas y fuentes; resolver los IDs devueltos por el núcleo.</li><li>Aplicar ambos layouts y registrar bindings de reglas.</li><li>Reconciliar el resultado observado, sin iniciar timers ni salidas.</li></ol><label class="check-line"><input type="checkbox" id="approve-plan" ${state.approved?'checked':''}><span>He revisado el plan de ejemplo. Entiendo que esta confirmación no instala recursos.</span></label><button class="button primary" id="confirm-plan" ${facts.errors.length||!state.approved?'disabled':''}>Confirmar ensayo del plan</button><div id="plan-result" style="margin-top:14px">${state.planReviewed?'<div class="notice good">Plan revisado (simulación). No se ha instalado el pack ni se ha conectado con Production.</div>':''}</div></section><aside><h3>Qué se prepararía</h3>${p.resources.map(r=>`<div class="asset-row"><code>${escape(r.file_name)}</code><span>${bytes(r.bytes??r.size_bytes??0)}</span></div>`).join('')}<div class="asset-row"><span>Animaciones</span><span>${p.animations.length} definiciones</span></div><div class="asset-row"><span>Texturas estimadas</span><span>${bytes(textureEstimate(p))}</span></div><div class="asset-row"><span>Límite del pack</span><span>${bytes(p.budget.max_estimated_texture_bytes)}</span></div><div class="notice neutral" style="margin-top:20px">El plan no es ejecutable desde este prototipo. El instalador H14 observado solo acepta MATCHDAY y rechaza recursos externos. La instalación de estos packs queda pendiente de soporte oficial para medios, IDs reales, revisiones y errores parciales.</div><button class="button" id="download-plan" style="margin-top:15px;width:100%">Descargar revisión del plan</button></aside></div>`;
   document.querySelector('#project-state').value=state.project;
   document.querySelector('#image-capability').value=state.imageCapability?'yes':'no';
-  document.querySelector('#project-state').addEventListener('change',e=>{state.project=e.target.value;state.approved=false;state.planReviewed=false;renderPlan();});
-  document.querySelector('#image-capability').addEventListener('change',e=>{state.imageCapability=e.target.value==='yes';state.approved=false;state.planReviewed=false;renderPlan();});
-  document.querySelector('#approve-plan').addEventListener('change',e=>{state.approved=e.target.checked;renderPlan();});
+  document.querySelector('#project-state').addEventListener('change',e=>{state.project=e.target.value;state.approved=false;state.planReviewed=false;renderPlan();document.querySelector('#project-state').focus({preventScroll:true});});
+  document.querySelector('#image-capability').addEventListener('change',e=>{state.imageCapability=e.target.value==='yes';state.approved=false;state.planReviewed=false;renderPlan();document.querySelector('#image-capability').focus({preventScroll:true});});
+  document.querySelector('#approve-plan').addEventListener('change',e=>{state.approved=e.target.checked;renderPlan();document.querySelector('#approve-plan').focus({preventScroll:true});});
   document.querySelector('#confirm-plan').addEventListener('click',()=>{state.planReviewed=true;renderPlan();toast('Ensayo confirmado. Ningún recurso instalado.');});
   document.querySelector('#download-plan').addEventListener('click',()=>downloadJSON(`${p.id}-plan-review.json`,{document:'creator-experience-plan-review',version:1,pack_id:p.id,pack_version:p.version,simulated:true,executable:false,requires_idle:true,project_scenario:state.project,resources:clone(p.resources),counts:facts,estimated_texture_bytes:textureEstimate(p),reviewed:state.planReviewed}));
+}
+function renderLifecycle() {
+  renderLifecycleStudy({
+    host:document.querySelector('#pack-content'),
+    pack:manifest(),
+    model:state,
+    onCustomize:()=>{state.tab='customize';renderPack();},
+  });
 }
 function downloadJSON(filename,value) {
   const blob=new Blob([JSON.stringify(value,null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;window.document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -313,68 +349,16 @@ setInterval(()=>{
   if(state.route!=='deck'||!current()?.deck)return;
   document.querySelectorAll('[data-button]').forEach(el=>{const b=current().deck.buttons.find(b=>b.id===el.dataset.button);const s=deckState(b);el.dataset.state=s.state;el.disabled=['disabled','pending','cooling_down','missing'].includes(s.state);el.querySelector('small').textContent=s.label;el.setAttribute('aria-label',`${b.label}: ${s.label}`);});
 },250);
-const motionPurposes={
-  fade_in:['Fade editorial','Aparecer con calma, sin desviar la atención del contenido.'],
-  slide_in:['Lower third / entrada','Introducir una identidad con un desplazamiento corto en X.'],
-  scale_in:['Alerta / entrada','Dar presencia a una celebración sin cubrir toda la escena.'],
-  fade_out:['Cierre suave','Retirar el título y devolver el espacio al contenido.'],
-  slide_out:['Lower third / salida','Cerrar una intervención con una dirección consistente.'],
-  scale_out:['Celebración / salida','Cerrar el evento con una reducción sutil, sin rebote.']
-};
-function motionExamples() {
-  return Object.keys(motionPurposes).map(kind=>{
-    // Use actual declared targets and values; prefer a different collection for the celebration.
-    const candidates=kind.startsWith('scale')?['neon-arena','creator-tech']:ids;
-    for(const id of candidates) {
-      const p=packs.get(id).draft;const animation=(kind.startsWith('slide')?p.animations.find(a=>a.kind===kind&&a.id.includes('-lower-')):null)||p.animations.find(a=>a.kind===kind);
-      if(animation)return {pack:p,animation,scene:p.scenes.find(s=>s.id===animation.scene_id)};
-    }
-    return null;
-  }).filter(Boolean);
-}
-function motionSceneSVG(pack,scene,animation) {
-  const previewScene=clone(scene);
-  const target=previewScene.layers.find(layer=>layer.id===animation.layer_id);
-  if(target)target.horizontal.visible=true;
-  return sceneSVG(pack,previewScene,'horizontal');
-}
 function renderMotion() {
-  const examples=motionExamples();
-  const bridgePack=manifest();
-  const bridgeFrom=bridgePack.scenes.findIndex(scene=>scene.id.endsWith('-live'));
-  const bridgeTo=bridgePack.scenes.findIndex(scene=>scene.id.endsWith('-brb'));
-  const bridgeTarget=current().deck.buttons.find(button=>button.target.kind==='scene'&&button.target.scene_ref===bridgePack.scenes[bridgeTo]?.id)?.target;
-  const bridgeDuration=bridgeTarget?.transition.duration_ms;
-  main.innerHTML=`<div class="page-heading"><div><div class="eyebrow">Motive Motion / Referencia de diseño</div><h1>Movimiento con intención.</h1><p>Seis gestos discretos para dar ritmo a tu producción.<br>Una entrada clara. Una salida a tiempo.</p></div></div><div class="motion-intro"><p style="font-size:11px">Previews de capas y parámetros declarados. Targets ilustrados activos; sin ejecución nativa.</p><label class="motion-check"><input type="checkbox" id="reduced-motion" ${state.reduced?'checked':''}> Reducir movimiento</label></div><div class="motion-grid">${examples.map(({pack,animation:a,scene})=>`<article class="motion-card"><div class="motion-sample composition" id="sample-${a.kind}">${motionSceneSVG(pack,scene,a)}</div><h3>${motionPurposes[a.kind][0]}</h3><p>${motionPurposes[a.kind][1]}</p><div class="motion-meta"><span>${a.duration_ms} ms · ${a.easing}</span><span>${a.kind}</span></div><button class="button" data-play="${a.kind}">Reproducir preview</button><p class="motion-target">${escape(a.id)}<br>${title(pack.id)} · ${escape(scene.name)}</p></article>`).join('')}</div><section class="scene-transition-study" aria-labelledby="bridge-title"><div class="bridge-stage"><img src="${previewURL(bridgePack.id,bridgeFrom)}" alt="Composición ${escape(bridgePack.scenes[bridgeFrom].name)} antes de la pausa" width="960" height="540"><img id="bridge-after" src="${previewURL(bridgePack.id,bridgeTo)}" alt="Composición Be Right Back después del fundido" width="960" height="540"></div><div><div class="eyebrow">Transición entre escenas</div><h3 id="bridge-title">Un puente hacia la pausa</h3><p>${escape(bridgePack.scenes[bridgeFrom].name)} → ${escape(bridgePack.scenes[bridgeTo].name)}. Fade de ${bridgeDuration} ms declarado en el Deck. Estudio de diseño, sin conmutación real.</p><div class="bridge-actions"><button class="button" id="play-scene-transition">Previsualizar pausa</button><button class="button" id="reset-scene-transition">Restablecer</button></div><small>Movimiento reducido: Cut inmediato en esta vista.</small></div></section><div class="motion-select"><label for="pack-animation">Ejemplo declarado en un pack</label><select id="pack-animation">${ids.flatMap(id=>packs.get(id).draft.animations.map(a=>`<option value="${id}/${a.id}">${title(id)} · ${escape(a.id)} · ${a.duration_ms} ms</option>`)).join('')}</select><button class="button" id="inspect-animation">Ver composición</button></div><div class="notice neutral" style="margin-top:24px">Fade usa easing lineal. Slide y Scale admiten Linear, EaseIn, EaseOut y EaseInOut; el preview de navegador aproxima estas curvas y vuelve a su estado inicial al terminar. Una operación por capa y hasta ocho operaciones simultáneas en el motor. Con movimiento reducido, el preview cambia inmediatamente; la política nativa debe resolverse con visibilidad o el mínimo compatible, no con una duración cero inválida.</div>${footer()}`;
-  document.querySelector('#reduced-motion').addEventListener('change',e=>{state.reduced=e.target.checked;document.getAnimations().forEach(a=>a.cancel());});
-  document.querySelector('#play-scene-transition').addEventListener('click',()=>playSceneTransition(bridgeDuration));
-  document.querySelector('#reset-scene-transition').addEventListener('click',()=>{const after=document.querySelector('#bridge-after');after.getAnimations().forEach(animation=>animation.cancel());after.style.opacity='0';});
-  document.querySelectorAll('[data-play]').forEach(el=>el.addEventListener('click',()=>playMotion(examples.find(({animation})=>animation.kind===el.dataset.play))));
-  document.querySelector('#inspect-animation').addEventListener('click',()=>{const [id,animationId]=document.querySelector('#pack-animation').value.split('/');const p=packs.get(id).draft;const animation=p.animations.find(a=>a.id===animationId);selectPack(id);state.scene=p.scenes.findIndex(s=>s.id===animation.scene_id);state.tab='customize';location.hash=`pack/${id}`;});
-}
-function playSceneTransition(duration) {
-  const after=document.querySelector('#bridge-after');
-  after.getAnimations().forEach(animation=>animation.cancel());
-  after.style.opacity='0';
-  if(state.reduced||matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    after.style.opacity='1';
-    toast('Pausa con Cut inmediato en el preview reducido.');
-    return;
-  }
-  after.animate([{opacity:0},{opacity:1}],{duration,easing:'linear',fill:'forwards'});
-}
-function playMotion({animation:a}) {
-  const sample=document.querySelector(`#sample-${a.kind} [data-layer="${CSS.escape(a.layer_id)}"]`);
-  if(!sample){toast('La capa objetivo está oculta en este layout. Revisa su visibilidad antes del ensayo.');return;}
-  sample.getAnimations().forEach(animation=>animation.cancel());
-  if(state.reduced||matchMedia('(prefers-reduced-motion: reduce)').matches){sample.style.opacity=1;sample.style.transform='none';toast('Movimiento reducido: preview estático, sin animación.');return;}
-  const out=a.kind.endsWith('_out');let frames;
-  if(a.kind.startsWith('fade'))frames=[{opacity:0},{opacity:1}];
-  if(a.kind.startsWith('slide'))frames=[{transform:`translateX(${-a.distance}px)`},{transform:'translateX(0)'}];
-  if(a.kind.startsWith('scale')){sample.style.transformBox='fill-box';sample.style.transformOrigin='0 0';frames=[{transform:`scale(${a.scale_from})`},{transform:'scale(1)'}];}
-  if(out)frames.reverse();
-  // CSS timing approximates the native quadratic easing; this is a design preview only.
-  sample.animate(frames,{duration:a.duration_ms,easing:{linear:'linear',ease_out:'cubic-bezier(0.25,0.5,0.5,1)',ease_in:'cubic-bezier(0.5,0,0.75,0.5)',ease_in_out:'ease-in-out'}[a.easing],fill:'none'});
+  renderMotionWorkbench({
+    host:main,packs,state,sceneSVG,previewURL,title,footer,
+    onInspect:(id,sceneId)=>{
+      selectPack(id);
+      state.scene=packs.get(id).draft.scenes.findIndex(scene=>scene.id===sceneId);
+      state.tab='customize';
+      location.hash=`pack/${id}`;
+    },
+  });
 }
 
 try {
@@ -382,6 +366,13 @@ try {
     const [original,metadata,deck,rules]=await Promise.all([readJSON(`../packs/${id}/manifest.json`),readJSON(`../packs/${id}/metadata.json`),readJSON(`../packs/${id}/deck.json`),readJSON(`../packs/${id}/rules.json`)]);
     packs.set(id,{original,metadata,deck,rules,draft:clone(original)});
   }));
+  document.querySelector('[data-nav="motion"] span').textContent=[...packs.values()].reduce((total,pack)=>total+pack.draft.animations.length,0);
+  matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>{
+    if(state.route==='motion') {
+      main.querySelectorAll('*').forEach(element=>element.getAnimations().forEach(animation=>animation.cancel()));
+      renderMotion();
+    }
+  });
   window.addEventListener('hashchange',route);route();
 } catch(error) {
   main.innerHTML=`<div class="error-page"><div class="eyebrow">Recursos locales</div><h1>No se pudo abrir la biblioteca.</h1><p>Sirve la carpeta <code>creator-experience/</code> completa por HTTP local para incluir los manifiestos, previews y recursos de los packs.</p><p><code>${escape(error.message)}</code></p><button class="button" id="retry">Volver a intentar</button></div>`;

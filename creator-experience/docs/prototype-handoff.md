@@ -113,11 +113,12 @@ estructurados, estados pending_ack y recibos reales aunque el borrador esté obs
 
 ## Motion y accesibilidad
 
-Los seis previews toman sus scene_id, layer_id, kind, duration_ms, distance y scale_from
+Los 22 previews toman sus scene_id, layer_id, kind, duration_ms, distance y scale_from
 de animaciones reales de los packs. El SVG animado pinta el target de esa composición. Si la capa está oculta, solo se activa una copia local para ilustrar ese gesto; no se modifica el manifiesto. Un preview adicional entre Live Coding/Gameplay y BRB toma el Fade de 350 ms del Deck y hace Cut inmediato con movimiento reducido.
 CSS/Web Animations solo ilustra el gesto: sus curvas y transform-origin no son evidencia
 de equivalencia visual exacta con libobs. Al terminar vuelve al estado inicial del
-preview. Los gestos no se reproducen automáticamente ni en bucle.
+preview; en modo reducido conserva el estado ilustrado hasta Restablecer.
+Los gestos no se reproducen automáticamente ni en bucle.
 
 Se respeta `prefers-reduced-motion` y un control de reducción adicional. El preview se
 vuelve estático; no genera una animación nativa de duración cero. Hay labels de campos,
@@ -135,3 +136,55 @@ registran por separado en la evidencia de esta entrega.
   movimiento reducido, desktop 1440px y móvil 390px.
 - Revisar errores de consola, recursos locales, overflow, lectura de texto y navegación
   por teclado. Capturas y resultados reales deben conservarse en `evidence/`.
+
+## Estilos, catálogo completo y estados de instalación
+
+El personalizador ofrece dos estilos reales de fondo: el color original y «Tinta
+profunda» (`#101216`). Se aplican exclusivamente mediante la propiedad declarada
+`background` → `shape_color`, actualizando tanto el valor de propiedad como la
+forma correspondiente. Motivos, marcos PNG, textos y widgets conservan sus colores.
+Una edición manual del color se identifica como «Personalizado». La receta de
+movimiento reducido se selecciona por separado y no añade campos al manifiesto.
+La sección Recursos presenta la sustitución deshabilitada con su límite de v1.
+
+La galería añade número de PNG, capacidades y la incompatibilidad actual del
+importador H14. El detalle enlaza cada escena a sus layouts, enumera las propiedades
+y permite abrir cada animación mediante `#motion/{pack}/{animation}`.
+
+El catálogo Motion reproduce **las 22 animaciones**.
+Cada entrada tiene propósito concreto (título, capítulo, rótulo, alerta, pausa,
+identificador o celebración), escena/capa/fuente, duración, easing y compatibilidad.
+El selector completo funciona también en móvil. Los parámetros son borradores de
+ensayo separados: duración entera 100–10000 ms; Slide X finito −1920…1920; Scale
+0,1…2; Fade solo Linear. Los valores inválidos bloquean Reproducir; Restaurar recupera
+el manifiesto. Ambos layouts usan los transforms declarados de la capa seleccionada.
+
+El preview muestrea las ecuaciones cuadráticas nativas en 41 offsets de Web Animations
+con interpolación lineal; no crea keyframes de producto ni modifica el manifiesto.
+Es una aproximación de presentación, especialmente para bounds y tipografía. Hay un
+solo preview activo; se cancela al cambiar de entrada, orientación o selector de
+reducción. Antes de cada reproducción se consulta la preferencia actual del sistema.
+El modo reducido muestra el estado final inmediato hasta Restablecer. Una
+generación de preview impide que una finalización antigua cambie el estado de otro.
+Se conserva el estudio separado de escena Fade350 y Cut reducido.
+
+La pestaña **Estados de instalación** es un estudio separado del plan seguro. Sus
+fixtures seleccionables son preparado, revisado, instalando-demo, instalado-demo,
+error parcial, recurso faltante y revisión obsoleta. Todos incluyen «ejemplo» y una
+explicación persistente de que no existe instalación real. El avance es manual,
+sin worker, importación ni reloj de progreso. Los errores ilustran:
+
+- Entidades parcialmente creadas y bindings por reconciliar, sin rollback supuesto.
+- Selección del original idéntico por basename, dimensiones, bytes y SHA-256.
+- Recarga explícita cuando demo-revision-7 deja paso a demo-revision-8.
+
+La cancelación conserva un snapshot ficticio consistente con el paso ilustrado. La
+reconciliación solicita una nueva revisión y aprobación; no reintenta mutaciones
+inciertas. «Instalado · ejemplo» vuelve al personalizador local y nunca cambia estado
+de Motive. Este módulo no exporta un esquema de instalación alternativo.
+
+Selectores para QA del incremento: `#visual-style`, `#style-variant`,
+`[data-tab="lifecycle"]`, `#lifecycle-fixture`, `[data-lifecycle-action]`,
+`#pack-animation`, `[data-motion-select]`, `[data-motion-orientation]`,
+`#play-selected-motion`, `#motion-duration`, `#motion-distance`, `#motion-scale`,
+`#motion-easing`, `#reset-motion-parameters`, `#reset-motion-preview`.

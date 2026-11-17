@@ -108,10 +108,49 @@ no modifica fuentes, outputs ni configuración. En los modos que mutan se exige
 un owner inicial disposable de patrón/overlay legado, mixer vacío y outputs
 quiescentes. Se crean IDs propios y se eliminan tras parar únicamente los
 outputs propios. Se restaura escena, variantes, canvas y perfiles seleccionados.
+La revisión previa a ejecución corrigió la retirada de capas antes de fuentes:
+el núcleo rechaza `remove_source` si sigue referenciado. Se retiran únicamente
+capas de la escena creada por el harness; una referencia en una escena ajena
+detiene el cleanup para revisión. Un fallo parcial conserva el ID para reintento.
+La cancelación usa el intento de salida registrado y `cancel_output_target`,
+que también admite connecting; nunca detiene un intento posterior. Se espera
+la transición de vuelta a la escena original antes de eliminar la escena propia.
 No se guarda proyecto. Los contadores de IDs/migración no retroceden; si no
 había endpoint previo, falta API unset y queda elegido el loopback de prueba.
 Si lock/owner/quiescencia no se pueden confirmar, se conserva cleanup pendiente
 en el informe; no se fuerza liberación de recursos nativos.
+
+Además se exige destino externo sin seleccionar, ningún enrollment pendiente,
+sin issues ni animaciones/transición activas. No reutilizar para estas tomas el
+owner donde se está introduciendo una clave o probando RTMPS. Preparar un owner
+fresco y disposable por configuración, conservando fuera de la prueba los stores
+y medios anteriores mediante el procedimiento del owner; el harness no los
+vacía ni modifica Keychain. `--store-root` debe señalar el store real del bundle
+(desarrollo: `var`; portable: Application Support), con `imports` ya creado y
+privado. Un path incorrecto no puede corregirse cambiando el HOME del proceso.
+
+Plan mínimo que cubre ambos FPS sin repetir innecesariamente el lifecycle:
+
+1. Generar/verificar la fixture antes de medir, con SHA-256 conocido. Comprobar
+   herramientas del harness (`ffmpeg`, `lsof`) y reservar aproximadamente 5 GB
+   libres para dos salidas 4 Mbit/s durante 1800 s, medios y evidencia. Son rutas
+   de herramientas de prueba, no dependencias runtime añadidas al producto.
+2. Owner fresco 1: `--mode lifecycle --fps 30 --cycles 3 --hold 20 --settle 60
+   --interval 5`: 320 s de fases más preparación/cleanup.
+3. Owner fresco 2, mismo binario, fixture y visibilidad del estudio:
+   `--mode dual-soak --fps 60 --cycles 3 --hold 20 --settle 60 --interval 5
+   --soak-seconds 1800`: 320 s de lifecycle más 1800 s de ambas salidas activas.
+   Total mínimo de fases de las dos corridas: **2440 s (40 min 40 s)**. No incluye
+   importación, arranques, cleanup, relanzamientos ni análisis posterior.
+4. Decodificar MKV/RTMP y revisar PTS, audio y píxeles después de medir. El video
+   fixture 30 FPS se mantiene idéntico en ambos canvas: la segunda toma evalúa
+   composición/salidas a 60 FPS, no cuatro decodificadores de material 60 FPS.
+
+Seis tests offline de `test_h14_memory_harness.py` pasan: orden de retirada,
+respeto de referencias ajenas, reintento tras fallo parcial, cancelación en
+connecting, protección de intentos posteriores/quiescentes y deltas de CPU.
+Son pruebas del harness/contrato; no sustituyen la ejecución real ni dan PASS
+de memoria, fuga, salida o rendimiento del producto.
 
 ## Presupuesto, análisis y límites
 
@@ -128,6 +167,12 @@ de captura, transición e issues. El JSON resumen contiene mediana/p95/min/max
 por fase, deltas de contadores y cambios de attempt; nunca resta contadores
 que se reiniciaron. El log MCP mantiene la secuencia de operaciones. No hay
 buffer de frames ni sondeo externo a otro task.
+El primer delta de CPU al cambiar de fase incluye la operación de transición
+(creación/hide/remove); se conserva como `between_phase_cpu_percent` y no entra
+en la distribución CPU de la fase siguiente. Una consulta sin cobertura válida
+de footprint/CPU aborta con su muestra conservada, en vez de declarar completa
+una medición sin esos datos. El timeout del receptor deja status FAIL y conserva
+el informe aun si la terminación del proceso propio también falla.
 
 Comparar baseline/visible/hidden/released y ciclos posteriores distingue
 recursos vivos, reserva del allocator y páginas residentes, sin demostrar por

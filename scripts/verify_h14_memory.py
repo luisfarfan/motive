@@ -68,6 +68,43 @@ def summarize(rows):
             'counters': counters, 'output_counters': outputs}
 
 
+def remove_owned_videos(client, source_ids, owned_scene):
+    """Remove only tracked sources and their layers in our one owned scene.
+
+    The core deliberately refuses RemoveSource while any scene references it.
+    A reference added outside this fixture is a coordination conflict, never
+    authority to remove someone else's layer. Partial cleanup can be retried.
+    """
+    for identifier in list(source_ids):
+        graph = client.state()['project']['graph']
+        references = [(scene['id'], layer['id']) for scene in graph['scenes']
+                      for layer in scene['layers'] if layer['source_id'] == identifier]
+        check(all(scene == owned_scene for scene, _ in references),
+              'owned source acquired a foreign layer; leave it for review', source_id=identifier)
+        for scene, layer in references:
+            client.call('remove_layer', scene_id=scene, layer_id=layer)
+        if any(source['id'] == identifier for source in graph['sources']):
+            client.call('remove_source', source_id=identifier)
+        source_ids.remove(identifier)
+
+
+def cancel_owned_outputs(client, attempts):
+    """Spend only our recorded attempt IDs; deferred cancellation handles connect."""
+    for target, attempt_id in reversed(list(attempts.items())):
+        output = client.state()['outputs'][target]
+        check(output['attempt_id'] == attempt_id, 'output attempt changed; do not stop it', target=target)
+        if output['native_busy']:
+            client.call('cancel_output_target', target=target)
+
+
+def cpu_interval(previous, current):
+    if not previous or not current['cpu']['available'] or not previous['cpu']['available']:
+        return None
+    elapsed = (current['monotonic_ns']-previous['monotonic_ns'])/1e9
+    cpu = sum(current['cpu'][key]-previous['cpu'][key] for key in ('user_seconds', 'system_seconds'))
+    return 100*cpu/elapsed if elapsed > 0 and cpu >= 0 else None
+
+
 def canonical_lock():
     common = pathlib.Path(subprocess.check_output(['git', 'rev-parse', '--git-common-dir'], cwd=ROOT, text=True).strip())
     if not common.is_absolute():
@@ -116,13 +153,14 @@ def execute(args):
               'gpu_utilization': 'NOT_EVALUATED', 'decoded_freshness': 'NOT_EVALUATED',
               'audio_video_sync': 'NOT_EVALUATED'}
     client = initial = receiver = scene = tone = asset = inbox = None
-    owned_asset = changed = owner_validated = False
-    source_ids, profiles, started = [], [], []
+    owned_asset = changed = owner_validated = stream_configured = False
+    source_ids, profiles, started = [], [], {}
     lock = canonical_lock()
     owner_text = lock.read_text()
-    check(str(ROOT) in owner_text and 'H14' in owner_text, 'canonical H14 lock belongs to this checkout')
+    check(json.loads(owner_text).get('worktree') == str(ROOT), 'canonical lock belongs to this checkout')
     report['lock'] = {'path': str(lock), 'owner_sha256': hashlib.sha256(owner_text.encode()).hexdigest()}
     previous_memory = None
+    previous_phase = None
     samples = (directory / 'samples.jsonl').open('w')
 
     def save():
@@ -143,7 +181,7 @@ def execute(args):
             time.sleep(.2)
 
     def sample(label):
-        nonlocal previous_memory
+        nonlocal previous_memory, previous_phase
         same_lock()
         start = time.monotonic()
         memory = client.call('memory_diagnostics')['memory']
@@ -152,19 +190,19 @@ def execute(args):
         end = time.monotonic()
         check(state['pid'] == initial['pid'] == memory['pid'], 'same process for VM and production')
         check(memory['version'] == 1 and memory['scope'] == 'current_process_only', 'native memory contract')
-        cpu_percent = None
-        if previous_memory and memory['cpu']['available'] and previous_memory['cpu']['available']:
-            elapsed = (memory['monotonic_ns']-previous_memory['monotonic_ns'])/1e9
-            cpu = sum(memory['cpu'][k]-previous_memory['cpu'][k] for k in ('user_seconds', 'system_seconds'))
-            if elapsed > 0 and cpu >= 0:
-                cpu_percent = 100*cpu/elapsed
+        interval_cpu = cpu_interval(previous_memory, memory)
+        cpu_percent = interval_cpu if previous_phase == label else None
+        between_phase_cpu = interval_cpu if previous_phase != label else None
         previous_memory = memory
+        previous_phase = label
         row = {'phase': label, 'monotonic': end, 'memory': memory, 'cpu_percent': cpu_percent,
+               'between_phase_cpu_percent': between_phase_cpu,
                'memory_rpc_ms': (middle-start)*1000, 'status_rpc_ms': (end-middle)*1000,
                'stats': state['stats'], 'outputs': state['outputs'], 'sources': state['sources'],
                'overlays_runtime': state['overlays']['runtime'], 'transition': state['transition'],
                'issues': state['issues'], 'video': state['video']}
         samples.write(json.dumps(row, separators=(',', ':'))+'\n'); samples.flush()
+        check(memory['status'] == 'PASS', 'VM footprint and CPU coverage available; failed sample retained')
         return row
 
     def phase(label, duration, video_count=None, outputs_active=False):
@@ -197,8 +235,7 @@ def execute(args):
                                    'height': 270, 'visible': True, 'order': index+1})
 
     def remove_videos():
-        for identifier in list(source_ids):
-            client.call('remove_source', source_id=identifier); source_ids.remove(identifier)
+        remove_owned_videos(client, source_ids, scene)
 
     try:
         client = Client(directory)
@@ -215,6 +252,10 @@ def execute(args):
             check(not initial['audio_mixer']['store']['inputs'], 'empty controlled mixer required')
             check(all(s['spec']['kind'] in ('pattern', 'overlay') and s.get('overlay') is None for s in initial['project']['graph']['sources']), 'disposable controlled initial graph')
             check(initial['output_configuration']['credential_ref'] is None, 'credential-free test configuration')
+            check(initial['destinations']['selected'] is None and not initial['destinations']['credential_busy'],
+                  'no selected external destination or credential enrollment')
+            check(not initial['issues'] and not initial['overlays']['runtime']['animations']['busy']
+                  and initial['transition']['phase'] not in ('preparing', 'running'), 'initial production ready and quiescent')
             check(args.fixture and args.fixture_sha256 and sha(args.fixture) == args.fixture_sha256, 'explicit controlled fixture and expected SHA-256 required')
             check(args.fps in (30, 60), 'explicit verified canvas rate')
             changed = True
@@ -252,13 +293,15 @@ def execute(args):
                 with socket.socket() as listener:
                     listener.bind(('127.0.0.1', 0)); port = listener.getsockname()[1]
                 client.call('configure_stream', endpoint={'transport': 'rtmp', 'port': port})
+                stream_configured = True
                 receiver = Receiver(directory, 'received-loopback', port)
                 for target in ('recording', 'streaming'):
                     identifier = 'h14-memory-'+target+'-'+str(time.time_ns())
                     client.call('upsert_output_profile', profile=profile(identifier, 'videotoolbox', 4000)); profiles.append(identifier)
                     client.call('select_output_profile', target=target, profile_id=identifier)
                 for target in ('recording', 'streaming'):
-                    state = client.call('start_output', target=target)['state']; started.append(target)
+                    state = client.call('start_output', target=target)['state']
+                    started[target] = state['outputs'][target]['attempt_id']
                     report['media'].append({'target': target, 'path': str(receiver.path) if target == 'streaming' else state['outputs'][target]['path'], 'attempt_id': state['outputs'][target]['attempt_id']})
                     wait(lambda s: s['outputs'][target]['phase'] == 'active')
                 phase('dual_soak', args.soak_seconds, 4, True)
@@ -271,10 +314,7 @@ def execute(args):
             try:
                 same_lock()
                 check(client.state()['pid'] == initial['pid'], 'same owner during cleanup')
-                for target in reversed(started):
-                    state = client.state()
-                    if state['outputs'][target]['native_busy']:
-                        client.call('stop_output_target', target=target)
+                cancel_owned_outputs(client, started)
                 if started:
                     wait(lambda s: all(not slot['native_busy'] for slot in s['outputs'].values()))
                 if changed:
@@ -282,6 +322,8 @@ def execute(args):
                     remove_videos()
                     if scene:
                         client.call('select_scene', scene_id=initial['project']['graph']['active_scene'])
+                        wait(lambda s: s['transition']['phase'] not in ('preparing', 'running')
+                             and s['project']['graph']['active_scene'] == initial['project']['graph']['active_scene'])
                         client.call('remove_scene', scene_id=scene)
                     if tone:
                         client.call('remove_audio_input', input_id=tone)
@@ -297,9 +339,9 @@ def execute(args):
                     client.call('configure_video', video=initial['project'].get('video') or support.DEFAULT_VIDEO)
                     client.call('set_variant', variant=initial['project']['variant'])
                     endpoint = initial['output_configuration']['endpoint']
-                    if started and endpoint:
+                    if stream_configured and endpoint:
                         client.call('configure_stream', endpoint=endpoint)
-                    elif started:
+                    elif stream_configured:
                         report['cleanup_note'] = 'No unset endpoint API; owned credential-free loopback endpoint remains selected.'
                 report['final'] = client.state()
             except BaseException:
@@ -316,8 +358,12 @@ def execute(args):
             try:
                 receiver.wait()
             except subprocess.TimeoutExpired:
-                receiver.terminate()
+                try:
+                    receiver.terminate()
+                except BaseException:
+                    report['cleanup_errors'].append(traceback.format_exc())
                 report['cleanup_errors'].append('Owned receiver needed termination after owner stop; media completeness not inferred.')
+                report['status'] = 'FAIL'
         samples.close()
         for media in report['media']:
             path = pathlib.Path(media['path'])

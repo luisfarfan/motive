@@ -1,8 +1,12 @@
 # H13 — verificación incremental
 
-H13 está en desarrollo. Este informe distingue incrementos observados de la
-aceptación completa: todavía no acredita producción GPUI integrada, sincronía
-A/V de captura SCK, sesión prolongada ni regresiones del bundle final.
+H13 está implementado con **aceptación final EN CURSO**. Este informe distingue
+incrementos observados de la aceptación completa: todavía no acredita el
+recorrido GPUI integrado ni sesión prolongada. Las regresiones H1–H12 reúnen
+23/23 PASS en sus últimas ejecuciones G, con metrología H10 revisada y fallos
+anteriores conservados. A/V tiene evidencia acotada a condiciones visibles;
+la exclusión propia final no pasó y su causa sigue sin atribuir. El [índice de evidencia](h13-evidence-index.md)
+separa bundles, resultados confirmados y fallos conservados.
 
 ## Incremento 1: canvas real y coordenadas persistentes
 
@@ -270,4 +274,211 @@ haber observado el resultado terminal: el servidor usa ese código también al
 cerrarse el canal de respuesta. Solo se admite ese límite si ya se vio el final
 real y la consulta tardó menos de 1 s; no se usa para inferir un worker terminado.
 
-Aceptación GPUI con salidas y resto de regresiones finales todavía pendientes.
+Al cierre de ese incremento, la aceptación GPUI y el resto de regresiones
+seguían pendientes. Las repeticiones siguientes actualizan esa cobertura.
+
+## Incremento 7: repetición en G y regresiones H1–H12
+
+Todas las ejecuciones de esta sección identifican el mismo bundle **G**,
+SHA-256 `d9b8d7026e301330d62f2f541af90c1dd245a86f79ad1fd8a35e81b08e0e2d93`.
+Son lecturas de los informes reales ya conservados; no se generaron medios
+nuevos ni se modificaron resultados para actualizar la documentación.
+
+### Regresiones H1–H12: 23/23 últimas ejecuciones PASS
+
+El conteo combina suites distintas ejecutadas en G, no presenta los manifiestos
+interrumpidos como aprobados. H8 dirigido aporta una; control/control_delivery,
+dos; la reanudación desde H1, catorce; H11/H12 restantes, cuatro; el piloto H10
+con referencias y la repetición final de mixer, dos. H10 usa la
+[metrología revisada](h13-h10-metrology.md): el conteo declara ese cambio de
+procedimiento, sin modificar umbrales ni convertir archivos anteriores en PASS.
+La matriz de audio SCK descrita debajo es otra suite y no sustituye H10.
+
+| Evidencia | Resultado conservado |
+| --- | --- |
+| [H8 dirigido](../var/evidence/h13-regressions-1794937943048758000/manifest.json) | PASS, según incremento 6. |
+| [Primera tanda](../var/evidence/h13-regressions-1794938214930619000/manifest.json) | Control y entrega PASS; H1 FAIL antes de grabar por `SOURCE_AMBIGUOUS`. |
+| [Reanudación desde H1](../var/evidence/h13-regressions-1794938328448756000/manifest.json) | Catorce suites PASS hasta H9; se detiene con H10 audio FAIL. |
+| [Intento H10 mixer](../var/evidence/h13-regressions-1794939220662892000/manifest.json) | FAIL antes de continuar las otras cuatro suites planificadas. |
+| [H11/H12 restantes](../var/evidence/h13-regressions-1794939397028955000/manifest.json) | H11 runtime/visuals/lifecycle y H12 performance PASS. |
+| [H10 con referencias](../var/evidence/h13-regressions-1794940354925977000/manifest.json) | Piloto PASS en 32,9 s; mixer FAIL en 50,7 s por mute mezclado, conservando FAIL global. |
+| [Mixer H10 final](../var/evidence/h13-regressions-1794940880710737000/manifest.json) | PASS en 110,0 s; MKV, RTMP, clipping intencional separado y persistencia. |
+
+Los siete manifiestos verifican el mismo hash al inicio/final, restauración
+de bytes/modos de stores y cleanup sin errores. H1 falló por una fixture propia
+de un intento interrumpido que duplicaba bundle/título bajo LaunchServices;
+se retiró solo su PID verificado, según la
+[evidencia de limpieza](../var/evidence/h13-regressions-1794938214930619000/owned-fixture-cleanup.json).
+La reanudación pasó H1 en 22,2 s y scenes en 33,5 s; el rechazo por ambigüedad y
+el informe original se conservan. No se cambió el núcleo para admitir una
+selección ambigua. RTMPS continúa probando rechazo de confianza, no entrega
+positiva con certificado confiable.
+
+El [pilot H10 original](../var/evidence/h13-regressions-1794938328448756000/reports/verify_h10_audio.py/h10-pilot.json)
+falló al comparar muted/lower: 0,517758 dB supera el límite <0,5 dB. El
+[mixer H10 original](../var/evidence/h13-regressions-1794939220662892000/reports/verify_h10_mixer.py/h10-mixer.json)
+midió −9,621392 dB en la comparación de ganancia del tono, fuera de (−13, −11)
+dB. Sus grabaciones y reportes permanecen FAIL.
+
+Los diagnósticos offline de [pilot](../var/evidence/h13-h10-pilot-audio-diagnosis-1794939269396896000/report.json)
+y [mixer](../var/evidence/h13-h10-mixer-audio-diagnosis-1794939476988910000/report.json)
+reproducen el estimador original y muestran energía variable próxima a 440 Hz
+cuando el micrófono está abierto. Otra proyección da resultados distintos,
+pero no reemplaza el gate ni prueba la causa acústica/DSP/AAC. El primer
+[diagnóstico mixer](../var/evidence/h13-h10-mixer-audio-diagnosis-1794939451029840000/report.json)
+tenía un helper sin `return`; sus derivados dB nulos quedan identificados como
+`INVALID_DIAGNOSTIC_HARNESS`, sin usarse como evidencia numérica.
+La repetición usa referencias mic-muted dentro del mismo archivo, con el
+estimador Hann y márgenes originales. El [checker offline](../var/evidence/h13-h10-reference-checker-1794940054296064000/report.json)
+rechaza el hueco real histórico de 1024 muestras mediante ventanas RMS de
+20 ms cada 10 ms; esa comprobación no cierra por sí sola H10 ni afirma
+continuidad de un tono oculto bajo una mezcla más intensa.
+
+La primera repetición cierra el piloto: ganancia aislada −11,990455 dB y errores
+RMS máximos de las referencias 0,110634/0,168425 dB. El mixer de esa misma
+tanda conserva otro [FAIL físico](../var/evidence/h13-regressions-1794940354925977000/reports/verify_h10_mixer.py/h10-mixer.json):
+ratio de mute 440 Hz 0,033069 frente al límite <0,03 con micrófono abierto.
+No se atribuye todo el residuo de esa banda al generador silenciado. El
+procedimiento final acredita supresión cuantitativa con `both_muted` frente a
+una referencia aislada del mismo nivel; conserva el límite 0,03, RMS de ambas
+entradas muteadas <−100 dBFS y la etapa independiente de micrófono audible con
+tono muteado. Esta última conserva su espectro mixto como diagnóstico, no como
+identificación de una única fuente. Para continuidad posterior el tono se
+declara a 0 dB con micrófono abierto, contra referencia del mismo nivel.
+El [documento de metrología](h13-h10-metrology.md) detalla estímulos, controles,
+ventanas, negativos del checker y límites de atribución.
+
+La [corrida mixer final](../var/evidence/h13-regressions-1794940880710737000/reports/verify_h10_mixer.py/h10-mixer.json)
+sí ejecuta y aprueba toda la secuencia MKV/RTMP y persistencia. Duraciones PCM:
+47,339/47,424 s; ganancia aislada del tono −12,002393/−12,010617 dB; ganancia
+del micrófono −11,628350/−12,046635 dB. Error RMS aislado absoluto máximo
+0,172369 dB, frente a tolerancia 2 dB; mute aislado del tono mide ratio cero
+en ambos medios. Picos −13,272/−17,744 dBFS, gaps AAC ≤22 ms y video ≤34 ms.
+El ensayo de saturación deliberada queda separado. Los FAIL anteriores y sus
+hashes no se sustituyen por estos nuevos medios ni por reanálisis offline.
+
+### Canvas G: siete casos reales PASS
+
+[Matriz G](../var/evidence/h13-video-1794939774901717000/report.json): mismo
+alcance controlado de patrón, texto, PNG, círculo, Cut/Fade y tono; persistencia
+v5 y rechazo de reconfiguración durante salida. Los siete casos pasan con
+3019 frames decodificados y cero render lag, video skips y output drops.
+
+| Canvas / encoder | Frames | CPU mediana (%) | RSS mediana (MiB) | Máximo gap video (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| 1280×720 30 / VT | 333 | 49,9 | 221,7 | 67 |
+| 720×1280 30 / VT | 333 | 49,4 | 223,0 | 67 |
+| 1920×1080 30 / VT | 336 | 52,1 | 297,8 | 67 |
+| 1080×1920 30 / VT | 336 | 57,7 | 298,3 | 67 |
+| 1920×1080 60 / VT | 672 | 54,2 | 298,3 | 34 |
+| 1080×1920 60 / VT | 672 | 70,7 | 298,5 | 34 |
+| 1920×1080 30 / x264 | 337 | 65,6 | 973,5 | 34 |
+
+Interiores ≤34 ms a 30 FPS y ≤17 ms a 60 FPS; las colas superiores se conservan.
+El objeto avanza en 29/29 y 59/59 comparaciones respectivamente. Cada Fade
+contiene múltiples frames mezclados. AAC mantiene gaps ≤22 ms. CPU/RSS siguen
+describiendo Motive debug con GPUI/preview y observador, no los helpers ni una
+comparación ABBA. No acredita cadencia de una webcam/ventana ni operación GPUI.
+
+### Audio SCK G: siete etapas PASS
+
+[Matriz G](../var/evidence/h13-system-audio-1794940056194848000/report.json):
+pilot, RTMP, recovery, silence, transitions, persistence y microphone pasan en
+una misma ejecución con 4080 frames. La selección física explícita usa
+`BuiltInMicrophoneDevice`; la recaptura acústica del fixture sigue siendo
+intencional y controlada.
+
+| Etapa | Frames | PCM (s) | Pico (dBFS) | Máximo gap video (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| Pilot MKV | 734 | 24,405 | −23,923 | 133 |
+| RTMP local | 761 | 25,323 | −23,866 | 66 |
+| Recuperación de aplicación | 443 | 14,720 | −20,234 | 67 |
+| Silencio/pausa | 1056 | 35,136 | −23,660 | 134 |
+| Cut/Fade | 437 | 14,507 | −23,810 | 133 |
+| Persistencia mixer v2 | 107 | 3,520 | −23,952 | 133 |
+| Micrófono físico | 542 | 18,005 | −12,622 | 34 |
+
+Los pasos −12 dB del pilot miden −11,987714 dB en tono y −11,994891 dB en
+aplicación; RTMP mide −11,995843/−11,996329 dB. En los cuatro intervalos
+aislados, el error RMS absoluto máximo es 0,022856 dB y el error peak máximo
+0,029779 dB. Mute conserva la otra entrada y la recuperación exige acción
+explícita tras cambiar el PID de la aplicación. Cut/Fade conserva audio y
+registra 258 frames menta, 144 rojos y 37 colores mezclados distintos.
+Persistencia conserva proyecto/perfiles y restaura mixer v2.
+
+Sin clipping, render lag, video skips ni output drops observados; AAC ≤22 ms,
+interior de video ≤34 ms. No se ocultan las colas de hasta 134 ms ni se presentan
+PTS continuos como medida perceptual de sincronía. SCK entregó ceros durante
+silencio/pausa: 22 observaciones de ceros y ninguna `awaiting_audio`. Esta
+ejecución no incluye etapa A/V ni emisor propio de Motive; las evidencias de
+exclusión/A/V visible del bundle C siguen separadas. Tampoco prueba hot-unplug,
+revocación de permisos, ventana oculta o sleep/wake.
+
+### Salidas duales G: cuatro casos y doce medios PASS
+
+La [matriz final G](../var/evidence/h13-outputs-1794940477678855000/report.json)
+repite smoke, producción, pérdida de receptor real y pérdida del helper muxer
+propio. Pasan los cuatro casos de control/lifecycle y los doce análisis de
+medios, sin errores de análisis o cleanup y con el mismo hash al terminar.
+Diez archivos se clasifican como completos y dos como parciales esperados
+por el fallo inducido; esos parciales no acreditan finalización limpia.
+
+Se observan stop/restart/recovery por destino sin perder la otra salida,
+recursos compartidos estables, ganancia/mute, edición/widget y Cut/Fade.
+Ocho comparaciones de intervalos comunes contrastan video y RMS entre MKV y
+RTMP. La fixture usa patrón y tono, perfiles independientes y compositor
+1080p30. No contiene dispositivos de captura ni audio SCK; la ejecución usa
+CLI/MCP y no sustituye el recorrido GPUI. El caso de producción ronda un minuto,
+no una sesión prolongada.
+
+### A/V visible G y exclusión propia final
+
+La [toma A/V G](../var/evidence/h13-system-audio-1794941016583790000/report.json)
+pasa con la fixture visible activada mediante Finder/CUA y sin snapshots
+diagnósticos. Siete pares de pulsos: mediana audio−video **+24,270833 ms**,
+rango **33 ms**, dentro de los gates |desfase| <250 ms y rango <100 ms.
+Incluye latencia de reproducción/redraw y mide alineación de extremo a
+extremo; no acredita latencia cero ni explica los congelamientos históricos.
+
+La [exclusión propia final](h13-system-audio-exclusion-final.md) tiene resultado
+distinto: **ensayo G FAIL, atribución INCONCLUSIVE**. El
+[reporte original](../var/evidence/h13-self-audio-exclusion-1794940665168715000/report.json)
+mide supresión 2011 Hz de −16,412088 dB frente al gate <−45 dB. El diagnóstico
+encuentra fondo adicional de banda ancha y tres bloques saturados en la
+entrada, aunque el contador de mezcla final es cero. No permite atribuir
+el residuo exclusivamente a Motive ni confirmar una regresión concreta de
+ScreenCaptureKit. Tampoco permite dar por cumplida la exclusión. Se conservan
+el PASS de C y FAIL de G, sin sustituir el criterio, filtrar el fondo ni
+identificar contenido ajeno. El agregado 23/23 de regresiones no cierra este
+gate específico H13.
+
+### Probe de memoria G: finalizado, sin gate de RSS
+
+El [probe dirigido](../var/evidence/h13-video-memory-1794940705116187000/report.json),
+documentado en el commit `89eed5e`, usa el mismo bundle G y un owner fresco a
+540p30, sin outputs ni captura física. Baseline → cuatro videos H11 visibles →
+cuatro IDs reemplazados → cero videos durante 20 s. Resultado
+`PROBE_COMPLETED_NOT_A_MEMORY_BUDGET_PASS`; proyecto, bytes/modos y stores
+restaurados, asset/inbox propios retirados. No es un ensayo equivalente a todo
+H12 ni una aceptación de memoria limitada.
+
+| Fase | RSS mediana (MiB) | CPU mediana (%) |
+| --- | ---: | ---: |
+| Baseline | 178,41 | 34,93 |
+| Cuatro visibles | 673,55 | 63,59 |
+| Cuatro reemplazados | 1030,91 | 61,69 |
+| Cero, espera 20 s | 1141,38 | 36,32 |
+
+Sin lag en esas fases, con avance de los videos y destrucciones nativas
+balanceadas; el RSS global observado alcanza 1250,69 MiB. `vmmap` se toma
+fuera de las fases y puede influir en residencia posterior. Asignaciones
+activas malloc vuelven cerca del baseline mientras quedan páginas residentes
+y fragmentación contable: es compatible con retención, sin demostrar una
+fuga ni su ausencia. La [investigación de memoria](h13-encoder-tail-investigation.md)
+conserva vmmap, métricas, logs de destrucción y límites; no se añadió purge ni
+optimización del producto.
+
+**Pendiente:** aceptación de producción GPUI dual y sus flujos de cierre,
+sesión prolongada con medios/restauración y aceptación de exclusión propia en
+condiciones de audio controladas. Las 23/23 últimas regresiones, matrices y
+probes no declaran H13 completo.

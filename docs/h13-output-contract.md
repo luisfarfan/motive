@@ -335,16 +335,21 @@ gain/mute. Los transcripts incluyen operaciones CLI y MCP. Esto no acredita
 interacción GPUI ni una sesión prolongada de producción.
 
 El fallo retenido es `smoke-recording`: una ventana PCM de 100 ms centrada en
-0,35 s mide −34,0759 dBFS frente a −33,0103 dBFS esperados. El diagnóstico en
-curso identifica un hueco real de aproximadamente 1024 muestras cerca de 0,32 s;
-la causa y corrección aún se investigan. No se ensancha la tolerancia ni se
+0,35 s mide −34,0759 dBFS frente a −33,0103 dBFS esperados. El diagnóstico
+identificó un hueco real de aproximadamente 1024 muestras cerca de 0,32 s.
+La corrección posterior del tono se documenta en
+[investigación de arranque](h13-audio-startup-investigation.md). No se ensancha la tolerancia ni se
 convierte el resultado global en PASS por haber pasado el control de estados.
 Los archivos parciales de los casos con fallo intencional se identifican como
 tales; que decodifiquen no acredita cierre limpio de esos destinos fallidos.
 
-Quedan gates de GPUI, handshake/cierre dual, sesión prolongada, comparación de
-carga con una/dos salidas, regresiones completas y corrección/repetición del
-caso de audio. Cada gate se cerrará con evidencia del binario integrado final.
+La repetición completa sin diagnóstico **PASS** corresponde al bundle
+`0444029860e28e53b7e74fc0ab836fa790cc8a691f2f7cfc95702cd9e6ac3952` y al
+[nuevo informe](../var/evidence/h13-outputs-1794935484169154000/report.json):
+cuatro casos y doce medios, con los umbrales originales. No reemplaza los
+informes fallidos anteriores. Quedan gates de GPUI, handshake/cierre dual,
+sesión prolongada, comparación de carga y regresiones completas. Cada gate
+se cerrará con evidencia del binario integrado final.
 
 ### Secuencia de integración
 

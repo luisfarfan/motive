@@ -182,5 +182,33 @@ la fase posterior se retrasa exactamente un bloque de audio; ocurre antes de
 iniciar RTMP. PTS AAC continuos no ocultan esta pérdida. El primer smoke del
 mismo binario no la presenta. Diagnóstico:
 `offline-audio-diagnosis-1794934472450720000/report.json`. No se relajó el gate;
-se instrumentarán fuente y mezcla para separar starvation de encoder. No se
-declara la matriz completa PASS mientras esa causa siga abierta.
+la instrumentación y corrección posterior se describen a continuación. Este
+informe original permanece FAIL.
+
+## Incremento 4: tono con margen de entrega y matriz dual completa
+
+La traza localizó el bloque cero antes de AAC, con muestras fuente continuas.
+En dos casos documentó disponibilidad insuficiente justo al deadline. Entregar
+el tono determinista 20 ms por adelantado conserva PTS/fase y permite a libobs
+consumir bloques completos; no cambia micrófono/SCK ni buffering global.
+[Investigación, límites y A/B](h13-audio-startup-investigation.md).
+
+Nuevo bundle firmado SHA-256
+`0444029860e28e53b7e74fc0ab836fa790cc8a691f2f7cfc95702cd9e6ac3952`:
+69 tests Rust, Clippy `--all-targets -- -D warnings`, rustfmt PASS. Tres vidas
+instrumentadas: cero bloques silenciosos frente a uno por vida anteriormente;
+7576 bloques fuente y 3548 de mezcla observados, cadencia original de 10 ms.
+Tres MKV y seis RTMP pasan los gates originales.
+
+Después de cerrar y abrir Motive **sin variables de diagnóstico**, la matriz
+completa pasa en `var/evidence/h13-outputs-1794935484169154000/report.json`:
+cuatro casos de control/lifecycle y los doce medios; sin errores de análisis ni
+limpieza. Los fallos intencionales conservan su distinción de archivo parcial.
+Cut/Fade, widgets, gain/mute, supervivencia del otro destino y recovery se
+verifican por comandos y medios. No se reutiliza el PASS instrumentado como
+medición de rendimiento normal.
+
+GPUI: controles independientes compilados y panel observado visualmente a
+1440 px en `var/evidence/h13-ui-increment/outputs.png`; aún no equivale al
+recorrido de producción final ni a la comprobación de tamaño compacto/cierre.
+Rendimiento, sesión prolongada y regresiones finales continúan pendientes.

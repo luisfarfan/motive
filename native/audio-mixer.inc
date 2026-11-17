@@ -16,6 +16,9 @@
  * pts_ns is unchanged OBS PTS; seen_ns is wake/callback entry; done_ns is only
  * the tone's return from obs_source_output_audio. observed_frame_offset counts
  * samples at that observation point (tone offset is its sample-clock position).
+ * Tone deadline_ns is its publication deadline, schedule_lateness_ns is wake
+ * minus that deadline, and lateness_ns remains wake minus PTS (normally negative
+ * with lookahead). This keeps delivery scheduling distinct from sample time.
  * frames is per-channel. sum_squares / rms / peak are linear, channels_present
  * identifies valid channels; nonfinite_samples makes invalid data explicit.
  * source energy examines at most 8192 frames per callback; measured_frames and
@@ -29,7 +32,7 @@
 #define AUDIO_TRACE_BATCH 128
 #define AUDIO_TRACE_BUDGET 65536
 typedef struct {
-    uint64_t sequence,pts_ns,seen_ns,done_ns,observed_frame_offset;
+    uint64_t sequence,pts_ns,seen_ns,done_ns,observed_frame_offset,deadline_ns;
     double sum_squares[2],peak[2];
     uint32_t frames,measured_frames,nonfinite_samples;
     unsigned char point,channels_present,muted;
@@ -115,6 +118,8 @@ static void audio_trace_drain_owner(const char *reason,unsigned batches) {
                     @"nonfinite_samples":@(r->nonfinite_samples)} mutableCopy];
                 if(r->point==0) {
                     block[@"done_ns"]=@(r->done_ns);
+                    block[@"deadline_ns"]=@(r->deadline_ns);
+                    block[@"schedule_lateness_ns"]=@((int64_t)r->seen_ns-(int64_t)r->deadline_ns);
                     block[@"lateness_ns"]=@((int64_t)r->seen_ns-(int64_t)r->pts_ns);
                 } else {
                     block[@"measured_frames"]=@(r->measured_frames);
@@ -153,9 +158,15 @@ typedef struct {
 static void *tone_run(void *param) {
     tone_generator *tone=param;
     const uint64_t start=os_gettime_ns();uint64_t frames=0;
+    const uint64_t lookahead_ns=20000000ULL;
     float samples[480];
     // A source fixture, not a mixer. Sample position determines phase and PTS;
     // scheduling never accumulates timestamps from MCP/UI or repeated sleeps.
+    // This deterministic source can prepare future samples: publish 20 ms ahead
+    // so the libobs 1024-frame reader has a full block despite scheduler jitter
+    // and its alignment against 480-frame source packets. Initially publish only
+    // 3 x 480 frames, then one block per 10 ms. PTS/phase remain unchanged;
+    // libobs owns queuing, mixing and the output clock. No global buffering change.
     while(!atomic_load(&tone->stop)) {
         // Divide exact 480-frame blocks first, avoiding frames*1e9 overflow
         // after a few days of continuous capture.
@@ -165,7 +176,8 @@ static void *tone_run(void *param) {
         if(now>start+(frames/480)*10000000ULL+1000000000ULL)
             frames=((now-start)/10000000ULL)*480;
         uint64_t timestamp=start+(frames/480)*10000000ULL;
-        os_sleepto_ns(timestamp);
+        uint64_t deadline=timestamp>start+lookahead_ns?timestamp-lookahead_ns:start;
+        os_sleepto_ns(deadline);
         if(atomic_load(&tone->stop))break;
         bool tracing=atomic_load_explicit(&audio_trace.capturing,memory_order_relaxed);
         uint64_t wake_ns=tracing?os_gettime_ns():0;
@@ -176,7 +188,8 @@ static void *tone_run(void *param) {
         obs_source_output_audio(tone->source,&audio);
         if(tracing) {
             audio_trace_record record={.point=0,.pts_ns=timestamp,.seen_ns=wake_ns,
-                .done_ns=os_gettime_ns(),.observed_frame_offset=frames,.frames=480};
+                .done_ns=os_gettime_ns(),.observed_frame_offset=frames,.frames=480,
+                .deadline_ns=deadline};
             memcpy(record.id,tone->trace_id,sizeof(record.id));audio_trace_push(record);
         }
         frames+=480;

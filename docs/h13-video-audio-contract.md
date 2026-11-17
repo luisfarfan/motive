@@ -96,6 +96,28 @@ Mixer v1 sigue cargando y rechaza fuentes de sistema. Añadirlas promueve el
 almacén a v2; `save_audio_mixer`/`load_audio_mixer` conservan identidad y no cambian
 escenas ni perfiles. Ningún inventario PID o estado de ejecución se persiste.
 
+Los IDs persistidos tienen la forma canónica `audio-N`: `N` es un entero
+decimal positivo, menor que `next_id`, sin signo ni ceros iniciales. El ID debe
+ocupar menos de 64 bytes; los IDs generados incluso cerca del límite de `u64`
+cumplen ese tamaño. Esta validación se aplica al documento completo antes de
+renombrar o retirar capturas durante la restauración. Rechaza, por ejemplo,
+`audio-01`, `audio-+1`, cadenas alargadas con ceros, dígitos Unicode y NUL
+embebido, con `INVALID_AUDIO_STORE: input id`.
+
+No se renumeran IDs válidos ni cambia la versión del mixer: los documentos v1/v2
+generados por Motive conservan sus identidades y su formato. La restricción
+repara un caso de documento malformado que podía pasar el parseo numérico,
+truncarse en el registro nativo y dejar desalineados sus nombres y el almacén
+Rust. El renombrado nativo ahora rechaza nombres vacíos, nulos, demasiado largos
+o fuera del alfabeto ASCII alfanumérico/guion antes de modificar la captura;
+`INVALID_AUDIO_ID` distingue ese rechazo. Mantiene los nombres privados
+`restore-N` usados para permutar canales sin duplicar dispositivos. El puente
+`CString` también rechaza NUL embebido antes de llamar C.
+
+La prueba de modelo cubre esos documentos malformados y el round-trip de IDs
+ordinarios y del mayor ID asignable. Esa prueba y la defensa de código no
+sustituyen una prueba física de restauración del bundle final.
+
 ## Adaptador GPUI y límites de prueba
 
 `studio/configuration.rs` presenta canvas/FPS y accesos a perfiles/encoder.

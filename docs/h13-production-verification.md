@@ -211,4 +211,28 @@ medición de rendimiento normal.
 GPUI: controles independientes compilados y panel observado visualmente a
 1440 px en `var/evidence/h13-ui-increment/outputs.png`; aún no equivale al
 recorrido de producción final ni a la comprobación de tamaño compacto/cierre.
-Rendimiento, sesión prolongada y regresiones finales continúan pendientes.
+Las mediciones posteriores están en la [investigación de rendimiento y colas](h13-encoder-tail-investigation.md).
+Sesión prolongada y regresiones finales continúan pendientes.
+
+## Incremento 5: rechazo de identidades de audio malformadas
+
+La revisión encontró que un ID numérico con ceros iniciales podía superar el
+buffer nativo al restaurar una captura retenida. El almacén ahora exige la forma
+canónica `audio-N` antes de cualquier mutación; el puente nativo también rechaza
+un renombrado truncable. Los IDs emitidos por Motive v1/v2 no cambian.
+
+Bundle firmado SHA-256
+`f9e0b2865817a08c3fb62afa43f5b4c7becddb2087b57a1902087ca20745570c`:
+70 tests Rust, Clippy de todos los targets y rustfmt PASS. Logs
+`var/evidence/h13-build/audio-id-*.log`. Prueba contra el núcleo real en
+`var/evidence/h13-audio-id-validation-1794937378949652000/report.json`:
+dos almacenes inválidos producen `INVALID_AUDIO_STORE`, conservan documento e
+instancia de la fuente y permiten controlar después su ganancia. Se restaura
+la ausencia original del archivo de mixer y se retira la entrada de prueba.
+Los dos ensayos previos conservan errores del harness (exit code esperado y
+ubicación del snapshot runtime), sin atribuirlos a fallos del producto.
+
+La preparación GPUI anterior queda registrada como preparación, sin salidas
+iniciadas, en `var/evidence/h13-native-1794936995861463000/`. No acredita la toma
+dual final. La ventana compacta 1024×780, temas y cierre idle por Cmd+Q/menú sí
+se observaron en `var/evidence/h13-ui-increment/`; cierre con salidas pendiente.

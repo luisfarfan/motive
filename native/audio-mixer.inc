@@ -459,8 +459,20 @@ bool motive_audio_restore_missing(motive_engine *e,const char *id,const char *de
     return motive_audio_restore_missing_target(e,id,device && !strcmp(device,"tone")?0:1,device);
 }
 bool motive_audio_rename_id(motive_engine *e,const char *old_id,const char *new_id) {
+    // Restore uses private "restore-N" IDs before assigning canonical "audio-N"
+    // IDs. Reject malformed/truncatable names before touching a retained capture.
+    // Rust's CString bridge separately rejects embedded NUL bytes.
+    if(!old_id || !*old_id || strlen(old_id)>=64 || !new_id || !*new_id || strlen(new_id)>=64) {
+        snprintf(e->error,sizeof(e->error),"INVALID_AUDIO_ID");return false;
+    }
+    for(const unsigned char *p=(const unsigned char *)new_id;*p;p++) {
+        if(!((*p>='a' && *p<='z') || (*p>='A' && *p<='Z') || (*p>='0' && *p<='9') || *p=='-')) {
+            snprintf(e->error,sizeof(e->error),"INVALID_AUDIO_ID");return false;
+        }
+    }
     audio_input *a=audio_find(e,old_id);
-    if(!a || audio_find(e,new_id))return false;
+    if(!a) {snprintf(e->error,sizeof(e->error),"AUDIO_INPUT_NOT_FOUND");return false;}
+    if(audio_find(e,new_id)) {snprintf(e->error,sizeof(e->error),"AUDIO_ID_EXISTS");return false;}
     pthread_mutex_lock(&a->metrics.lock);
     snprintf(a->id,sizeof(a->id),"%s",new_id);
     pthread_mutex_unlock(&a->metrics.lock);return true;

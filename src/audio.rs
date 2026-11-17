@@ -149,7 +149,11 @@ impl AudioStore {
                 .strip_prefix("audio-")
                 .and_then(|n| n.parse::<u64>().ok());
             anyhow::ensure!(
-                number.is_some_and(|n| n > 0 && n < self.next_id) && ids.insert(&input.id),
+                input.id.len() < 64
+                    && number.is_some_and(|n| {
+                        n > 0 && n < self.next_id && input.id == format!("audio-{n}")
+                    })
+                    && ids.insert(&input.id),
                 "INVALID_AUDIO_STORE: input id"
             );
             anyhow::ensure!(crate::scene::valid_name(&input.name), "INVALID_AUDIO_NAME");
@@ -452,6 +456,43 @@ mod tests {
         invalid["monitoring"] = serde_json::json!(true);
         assert!(AudioStore::parse(&serde_json::to_vec(&invalid).unwrap()).is_err());
         assert!(AudioStore::parse(&vec![b' '; 65537]).is_err());
+    }
+    #[test]
+    fn persisted_audio_ids_are_canonical_and_fit_the_native_registry() {
+        let mut store = AudioStore::default();
+        store.add("Tone".into(), AudioSource::Tone).unwrap();
+        let original = store.clone();
+        for invalid in [
+            "audio-01".to_owned(),
+            "audio-+1".to_owned(),
+            format!("audio-{}1", "0".repeat(80)),
+            "audio-1\0suffix".to_owned(),
+            "audio-١".to_owned(),
+            "audio-0".to_owned(),
+            "restore-0".to_owned(),
+        ] {
+            store.inputs[0].id = invalid;
+            assert!(
+                store
+                    .validate()
+                    .unwrap_err()
+                    .to_string()
+                    .contains("INVALID_AUDIO_STORE: input id")
+            );
+            assert!(AudioStore::parse(&serde_json::to_vec(&store).unwrap()).is_err());
+        }
+        // Both ordinary generated IDs and the largest allocatable ID round-trip;
+        // canonicalization does not renumber an existing valid channel.
+        assert_eq!(
+            AudioStore::parse(&serde_json::to_vec(&original).unwrap()).unwrap(),
+            original
+        );
+        store.next_id = u64::MAX - 1;
+        store.inputs[0].id = format!("audio-{}", u64::MAX - 2);
+        assert_eq!(
+            AudioStore::parse(&serde_json::to_vec(&store).unwrap()).unwrap(),
+            store
+        );
     }
     #[test]
     fn silence_is_ready_but_stalled_capture_is_not_and_clipping_is_a_warning() {

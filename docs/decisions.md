@@ -383,3 +383,43 @@ vuelva al aire sin acción explícita.
 La aceptación física, espectral, de timestamps y de restauración está en
 [informe H10](h10-audio-verification.md). Captura de audio del sistema se evalúa
 para después, sin habilitarla ni cambiar el ruteo/permisos globales en H10.
+
+## D9 — Overlays nativos, recursos administrados y proyecto v4 (H11)
+
+`core::overlays` separa definiciones tipadas, broker de assets, presets y
+adaptación del propietario. Un wrapper nativo por ID mantiene hijos oficiales
+FreeType, image_source o ffmpeg_source; formas y placas usan gráficos libobs.
+No hay compositor, mezclador, reloj de frames ni runtime de JavaScript paralelo.
+CLI/MCP y la futura UI llaman a `Production::apply` sobre el mismo propietario.
+
+Una definición extendida opcional en `VisualSource` evita romper los matches
+GPUI de `SourceKind`. Solo los proyectos que la necesitan se guardan como v4;
+v1–v3 siguen cargando y v3 rechaza extensiones silenciosas. Audio Mixer y perfiles
+conservan sus archivos versionados independientes. Estado de timers, eventos y
+animaciones es efímero: restaurar no dispara una alerta ni reanuda una cuenta.
+
+La importación acepta únicamente un basename de la bandeja privada preparada
+explícitamente por el usuario/UI. El broker valida contenido, cuotas y enlaces,
+normaliza a PNG/MKV y devuelve IDs SHA-256; las rutas originales no llegan al
+contrato MCP. No es un sandbox contra otro proceso del mismo usuario. El límite
+visual de 256 MiB estima targets/atlas; no promete limitar RSS, decodificadores
+ni los picos de reemplazo. Ver [auditoría](h11-architecture-review.md).
+
+Fade de capa usa transiciones oficiales; slide/scale usan transforms oficiales
+desde el tick de OBS. Ocho operaciones acotadas como máximo; no hay cola
+implícita. Una finalización se retiene hasta que el propietario actualiza la
+generación/variante/capa originales y reconoce su ID. Las ediciones del grafo y
+Cut/Fade de escena esperan esa barrera. Eventos de fuente afectan todas sus
+capas; una animación afecta solo la capa seleccionada.
+
+Video local permanece visual: mixers 0, mute y monitoreo desactivado. Audio de
+medios necesita un futuro adaptador explícito de H10. Browser Source no se carga:
+el [spike CEF](h11-browser-spike.md) identifica dependencias de frontend/Qt y
+ausencia de confinamiento de red/archivos. HTML, URLs y scripts arbitrarios no
+son capacidades de este incremento.
+
+La salida mantiene una actividad `NSProcessInfo` local desde el arranque hasta
+que terminan los workers; evita que el trabajo multimedia solicitado se trate
+como inactividad. Se libera al finalizar/fallar, sin cambiar opciones globales.
+Contratos y evidencia: [UI](h11-overlay-ui-contract.md),
+[verificación](h11-overlay-verification.md).

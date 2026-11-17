@@ -27,6 +27,8 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 
 > **Experimental developer preview.** Recording and local loopback streaming work. This is not yet a packaged release or a full replacement for OBS Studio. The current interface is in Spanish; this README is in English.
 
+**Status — November 17, 2026:** H11 adds native overlays and widgets to the shared core and CLI/MCP. Its real-media checks pass; acceptance remains conditional on the open H1–H10 regression checks. GPUI integration uses the [overlay contract](docs/h11-overlay-ui-contract.md) and is separate from this core increment.
+
 ## ✨ What is taking shape
 
 | | Capability | Implementation |
@@ -36,10 +38,11 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 | 🎙️ | Global audio mixer | Reusable microphone UIDs + controlled tone, independent gain/mute, peak/RMS and explicit per-input recovery |
 | 🎬 | Local recording | H.264 + AAC in MKV, encoded and muxed by libobs |
 | 🎨 | Scene editor | Multiple scenes and reusable sources; layer position, size, visibility and order; editable original overlays |
+| 🧩 | Overlay engine | Native text, managed images/video, shapes, widgets and original presets; per-layer fade/slide/scale through CLI/MCP |
 | ↔️ | Canvas variants | Independent landscape/portrait layer layouts at 960 × 540 and 540 × 960, with aspect-preserving fit |
 | 🔌 | Source recovery | Availability checks, controlled output stop and explicit reconnection |
 | 🤖 | Agent control | Local MCP and CLI commands, shared state and structured errors |
-| 💾 | Project state | Version 3 with stable scene/source/layer IDs and guarded restoration; v1/v2 migration |
+| 💾 | Project state | Version 4 for H11 definitions; existing projects remain v3, with v1–v3 loading and stable scene/source/layer IDs |
 
 ## 🚀 Get started
 
@@ -69,9 +72,9 @@ Ad-hoc rebuilds change the code identity and can require macOS permissions again
 4. Click **Grabar**, then **Finalizar → Confirmar**. Wait for the ready state; recordings are saved under `var/recordings/`. **Preferencias y diagnóstico** shows the last file. **Perfiles de salida** manages the recording/streaming encoding settings.
 5. Switch **16:9 / 9:16** while idle. Use **Mi producción → Guardar proyecto / Restaurar proyecto guardado** for the composition; use **Guardar mixer / Restaurar mixer** in Audio for its separate store.
 
-Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No capture device is selected automatically at launch. The global Audio Mixer has its own version-1 store (`save_audio_mixer` / `load_audio_mixer`), separate from project v3 and output profiles.
+Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No capture device is selected automatically at launch. The global Audio Mixer has its own version-1 store (`save_audio_mixer` / `load_audio_mixer`), separate from project v3/v4 and output profiles.
 
-Recording defaults to **Apple VideoToolbox hardware H.264** when available, with x264 fallback before output starts. Recording and local RTMP share validated encoder/bitrate/CBR/keyframe/reordering profiles, stored separately from project v3 with explicit save/load. Canvas dimensions and 30 FPS remain fixed. `encoders`, `output_capabilities` and `output_profiles` report the effective configuration; `set_encoder` edits the selected recording profile (also used by RTMP when it selects that profile). See [hardware measurements](docs/videotoolbox-verification.md) and [H7 output verification](docs/h7-output-verification.md) for contracts, reproduction and limits.
+Recording defaults to **Apple VideoToolbox hardware H.264** when available, with x264 fallback before output starts. Recording and local RTMP share validated encoder/bitrate/CBR/keyframe/reordering profiles, stored separately from project v3/v4 with explicit save/load. Canvas dimensions and 30 FPS remain fixed. `encoders`, `output_capabilities` and `output_profiles` report the effective configuration; `set_encoder` edits the selected recording profile (also used by RTMP when it selects that profile). See [hardware measurements](docs/videotoolbox-verification.md) and [H7 output verification](docs/h7-output-verification.md) for contracts, reproduction and limits.
 
 ### When a source disappears
 
@@ -85,7 +88,9 @@ Use **Añadir fuente** to add a window, webcam, overlay or existing source. Sele
 
 The modular native studio includes scene naming and Cut/Fade controls, reusable visual sources, exact layer editing, output-profile management, loopback RTMP configuration, and H10 channel gain/mute with real stereo peak/RMS meters. Light/dark appearance and safe guides have a separate local preference file. Gesture previews commit once on release; revision guards preserve newer MCP changes. See [UI evolution verification](docs/ui-evolution-verification.md), [architecture and capability map](docs/ui-architecture.md), and [editor shortcuts](docs/ui-native-verification.md).
 
-Geometry, layer order and overlay color can change during recording. Scene selection now supports official OBS **Cut and Fade** during recording/local RTMP, with target preparation, shared capture resources and explicit cancellation. Graph edits wait for the transition to finish; adding/removing capture resources and changing visibility still require a stopped output. Each orientation has its own transforms. The overlay is an original animated graphic with an editable accent color; text, images and advanced effects remain future increments. See [H9 contracts and real verification](docs/h9-scene-transitions-verification.md).
+Geometry, layer order and overlay color can change during recording. Scene selection supports official OBS **Cut and Fade** during recording/local RTMP, with target preparation, shared capture resources and explicit cancellation. Graph edits wait for the transition to finish; adding/removing capture resources and directly changing layer visibility require a stopped output. Each orientation has its own transforms. See [H9 contracts and real verification](docs/h9-scene-transitions-verification.md).
+
+H11 extends the core with text, transparent images, rectangles/circles, local video, countdowns, lower thirds and alerts. Original lower-third, starting-soon and BRB presets include both layouts. Source events and per-layer fade/slide/scale run on the native media clock. Layer animations and scene Cut/Fade are mutually exclusive in this increment. Imported video is visual only: its audio and monitoring stay off. Browser/HTML/JavaScript overlays are unavailable pending isolation and lifecycle work. See the [H11 verification report](docs/h11-overlay-verification.md) for measured behavior and open regressions.
 
 ## 🧠 One production, three controls
 
@@ -138,6 +143,16 @@ mix meter is post-mute and detects saturation before libobs clamps the output.
 See the [UI/CLI/MCP contract](docs/h10-audio-ui-contract.md) and
 [real audio verification](docs/h10-audio-verification.md).
 
+H11 exposes typed overlay definitions and runtime state through that same owner:
+
+```sh
+./target/debug/motive ctl '{"op":"overlay_capabilities"}'
+./target/debug/motive ctl '{"op":"overlay_state"}'
+./target/debug/motive ctl '{"op":"overlay_presets"}'
+```
+
+Use the returned IDs and the [overlay integration contract](docs/h11-overlay-ui-contract.md) for complete create/update/event/animation schemas. Import only files explicitly placed in `var/imports`, then pass their basename to `import_asset`; use the returned managed asset ID in definitions. Imports and animations return operation IDs whose terminal state must be observed. GPUI must dispatch these same typed commands; it must not create a second renderer, timer, asset broker or mixer. The [architecture review](docs/h11-architecture-review.md) documents persistence, memory and the same-user security boundary.
+
 Agents control production through CLI/MCP, never by editing project files or automating clicks. Project restoration is explicit after launch with `load_project`.
 
 For an MCP client, use an absolute path to your checkout:
@@ -167,6 +182,8 @@ For an MCP client, use an absolute path to your checkout:
 `output_capabilities` · `output_profiles` · `upsert_output_profile` · `remove_output_profile` · `select_output_profile` · `save_output_profiles` · `load_output_profiles` · `configure_stream` · `preflight_output` · `start_stream` · `recover_output`
 
 `cancel_output` · `request_shutdown` · `credential_status` · `select_stream_credential`
+
+`overlay_capabilities` · `overlay_state` · `list_assets` · `import_asset` · `remove_asset` · `create_overlay` · `update_overlay` · `overlay_event` · `animate_overlay` · `cancel_overlay_animation` · `overlay_presets` · `instantiate_overlay_preset`
 
 Responses include the shared PID/revision, source issues and real engine counters. Inputs reject unknown fields. Disconnecting the MCP client leaves the production engine running.
 
@@ -201,15 +218,17 @@ python3 scripts/verify_profiles_restart.py
 
 The integration scripts require the app to be open and idle. `verify.py` also requires the owned test window and normal screen-capture permission. It validates decoded video/audio, source pixels outside the overlay, overlay motion, portrait layout and a loopback receiver. It records for at least 65 seconds.
 
+H11 has 49 passing Rust tests, clean Clippy and 13 decoded clips covering native overlays, recording/RTMP, CLI/MCP and lifecycle. The current regression manifests record 14 distinct suites passing and five still failing: H1 camera content, VideoToolbox lag, window preparation in scenes and two H9 suites. Causes remain under investigation; these results do not close H11 acceptance. Follow [H11 reproduction and evidence](docs/h11-overlay-verification.md), including its local Python requirements and exclusive device/bundle lock. Never run physical suites simultaneously in different worktrees.
+
 See [H1 verification](docs/h1-verification.md) and [scene-graph verification](docs/scene-graph-verification.md) for device tests, recovery behavior, prerequisites and evidence. The output-recovery test deliberately terminates only Motive's own mux helper. Captures, device inventories and runtime logs stay under ignored `var/`; they are not published with this repository.
 
 ## 🗺️ Direction and boundaries
 
-- **Now:** native scene editing, Cut/Fade, H10 mixer, output profiles, loopback streaming and explicit recovery through one shared production core.
-- **Next:** approved recording-library and agent-proposal contracts, secure native credential entry, removable-device recovery and longer sessions.
-- **Later:** richer overlays/effects, a distributable bundle, simultaneous variants and authorized platform streaming.
+- **Now:** native scene editing, Cut/Fade, H10 mixer, output profiles, loopback streaming and native overlay/widget controls through one shared production core; H11 acceptance remains conditional on open regressions.
+- **Next:** close those regressions, integrate the GPUI overlay contract, define recording-library and agent-proposal contracts, add secure native credential entry, and test removable-device recovery and longer sessions.
+- **Later:** isolated browser overlays, richer typography/effects, a distributable bundle, simultaneous variants and authorized platform streaming.
 
-The preview copies new BGRA frames through CPU memory into GPUI; it is not zero-copy. This first editor supports up to 8 scenes, 16 visual sources and 32 layers in a project, with one active canvas and one output. There are no cloud services, payments or marketplace features.
+The preview copies new BGRA frames through CPU memory into GPUI; it is not zero-copy. The core supports up to 8 scenes, 16 visual sources, 32 layers and 4 video sources, with one active canvas and one output. The 256 MiB visual allocation estimate is not an RSS cap: hidden decoders and resource-replacement peaks still consume memory. There are no cloud services, payments or marketplace features.
 
 Competitive research prioritizes official documentation, open-source code and observable behavior. REA is optional research tooling, **never a product dependency**. Motive's design and implementation are independent; no proprietary Meld code, assets or designs are included.
 
@@ -223,12 +242,14 @@ Start with [AGENTS.md](AGENTS.md), [the plan](docs/plan.md) and [architecture de
 | `src/ui/` | Native studio, theme, components and guarded canvas editor |
 | `src/core.rs` | Shared commands, health policy and project state |
 | `src/audio.rs` | Typed global audio registry, meter/health contracts and version-1 persistence validation |
-| `src/output.rs` | Typed output profiles and loopback endpoint validation, separate from scene v3 |
+| `src/overlays/` | Typed definitions, managed imports, widgets/presets and shared overlay controls |
+| `src/output.rs` | Typed output profiles and loopback endpoint validation, separate from scene v3/v4 |
 | `src/scene.rs` | Stable scene graph, independent layouts and validation |
 | `src/control.rs` | Local socket, CLI and MCP adapter |
 | `src/engine.rs` | Main-thread Rust ownership of the native engine |
 | `native/engine.m` | libobs, ScreenCaptureKit and AVFoundation integration |
 | `native/graph.inc` | Native scenes, source reconciliation and camera frame health |
+| `native/overlays/` | OBS source wrappers, widget clocks and per-layer animation lifecycle |
 | `scripts/` | Pinned bootstrap, bundle and real-media checks |
 
 ## 💚 Built on open source

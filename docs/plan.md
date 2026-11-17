@@ -1,6 +1,6 @@
 # Plan y criterios de aceptación
 
-Estado: 2026-11-16 (America/Lima). Base experimental ejecutable; no es una
+Estado: 2026-11-17 (America/Lima). Base experimental ejecutable; no es una
 release ni paridad con OBS/Meld. La investigación documental quedó resuelta
 para esta fase y REA no bloqueó los hitos.
 
@@ -17,6 +17,21 @@ para esta fase y REA no bloqueó los hitos.
 | 8 — Streaming confiable | Cancelación diferida con workers finalizados, cierre explícito, Keychain con referencias opacas y pruebas reales | Ver [H8](h8-streaming-verification.md); RTMPS positivo pendiente por falta de destino/cadena confiable, sin cambios a la confianza global |
 | 9 — Escenas en vivo | Cut/Fade oficiales durante grabación y RTMP, webcam compartida, preparación, cancelación, fallos y restauración v3 | Ver [H9](h9-scene-transitions-verification.md); núcleo/CLI/MCP sin cambios GPUI, audio global, huecos finales VT y pruebas largas pendientes |
 | 10 — Audio Mixer | Micrófono + tono, ganancia/mute, medidores, recuperación por entrada, persistencia v1 y Cut/Fade durante grabación/RTMP reales | [H10](h10-audio-verification.md): CLI/MCP reales y 17 suites H1–H9 aprobadas; USB hot-unplug/permisos/sleep y sesiones largas pendientes |
+| 11 — Overlay Engine y widgets | Texto, imagen alpha, formas, video visual, seis animaciones por capa, widgets y tres presets en dos layouts; CLI/MCP, grabación/RTMP y persistencia reales | [H11](h11-overlay-verification.md): 13 clips y 49 tests; aceptación condicionada a regresiones H1–H10 abiertas. Browser bloqueado; GPUI integra el [contrato](h11-overlay-ui-contract.md) por separado |
+
+Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
+bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión
+registran **14 suites distintas PASS y cinco todavía fallidas**: H1 por contenido
+de cámara casi negro, encoding por 9/13 frames de lag VideoToolbox y preparación
+de ventana sin dimensiones de video en scenes/H9 faults/H9 transitions. Se mantienen los
+criterios y los fallos. La sesión bloqueada es una hipótesis para la captura de
+ventanas, pendiente de repetición desbloqueada; no hay causalidad confirmada.
+El bundle final B7 `bd748f…dced6` reconfirmó 13 suites, incluyendo H10 completo;
+`verify.py` conserva solo su PASS anterior porque usa captura de ventana.
+El diagnóstico B7 de encoding conserva 6 frames de lag al arranque y cadencia
+estable posterior. No se rebajó su criterio; la causa sigue abierta.
+Estos pendientes impiden declarar H11 aceptado; el detalle y hashes están en
+el [informe H11](h11-overlay-verification.md).
 
 ## Reproducir y consultar evidencia
 
@@ -31,9 +46,10 @@ python3 scripts/verify_control.py
 python3 scripts/verify.py
 ```
 
-La ejecución original de ambos scripts terminó con éxito. Seis pruebas unitarias
-pasaron; Clippy sin advertencias y formato comprobado. La integración usa el
-motor y hardware reales, sin mocks. Se conservaron las pruebas fallidas.
+La ejecución original de ambos scripts terminó con éxito. En esa tanda pasaron
+seis pruebas unitarias; H11 amplía el conjunto a 49 y conserva Clippy limpio.
+La integración usa el motor y hardware reales, sin mocks. Se conservaron las
+pruebas fallidas.
 
 - `var/evidence/acceptance.json`: archivos, duración, frames, audio, overlay y
   muestras de CPU/RSS; `ok: true`.
@@ -73,9 +89,33 @@ Todos los controles usan Production; preferencias visuales tienen su archivo
 local separado. Ver [resultados y límites](ui-evolution-verification.md) y
 [mapa UI/núcleo](ui-architecture.md). No equivale a terminar el Design System;
 biblioteca de grabaciones, propuestas de agentes y entrada nativa de secretos
-necesitan contratos y pantallas apropiados. No se hizo push ni merge de UI.
+necesitan contratos y pantallas apropiados. La UI se integró en `main` mediante
+el commit `55c23f5`; sus controles específicos de H11 siguen pendientes.
 
-## Siguiente hito recomendado
+## Cierre de H11 y siguientes incrementos
+
+El núcleo H11 reutiliza fuentes oficiales libobs para texto, imágenes y video,
+con formas, widgets y animaciones limitadas por capa. Los timers avanzan sin
+cliente MCP. Los presets originales lower-third, starting-soon y BRB tienen
+layouts horizontal/vertical. Imports asíncronos desde una bandeja explícita
+producen assets administrados por ID; no aceptan rutas ni URLs arbitrarias.
+El proyecto guarda v4 solo cuando contiene definiciones H11, conserva v3 para
+los anteriores y sigue cargando v1–v3. Mixer y perfiles siguen separados.
+
+Cerrar primero las cinco suites de regresión pendientes y registrar el hash
+de cualquier bundle nuevo. La nueva GPUI debe integrar el
+[contrato de overlays](h11-overlay-ui-contract.md), con el mismo `Production`,
+definiciones tipadas, eventos e IDs de operación, sin duplicar renderer ni reloj.
+Las animaciones de capa esperan confirmación interna del propietario antes de
+permitir cambios de grafo o Cut/Fade; no existe ack público.
+
+Browser/CEF queda bloqueado hasta resolver aislamiento y lifecycle; HTML/JS no
+está habilitado. El video importado no aporta audio. Evaluar audio de medios
+mediante H10, tipografía/fallback, HDR/alpha de video y automatización creativa
+adicional como incrementos independientes. El límite estimado de 256 MiB y cuatro
+fuentes de video no limita RSS ni picos: siguen pendientes presión de memoria,
+decoders ocultos y sesiones largas. Ver [arquitectura](h11-architecture-review.md)
+y [comparación oficial](h11-comparison.md).
 
 H10 implementa Audio Mixer en el núcleo compartido, con aceptación real de
 micrófono + tono, ganancia/mute, medidores, reapertura por entrada y persistencia
@@ -95,7 +135,7 @@ para el bloqueo de una CA aislada, evidencia y secuencia de prueba privada.
 Conservar pendientes sesiones largas, USB hot-unplug, sleep/wake, matriz de
 macOS y bundle portable/notarizado. No añadir multistream, nube, pagos ni
 marketplace, ni emitir a servicios públicos sin autorización. El trabajo GPUI
-continúa por separado; no se modificó en H8 ni H9.
+continúa por separado; H11 entrega el contrato y no modifica su interfaz.
 
 ## Ampliación H1
 
@@ -107,7 +147,9 @@ Las grabaciones y los inventarios de dispositivos permanecen fuera de Git.
 ## Incremento de escenas
 
 El formato v3 añade escenas, recursos reutilizables y capas con IDs estables y
-transformaciones horizontal/vertical independientes. UI, CLI y MCP usan
-Production (43 herramientas con perfiles y RTMP local). Se conservan las pruebas anteriores y se añaden pruebas
-reales de composición y recuperación del muxer. La evidencia y las limitaciones
-actuales están en [scene-graph-verification.md](scene-graph-verification.md).
+transformaciones horizontal/vertical independientes; H11 añade definiciones
+opcionales mediante v4. UI, CLI y MCP usan `Production`; `tools/list` y
+`overlay_capabilities` describen la superficie vigente. Las pruebas históricas
+de composición y recuperación están en
+[scene-graph-verification.md](scene-graph-verification.md); la repetición actual
+sobre H11 y sus fallos quedan en el [informe H11](h11-overlay-verification.md).

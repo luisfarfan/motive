@@ -16,13 +16,19 @@ static struct obs_source_info watch_info={.id="motive_frame_watch",.type=OBS_SOU
 struct visual_source {
     obs_source_t *source,*watch;
     char id[64],kind[16],device[512];
+    bool extended,stretch;char definition_kind[32],definition_subkind[32],asset_id[80];char *overlay_json;
     uint32_t window; pid_t owner; uint64_t active_since,instance_id; bool desired_active,warming;
 };
-struct visual_scene { obs_scene_t *scene; char id[64]; uint32_t visible_mask; };
+struct visual_scene { obs_scene_t *scene; char id[64]; uint32_t visible_mask; char layer_ids[32][64];obs_sceneitem_t *items[32];size_t layer_count; };
 static bool visual_equal(visual_source *s,NSDictionary *d) {
     if (!s->source) return false;
+    bool extended=[d[@"overlay"] isKindOfClass:[NSDictionary class]];
+    if(s->extended!=extended)return false;
+    if(extended && s->stretch!=([d[@"overlay"][@"kind"] isEqual:@"shape"] && [d[@"overlay"][@"shape"] isEqual:@"rectangle"]))return false;
+    if(extended && (strcmp(s->definition_kind,[d[@"overlay"][@"kind"] UTF8String]) || strcmp(s->asset_id,[(d[@"overlay"][@"asset_id"]?:@"") UTF8String])))return false;
     NSString *kind=d[@"spec"][@"kind"];
     if (strcmp(s->kind,kind.UTF8String)) return false;
+    if(extended && !strcmp(s->definition_kind,"widget") && strcmp(s->definition_subkind,[(d[@"overlay"][@"widget"][@"kind"]?:@"") UTF8String]))return false;
     if ([kind isEqualToString:@"camera"]) return !strcmp(s->device,[d[@"spec"][@"device_id"] UTF8String]);
     if ([kind isEqualToString:@"window"]) return s->window==[d[@"window_id"] unsignedIntValue] && s->owner==[d[@"owner_pid"] intValue];
     return true;
@@ -31,7 +37,7 @@ static void visual_destroy(visual_source *s) {
     if (!s) return;
     if (s->watch) { obs_source_filter_remove(s->source,s->watch);obs_source_release(s->watch); }
     if (s->source) obs_source_release(s->source);
-    free(s);
+    free(s->overlay_json);free(s);
 }
 static bool detach_camera_item(obs_scene_t *scene,obs_sceneitem_t *item,void *source) {
     (void)scene;
@@ -75,6 +81,17 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
         type="macos-avcapture";obs_data_set_string(settings,"device",s->device);
         obs_data_set_bool(settings,"use_preset",true);obs_data_set_string(settings,"preset",AVCaptureSessionPreset1280x720.UTF8String);
         obs_data_set_bool(settings,"enable_audio",false);
+    } else if ([d[@"overlay"] isKindOfClass:[NSDictionary class]]) {
+        s->extended=true;type="motive_visual";
+        s->stretch=[d[@"overlay"][@"kind"] isEqual:@"shape"] && [d[@"overlay"][@"shape"] isEqual:@"rectangle"];
+        snprintf(s->definition_kind,sizeof(s->definition_kind),"%s",[d[@"overlay"][@"kind"] UTF8String]);
+        snprintf(s->definition_subkind,sizeof(s->definition_subkind),"%s",[(d[@"overlay"][@"widget"][@"kind"]?:@"") UTF8String]);
+        snprintf(s->asset_id,sizeof(s->asset_id),"%s",[(d[@"overlay"][@"asset_id"]?:@"") UTF8String]);
+        NSData *json=[NSJSONSerialization dataWithJSONObject:d[@"overlay"] options:NSJSONWritingSortedKeys error:nil];
+        s->overlay_json=strdup([[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding].UTF8String);
+        obs_data_set_string(settings,"definition",s->overlay_json);
+        obs_data_set_string(settings,"asset_path",[(d[@"asset_path"]?:@"") UTF8String]);
+        obs_data_set_int(settings,"asset_width",[d[@"asset_width"] intValue]);obs_data_set_int(settings,"asset_height",[d[@"asset_height"] intValue]);
     } else if ([kind isEqualToString:@"overlay"]) {
         obs_data_set_bool(settings,"overlay",true);obs_data_set_int(settings,"color",[d[@"spec"][@"color"] unsignedIntValue]);
     } else if (![kind isEqualToString:@"pattern"]) {snprintf(e->error,sizeof(e->error),"INVALID_SOURCE_KIND");goto fail;}
@@ -82,6 +99,8 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
     if (!s->source) {snprintf(e->error,sizeof(e->error),"SOURCE_CREATE_FAILED");visual_destroy(s);return NULL;}
     s->instance_id=++e->visual_instances;
     obs_source_set_muted(s->source,true);
+    obs_source_set_audio_mixers(s->source,0);
+    obs_source_set_monitoring_type(s->source,OBS_MONITORING_TYPE_NONE);
     if ([kind isEqualToString:@"camera"]) {
         s->watch=obs_source_create_private("motive_frame_watch","Camera frame monitor",NULL);
         if (!s->watch) {snprintf(e->error,sizeof(e->error),"FRAME_MONITOR_FAILED");visual_destroy(s);return NULL;}
@@ -93,6 +112,7 @@ fail:
 }
 static const char *visual_health(visual_source *s) {
     if(!s->source) return "CAMERA_UNAVAILABLE";
+    if(s->extended)return overlay_source_health(s->source);
     if (!strcmp(s->kind,"window")) {
         if (!CGPreflightScreenCaptureAccess()) return "SCREEN_PERMISSION_DENIED";
         NSDictionary *w=find_window(s->window);
@@ -115,6 +135,7 @@ static void graph_release(motive_engine *e) {
 }
 bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_id) {
     e->error[0]=0;
+    if(overlay_animation_busy(e->animations)){snprintf(e->error,sizeof(e->error),"ANIMATION_BUSY");return false;}
     if (scene_busy(e)) {snprintf(e->error,sizeof(e->error),"TRANSITION_BUSY");return false;}
     if (!scene_controls_init(e)) return false;
     NSDictionary *graph=[NSJSONSerialization JSONObjectWithData:[@(json) dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil];
@@ -147,6 +168,7 @@ bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_i
             if (!source) {snprintf(e->error,sizeof(e->error),"INVALID_LAYER_REFERENCE");goto fail;}
             obs_sceneitem_t *item=obs_scene_add(s->scene,source->source);
             if (!item) {snprintf(e->error,sizeof(e->error),"LAYER_CREATE_FAILED");goto fail;}
+            size_t index=s->layer_count++;s->items[index]=item;snprintf(s->layer_ids[index],sizeof(s->layer_ids[index]),"%s",[layer[@"id"] UTF8String]);
             NSDictionary *t=layer[@"layouts"][orientation];struct vec2 pos,bounds,scale;
             if ([t[@"visible"] boolValue])
                 for(size_t i=0;i<source_count;i++) if(next[i]==source) {
@@ -156,22 +178,28 @@ bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_i
             vec2_set(&pos,[t[@"x"] floatValue],[t[@"y"] floatValue]);vec2_set(&bounds,[t[@"width"] floatValue],[t[@"height"] floatValue]);vec2_set(&scale,1,1);
             obs_sceneitem_defer_update_begin(item);
             obs_sceneitem_set_scale(item,&scale);obs_sceneitem_set_alignment(item,OBS_ALIGN_TOP|OBS_ALIGN_LEFT);
-            obs_sceneitem_set_bounds_type(item,OBS_BOUNDS_SCALE_INNER);obs_sceneitem_set_bounds_alignment(item,0);
+            obs_sceneitem_set_bounds_type(item,source->stretch?OBS_BOUNDS_STRETCH:OBS_BOUNDS_SCALE_INNER);obs_sceneitem_set_bounds_alignment(item,0);
             obs_sceneitem_set_bounds(item,&bounds);obs_sceneitem_set_pos(item,&pos);
             obs_sceneitem_set_visible(item,[t[@"visible"] boolValue]);obs_sceneitem_defer_update_end(item);
         }
     }
     if (!active) {snprintf(e->error,sizeof(e->error),"SCENE_UNAVAILABLE");goto fail;}
     // Only scalar settings after staging succeeded. Overlay updates preserve its clock.
-    for (size_t i=0;i<source_count;i++) if (!strcmp(next[i]->kind,"overlay")) {
+    for (size_t i=0;i<source_count;i++) if (!next[i]->extended && !strcmp(next[i]->kind,"overlay")) {
         obs_data_t *settings=obs_data_create();obs_data_set_bool(settings,"overlay",true);
         obs_data_set_int(settings,"color",[sources[i][@"spec"][@"color"] unsignedIntValue]);obs_source_update(next[i]->source,settings);obs_data_release(settings);
+    }
+    for(size_t i=0;i<source_count;i++) if(next[i]->extended) {
+        NSData *json=[NSJSONSerialization dataWithJSONObject:sources[i][@"overlay"] options:NSJSONWritingSortedKeys error:nil];
+        const char *definition=[[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding].UTF8String;
+        if(strcmp(next[i]->overlay_json,definition)){obs_data_t *settings=obs_data_create();obs_data_set_string(settings,"definition",definition);obs_source_update(next[i]->source,settings);obs_data_release(settings);free(next[i]->overlay_json);next[i]->overlay_json=strdup(definition);}
     }
     for(size_t i=0;i<source_count;i++) {
         if(enabled[i] && !next[i]->desired_active) next[i]->active_since=os_gettime_ns();
         if(!enabled[i]) next[i]->active_since=0;
         next[i]->desired_active=enabled[i];
     }
+    overlay_animator_reset(e->animations);
     scene_controls_sync(e,active);
     for (size_t i=0;i<e->scene_count;i++) {obs_scene_release(e->scenes[i]->scene);free(e->scenes[i]);}
     for (size_t i=0;i<e->visual_count;i++) if (!reused[i]) visual_destroy(e->visuals[i]);

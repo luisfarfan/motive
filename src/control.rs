@@ -18,6 +18,9 @@ use std::{
 };
 
 const MAX_MESSAGE: u64 = 65536;
+// Requests stay narrow; status can contain a v4 project plus overlay/runtime
+// metadata. A lost oversized mutation reply must not become a false failure.
+const MAX_RESPONSE: u64 = 1024 * 1024;
 pub struct Request {
     pub command: Command,
     pub reply: SyncSender<Value>,
@@ -33,12 +36,20 @@ pub fn socket_path() -> PathBuf {
 }
 
 pub fn read_message(reader: &mut impl BufRead) -> io::Result<Option<Value>> {
+    read_frame(reader, MAX_MESSAGE)
+}
+
+fn read_response(reader: &mut impl BufRead) -> io::Result<Option<Value>> {
+    read_frame(reader, MAX_RESPONSE)
+}
+
+fn read_frame(reader: &mut impl BufRead, limit: u64) -> io::Result<Option<Value>> {
     let mut line = String::new();
-    let count = reader.take(MAX_MESSAGE + 1).read_line(&mut line)?;
+    let count = reader.take(limit + 1).read_line(&mut line)?;
     if count == 0 {
         return Ok(None);
     }
-    if count as u64 > MAX_MESSAGE || !line.ends_with('\n') {
+    if count as u64 > limit || !line.ends_with('\n') {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "Mensaje demasiado grande o incompleto",
@@ -145,20 +156,21 @@ impl Drop for Server {
 pub fn send(command: Value, origin: &str) -> Value {
     // Assemble one complete frame before connecting. Never retry a mutation:
     // the core may already have applied it when a response is lost.
-    let query = matches!(
-        command["op"].as_str(),
-        Some(
-            "status"
-                | "audio_mixer"
-                | "scenes"
-                | "devices"
-                | "encoders"
-                | "output_capabilities"
-                | "output_profiles"
-                | "preflight_output"
-                | "credential_status"
-        )
-    );
+    let query = crate::core::overlays::protocol::is_query(command["op"].as_str().unwrap_or(""))
+        || matches!(
+            command["op"].as_str(),
+            Some(
+                "status"
+                    | "audio_mixer"
+                    | "scenes"
+                    | "devices"
+                    | "encoders"
+                    | "output_capabilities"
+                    | "output_profiles"
+                    | "preflight_output"
+                    | "credential_status"
+            )
+        );
     let mut payload = json!({"command":command,"origin":origin}).to_string();
     payload.push('\n');
     let attempt = || -> anyhow::Result<Value> {
@@ -166,7 +178,7 @@ pub fn send(command: Value, origin: &str) -> Value {
         stream.set_read_timeout(Some(Duration::from_secs(7)))?;
         stream.set_write_timeout(Some(Duration::from_secs(5)))?;
         stream.write_all(payload.as_bytes())?;
-        read_message(&mut BufReader::new(stream))?
+        read_response(&mut BufReader::new(stream))?
             .ok_or_else(|| anyhow::anyhow!("Conexión cerrada"))
     };
     let action = match attempt() {
@@ -176,7 +188,7 @@ pub fn send(command: Value, origin: &str) -> Value {
     action.unwrap_or_else(|e| error("STUDIO_UNAVAILABLE", format!("Abre Motive. {e}")))
 }
 
-fn tool(
+pub(crate) fn tool(
     name: &str,
     description: &str,
     properties: Value,
@@ -206,6 +218,10 @@ fn tool(
             | "cancel_output"
             | "request_shutdown"
             | "cancel_transition"
+            | "remove_asset"
+            | "update_overlay"
+            | "overlay_event"
+            | "cancel_overlay_animation"
     );
     let development = matches!(
         name,
@@ -596,6 +612,7 @@ pub fn tools() -> Vec<Value> {
     ] {
         result.push(tool(op, description, properties, &required, false));
     }
+    result.extend(crate::core::overlays::protocol::tools());
     result
 }
 
@@ -700,5 +717,47 @@ mod tests {
     fn bounds_input_size() {
         let input = vec![b'x'; MAX_MESSAGE as usize + 2];
         assert!(read_message(&mut &input[..]).is_err());
+    }
+
+    fn response_frame(size: usize) -> Vec<u8> {
+        let overhead = serde_json::to_vec(&json!({"text":""})).unwrap().len() + 1;
+        let mut frame = serde_json::to_vec(&json!({"text":"x".repeat(size-overhead)})).unwrap();
+        frame.push(b'\n');
+        assert_eq!(frame.len(), size);
+        frame
+    }
+
+    #[test]
+    fn large_responses_use_separate_limit_over_fragmented_socket() {
+        for size in [MAX_MESSAGE as usize + 1, MAX_RESPONSE as usize] {
+            let frame = response_frame(size);
+            assert!(read_message(&mut &frame[..]).is_err());
+            let (mut writer, reader) = UnixStream::pair().unwrap();
+            let send = thread::spawn(move || {
+                for chunk in frame.chunks(4093) {
+                    writer.write_all(chunk).unwrap();
+                }
+                writer.write_all(b"{\"next\":true}\n").unwrap();
+            });
+            let mut reader = BufReader::new(reader);
+            let value = read_response(&mut reader).unwrap().unwrap();
+            assert!(value["text"].as_str().unwrap().len() > 65000);
+            assert_eq!(
+                read_response(&mut reader).unwrap().unwrap(),
+                json!({"next":true})
+            );
+            assert!(read_response(&mut reader).unwrap().is_none());
+            send.join().unwrap();
+        }
+    }
+
+    #[test]
+    fn response_limit_rejects_oversize_and_incomplete_frames() {
+        let frame = response_frame(MAX_RESPONSE as usize + 1);
+        let (mut writer, reader) = UnixStream::pair().unwrap();
+        let send = thread::spawn(move || writer.write_all(&frame).unwrap());
+        assert!(read_response(&mut BufReader::new(reader)).is_err());
+        send.join().unwrap();
+        assert!(read_response(&mut &b"{\"ok\":true}"[..]).is_err());
     }
 }

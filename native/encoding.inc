@@ -127,6 +127,7 @@ static bool start_encoded(motive_engine *e,const char *path,obs_data_t *profile,
     e->network_output=stream;
     signal_handler_connect(obs_output_get_signal_handler(e->output),"start",output_started,e);
     signal_handler_connect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e);
+    begin_output_activity(e);
     if (!obs_output_start(e->output)) {
         snprintf(e->error,sizeof(e->error),"OUTPUT_START_FAILED");
         release_output(e);atomic_store(&e->output_stopped,true);return false;

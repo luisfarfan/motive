@@ -175,8 +175,10 @@ mod tests {
     fn bounded_profiles_and_versioned_roundtrip() {
         let mut store = ProfileStore::default();
         store.validate().unwrap();
-        let mut p = OutputProfile::default();
-        p.bitrate_kbps = 0;
+        let mut p = OutputProfile {
+            bitrate_kbps: 0,
+            ..OutputProfile::default()
+        };
         assert!(store.upsert(p.clone()).is_err());
         p.bitrate_kbps = 4000;
         p.keyframe_seconds = 0;

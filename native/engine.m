@@ -18,6 +18,7 @@ typedef struct audio_input audio_input;
 typedef struct audio_mix_meter audio_mix_meter;
 typedef struct visual_source visual_source;
 typedef struct visual_scene visual_scene;
+typedef struct overlay_animator overlay_animator;
 enum scene_phase { SCENE_IDLE, SCENE_PREPARING, SCENE_RUNNING, SCENE_COMPLETED, SCENE_CANCELLED, SCENE_FAILED };
 typedef struct { atomic_uint_fast64_t stops; } transition_events;
 typedef struct {
@@ -27,6 +28,7 @@ typedef struct {
     char audio_id[512];
     audio_input *audio_inputs[8];uint64_t audio_instances;
     audio_mix_meter *mix_meter;
+    overlay_animator *animations;
     visual_source *visuals[16];visual_scene *scenes[8];size_t visual_count,scene_count;
     obs_source_t *transitions[2];unsigned transition_index;
     transition_events transition_events[2];uint64_t transition_stop_baseline;
@@ -44,6 +46,7 @@ typedef struct {
     bool rtmp_loaded,network_output;
     atomic_bool output_started;
     obs_encoder_t *video_encoder, *audio_encoder;
+    void *output_activity;
     atomic_int output_code;
     atomic_bool output_stopped;
     bool vt_loaded, selected_hardware;
@@ -136,6 +139,8 @@ static int reset_video(motive_engine *e) {
 }
 static struct obs_source_info watch_info;
 static struct obs_source_info tone_info;
+static struct obs_source_info overlay_source_info;
+static overlay_animator *overlay_animator_create(void);
 #include "credentials.inc"
 // Native plugins may log a server's reply containing the stream key. Once a
 // credential is used, suppress free-form OBS logs for the process lifetime;
@@ -169,7 +174,7 @@ motive_engine *motive_create(const char *base) {
     if (code) { snprintf(e->error,sizeof(e->error),"obs_reset_video falló: %d",code); return e; }
     struct obs_audio_info audio={.samples_per_sec=48000,.speakers=SPEAKERS_STEREO};
     if (!obs_reset_audio(&audio)) { snprintf(e->error,sizeof(e->error),"obs_reset_audio falló"); return e; }
-    const char *modules[]={"obs-x264","obs-ffmpeg","obs-outputs","mac-capture","mac-avcapture","obs-transitions"};
+    const char *modules[]={"obs-x264","obs-ffmpeg","obs-outputs","mac-capture","mac-avcapture","obs-transitions","image-source","text-freetype2"};
     for (size_t i=0;i<sizeof(modules)/sizeof(modules[0]);i++) if (!load_module(e,modules[i])) return e;
     // Optional: an unavailable VT module must not prevent x264 recording.
     const char *disable_vt=getenv("MOTIVE_DISABLE_VIDEOTOOLBOX");
@@ -189,6 +194,8 @@ motive_engine *motive_create(const char *base) {
     obs_register_source(&pattern_info);
     obs_register_source(&watch_info);
     obs_register_source(&tone_info);
+    obs_register_source(&overlay_source_info);
+    e->animations=overlay_animator_create();
     e->pixels=calloc(e->width*e->height,4);
     connect_preview(e);
     audio_mix_start(e);
@@ -213,11 +220,27 @@ static void output_started(void *data,calldata_t *cd) {
     (void)cd;atomic_store(&((motive_engine *)data)->output_started,true);
 }
 static void output_stopped(void *data,calldata_t *cd);
+static void end_output_activity(motive_engine *e) {
+    if (!e->output_activity) return;
+    id activity=(__bridge id)e->output_activity;
+    [[NSProcessInfo processInfo] endActivity:activity];
+    CFRelease(e->output_activity);e->output_activity=NULL;
+}
+static void begin_output_activity(motive_engine *e) {
+    if (e->output_activity) return;
+    // An app-scoped assertion for user-requested real-time media work. It ends
+    // after finalization/failure; no global sleep or permission setting changes.
+    id activity=[[NSProcessInfo processInfo] beginActivityWithOptions:
+        NSActivityUserInitiatedAllowingIdleSystemSleep | NSActivityLatencyCritical
+        reason:@"Motive media output"];
+    e->output_activity=(void *)CFBridgingRetain(activity);
+}
 static void release_output(motive_engine *e) {
     if (e->output) { signal_handler_disconnect(obs_output_get_signal_handler(e->output),"start",output_started,e); signal_handler_disconnect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e); obs_output_release(e->output); e->output=NULL; }
     if (e->service) {obs_service_release(e->service);e->service=NULL;}
     if (e->video_encoder) { obs_encoder_release(e->video_encoder); e->video_encoder=NULL; }
     if (e->audio_encoder) { obs_encoder_release(e->audio_encoder); e->audio_encoder=NULL; }
+    end_output_activity(e);
 }
 static void output_stopped(void *data, calldata_t *cd) {
     motive_engine *e=data;
@@ -236,7 +259,10 @@ int motive_output_state(motive_engine *e) {
         if (!known || connecting) return 3;
         if (atomic_load(&e->output_stopped) && workers) return 2;
     }
-    if (atomic_load(&e->output_stopped)) return obs_output_active(e->output) ? 2:0;
+    if (atomic_load(&e->output_stopped)) {
+        if(obs_output_active(e->output))return 2;
+        end_output_activity(e);return 0;
+    }
     if (e->network_output && !atomic_load(&e->output_started)) return 3;
     return obs_output_active(e->output) ? 1 : 2;
 }
@@ -273,6 +299,7 @@ bool motive_start_output(motive_engine *e,const char *path,bool local_stream,con
     if (!e->output) { snprintf(e->error,sizeof(e->error),"OUTPUT_UNAVAILABLE"); return false; }
     atomic_store(&e->output_stopped,false); atomic_store(&e->output_code,0);
     signal_handler_connect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e);
+    begin_output_activity(e);
     if (!obs_output_start(e->output)) {
         const char *reason=obs_output_get_last_error(e->output);
         snprintf(e->error,sizeof(e->error),"OUTPUT_START_FAILED: %.440s",reason ? reason : "sin detalle");
@@ -381,7 +408,10 @@ char *motive_devices(void) {
     return strdup([[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding].UTF8String);
 }
 void motive_free(char *value) { free(value); }
+#include "overlays/sources.inc"
+#include "overlays/animation.inc"
 #include "graph.inc"
+#include "overlays/integration.inc"
 void motive_request_permission(int kind) {
     if (kind==0) CGRequestScreenCaptureAccess();
     else [AVCaptureDevice requestAccessForMediaType:kind==1 ? AVMediaTypeAudio:AVMediaTypeVideo completionHandler:^(BOOL granted) { (void)granted; }];
@@ -403,6 +433,7 @@ void motive_destroy(motive_engine *e) {
     if (obs_initialized()) {
         obs_set_output_source(0,NULL);
         audio_mix_stop(e);
+        overlay_animator_destroy(e->animations);e->animations=NULL;
         graph_release(e);
 
 

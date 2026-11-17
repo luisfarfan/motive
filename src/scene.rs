@@ -158,6 +158,8 @@ pub struct VisualSource {
     pub id: String,
     pub name: String,
     pub spec: SourceKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overlay: Option<crate::core::overlays::Definition>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -191,11 +193,13 @@ impl Default for Graph {
                     id: "main".into(),
                     name: "Principal".into(),
                     spec: SourceKind::Pattern,
+                    overlay: None,
                 },
                 VisualSource {
                     id: "overlay".into(),
                     name: "Overlay".into(),
                     spec: SourceKind::Overlay { color: 0x33e8b5 },
+                    overlay: None,
                 },
             ],
             scenes: vec![Scene {
@@ -274,6 +278,13 @@ impl Graph {
                     && valid_name(&source.name),
                 "INVALID_SOURCE"
             );
+            if let Some(definition) = &source.overlay {
+                anyhow::ensure!(
+                    matches!(source.spec, SourceKind::Overlay { .. }),
+                    "INVALID_OVERLAY_SOURCE"
+                );
+                definition.validate()?;
+            }
             match &source.spec {
                 SourceKind::Overlay { color } => {
                     anyhow::ensure!(*color <= 0xffffff, "INVALID_COLOR")

@@ -2,6 +2,8 @@
 pub mod audio;
 #[path = "output.rs"]
 pub mod output;
+#[path = "overlays/mod.rs"]
+pub mod overlays;
 use crate::{
     engine::Engine,
     scene::{
@@ -185,6 +187,8 @@ pub enum Command {
     SetTestWindow {
         open: bool,
     },
+    #[serde(untagged)]
+    Overlay(overlays::OverlayCommand),
 }
 fn same_shape(a: &Value, b: &Value) -> bool {
     match (a, b) {
@@ -248,6 +252,7 @@ struct WindowBinding {
     pid: i32,
 }
 pub struct Production {
+    overlays: overlays::production::State,
     pub engine: Engine,
     audio_mixer: AudioStore,
     observed_audio: Option<audio::AudioLifecycle>,
@@ -286,6 +291,7 @@ impl Production {
         create_tone()?;
         let mut p = Self {
             engine: Engine::new()?,
+            overlays: overlays::production::State::new(data_dir())?,
             audio_mixer: AudioStore::default(),
             observed_audio: None,
             profiles: ProfileStore::default(),
@@ -334,7 +340,7 @@ impl Production {
         } else {
             &self.output_kind
         };
-        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"encoding":self.encoding_status(),"output_configuration":self.output_configuration(),"issues":self.issues,
+        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"overlays":self.overlay_status(),"encoding":self.encoding_status(),"output_configuration":self.output_configuration(),"issues":self.issues,
             "recovery_required":self.recovery.required(),"recovery_sources":self.recovery.pending,"last_fault":self.last_fault,
             "sources":self.source_health,"window_id":self.window_id,"output":output,"output_code":self.engine.output_code(),
             "transition_configuration":self.transition,"transition":self.engine.scene_state(),
@@ -435,6 +441,7 @@ impl Production {
         result
     }
     pub fn poll_health(&mut self) {
+        self.poll_overlays();
         self.engine.poll_audio();
         let audio = self.engine.audio_state();
         let lifecycle = audio.lifecycle();
@@ -502,6 +509,7 @@ impl Production {
         }
     }
     fn idle(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(!self.overlays.busy(), "ASSET_IMPORT_BUSY");
         self.scene_quiescent()?;
         anyhow::ensure!(
             self.engine.output_state() == 0,
@@ -510,6 +518,7 @@ impl Production {
         Ok(())
     }
     fn scene_quiescent(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(!self.engine.overlay_animation_busy(), "ANIMATION_BUSY");
         anyhow::ensure!(
             !self.engine.scene_state().busy(),
             "TRANSITION_BUSY: espera o cancela la transición"
@@ -694,6 +703,7 @@ impl Production {
         Ok(())
     }
     fn native_graph(
+        &self,
         graph: &Graph,
         bindings: &BTreeMap<String, WindowBinding>,
     ) -> anyhow::Result<Value> {
@@ -707,6 +717,7 @@ impl Production {
                 source["owner_pid"] = json!(b.pid);
             }
         }
+        self.overlay_native_graph(graph, &mut value)?;
         Ok(value)
     }
     fn sync(
@@ -716,11 +727,19 @@ impl Production {
         reconnect: &str,
     ) -> anyhow::Result<()> {
         graph.validate()?;
+        if !reconnect.is_empty() {
+            self.overlays.invalidate();
+        }
         self.engine
-            .sync_graph(&Self::native_graph(&graph, &bindings)?, reconnect)?;
+            .sync_graph(&self.native_graph(&graph, &bindings)?, reconnect)?;
+        self.overlays.graph_replaced();
         self.project.graph = Some(graph);
         self.bindings = bindings;
-        self.project.version = 3;
+        self.project.version = if self.graph().sources.iter().any(|s| s.overlay.is_some()) {
+            4
+        } else {
+            3
+        };
         self.update_legacy();
         Ok(())
     }
@@ -797,11 +816,13 @@ impl Production {
         let spec = self.input(input, &mut bindings, "main")?;
         if let Some(source) = graph.sources.iter_mut().find(|s| s.id == "main") {
             source.spec = spec;
+            source.overlay = None;
         } else {
             graph.sources.push(VisualSource {
                 id: "main".into(),
                 name: "Principal".into(),
                 spec,
+                overlay: None,
             });
         }
         let scene = graph.active_scene.clone();
@@ -824,7 +845,8 @@ impl Production {
     }
     fn apply_project(&mut self, mut p: Project) -> anyhow::Result<()> {
         self.idle()?;
-        anyhow::ensure!((1..=3).contains(&p.version), "PROJECT_VERSION_UNSUPPORTED");
+        anyhow::ensure!((1..=4).contains(&p.version), "PROJECT_VERSION_UNSUPPORTED");
+        self.overlays.invalidate();
         let devices = self.engine.devices();
         let mut bindings = BTreeMap::new();
         let graph = if p.version < 3 {
@@ -849,6 +871,10 @@ impl Production {
                 .ok_or_else(|| anyhow::anyhow!("INVALID_PROJECT: graph required"))?
         };
         graph.validate()?;
+        anyhow::ensure!(
+            p.version >= 4 || graph.sources.iter().all(|s| s.overlay.is_none()),
+            "PROJECT_VERSION_MISMATCH"
+        );
         for source in &graph.sources {
             if let SourceKind::Window { window } = &source.spec {
                 if bindings.contains_key(&source.id) {
@@ -904,6 +930,7 @@ impl Production {
             self.graph().scene(scene_id)?;
             // Select existing native scenes; do not reconcile capture resources,
             // reset video or touch the running output/encoders.
+            anyhow::ensure!(!self.engine.overlay_animation_busy(), "ANIMATION_BUSY");
             return self.engine.switch_scene(scene_id, self.transition);
         }
         self.scene_quiescent()?;
@@ -949,6 +976,7 @@ impl Production {
                     id: id.clone(),
                     name,
                     spec,
+                    overlay: None,
                 });
                 let layer = graph.id("layer");
                 let layouts = if overlay {
@@ -1035,6 +1063,7 @@ impl Production {
                     matches!(s.spec, SourceKind::Overlay { .. }),
                     "SOURCE_KIND_MISMATCH"
                 );
+                anyhow::ensure!(s.overlay.is_none(), "USE_OVERLAY_PROPERTIES");
                 s.spec = SourceKind::Overlay { color };
             }
             _ => unreachable!(),
@@ -1059,6 +1088,9 @@ impl Production {
     }
     pub fn apply(&mut self, command: Command, origin: &str) -> Value {
         self.poll_health();
+        if let Command::Overlay(command) = command {
+            return self.apply_overlay(command, origin);
+        }
         if matches!(command, Command::Status) {
             return json!({"ok":true,"state":self.status()});
         }
@@ -1412,7 +1444,7 @@ impl Production {
                     self.scene_quiescent()?;
                     let path = data_dir().join("project.json");
                     let temp = path.with_extension("json.tmp");
-                    let bytes = serde_json::to_vec_pretty(&self.project)?;
+                    let bytes = serialize_project(&self.project)?;
                     use std::io::Write;
                     let mut file = fs::File::create(&temp)?;
                     file.write_all(&bytes)?;
@@ -1423,8 +1455,8 @@ impl Production {
                     let file = fs::File::open(data_dir().join("project.json"))?;
                     use std::io::Read;
                     let mut bytes = vec![];
-                    file.take(65537).read_to_end(&mut bytes)?;
-                    anyhow::ensure!(bytes.len() <= 65536, "PROJECT_TOO_LARGE");
+                    file.take(262145).read_to_end(&mut bytes)?;
+                    anyhow::ensure!(bytes.len() <= 262144, "PROJECT_TOO_LARGE");
                     self.apply_project(parse_project(&bytes)?)?;
                 }
                 Command::Snapshot => {
@@ -1507,9 +1539,30 @@ fn command_error(e: anyhow::Error) -> Value {
     };
     error(code, msg.as_str())
 }
+fn serialize_project(project: &Project) -> anyhow::Result<Vec<u8>> {
+    let bytes = serde_json::to_vec_pretty(project)?;
+    anyhow::ensure!(
+        bytes.len() <= if project.version >= 4 { 262144 } else { 65536 },
+        "PROJECT_TOO_LARGE"
+    );
+    Ok(bytes)
+}
 fn parse_project(bytes: &[u8]) -> anyhow::Result<Project> {
+    anyhow::ensure!(bytes.len() <= 262144, "PROJECT_TOO_LARGE");
     let value: Value = serde_json::from_slice(bytes)?;
     let project: Project = serde_json::from_value(value.clone())?;
+    anyhow::ensure!(
+        project.version >= 4 || bytes.len() <= 65536,
+        "PROJECT_TOO_LARGE"
+    );
+    anyhow::ensure!(
+        project.version >= 4
+            || project
+                .graph
+                .as_ref()
+                .is_none_or(|g| g.sources.iter().all(|s| s.overlay.is_none())),
+        "PROJECT_VERSION_MISMATCH"
+    );
     if value["graph"].is_object() {
         anyhow::ensure!(
             same_shape(&value["graph"], &serde_json::to_value(&project.graph)?),
@@ -1586,6 +1639,47 @@ fn create_tone() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn overlay_project_v4_roundtrips_beyond_legacy_size_without_silent_v3_extension() {
+        let definition = overlays::Definition::Text {
+            text: "é".repeat(2048),
+            font: overlays::Font::Helvetica,
+            size: 8,
+            color: 0xffffff,
+            opacity: 1.,
+            align: overlays::Alignment::Left,
+            width: 1920,
+            height: 100,
+            background: None,
+            background_opacity: 0.,
+            outline: false,
+        };
+        definition.validate().unwrap();
+        let mut project = Project {
+            version: 4,
+            ..Project::default()
+        };
+        let graph = project.graph.as_mut().unwrap();
+        graph.sources.clear();
+        graph.scenes[0].layers.clear();
+        for i in 0..16 {
+            graph.sources.push(VisualSource {
+                id: format!("source-{i}"),
+                name: format!("Text {i}"),
+                spec: SourceKind::Overlay { color: 0 },
+                overlay: Some(definition.clone()),
+            });
+        }
+        graph.validate().unwrap();
+        let bytes = serialize_project(&project).unwrap();
+        assert!(bytes.len() > 65536);
+        assert_eq!(parse_project(&bytes).unwrap().version, 4);
+        project.version = 3;
+        assert!(serialize_project(&project).is_err());
+        let mut smaller = Project::default();
+        smaller.graph.as_mut().unwrap().sources[1].overlay = Some(definition);
+        assert!(parse_project(&serde_json::to_vec(&smaller).unwrap()).is_err());
+    }
     #[test]
     fn rejects_unbounded_remote_controls() {
         for input in [

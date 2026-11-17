@@ -17,6 +17,25 @@ unsafe extern "C" {
         json: *const c_char,
         reconnect: *const c_char,
     ) -> bool;
+    fn motive_poll_overlays(engine: *mut c_void);
+    fn motive_overlay_state(engine: *mut c_void) -> *mut c_char;
+    fn motive_overlay_capabilities(engine: *mut c_void) -> *mut c_char;
+    fn motive_update_overlay(
+        engine: *mut c_void,
+        id: *const c_char,
+        definition: *const c_char,
+    ) -> bool;
+    fn motive_overlay_event(engine: *mut c_void, id: *const c_char, event: *const c_char) -> bool;
+    fn motive_overlay_animation_busy(engine: *mut c_void) -> bool;
+    fn motive_animate_overlay(
+        engine: *mut c_void,
+        scene: *const c_char,
+        layer: *const c_char,
+        animation: *const c_char,
+        operation: *mut u64,
+    ) -> bool;
+    fn motive_cancel_overlay_animation(engine: *mut c_void, operation: u64) -> bool;
+    fn motive_ack_overlay_animation(engine: *mut c_void, operation: u64) -> bool;
     fn motive_graph_health(engine: *mut c_void) -> *mut c_char;
     fn motive_poll_scene(engine: *mut c_void);
     fn motive_switch_scene(
@@ -136,6 +155,68 @@ impl Engine {
         let graph = CString::new(serde_json::to_string(graph)?)?;
         let reconnect = CString::new(reconnect)?;
         self.checked(unsafe { motive_sync_graph(self.raw, graph.as_ptr(), reconnect.as_ptr()) })
+    }
+    fn overlay_json(&self, raw: *mut c_char) -> serde_json::Value {
+        if raw.is_null() {
+            return serde_json::json!({"available":false});
+        }
+        let value = serde_json::from_slice(unsafe { CStr::from_ptr(raw) }.to_bytes())
+            .unwrap_or(serde_json::json!({"available":false}));
+        unsafe { motive_free(raw) };
+        value
+    }
+    pub fn poll_overlays(&mut self) {
+        unsafe { motive_poll_overlays(self.raw) }
+    }
+    pub fn overlay_state(&self) -> serde_json::Value {
+        self.overlay_json(unsafe { motive_overlay_state(self.raw) })
+    }
+    pub fn overlay_capabilities(&self) -> serde_json::Value {
+        self.overlay_json(unsafe { motive_overlay_capabilities(self.raw) })
+    }
+    pub fn update_overlay(
+        &mut self,
+        id: &str,
+        definition: &crate::core::overlays::Definition,
+    ) -> anyhow::Result<()> {
+        let id = CString::new(id)?;
+        let definition = CString::new(serde_json::to_string(definition)?)?;
+        self.checked(unsafe { motive_update_overlay(self.raw, id.as_ptr(), definition.as_ptr()) })
+    }
+    pub fn overlay_event(&mut self, id: &str, event: &str) -> anyhow::Result<()> {
+        let id = CString::new(id)?;
+        let event = CString::new(event)?;
+        self.checked(unsafe { motive_overlay_event(self.raw, id.as_ptr(), event.as_ptr()) })
+    }
+    pub fn overlay_animation_busy(&self) -> bool {
+        unsafe { motive_overlay_animation_busy(self.raw) }
+    }
+    pub fn animate_overlay(
+        &mut self,
+        scene: &str,
+        layer: &str,
+        animation: &crate::core::overlays::Animation,
+    ) -> anyhow::Result<u64> {
+        let scene = CString::new(scene)?;
+        let layer = CString::new(layer)?;
+        let a = CString::new(serde_json::to_string(animation)?)?;
+        let mut operation = 0;
+        self.checked(unsafe {
+            motive_animate_overlay(
+                self.raw,
+                scene.as_ptr(),
+                layer.as_ptr(),
+                a.as_ptr(),
+                &mut operation,
+            )
+        })?;
+        Ok(operation)
+    }
+    pub fn ack_overlay_animation(&mut self, operation: u64) -> anyhow::Result<()> {
+        self.checked(unsafe { motive_ack_overlay_animation(self.raw, operation) })
+    }
+    pub fn cancel_overlay_animation(&mut self, operation: u64) -> anyhow::Result<()> {
+        self.checked(unsafe { motive_cancel_overlay_animation(self.raw, operation) })
     }
     pub fn graph_health(&self) -> serde_json::Value {
         let raw = unsafe { motive_graph_health(self.raw) };

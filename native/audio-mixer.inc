@@ -13,6 +13,11 @@ static void *tone_run(void *param) {
     // A source fixture, not a mixer. Sample position determines phase and PTS;
     // scheduling never accumulates timestamps from MCP/UI or repeated sleeps.
     while(!atomic_load(&tone->stop)) {
+        uint64_t now=os_gettime_ns();
+        // Skip elapsed blocks after a scheduler stall/sleep instead of bursting
+        // old samples into OBS. The sample clock/phase remain anchored to start.
+        if(now>start+frames*1000000000ULL/48000+1000000000ULL)
+            frames=((now-start)/10000000ULL)*480;
         uint64_t timestamp=start+frames*1000000000ULL/48000;
         os_sleepto_ns(timestamp);
         if(atomic_load(&tone->stop))break;
@@ -165,13 +170,49 @@ bool motive_audio_add(motive_engine *e,const char *id,const char *device,const c
 bool motive_audio_remove(motive_engine *e,const char *id) {
     audio_input *a=audio_find(e,id);
     if (!a) {snprintf(e->error,sizeof(e->error),"AUDIO_INPUT_NOT_FOUND");return false;}
-    e->audio_inputs[a->slot]=NULL;audio_release(a);return true;
+    e->audio_inputs[a->slot]=NULL;audio_release(a);obs_wait_for_destroy_queue();return true;
 }
 bool motive_audio_control(motive_engine *e,const char *id,float gain,bool muted) {
     audio_input *a=audio_find(e,id);
     if (!a) {snprintf(e->error,sizeof(e->error),"AUDIO_INPUT_NOT_FOUND");return false;}
     if (a->source) {obs_source_set_volume(a->source,obs_db_to_mul(gain));obs_source_set_muted(a->source,muted);}
     return true;
+}
+bool motive_audio_disconnect(motive_engine *e,const char *id) {
+    audio_input *a=audio_find(e,id);
+    if(!a) {snprintf(e->error,sizeof(e->error),"AUDIO_INPUT_NOT_FOUND");return false;}
+    audio_detach(a);a->disconnected=true;a->fault=0;
+    obs_wait_for_destroy_queue();return true;
+}
+bool motive_audio_reconnect(motive_engine *e,const char *id,float gain,bool muted) {
+    audio_input *a=audio_find(e,id);
+    if(!a) {snprintf(e->error,sizeof(e->error),"AUDIO_INPUT_NOT_FOUND");return false;}
+    audio_detach(a);
+    // The old physical session must finish destruction before reopening its UID.
+    obs_wait_for_destroy_queue();
+    pthread_mutex_lock(&a->metrics.lock);
+    a->metrics.frames=0;a->metrics.seen_ns=0;a->metrics.timestamp=0;a->metrics.clipped_blocks=0;
+    memset(a->metrics.peak,0,sizeof(a->metrics.peak));memset(a->metrics.rms,0,sizeof(a->metrics.rms));
+    memset(a->metrics.input_peak,0,sizeof(a->metrics.input_peak));
+    pthread_mutex_unlock(&a->metrics.lock);a->disconnected=false;
+    return audio_attach(e,a,"",gain,muted);
+}
+// Restore retains unavailable desired inputs, with explicit failure, so the user
+// can reconnect that same stable ID later. This never substitutes a device.
+bool motive_audio_restore_missing(motive_engine *e,const char *id,const char *device) {
+    if(audio_find(e,id))return false;
+    size_t slot=0;while(slot<8 && e->audio_inputs[slot])slot++;
+    if(slot==8)return false;
+    audio_input *a=calloc(1,sizeof(*a));a->slot=(unsigned)slot;
+    snprintf(a->id,sizeof(a->id),"%s",id);snprintf(a->device,sizeof(a->device),"%s",device);
+    audio_metrics_init(&a->metrics);
+    a->fault=!strncmp(e->error,"MICROPHONE_PERMISSION_DENIED",28)?2:!strncmp(e->error,"AUDIO_CREATE_FAILED",19)?4:1;
+    e->audio_inputs[slot]=a;return true;
+}
+bool motive_audio_rename_id(motive_engine *e,const char *old_id,const char *new_id) {
+    audio_input *a=audio_find(e,old_id);
+    if(!a || audio_find(e,new_id))return false;
+    snprintf(a->id,sizeof(a->id),"%s",new_id);return true;
 }
 static int audio_health(audio_input *a) {
     if (a->fault) return a->fault;
@@ -182,6 +223,21 @@ static int audio_health(audio_input *a) {
     }
     pthread_mutex_lock(&a->metrics.lock);uint64_t seen=a->metrics.seen_ns;pthread_mutex_unlock(&a->metrics.lock);
     return seen && os_gettime_ns()-seen<3000000000ULL ? 0:3;
+}
+void motive_poll_audio(motive_engine *e) {
+    for(size_t i=0;i<8;i++) if(e->audio_inputs[i]) {
+        audio_input *a=e->audio_inputs[i];if(a->disconnected || a->fault)continue;
+        int health=audio_health(a);
+        if(health==3 && os_gettime_ns()-a->created_ns<4000000000ULL)continue;
+        if(health) {
+            a->fault=health==3?6:health;
+            if(a->source)obs_source_set_audio_mixers(a->source,0);
+            // Release the failed capture too: the official CoreAudio plugin has
+            // its own reconnect worker, which must not silently resume a latched
+            // Motive input or hold a revoked capture behind a silent mixer mask.
+            audio_detach(a);
+        }
+    }
 }
 static id audio_db(float value) { return value>0 && isfinite(value) ? @(20*log10f(value)):[NSNull null]; }
 static NSDictionary *audio_metrics_json(audio_metrics *m) {
@@ -198,14 +254,14 @@ static NSDictionary *audio_metrics_json(audio_metrics *m) {
 }
 char *motive_audio_state(motive_engine *e) {
     NSMutableArray *inputs=[NSMutableArray array];
-    const char *codes[]={"","DEVICE_UNAVAILABLE","MICROPHONE_PERMISSION_DENIED","AUDIO_NOT_READY","AUDIO_CREATE_FAILED","AUDIO_DISCONNECTED"};
+    const char *codes[]={"","DEVICE_UNAVAILABLE","MICROPHONE_PERMISSION_DENIED","AUDIO_NOT_READY","AUDIO_CREATE_FAILED","AUDIO_DISCONNECTED","AUDIO_STALLED"};
     for (size_t i=0;i<8;i++) if (e->audio_inputs[i]) {
         audio_input *a=e->audio_inputs[i];int health=audio_health(a);
-        [inputs addObject:@{@"id":@(a->id),@"instance_id":@(a->instance),@"issue":@(codes[health]),
+        [inputs addObject:@{@"id":@(a->id),@"instance_id":@(a->instance),@"issue":health?@(codes[health]):[NSNull null],
             @"phase":health==0?@"ready":health==3?@"warming":health==5?@"disconnected":@"failed",
             @"levels":audio_metrics_json(&a->metrics)}];
     }
-    NSDictionary *state=@{@"inputs":inputs,@"instances_created":@(e->audio_instances),
+    NSDictionary *state=@{@"available":@YES,@"inputs":inputs,@"instances_created":@(e->audio_instances),
         @"mix":e->mix_meter?audio_metrics_json(&e->mix_meter->metrics):@{}};
     NSData *json=[NSJSONSerialization dataWithJSONObject:state options:0 error:nil];
     return strdup([[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding].UTF8String);
@@ -222,6 +278,6 @@ uint64_t motive_audio_frames(motive_engine *e) {
 }
 float motive_audio_peak(motive_engine *e) {
     if(!e->mix_meter)return 0;audio_metrics *m=&e->mix_meter->metrics;
-    pthread_mutex_lock(&m->lock);float peak=fmaxf(m->peak[0],m->peak[1]);pthread_mutex_unlock(&m->lock);return peak;
+    pthread_mutex_lock(&m->lock);float peak=fmaxf(m->peak[0],m->peak[1]);pthread_mutex_unlock(&m->lock);return fminf(peak,1.0f);
 }
 void motive_audio_legacy(motive_engine *e,const char *device) {snprintf(e->audio_id,sizeof(e->audio_id),"%s",device);}

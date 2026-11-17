@@ -185,7 +185,11 @@ fn tool(
 ) -> Value {
     let destructive = matches!(
         name,
-        "remove_audio_input"
+        "disconnect_audio_input"
+            | "reconnect_audio_input"
+            | "save_audio_mixer"
+            | "load_audio_mixer"
+            | "remove_audio_input"
             | "remove_scene"
             | "remove_source"
             | "remove_layer"
@@ -213,6 +217,34 @@ fn tool(
 }
 pub fn tools() -> Vec<Value> {
     let mut result = vec![
+        tool(
+            "disconnect_audio_input",
+            "Desconecta solo esta captura, conserva ID/ganancia/mute y la mezcla continua de las demás entradas. No simula hot-unplug.",
+            json!({"input_id":{"type":"string"}}),
+            &["input_id"],
+            false,
+        ),
+        tool(
+            "reconnect_audio_input",
+            "Libera/reabre exclusivamente esta entrada. Recuperación explícita, también en vivo; no inicia/reinicia salida.",
+            json!({"input_id":{"type":"string"}}),
+            &["input_id"],
+            false,
+        ),
+        tool(
+            "save_audio_mixer",
+            "Guarda audio-mixer.json v1 separado de escenas v3 y perfiles. No persiste desconexiones runtime ni medidores.",
+            json!({}),
+            &[],
+            false,
+        ),
+        tool(
+            "load_audio_mixer",
+            "Restaura explícitamente el mezclador v1 mientras idle; reutiliza capturas presentes y conserva entradas ausentes en estado failed.",
+            json!({}),
+            &[],
+            false,
+        ),
         tool(
             "audio_mixer",
             "Mezclador global compartido: canales, ganancia/mute, peak/RMS post-fader/pre-mute y suma final pre-clamp. Monitoring desactivado.",

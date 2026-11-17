@@ -65,6 +65,17 @@ impl Default for AudioStore {
     }
 }
 impl AudioStore {
+    pub fn parse(bytes: &[u8]) -> anyhow::Result<Self> {
+        anyhow::ensure!(bytes.len() <= 65536, "AUDIO_STORE_TOO_LARGE");
+        let value: serde_json::Value = serde_json::from_slice(bytes)?;
+        let store: Self = serde_json::from_value(value.clone())?;
+        anyhow::ensure!(
+            super::same_shape(&value, &serde_json::to_value(&store)?),
+            "INVALID_AUDIO_STORE: unexpected or missing fields"
+        );
+        store.validate()?;
+        Ok(store)
+    }
     pub fn validate(&self) -> anyhow::Result<()> {
         anyhow::ensure!(self.version == 1, "AUDIO_VERSION_UNSUPPORTED");
         anyhow::ensure!(self.inputs.len() <= MAX_INPUTS, "AUDIO_INPUT_LIMIT");
@@ -121,6 +132,131 @@ impl AudioStore {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AudioPhase {
+    Warming,
+    Ready,
+    Disconnected,
+    Failed,
+}
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum AudioIssueCode {
+    DeviceUnavailable,
+    MicrophonePermissionDenied,
+    AudioNotReady,
+    AudioCreateFailed,
+    AudioDisconnected,
+    AudioStalled,
+    AudioStateUnavailable,
+    AudioInputClipping,
+    AudioMixClipping,
+    AudioHeadroomLow,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct AudioLevels {
+    pub frames: u64,
+    pub timestamp_ns: u64,
+    pub age_ms: Option<u64>,
+    pub stale: bool,
+    pub peak_dbfs: [Option<f32>; 2],
+    pub rms_dbfs: [Option<f32>; 2],
+    pub input_peak_dbfs: [Option<f32>; 2],
+    pub clipped_blocks: u64,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AudioInputRuntime {
+    pub id: String,
+    pub instance_id: u64,
+    pub phase: AudioPhase,
+    pub issue: Option<AudioIssueCode>,
+    pub levels: AudioLevels,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct AudioRuntime {
+    pub available: bool,
+    pub instances_created: u64,
+    pub inputs: Vec<AudioInputRuntime>,
+    pub mix: AudioLevels,
+}
+#[derive(Clone, Debug, Serialize)]
+pub struct AudioIssue {
+    pub input_id: Option<String>,
+    pub code: AudioIssueCode,
+    pub severity: &'static str,
+    pub recovery: &'static str,
+}
+pub type AudioLifecycle = Vec<(String, u64, AudioPhase, Option<AudioIssueCode>)>;
+impl AudioRuntime {
+    pub fn issues(&self) -> Vec<AudioIssue> {
+        let mut issues = vec![];
+        if !self.available {
+            issues.push(AudioIssue {
+                input_id: None,
+                code: AudioIssueCode::AudioStateUnavailable,
+                severity: "error",
+                recovery: "restart_studio",
+            });
+        }
+        for input in &self.inputs {
+            if let Some(code) = input.issue {
+                issues.push(AudioIssue {
+                    input_id: Some(input.id.clone()),
+                    code,
+                    severity: if input.phase == AudioPhase::Disconnected {
+                        "info"
+                    } else {
+                        "error"
+                    },
+                    recovery: if input.phase == AudioPhase::Warming {
+                        "wait_for_samples"
+                    } else {
+                        "reconnect_audio_input"
+                    },
+                });
+            }
+            if input.levels.clipped_blocks > 0 {
+                issues.push(AudioIssue {
+                    input_id: Some(input.id.clone()),
+                    code: AudioIssueCode::AudioInputClipping,
+                    severity: "warning",
+                    recovery: "reduce_device_gain",
+                });
+            }
+        }
+        if self.mix.clipped_blocks > 0 {
+            issues.push(AudioIssue {
+                input_id: None,
+                code: AudioIssueCode::AudioMixClipping,
+                severity: "warning",
+                recovery: "reduce_input_gain",
+            });
+        } else if self.mix.peak_dbfs.iter().flatten().any(|db| *db > -1.0) {
+            issues.push(AudioIssue {
+                input_id: None,
+                code: AudioIssueCode::AudioHeadroomLow,
+                severity: "warning",
+                recovery: "reduce_input_gain",
+            });
+        }
+        issues
+    }
+    pub fn ready(&self) -> bool {
+        self.available
+            && self
+                .inputs
+                .iter()
+                .all(|i| matches!(i.phase, AudioPhase::Ready | AudioPhase::Disconnected))
+    }
+    pub fn lifecycle(&self) -> AudioLifecycle {
+        self.inputs
+            .iter()
+            .map(|i| (i.id.clone(), i.instance_id, i.phase, i.issue))
+            .collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -174,5 +310,46 @@ mod tests {
         store.version = 1;
         store.next_id = 1;
         assert!(store.validate().is_err());
+    }
+    #[test]
+    fn persisted_audio_rejects_unit_variant_extras_and_unknown_fields() {
+        let mut store = AudioStore::default();
+        store.add("Tone".into(), AudioSource::Tone).unwrap();
+        let bytes = serde_json::to_vec(&store).unwrap();
+        assert_eq!(AudioStore::parse(&bytes).unwrap(), store);
+        let mut invalid = serde_json::to_value(store).unwrap();
+        invalid["inputs"][0]["source"]["path"] = serde_json::json!("/tmp/arbitrary.wav");
+        assert!(AudioStore::parse(&serde_json::to_vec(&invalid).unwrap()).is_err());
+        invalid["inputs"][0]["source"]
+            .as_object_mut()
+            .unwrap()
+            .remove("path");
+        invalid["monitoring"] = serde_json::json!(true);
+        assert!(AudioStore::parse(&serde_json::to_vec(&invalid).unwrap()).is_err());
+        assert!(AudioStore::parse(&vec![b' '; 65537]).is_err());
+    }
+    #[test]
+    fn silence_is_ready_but_stalled_capture_is_not_and_clipping_is_a_warning() {
+        let mut runtime = AudioRuntime {
+            available: true,
+            ..AudioRuntime::default()
+        };
+        runtime.inputs.push(AudioInputRuntime {
+            id: "audio-1".into(),
+            instance_id: 1,
+            phase: AudioPhase::Ready,
+            issue: None,
+            levels: AudioLevels::default(),
+        });
+        assert!(runtime.ready());
+        runtime.mix.clipped_blocks = 4;
+        assert!(runtime.ready());
+        assert_eq!(runtime.issues()[0].severity, "warning");
+        runtime.inputs[0].phase = AudioPhase::Failed;
+        runtime.inputs[0].issue = Some(AudioIssueCode::AudioStalled);
+        assert!(!runtime.ready());
+        runtime.inputs[0].phase = AudioPhase::Disconnected;
+        runtime.inputs[0].issue = Some(AudioIssueCode::AudioDisconnected);
+        assert!(runtime.ready());
     }
 }

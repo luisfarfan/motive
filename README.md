@@ -33,7 +33,7 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 |---|---|---|
 | 🪟 | Window capture | Select an individual application window through ScreenCaptureKit |
 | 📷 | Camera input | Explicit camera selection through the official OBS AVFoundation module |
-| 🎙️ | Microphone input | A specific device UID, live level and sample-flow health |
+| 🎙️ | Global audio mixer | Reusable microphone UIDs + controlled tone, independent gain/mute, peak/RMS and explicit per-input recovery |
 | 🎬 | Local recording | H.264 + AAC in MKV, encoded and muxed by libobs |
 | 🎨 | Scene editor | Multiple scenes and reusable sources; layer position, size, visibility and order; editable original overlays |
 | ↔️ | Canvas variants | Independent landscape/portrait layer layouts at 960 × 540 and 540 × 960, with aspect-preserving fit |
@@ -69,13 +69,13 @@ Ad-hoc rebuilds change the code identity and can require macOS permissions again
 4. Click **Grabar**, then **Finalizar salida**. Wait for `idle`; recordings are saved under `var/recordings/`.
 5. Switch canvas orientation while idle. **Guardar proyecto** and **Restaurar proyecto** use `var/project.json`.
 
-Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No source is selected automatically at launch.
+Window restoration requires a unique application bundle ID and window title; ambiguous or missing matches need an explicit selection. Camera and microphone selections use device UIDs. No source is selected automatically at launch. The global Audio Mixer has its own version-1 store (`save_audio_mixer` / `load_audio_mixer`), separate from project v3 and output profiles.
 
 Recording defaults to **Apple VideoToolbox hardware H.264** when available, with x264 fallback before output starts. Recording and local RTMP share validated encoder/bitrate/CBR/keyframe/reordering profiles, stored separately from project v3 with explicit save/load. Canvas dimensions and 30 FPS remain fixed. `encoders`, `output_capabilities` and `output_profiles` report the effective configuration; `set_encoder` edits the selected recording profile (also used by RTMP when it selects that profile). See [hardware measurements](docs/videotoolbox-verification.md) and [H7 output verification](docs/h7-output-verification.md) for contracts, reproduction and limits.
 
 ### When a source disappears
 
-The core checks source health once per second, and before commands. A missing window/device, revoked permission or stalled microphone data produces a structured issue. If an output is active, Motive requests a controlled stop and retains the reason. **Reconectar fuentes** retries the selected sources while idle; it never starts recording automatically. A closed window must be opened and selected again.
+The core checks source health once per second, and before commands. Audio Mixer inputs isolate a failed capture and keep the remaining mix/output running until explicit `reconnect_audio_input`; inspect `audio_mixer.issues`. The legacy single-input selector retains the controlled-stop policy described below. A missing window/device, revoked permission or stalled microphone data produces a structured issue. If an output is active, Motive requests a controlled stop and retains the reason. **Reconectar fuentes** retries the selected sources while idle; it never starts recording automatically. A closed window must be opened and selected again.
 
 Silence is distinct from missing audio packets. Camera health also watches actual incoming frames; a static image is not itself a stall. Recovery is tracked per source, so changing audio cannot acknowledge a failed window. See [scene verification](docs/scene-graph-verification.md) for tested behavior and hardware limits.
 
@@ -120,6 +120,24 @@ New scene operations use the same core. Read the returned graph to obtain IDs:
 ./target/debug/motive ctl '{"op":"save_project"}'
 ```
 
+The global Audio Mixer uses the same running core and stays independent of scene Cut/Fade:
+
+```sh
+./target/debug/motive ctl '{"op":"add_audio_input","name":"Microphone","source":{"kind":"microphone","device_id":"UID_FROM_DEVICES"}}'
+./target/debug/motive ctl '{"op":"add_audio_input","name":"Test tone","source":{"kind":"tone"}}'
+./target/debug/motive ctl '{"op":"audio_mixer"}'
+./target/debug/motive ctl '{"op":"set_audio_gain","input_id":"ID_FROM_MIXER","gain_db":-12}'
+./target/debug/motive ctl '{"op":"set_audio_mute","input_id":"ID_FROM_MIXER","muted":true}'
+./target/debug/motive ctl '{"op":"save_audio_mixer"}'
+```
+
+Adding the same UID reuses its channel and controls. Gain/mute and individual
+recovery work live; adding/removing channels or loading the store requires idle.
+Monitoring stays off. Per-input meters are post-fader/pre-manual-mute; the final
+mix meter is post-mute and detects saturation before libobs clamps the output.
+See the [UI/CLI/MCP contract](docs/h10-audio-ui-contract.md) and
+[real audio verification](docs/h10-audio-verification.md).
+
 Agents control production through CLI/MCP, never by editing project files or automating clicks. Project restoration is explicit after launch with `load_project`.
 
 For an MCP client, use an absolute path to your checkout:
@@ -141,6 +159,8 @@ For an MCP client, use an absolute path to your checkout:
 `status` · `devices` · `set_overlay` · `set_variant` · `select_source` · `select_camera` · `select_audio` · `reconnect_sources` · `start_recording` · `stop_output` · `save_project` · `load_project`
 
 `scenes` · `configure_transition` · `cancel_transition` · `create_scene` · `rename_scene` · `remove_scene` · `select_scene` · `add_source` · `remove_source` · `add_layer` · `remove_layer` · `set_transform` · `set_overlay_color` · `reconnect_source` · `snapshot` · `shutdown` · `set_test_window`
+
+`audio_mixer` · `add_audio_input` · `remove_audio_input` · `set_audio_gain` · `set_audio_mute` · `disconnect_audio_input` · `reconnect_audio_input` · `save_audio_mixer` · `load_audio_mixer`
 
 `encoders` · `set_encoder`
 
@@ -202,6 +222,7 @@ Start with [AGENTS.md](AGENTS.md), [the plan](docs/plan.md) and [architecture de
 | `src/main.rs` | Application startup and CLI/MCP dispatch |
 | `src/ui/` | Native studio, theme, components and guarded canvas editor |
 | `src/core.rs` | Shared commands, health policy and project state |
+| `src/audio.rs` | Typed global audio registry, meter/health contracts and version-1 persistence validation |
 | `src/output.rs` | Typed output profiles and loopback endpoint validation, separate from scene v3 |
 | `src/scene.rs` | Stable scene graph, independent layouts and validation |
 | `src/control.rs` | Local socket, CLI and MCP adapter |

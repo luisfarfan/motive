@@ -4,14 +4,16 @@ Estado: 2026-11-17 (America/Lima). Base experimental ejecutable; no es una
 release ni paridad con OBS/Meld. La investigación documental quedó resuelta
 para esta fase y REA no bloqueó los hitos.
 
-**H13 implementado; aceptación final EN CURSO.** Canvas configurable, audio del
+**H13 implementado; aceptación PARCIAL, EN CURSO.** Canvas configurable, audio del
 sistema y salidas MKV/RTMP independientes ya comparten núcleo, CLI/MCP y GPUI.
 Las 23 suites H1–H12 pasan en sus últimas ejecuciones del bundle G; también
 pasan la matriz dual de cuatro casos/doce medios y el A/V visible. Ya se ejecutó
 producción operada por GPUI con más de 30 minutos de salidas duales. Sus ocho
 archivos pasan decodificación completa y cadencia estricta, pero la aceptación
-sigue parcial por una alerta ocluida y un congelamiento visual tardío de ventana.
-La exclusión propia final conserva FAIL con atribución INCONCLUSIVE. Estado y hashes:
+sigue parcial por congelamientos de ventana, contabilidad terminal y límites
+de memoria. La alerta corregida pasa en la toma compacta; cierre diferido y
+confirmación obsoleta fueron observados. La última exclusión propia G pasa
+con criterios intactos y conserva el primer FAIL sin causa atribuida. Estado y hashes:
 [índice de evidencia](h13-evidence-index.md) y [verificación H13](h13-production-verification.md).
 
 La tabla conserva el alcance y los límites de cada bundle histórico; las
@@ -32,7 +34,7 @@ ampliaciones posteriores se registran en su propio hito.
 | 10 — Audio Mixer | Micrófono + tono, ganancia/mute, medidores, recuperación por entrada, persistencia v1 y Cut/Fade durante grabación/RTMP reales | [H10](h10-audio-verification.md): CLI/MCP reales y 17 suites H1–H9 aprobadas; USB hot-unplug/permisos/sleep y sesiones largas pendientes |
 | 11 — Overlay Engine y widgets | Texto, imagen alpha, formas, video visual, seis animaciones por capa, widgets y tres presets en dos layouts; CLI/MCP, grabación/RTMP y persistencia reales | [H11](h11-overlay-verification.md): 13 clips y 49 tests; aceptación condicionada a regresiones H1–H10 abiertas. Browser bloqueado; GPUI integra el [contrato](h11-overlay-ui-contract.md) por separado |
 | 12 — Creative Studio integrado | Biblioteca, picker, inspectores tipados, eventos, animaciones y persistencia desde GPUI; grabación VT/RTMP decodificada; 22 suites en sus últimas ejecuciones | [H12](h12-creative-studio-verification.md): 55 tests y Clippy; se conserva el fallo previo de render lag sin causa resuelta, sin certificar bundles posteriores |
-| 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12; producción GPUI y sesión dual de más de 30 min ejecutadas | [H13](h13-production-verification.md): aceptación **PARCIAL, EN CURSO**. Ocho archivos pasan decode/cadencia estricta; alerta ocluida y freeze de ventana conservados. Revalidación de alerta pendiente; exclusión propia final FAIL, atribución INCONCLUSIVE |
+| 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12; producción GPUI y sesión dual de más de 30 min ejecutadas | [H13](h13-production-verification.md): aceptación **PARCIAL, EN CURSO**. Toma principal y compacto pasan sus gates de decode/cadencia; alerta corregida y última exclusión G PASS. Ventana congelada FAIL, contabilidad terminal y memoria sin cerrar; fallos anteriores conservados |
 
 Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
 bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión
@@ -212,7 +214,8 @@ conservan 540p30. No se promete la cadencia del compositor para cada captura.
 `system_audio_sources` permite seleccionar una aplicación por bundle ID único
 o el escritorio principal por UUID. La identidad reutiliza canal y controles;
 el módulo OBS solicita excluir el audio de Motive y el núcleo rechaza escritorio
-junto con aplicaciones por solapamiento. La exclusión final sigue sin acreditar.
+junto con aplicaciones por solapamiento. La exclusión pasa en la última prueba
+controlada G; no es una garantía para cualquier condición de captura.
 Mixer v1 sigue válido; las nuevas fuentes requieren v2. Se mantienen ganancia,
 mute, medidores post-fader/pre-mute, master post-mute/pre-clamp, monitoreo apagado
 y recuperación explícita por entrada. [Contrato canvas/audio](h13-video-audio-contract.md).
@@ -241,10 +244,12 @@ importación 1080p de 20,27 s: 29 consultas del worker activo, máximo 88,9 ms,
 petición de cierre 30,7 ms y salida del owner en 3,271 s. Esta evidencia de
 núcleo no sustituye el flujo nativo de confirmación/cancelación.
 
-La [exclusión propia final](h13-system-audio-exclusion-final.md) permanece
-**FAIL; atribución INCONCLUSIVE**: supresión −16,41 dB frente al gate <−45 dB,
-con fondo adicional de banda ancha. No acredita exclusión ni demuestra por sí
-sola una regresión concreta de SCK; el PASS del bundle C queda separado.
+La última [exclusión propia G](h13-system-audio-exclusion-final.md) es **PASS**:
+−123,174221 dB frente al gate intacto <−45 dB, después de un control de piso
+PASS. El mismo checker, bundle y límites se conservaron; no hubo corrección
+de producto. El primer FAIL G (−16,41 dB, fondo de banda ancha) y su atribución
+INCONCLUSIVE siguen archivados, al igual que el PASS anterior C. La cifra
+cercana al piso numérico no es una garantía universal de atenuación.
 
 El [probe dirigido de memoria](h13-encoder-tail-investigation.md) observa la
 destrucción de ocho fuentes ffmpeg y sus wrappers, y asignaciones malloc activas
@@ -267,23 +272,39 @@ a aceptación completa del recorrido.
 
 La [revisión visual](../var/evidence/h13-native-visual-extract-1794944740966518000/visual-review.md)
 conserva **FAIL** de alerta parcialmente tapada y **FAIL** de continuidad de
-ventana en REC3. El orden de alerta ya se corrigió mediante GPUI, pero falta
-revalidarlo en otra toma. El contador retenido coincide con oclusión mientras
-los contadores de audio y dibujo de la fixture avanzan; causa **INCONCLUSIVE**.
-La repetición compacta sigue pendiente por el acceso al estudio bajo Stage
-Manager; no se ha cambiado ningún ajuste global ni sustituido el fallo original.
+ventana en REC3. El contador retenido coincide con oclusión mientras los
+contadores de audio y dibujo de la fixture avanzan; causa **INCONCLUSIVE**.
+
+La [toma compacta](../var/evidence/h13-native-visual-extract-1794946829324892000/visual-review.md)
+ya revalida **PASS** la alerta con order 3, pero registra otro **FAIL** de
+continuidad: `193356288` se repite en sus once muestras periódicas. No se
+infieren inicio/fin exactos ni congelación ininterrumpida entre muestras.
+Los [dos medios compactos](../var/evidence/h13-native-analysis-1794946801711114000/report.json)
+pasan funcional/cadencia estricta; cobertura sigue INCONCLUSIVE. El RTMP
+compacto decodifica 5027 frames frente a 5028 del output; MKV coincide
+13880/13880. La contabilidad terminal no era un gate del PASS estructural.
+
+Q4 acredita cierre diferido con peer RTMP incompleto: Motive conserva la
+barrera y sale 0,835 s después de liberar el peer, sin señales forzadas.
+Q5 observa el rechazo de confirmación obsoleta; la grabación continúa.
+Proyecto, mixer y perfiles restaurados y estos cierres están documentados
+en el [informe nativo](h13-native-acceptance.md); no siguen pendientes.
+No se cambiaron ajustes globales ni se sustituyeron los fallos originales.
 
 Permanecen abiertos:
 
-- Revalidación visual del orden de alerta y aceptación de continuidad de ventana;
-  conservar la toma original y distinguir observación de atribución causal.
-- Cobertura restante de cierre por ventana/menú y estados conectando, según el
-  checklist nativo; Cmd+Q cancelado y confirmado ya tienen evidencia propia.
-- Exclusión del audio propio del bundle final en condiciones que permitan
-  atribuir el resultado; conservar el FAIL actual.
+- Continuidad visual de ventana y atribución del congelamiento; conservar
+  ambas tomas y distinguir cadencia de salida de avance del contenido.
+- Contabilidad terminal exacta y preservación de los últimos frames; no inferir
+  entrega completa desde cero drops o PTS regulares.
+- Límites de memoria/residencia observados, sin declarar presupuesto aprobado
+  ni ausencia de fugas.
+- Cobertura de cierre por botón rojo/Dock y otros casos no ejecutados, según
+  el informe nativo; Q4/Q5 y Cmd+Q ya conservan su evidencia concreta.
 
 El [informe H13](h13-production-verification.md) separa cada hash y resultado;
-el [checklist nativo](h13-native-acceptance.md) distingue observaciones y pasos pendientes.
+el [informe nativo](h13-native-acceptance.md) distingue resultados de la
+[plantilla reproducible](h13-native-checklist.md) y casos no ejecutados.
 No se ocultan las congelaciones anteriores de ventanas ni los huecos finales
 de video. La corrección del tono determinista tiene su
 [investigación de entrega](h13-audio-startup-investigation.md), y los costes

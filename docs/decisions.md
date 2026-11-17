@@ -7,8 +7,9 @@ lista de límites actuales. Contratos vigentes: [canvas/audio](h13-video-audio-c
 y [salidas](h13-output-contract.md). Resultados y gates pendientes:
 [verificación H13](h13-production-verification.md). Las últimas ejecuciones
 G pasan las 23 suites H1–H12. Producción GPUI y más de 30 minutos de salidas
-duales ya se ejecutaron; la aceptación es parcial por los hallazgos visuales
-y la exclusión propia final. [Índice de evidencia](h13-evidence-index.md).
+duales ya se ejecutaron; la aceptación es parcial por ventana congelada,
+contabilidad terminal y límites de memoria. La alerta corregida y la última
+exclusión propia G pasan con sus fallos anteriores conservados. [Índice de evidencia](h13-evidence-index.md).
 
 ## Inspección inicial — 2026-11-16
 
@@ -524,8 +525,11 @@ worker. `shutdown` legacy establece el mismo sello de cierre. Tanto pendiente
 como listo para salir, el núcleo rechaza nuevo trabajo, incluidas mutaciones
 de overlays que antes entraban por una ruta temprana. Las consultas siguen
 disponibles. Ventana, menú y Cmd+Q pasan por la confirmación/ciclo compartidos.
-La producción GPUI observó cancelación de Cmd+Q y cierre confirmado; las rutas
-restantes conservan su estado individual en el checklist de aceptación.
+La producción GPUI observó cancelación de Cmd+Q, cierre confirmado y rechazo
+de una confirmación obsoleta (Q5). El cierre diferido Q4 mantiene vivo el owner
+con un peer RTMP incompleto y termina 0,835 s después de liberarlo. No se
+forzaron señales sobre Motive. Las rutas restantes conservan su estado
+individual en el [informe de aceptación](h13-native-acceptance.md).
 
 El bundle G (`d9b8d702…e0e2d93`) tiene 71 tests, Clippy y formato PASS, y
 **23/23 suites H1–H12 distintas PASS en sus últimas ejecuciones**. El
@@ -548,18 +552,27 @@ ese parcial y un intento de handshake sin medio; no declara aceptación nativa.
 La [revisión visual](../var/evidence/h13-native-visual-extract-1794944740966518000/visual-review.md)
 aprueba los cambios Cut/Fade completos y observa edición de lower y countdown
 en ambas salidas, pero conserva alerta parcialmente ocluida y congelamiento
-visual tardío de la ventana en REC3. El orden de la alerta se corrigió desde
-GPUI y se guardó; su toma de revalidación sigue pendiente. El congelamiento
-coincide con oclusión mientras la fixture sigue incrementando los contadores
-de audio y dibujo. Esto no distingue publicación de WindowServer, entrega de
-SCK o retención posterior: causa INCONCLUSIVE. Una toma compacta posterior
-no reemplaza ni vuelve PASS estos dos hallazgos originales.
+visual tardío de la ventana en REC3. El congelamiento coincide con oclusión
+mientras la fixture sigue incrementando los contadores de audio y dibujo.
+Esto no distingue publicación de WindowServer, entrega de SCK o retención
+posterior: causa INCONCLUSIVE.
 
-La [exclusión propia final](h13-system-audio-exclusion-final.md) conserva
-**FAIL y atribución INCONCLUSIVE**: −16,41 dB frente al gate <−45 dB, con
-fondo adicional de banda ancha. No se atribuye el residuo exclusivamente a
-Motive ni se declara una regresión concreta de SCK. El PASS anterior en C y
-las 23 regresiones de G no cierran este gate específico de H13.
+La [revalidación compacta](../var/evidence/h13-native-visual-extract-1794946829324892000/visual-review.md)
+pasa la alerta completa tras corregir su orden a 3 desde GPUI; el fallo
+original permanece. La ventana sigue FAIL: once muestras repiten 193356288,
+sin atribuir duración exacta ni causa. El [análisis de dos medios](../var/evidence/h13-native-analysis-1794946801711114000/report.json)
+tiene funcional y cadencia estricta PASS, coverage INCONCLUSIVE y aceptación
+no evaluada. RTMP conserva 5027 frames decodificados frente a 5028 del output;
+MKV coincide en 13880. Ese gate terminal no estaba incluido en el PASS:
+PTS regulares y cero drops no prueban entrega de cada cuadro final.
+
+La última [exclusión propia G](h13-system-audio-exclusion-final.md), documentada
+en `0573f8b`, pasa después de un control de piso PASS: **−123,174221 dB**
+frente al mismo gate <−45 dB. Checker, umbrales y bundle se mantuvieron
+intactos; no se atribuye el cambio a una corrección de código. La cifra cercana
+al piso numérico no garantiza esa atenuación universalmente. El primer G FAIL
+(−16,41 dB con fondo adicional) conserva atribución INCONCLUSIVE y no se
+sustituye retrospectivamente; también permanece el PASS histórico de C.
 
 Se conserva el fallo de audio inicial de 1024 muestras y su
 [investigación](h13-audio-startup-investigation.md): adelantar 20 ms la entrega

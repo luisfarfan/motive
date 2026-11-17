@@ -104,6 +104,13 @@ pub enum Action {
         source_id: String,
         event: WidgetEvent,
     },
+    /// Triggers a widget and starts its layer entrance as one owner operation.
+    TriggerAnimatedWidget {
+        source_id: String,
+        scene_id: String,
+        layer_id: String,
+        animation: Animation,
+    },
     Animate {
         scene_id: String,
         layer_id: String,
@@ -189,6 +196,27 @@ impl Action {
             | Self::Widget { source_id, .. }
             | Self::CountdownStart { source_id }
             | Self::CountdownReset { source_id } => validate_id(source_id),
+            Self::TriggerAnimatedWidget {
+                source_id,
+                scene_id,
+                layer_id,
+                animation,
+            } => {
+                validate_id(source_id)?;
+                validate_id(scene_id)?;
+                validate_id(layer_id)?;
+                animation.validate()?;
+                if !matches!(
+                    animation.kind,
+                    AnimationKind::FadeIn | AnimationKind::SlideIn | AnimationKind::ScaleIn
+                ) {
+                    return Err(Error::new(
+                        "INVALID_ANIMATION",
+                        "Animated widget triggers require an incoming animation",
+                    ));
+                }
+                Ok(())
+            }
             Self::Animate {
                 scene_id,
                 layer_id,
@@ -351,6 +379,41 @@ impl ProductionSnapshot {
             )),
         }
     }
+
+    fn animation_layer(&self, scene_id: &str, layer_id: &str) -> Result<&LayerBinding, Error> {
+        if self.transition_active || self.active_scene != scene_id {
+            return Err(Error::new(
+                "PRODUCTION_BUSY",
+                "Animation requires the active scene without a transition",
+            ));
+        }
+        let layer = self.layers.get(layer_id).ok_or_else(|| {
+            Error::new(
+                "LAYER_MISSING",
+                "Layer does not exist in the observed snapshot",
+            )
+        })?;
+        if layer.scene_id != scene_id {
+            return Err(Error::new(
+                "LAYER_MISMATCH",
+                "Layer belongs to another scene",
+            ));
+        }
+        self.ready(&layer.source_id)?;
+        if !self.source_kinds.contains_key(&layer.source_id) {
+            return Err(Error::new(
+                "NOT_AN_OVERLAY",
+                "Layer source is not a known overlay",
+            ));
+        }
+        if self.busy_layers.contains(layer_id) || self.busy_layers.len() >= 8 {
+            return Err(Error::new(
+                "ANIMATION_BUSY",
+                "Layer is running, cancelling, pending acknowledgement or the eight-animation limit is reached",
+            ));
+        }
+        Ok(layer)
+    }
 }
 
 /// These are existing command shapes, not executable arbitrary MCP payloads.
@@ -360,6 +423,12 @@ pub enum CoreCommand {
     OverlayEvent {
         source_id: String,
         event: WidgetEvent,
+    },
+    TriggerAnimatedWidget {
+        source_id: String,
+        scene_id: String,
+        layer_id: String,
+        animation: Animation,
     },
     AnimateOverlay {
         scene_id: String,
@@ -480,6 +549,48 @@ pub fn prepare(
             });
             requires_completion = true;
         }
+        Action::TriggerAnimatedWidget {
+            source_id,
+            scene_id,
+            layer_id,
+            animation,
+        } => {
+            let layer = snapshot.animation_layer(scene_id, layer_id)?;
+            if layer.source_id != *source_id {
+                return Err(Error::new(
+                    "LAYER_MISMATCH",
+                    "Layer is not bound to the requested widget source",
+                ));
+            }
+            if !matches!(
+                snapshot.source_kinds.get(source_id),
+                Some(SourceKind::Alert | SourceKind::LowerThird)
+            ) {
+                return Err(Error::new(
+                    "INVALID_OVERLAY_ACTION",
+                    "Animated triggers require an alert or lower-third source",
+                ));
+            }
+            if snapshot
+                .layers
+                .values()
+                .filter(|binding| binding.scene_id == *scene_id && binding.source_id == *source_id)
+                .count()
+                > 1
+            {
+                return Err(Error::new(
+                    "SHARED_WIDGET_SOURCE",
+                    "Animated widget source must have only one layer in the active scene",
+                ));
+            }
+            commands.push(CoreCommand::TriggerAnimatedWidget {
+                source_id: source_id.clone(),
+                scene_id: scene_id.clone(),
+                layer_id: layer_id.clone(),
+                animation: animation.clone(),
+            });
+            requires_completion = true;
+        }
         Action::CountdownStart { source_id } | Action::CountdownReset { source_id } => {
             snapshot.ready(source_id)?;
             if snapshot.source_kinds.get(source_id) != Some(&SourceKind::Countdown) {
@@ -503,37 +614,7 @@ pub fn prepare(
             layer_id,
             animation,
         } => {
-            if snapshot.transition_active || snapshot.active_scene != *scene_id {
-                return Err(Error::new(
-                    "PRODUCTION_BUSY",
-                    "Animation requires the active scene without a transition",
-                ));
-            }
-            let layer = snapshot.layers.get(layer_id).ok_or_else(|| {
-                Error::new(
-                    "LAYER_MISSING",
-                    "Layer does not exist in the observed snapshot",
-                )
-            })?;
-            if layer.scene_id != *scene_id {
-                return Err(Error::new(
-                    "LAYER_MISMATCH",
-                    "Layer belongs to another scene",
-                ));
-            }
-            snapshot.ready(&layer.source_id)?;
-            if !snapshot.source_kinds.contains_key(&layer.source_id) {
-                return Err(Error::new(
-                    "NOT_AN_OVERLAY",
-                    "Layer source is not a known overlay",
-                ));
-            }
-            if snapshot.busy_layers.contains(layer_id) || snapshot.busy_layers.len() >= 8 {
-                return Err(Error::new(
-                    "ANIMATION_BUSY",
-                    "Layer is running, cancelling, pending acknowledgement or the eight-animation limit is reached",
-                ));
-            }
+            snapshot.animation_layer(scene_id, layer_id)?;
             commands.push(CoreCommand::AnimateOverlay {
                 scene_id: scene_id.clone(),
                 layer_id: layer_id.clone(),

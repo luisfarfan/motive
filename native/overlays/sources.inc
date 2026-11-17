@@ -35,6 +35,12 @@ typedef struct {
     const char *error;
     bool asset_stat_valid;
     struct stat asset_stat;
+    // A compact proof of the last contiguous run of lifecycle changes. An
+    // external mutation breaks the run even when phase/visibility are unchanged.
+    uint64_t control_generation, lifecycle_revision, lifecycle_run_from;
+    uint64_t lifecycle_run_operation, lifecycle_owner_operation;
+    bool lifecycle_initialized, lifecycle_visible, lifecycle_exhausted;
+    char lifecycle_phase[16];
 } overlay_native;
 
 static const char *overlay_opacity_shader =
@@ -228,6 +234,7 @@ static void overlay_configure_children(overlay_native *o,const overlay_native_co
         if (!o->children[0]) overlay_set_error(o,"OVERLAY_BACKEND_UNAVAILABLE");
     }
 }
+static void overlay_lifecycle_observe_locked(overlay_native *o,uint64_t now,bool force);
 static void overlay_advance_locked(overlay_native *o,uint64_t now) {
     if (o->timer_running) {
         o->timer_remaining_ns=o->timer_deadline_ns>now?o->timer_deadline_ns-now:0;
@@ -236,6 +243,7 @@ static void overlay_advance_locked(overlay_native *o,uint64_t now) {
     if (o->config.kind==OV_WIDGET && o->config.widget==OV_ALERT && o->alert_deadline_ns && now>=o->alert_deadline_ns) {
         o->visible=false;o->alert_deadline_ns=0;
     }
+    overlay_lifecycle_observe_locked(o,now,false);
 }
 static float overlay_appearance_locked(overlay_native *o,uint64_t now) {
     if (o->config.kind==OV_WIDGET && o->config.widget==OV_LOWER_THIRD) {
@@ -251,6 +259,34 @@ static float overlay_appearance_locked(overlay_native *o,uint64_t now) {
         return (float)fmax(0,fmin(1,fmin((double)(now-o->alert_started_ns)/ramp,(double)(o->alert_deadline_ns>now?o->alert_deadline_ns-now:0)/ramp)));
     }
     return 1;
+}
+static const char *overlay_phase_locked(overlay_native *o,uint64_t now,float appearance) {
+    const overlay_native_config *c=&o->config;
+    if(c->kind==OV_WIDGET && c->widget==OV_LOWER_THIRD && o->fade_duration_ns && now<o->fade_started_ns+o->fade_duration_ns)
+        return o->fade_to>o->fade_from?"showing":"hiding";
+    if(c->kind==OV_WIDGET && c->widget==OV_COUNTDOWN)
+        return o->timer_running?"running":(!o->timer_remaining_ns?"completed":(o->timer_started?"paused":"idle"));
+    if(c->kind==OV_WIDGET && c->widget==OV_ALERT && o->alert_deadline_ns)
+        return appearance<1?(now-o->alert_started_ns<300000000ull?"showing":"hiding"):"visible";
+    return o->visible?"visible":"hidden";
+}
+static void overlay_lifecycle_observe_locked(overlay_native *o,uint64_t now,bool force) {
+    float appearance=overlay_appearance_locked(o,now);
+    const char *phase=overlay_phase_locked(o,now,appearance);bool visible=appearance>0;
+    if(!force && o->lifecycle_initialized && !strcmp(o->lifecycle_phase,phase) && o->lifecycle_visible==visible)return;
+    if(o->lifecycle_revision==UINT64_MAX) {
+        o->lifecycle_exhausted=true;o->lifecycle_owner_operation=0;o->lifecycle_run_operation=0;return;
+    }
+    uint64_t operation=o->lifecycle_owner_operation;
+    if(!operation || operation!=o->lifecycle_run_operation)o->lifecycle_run_from=o->lifecycle_revision;
+    o->lifecycle_run_operation=operation;o->lifecycle_revision++;
+    snprintf(o->lifecycle_phase,sizeof(o->lifecycle_phase),"%s",phase);
+    o->lifecycle_visible=visible;o->lifecycle_initialized=true;
+}
+static bool overlay_control_mutation_locked(overlay_native *o,uint64_t now,uint64_t operation) {
+    if(o->control_generation==UINT64_MAX || o->lifecycle_exhausted || o->lifecycle_revision==UINT64_MAX)return false;
+    o->control_generation++;o->lifecycle_owner_operation=operation;
+    overlay_lifecycle_observe_locked(o,now,true);return true;
 }
 static void overlay_update(void *data,obs_data_t *settings) {
     overlay_native *o=data;overlay_native_config c;
@@ -273,6 +309,7 @@ static void overlay_update(void *data,obs_data_t *settings) {
     /* Duration edits are desired configuration only. The existing timer and
      * deadline are preserved until timer_reset, or a start after completion. */
     o->config=c;o->initialized=true;o->error="";
+    if(!overlay_control_mutation_locked(o,os_gettime_ns(),0))o->error="OVERLAY_REVISION_EXHAUSTED";
     pthread_mutex_unlock(&o->lock);
     if (initial || text_changed || (c.kind==OV_VIDEO && loop_changed)) overlay_configure_children(o,&c,initial,loop_changed);
 }
@@ -413,6 +450,42 @@ static overlay_native *overlay_from_source(obs_source_t *source) {
     if (!source || strcmp(obs_source_get_id(source),"motive_visual")) return NULL;
     return obs_obj_get_data(source);
 }
+static bool overlay_animated_trigger_prepare(obs_source_t *source,uint64_t *generation) {
+    overlay_native *o=overlay_from_source(source);if(!o || !generation)return false;
+    pthread_mutex_lock(&o->lock);
+    bool valid=o->config.kind==OV_WIDGET && (o->config.widget==OV_ALERT || o->config.widget==OV_LOWER_THIRD) &&
+        !o->lifecycle_owner_operation && !o->lifecycle_exhausted && o->control_generation<UINT64_MAX && o->lifecycle_revision<UINT64_MAX;
+    if(valid)*generation=o->control_generation;
+    pthread_mutex_unlock(&o->lock);return valid;
+}
+static void overlay_show_locked(overlay_native *o,bool show,uint64_t now) {
+    if(o->config.kind==OV_WIDGET && o->config.widget==OV_LOWER_THIRD) {
+        o->fade_from=overlay_appearance_locked(o,now);o->fade_to=show?1:0;o->fade_started_ns=now;
+        o->fade_duration_ns=fabsf(o->fade_to-o->fade_from)<.00001f?0:300000000ull;
+    } else if(o->config.kind==OV_WIDGET && o->config.widget==OV_ALERT) {
+        o->alert_started_ns=now;o->alert_deadline_ns=show?now+o->config.duration_ms*1000000ull:0;
+    }
+    o->visible=show;
+}
+// Called only from the animator's first scene-atomic video tick, after initial
+// geometry is installed. A later owner edit invalidates the queued trigger.
+static bool overlay_animated_trigger_begin(obs_source_t *source,uint64_t operation,uint64_t generation) {
+    overlay_native *o=overlay_from_source(source);if(!o || !operation)return false;
+    pthread_mutex_lock(&o->lock);uint64_t now=os_gettime_ns();overlay_advance_locked(o,now);
+    bool valid=o->control_generation==generation && !o->lifecycle_owner_operation &&
+        !o->lifecycle_exhausted && o->control_generation<UINT64_MAX && o->lifecycle_revision<UINT64_MAX &&
+        o->config.kind==OV_WIDGET && (o->config.widget==OV_ALERT || o->config.widget==OV_LOWER_THIRD);
+    if(valid) {overlay_show_locked(o,true,now);valid=overlay_control_mutation_locked(o,now,operation);}
+    pthread_mutex_unlock(&o->lock);return valid;
+}
+static void overlay_animated_trigger_end(obs_source_t *source,uint64_t operation) {
+    overlay_native *o=overlay_from_source(source);if(!o)return;
+    pthread_mutex_lock(&o->lock);
+    if(o->lifecycle_owner_operation==operation) {
+        overlay_advance_locked(o,os_gettime_ns());o->lifecycle_owner_operation=0;
+    }
+    pthread_mutex_unlock(&o->lock);
+}
 static bool overlay_asset_same(const struct stat *a,const struct stat *b) {
     return a->st_dev==b->st_dev && a->st_ino==b->st_ino && a->st_size==b->st_size &&
         a->st_mtimespec.tv_sec==b->st_mtimespec.tv_sec && a->st_mtimespec.tv_nsec==b->st_mtimespec.tv_nsec;
@@ -458,18 +531,19 @@ static NSDictionary *overlay_source_state(obs_source_t *source) {
     pthread_mutex_lock(&o->lock);uint64_t now=os_gettime_ns();overlay_advance_locked(o,now);
     overlay_native_config c=o->config;float appearance=overlay_appearance_locked(o,now);
     const char *kind=c.kind==OV_TEXT?"text":c.kind==OV_IMAGE?"image":c.kind==OV_VIDEO?"video":c.kind==OV_SHAPE?"shape":"widget";
-    const char *phase=o->visible?"visible":"hidden";uint64_t remaining=0;
-    if (c.kind==OV_WIDGET && c.widget==OV_LOWER_THIRD && o->fade_duration_ns && now<o->fade_started_ns+o->fade_duration_ns) phase=o->fade_to>o->fade_from?"showing":"hiding";
-    if (c.kind==OV_WIDGET && c.widget==OV_COUNTDOWN) {remaining=o->timer_remaining_ns/1000000ull;phase=o->timer_running?"running":(!o->timer_remaining_ns?"completed":(o->timer_started?"paused":"idle"));}
-    if (c.kind==OV_WIDGET && c.widget==OV_ALERT && o->alert_deadline_ns) {remaining=(o->alert_deadline_ns>now?o->alert_deadline_ns-now:0)/1000000ull;phase=appearance<1?(now-o->alert_started_ns<300000000ull?"showing":"hiding"):"visible";}
+    const char *phase=overlay_phase_locked(o,now,appearance);uint64_t remaining=0;
+    if (c.kind==OV_WIDGET && c.widget==OV_COUNTDOWN) remaining=o->timer_remaining_ns/1000000ull;
+    if (c.kind==OV_WIDGET && c.widget==OV_ALERT && o->alert_deadline_ns) remaining=(o->alert_deadline_ns>now?o->alert_deadline_ns-now:0)/1000000ull;
     uint64_t instances=o->child_instances_created;
+    NSDictionary *lifecycle=@{@"revision":@(o->lifecycle_revision),@"from_revision":@(o->lifecycle_run_from),
+        @"operation_id":@(o->lifecycle_run_operation),@"control_generation":@(o->control_generation),@"exhausted":@(o->lifecycle_exhausted)};
     pthread_mutex_unlock(&o->lock);
     NSMutableDictionary *result=[@{@"kind":@(kind),@"visible":appearance>0?@YES:@NO,@"phase":@(phase),@"remaining_ms":@(remaining),
         @"appearance_opacity":@(appearance),@"effective_opacity":@(appearance*c.opacity),@"child_instances_created":@(instances),
         @"width":@(c.width),@"height":@(c.height),@"intrinsic_width":@(c.intrinsic_width),@"intrinsic_height":@(c.intrinsic_height),
         @"framebuffer_estimate_bytes":@((uint64_t)c.width*c.height*8),
         @"text_atlas_estimate_bytes":@((uint64_t)(c.kind==OV_TEXT?1:(c.kind==OV_WIDGET?2:0))*2048*2048*2),
-        @"health":@(health)} mutableCopy];
+        @"health":@(health),@"lifecycle":lifecycle} mutableCopy];
     if (c.kind==OV_WIDGET) result[@"widget_kind"]=@(c.widget==OV_LOWER_THIRD?"lower_third":c.widget==OV_COUNTDOWN?"countdown":"alert");
     if (c.kind==OV_VIDEO && o->children[0]) {
         result[@"media_state"]=@(overlay_media_state(obs_source_media_get_state(o->children[0])));
@@ -481,16 +555,11 @@ static NSDictionary *overlay_source_state(obs_source_t *source) {
 static bool overlay_source_event(obs_source_t *source,const char *event) {
     overlay_native *o=overlay_from_source(source);if (!o || !event) return false;
     pthread_mutex_lock(&o->lock);uint64_t now=os_gettime_ns();overlay_advance_locked(o,now);overlay_native_config c=o->config;
+    if(o->control_generation==UINT64_MAX || o->lifecycle_exhausted || o->lifecycle_revision==UINT64_MAX) {pthread_mutex_unlock(&o->lock);return false;}
     bool accepted=false;bool media=false;
     if (!strcmp(event,"show") || !strcmp(event,"hide") || (!strcmp(event,"trigger") && c.kind==OV_WIDGET && c.widget!=OV_COUNTDOWN)) {
         bool show=strcmp(event,"hide")!=0;
-        if (c.kind==OV_WIDGET && c.widget==OV_LOWER_THIRD) {
-            o->fade_from=overlay_appearance_locked(o,now);o->fade_to=show?1:0;o->fade_started_ns=now;
-            o->fade_duration_ns=fabsf(o->fade_to-o->fade_from)<.00001f?0:300000000ull;
-        } else if (c.kind==OV_WIDGET && c.widget==OV_ALERT) {
-            o->alert_started_ns=now;o->alert_deadline_ns=show?now+c.duration_ms*1000000ull:0;
-        }
-        o->visible=show;accepted=true;
+        overlay_show_locked(o,show,now);accepted=true;
     } else if (c.kind==OV_WIDGET && c.widget==OV_COUNTDOWN) {
         if (!strcmp(event,"timer_start")) {
             if (!o->timer_remaining_ns) o->timer_remaining_ns=c.duration_ms*1000000ull;
@@ -498,6 +567,7 @@ static bool overlay_source_event(obs_source_t *source,const char *event) {
         } else if (!strcmp(event,"timer_stop")) {o->timer_running=false;accepted=true;}
         else if (!strcmp(event,"timer_reset")) {o->timer_started=false;o->timer_running=false;o->timer_remaining_ns=c.duration_ms*1000000ull;o->last_timer_second=-1;accepted=true;}
     } else if (c.kind==OV_VIDEO && (!strcmp(event,"play") || !strcmp(event,"pause") || !strcmp(event,"restart") || !strcmp(event,"stop"))) {media=true;accepted=o->children[0]!=NULL;if(accepted && strcmp(event,"stop") && strcmp(event,"pause"))o->media_action_ns=now;}
+    if(accepted)accepted=overlay_control_mutation_locked(o,now,0);
     pthread_mutex_unlock(&o->lock);
     if (media && accepted) {
         if (!strcmp(event,"play")) {

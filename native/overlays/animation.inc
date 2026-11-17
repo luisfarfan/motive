@@ -28,6 +28,10 @@ typedef struct {
     obs_scene_t *scene;
     obs_source_t *fade, *old_show, *old_hide;
     uint32_t old_show_ms, old_hide_ms;
+    obs_source_t *trigger_source;
+    char trigger_source_id[64];
+    uint64_t trigger_generation;
+    bool widget_triggered;
 } overlay_animation_job;
 typedef struct overlay_animator {
     pthread_mutex_t lock;
@@ -76,6 +80,7 @@ static void overlay_job_error(overlay_animation_job *j,const char *code) {
 }
 static void overlay_job_release(overlay_animation_job *j) {
     obs_source_release(j->fade);obs_source_release(j->old_show);obs_source_release(j->old_hide);
+    obs_source_release(j->trigger_source);j->trigger_source=NULL;
     if(j->item)obs_sceneitem_release(j->item);
     if(j->scene)obs_scene_release(j->scene);
     j->fade=NULL;j->old_show=NULL;j->old_hide=NULL;j->item=NULL;j->scene=NULL;
@@ -111,6 +116,16 @@ static void overlay_job_finish(overlay_animation_job *j,enum overlay_animation_p
     if(phase==OVERLAY_ANIMATION_COMPLETED)j->progress=1;
     if(phase==OVERLAY_ANIMATION_CANCELLED)j->error[0]=0;
     if(j->scene)obs_scene_atomic_update(j->scene,overlay_job_restore,j);
+    // Cancellation restores animation geometry; an already-triggered widget
+    // continues its documented lifecycle. End attribution at this exact op.
+    if(j->widget_triggered)overlay_animated_trigger_end(j->trigger_source,j->operation_id);
+}
+static bool overlay_job_trigger(overlay_animation_job *j) {
+    if(!j->trigger_source || j->widget_triggered)return true;
+    if(!overlay_animated_trigger_begin(j->trigger_source,j->operation_id,j->trigger_generation)) {
+        overlay_job_error(j,"WIDGET_CHANGED_BEFORE_TRIGGER");return false;
+    }
+    j->widget_triggered=true;return true;
 }
 static bool overlay_job_initialize(overlay_animation_job *j,uint64_t now) {
     obs_source_t *show=obs_sceneitem_get_transition(j->item,true);
@@ -163,6 +178,7 @@ static void overlay_job_advance(void *param,obs_scene_t *scene) {
     j->elapsed_ns=ctx->now>j->start_ns ? ctx->now-j->start_ns:0;
     float t=fminf(1,(float)((double)j->elapsed_ns/(j->duration_ms*1000000.0)));
     if(overlay_job_fade(j)) {
+        if(!overlay_job_trigger(j))return;
         // Source lifetime alone is not completion: both OBS transition clocks
         // must actually stop. Queries never advance or finish the action.
         j->progress=fminf(1,fmaxf(0,obs_transition_get_time(j->fade)));
@@ -191,6 +207,7 @@ static void overlay_job_advance(void *param,obs_scene_t *scene) {
             scale.x*=factor;scale.y*=factor;obs_sceneitem_set_scale(j->item,&scale);
         }
     }
+    if(!overlay_job_trigger(j))return;
     obs_sceneitem_set_visible(j->item,true);
     if(t>=1)j->phase=OVERLAY_ANIMATION_COMPLETED;
 }
@@ -220,6 +237,7 @@ static void overlay_animator_tick(void *param,float seconds) {
         if(!overlay_job_busy(&local)) {
             a->jobs[i].item=NULL;a->jobs[i].scene=NULL;a->jobs[i].fade=NULL;
             a->jobs[i].old_show=NULL;a->jobs[i].old_hide=NULL;
+            a->jobs[i].trigger_source=NULL;
         }
         pthread_mutex_unlock(&a->lock);
         if(!overlay_job_busy(&local))overlay_job_release(&local);
@@ -273,7 +291,7 @@ static int overlay_animation_slot(overlay_animator *a,obs_sceneitem_t *item,cons
 }
 static bool overlay_animation_start(overlay_animator *a,obs_sceneitem_t *item,const char *scene_id,
     const char *layer_id,const char *kind,const char *easing,uint32_t duration_ms,float distance,
-    float scale_from,float design_scale,uint64_t *id) {
+    float scale_from,float design_scale,uint64_t *id,obs_source_t *trigger_source,const char *trigger_source_id) {
     if(!a)return false;
     int k=-1,e=-1;
     if(kind)for(int i=0;i<6;i++)if(!strcmp(kind,overlay_kind_name(i)))k=i;
@@ -295,6 +313,17 @@ static bool overlay_animation_start(overlay_animator *a,obs_sceneitem_t *item,co
     if(slot<0)return false;
     overlay_animation_job next={.kind=k,.easing=e,.phase=OVERLAY_ANIMATION_RUNNING,
         .duration_ms=duration_ms,.distance=distance,.render_distance=distance*design_scale,.scale_from=scale_from};
+    if(trigger_source) {
+        if(!overlay_job_in(&next) || !trigger_source_id || !*trigger_source_id || strlen(trigger_source_id)>=64 ||
+            obs_sceneitem_get_source(item)!=trigger_source || !overlay_animated_trigger_prepare(trigger_source,&next.trigger_generation)) {
+            pthread_mutex_lock(&a->lock);snprintf(a->error,sizeof(a->error),"INVALID_ANIMATED_WIDGET");pthread_mutex_unlock(&a->lock);return false;
+        }
+        next.trigger_source=obs_source_get_ref(trigger_source);
+        if(!next.trigger_source) {
+            pthread_mutex_lock(&a->lock);snprintf(a->error,sizeof(a->error),"ANIMATION_SOURCE_UNAVAILABLE");pthread_mutex_unlock(&a->lock);return false;
+        }
+        snprintf(next.trigger_source_id,sizeof(next.trigger_source_id),"%s",trigger_source_id);
+    }
     next.scene=obs_scene_get_ref(obs_sceneitem_get_scene(item));
     if(next.scene) {next.item=item;obs_sceneitem_addref(item);}
     if(next.scene && overlay_job_fade(&next))
@@ -361,6 +390,7 @@ static NSDictionary *overlay_animation_state(overlay_animator *a) {
             @"start_ns":j->initialized ? @(j->start_ns):[NSNull null],@"elapsed_ms":@(j->elapsed_ns/1000000),
             @"target_visible":@(overlay_job_in(j)),@"baseline_visible":j->initialized ? @(j->baseline_visible):[NSNull null],
             @"native_transition_active":@(j->native_transition_active),@"pending_ack":@(j->pending_ack),
+            @"trigger_source_id":j->trigger_source_id[0]?@(j->trigger_source_id):[NSNull null],@"widget_triggered":@(j->widget_triggered),
             @"error":j->error[0] ? @(j->error):[NSNull null]}];
     }
     return @{@"available":stopping?@NO:@YES,@"busy":@(busy),@"running":@(running),@"pending_ack":@(pending_ack),@"clock":@"obs_video_time",@"capacity":@8,

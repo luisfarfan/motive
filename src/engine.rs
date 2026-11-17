@@ -39,6 +39,14 @@ unsafe extern "C" {
         animation: *const c_char,
         operation: *mut u64,
     ) -> bool;
+    fn motive_trigger_animated_widget(
+        engine: *mut c_void,
+        source: *const c_char,
+        scene: *const c_char,
+        layer: *const c_char,
+        animation: *const c_char,
+        operation: *mut u64,
+    ) -> bool;
     fn motive_cancel_overlay_animation(engine: *mut c_void, operation: u64) -> bool;
     fn motive_ack_overlay_animation(engine: *mut c_void, operation: u64) -> bool;
     fn motive_graph_health(engine: *mut c_void) -> *mut c_char;
@@ -293,6 +301,30 @@ impl Engine {
                 scene.as_ptr(),
                 layer.as_ptr(),
                 a.as_ptr(),
+                &mut operation,
+            )
+        })?;
+        Ok(operation)
+    }
+    pub fn trigger_animated_widget(
+        &mut self,
+        source: &str,
+        scene: &str,
+        layer: &str,
+        animation: &crate::core::overlays::Animation,
+    ) -> anyhow::Result<u64> {
+        let source = CString::new(source)?;
+        let scene = CString::new(scene)?;
+        let layer = CString::new(layer)?;
+        let animation = CString::new(serde_json::to_string(animation)?)?;
+        let mut operation = 0;
+        self.checked(unsafe {
+            motive_trigger_animated_widget(
+                self.raw,
+                source.as_ptr(),
+                scene.as_ptr(),
+                layer.as_ptr(),
+                animation.as_ptr(),
                 &mut operation,
             )
         })?;

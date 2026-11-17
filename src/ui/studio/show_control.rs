@@ -101,6 +101,15 @@ fn action_caption(action: &Action) -> String {
             "Animar capa {layer_id} durante {} ms",
             animation.duration_ms
         ),
+        Action::TriggerAnimatedWidget {
+            source_id,
+            layer_id,
+            animation,
+            ..
+        } => format!(
+            "Activar widget {source_id} y animar capa {layer_id} durante {} ms",
+            animation.duration_ms
+        ),
         Action::CancelAnimation { operation_id } => format!("Cancelar animación {operation_id}"),
         Action::CountdownStart { source_id } => format!("Iniciar cuenta atrás {source_id}"),
         Action::CountdownReset { source_id } => format!("Reiniciar cuenta atrás {source_id}"),

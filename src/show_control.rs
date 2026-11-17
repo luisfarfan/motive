@@ -263,10 +263,12 @@ fn bind_deck(mut config: Config, deck: &Deck) -> Result<Config, Error> {
                     ));
                 }
                 if matches!(&button.target, ButtonTarget::Animation { .. })
-                    && !rule
-                        .actions
-                        .iter()
-                        .any(|a| matches!(a, Action::Animate { .. }))
+                    && !rule.actions.iter().any(|a| {
+                        matches!(
+                            a,
+                            Action::Animate { .. } | Action::TriggerAnimatedWidget { .. }
+                        )
+                    })
                 {
                     return Err(Error::new(
                         "DECK_ANIMATION_BINDING",
@@ -902,6 +904,18 @@ mod tests {
                 },
             },
             CoreCommand::CancelOverlayAnimation { operation_id: 1 },
+            CoreCommand::TriggerAnimatedWidget {
+                source_id: "score".into(),
+                scene_id: "scene-1".into(),
+                layer_id: "layer-1".into(),
+                animation: Animation {
+                    kind: AnimationKind::ScaleIn,
+                    easing: Easing::EaseOut,
+                    duration_ms: 450,
+                    distance: 0.,
+                    scale_from: 0.8,
+                },
+            },
         ]
     }
     #[test]

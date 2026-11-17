@@ -1,8 +1,9 @@
 //! Contract tests only: this backend represents an owner, not real multimedia.
 use motive_show_control::actions::{
-    Action, PreparedAction, ProductionSnapshot, Revision, SourceKind, SourceReadiness,
+    Action, Animation, AnimationKind, Easing, LayerBinding, PreparedAction, ProductionSnapshot,
+    Revision, SourceKind, SourceReadiness, WidgetEvent,
 };
-use motive_show_control::model::{Error, Event, Payload};
+use motive_show_control::model::{Error, Event, Payload, Scalar};
 use motive_show_control::runtime::*;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -14,6 +15,9 @@ struct Owner {
     completion: bool,
     foreign_before_dispatch: bool,
     foreign_during_operation: bool,
+    omit_dispatch_receipt: bool,
+    omit_terminal_receipt: bool,
+    simulated: bool,
     corrupt_receipt: Option<&'static str>,
 }
 impl Owner {
@@ -52,7 +56,7 @@ impl Backend for Owner {
         self.snapshot.clone()
     }
     fn simulated(&self) -> bool {
-        false
+        self.simulated
     }
     fn dispatch(&mut self, _: &PreparedAction, _: &str) -> DispatchOutcome {
         panic!("checked owner method required")
@@ -87,7 +91,7 @@ impl Backend for Owner {
             });
         DispatchReport {
             outcome,
-            receipt: Some(self.receipt(key, expected, operation)),
+            receipt: (!self.omit_dispatch_receipt).then(|| self.receipt(key, expected, operation)),
         }
     }
     fn poll_checked(&mut self, operation: &str, key: &str, expected: Revision) -> PollReport {
@@ -102,23 +106,31 @@ impl Backend for Owner {
         } else {
             PollReport {
                 completion: Completion::Completed,
-                receipt: Some(self.receipt(key, expected, Some(operation))),
+                receipt: (!self.omit_terminal_receipt)
+                    .then(|| self.receipt(key, expected, Some(operation))),
             }
         }
     }
 }
 fn runtime(owner: &Owner, count: usize) -> Runtime<ManualClock> {
+    runtime_actions(
+        owner,
+        (0..count)
+            .map(|_| Action::ShowOverlay {
+                source_id: "title".into(),
+            })
+            .collect(),
+    )
+}
+
+fn runtime_actions(owner: &Owner, actions: Vec<Action>) -> Runtime<ManualClock> {
     let rule = Rule {
         id: "show".into(),
         enabled: true,
         event_kind: "manual.button_pressed".into(),
         priority: 1,
         conditions: vec![],
-        actions: (0..count)
-            .map(|_| Action::ShowOverlay {
-                source_id: "title".into(),
-            })
-            .collect(),
+        actions,
         cooldown_ms: 0,
         debounce_ms: 0,
         timeout_ms: 1000,
@@ -306,5 +318,237 @@ fn explicit_reconciliation_does_not_resume_next_step_even_with_owned_receipt() {
         JobState::Cancelled
     );
     runtime.tick(&mut owner);
+    assert_eq!(owner.sent.len(), 1);
+}
+
+fn animated_owner() -> Owner {
+    let mut owner = Owner::new();
+    owner.asynchronous = true;
+    owner.snapshot.active_scene = "live".into();
+    owner
+        .snapshot
+        .source_kinds
+        .insert("title".into(), SourceKind::Alert);
+    owner
+        .snapshot
+        .scenes
+        .insert("live".into(), vec!["title".into()]);
+    owner.snapshot.layers.insert(
+        "title-layer".into(),
+        LayerBinding {
+            scene_id: "live".into(),
+            source_id: "title".into(),
+        },
+    );
+    owner
+}
+
+fn entrance() -> Animation {
+    Animation {
+        kind: AnimationKind::ScaleIn,
+        easing: Easing::EaseOut,
+        duration_ms: 500,
+        distance: 0.,
+        scale_from: 0.5,
+    }
+}
+
+fn animated_trigger() -> Action {
+    Action::TriggerAnimatedWidget {
+        source_id: "title".into(),
+        scene_id: "live".into(),
+        layer_id: "title-layer".into(),
+        animation: entrance(),
+    }
+}
+
+fn followed_by_counter(action: Action) -> Vec<Action> {
+    vec![
+        action,
+        Action::IncrementCounter {
+            name: "goals".into(),
+            amount: 1,
+        },
+    ]
+}
+
+#[test]
+fn animated_trigger_with_both_receipts_runs_following_counter_once() {
+    let mut owner = animated_owner();
+    let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+    runtime.tick(&mut owner);
+    runtime.tick(&mut owner); // Pending without a receipt is permitted.
+    assert_eq!(runtime.jobs[0].state, JobState::AwaitingCompletion);
+    assert!(!runtime.variables.contains_key("goals"));
+    owner.completion = true;
+    runtime.tick(&mut owner);
+    runtime.tick(&mut owner);
+    assert_eq!(owner.sent.len(), 1);
+    assert_eq!(runtime.jobs[0].state, JobState::Completed);
+    assert_eq!(runtime.jobs[0].expected.revision, 12);
+    assert_eq!(runtime.jobs[0].records[0].revision_receipts.len(), 2);
+    assert_eq!(runtime.variables.get("goals"), Some(&Scalar::Int(1)));
+}
+
+#[test]
+fn animated_trigger_without_dispatch_receipt_keeps_uncertain_identity_and_never_retries() {
+    for asynchronous in [true, false] {
+        let mut owner = animated_owner();
+        owner.asynchronous = asynchronous;
+        owner.omit_dispatch_receipt = true;
+        let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+        runtime.tick(&mut owner);
+        runtime.tick(&mut owner);
+        let job = &runtime.jobs[0];
+        assert_eq!(owner.sent.len(), 1);
+        assert_eq!(job.state, JobState::NeedsReconciliation);
+        assert_eq!(job.expected.revision, 10);
+        assert_eq!(job.cursor, 0);
+        assert_eq!(job.records.len(), 1);
+        assert_eq!(job.records[0].stage, Stage::Uncertain);
+        assert_eq!(
+            job.records[0].code.as_deref(),
+            Some("MISSING_MUTATION_RECEIPT")
+        );
+        assert_eq!(
+            job.records[0].operation_id.as_deref(),
+            asynchronous.then_some("animation-17")
+        );
+        assert!(job.records[0].revision_receipts.is_empty());
+        assert!(!runtime.variables.contains_key("goals"));
+    }
+}
+
+#[test]
+fn animated_trigger_without_terminal_receipt_blocks_counter_and_reconciliation_rebase() {
+    for foreign in [false, true] {
+        let mut owner = animated_owner();
+        let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+        runtime.tick(&mut owner);
+        owner.completion = true;
+        owner.foreign_during_operation = foreign;
+        owner.omit_terminal_receipt = true;
+        runtime.tick(&mut owner);
+        runtime.tick(&mut owner);
+        assert_eq!(runtime.jobs[0].state, JobState::NeedsReconciliation);
+        assert_eq!(runtime.jobs[0].records[0].stage, Stage::Uncertain);
+        assert_eq!(
+            runtime.jobs[0].records[0].code.as_deref(),
+            Some("MISSING_MUTATION_RECEIPT")
+        );
+        assert_eq!(
+            runtime.jobs[0].records[0].operation_id.as_deref(),
+            Some("animation-17")
+        );
+        assert_eq!(runtime.jobs[0].expected.revision, 11);
+        assert_eq!(
+            runtime.reconcile(1, &mut owner).unwrap(),
+            JobState::NeedsReconciliation
+        );
+        assert_eq!(runtime.jobs[0].expected.revision, 11);
+        assert_eq!(runtime.jobs[0].records[0].revision_receipts.len(), 1);
+        assert_eq!(runtime.jobs[0].cursor, 0);
+        assert_eq!(owner.sent.len(), 1);
+        assert!(!runtime.variables.contains_key("goals"));
+    }
+}
+
+#[test]
+fn missing_dispatch_receipt_cannot_be_reconciled_by_a_bare_terminal_observation() {
+    let mut owner = animated_owner();
+    owner.omit_dispatch_receipt = true;
+    owner.omit_terminal_receipt = true;
+    let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+    runtime.tick(&mut owner);
+    owner.completion = true;
+    assert_eq!(
+        runtime.reconcile(1, &mut owner).unwrap(),
+        JobState::NeedsReconciliation
+    );
+    assert_eq!(runtime.jobs[0].expected.revision, 10);
+    assert_eq!(runtime.jobs[0].records[0].stage, Stage::Uncertain);
+    assert_eq!(
+        runtime.jobs[0].records[0].code.as_deref(),
+        Some("MISSING_MUTATION_RECEIPT")
+    );
+    assert_eq!(
+        runtime.jobs[0].records[0].operation_id.as_deref(),
+        Some("animation-17")
+    );
+    assert!(runtime.jobs[0].records[0].revision_receipts.is_empty());
+    assert_eq!(owner.sent.len(), 1);
+    assert!(!runtime.variables.contains_key("goals"));
+}
+
+#[test]
+fn animated_trigger_invalid_terminal_receipts_preserve_existing_identity_guards() {
+    for corruption in ["key", "before", "pid", "regression", "operation"] {
+        let mut owner = animated_owner();
+        let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+        runtime.tick(&mut owner);
+        owner.completion = true;
+        owner.corrupt_receipt = Some(corruption);
+        runtime.tick(&mut owner);
+        runtime.tick(&mut owner);
+        assert_eq!(
+            runtime.jobs[0].state,
+            JobState::NeedsReconciliation,
+            "{corruption}"
+        );
+        assert_eq!(
+            runtime.jobs[0].records[0].code.as_deref(),
+            Some("INVALID_MUTATION_RECEIPT")
+        );
+        assert_eq!(
+            runtime.jobs[0].records[0].operation_id.as_deref(),
+            Some("animation-17")
+        );
+        assert_eq!(runtime.jobs[0].expected.revision, 11);
+        assert_eq!(owner.sent.len(), 1);
+        assert!(!runtime.variables.contains_key("goals"));
+    }
+}
+
+#[test]
+fn legacy_widget_and_animation_keep_receipt_optional_before_local_counter() {
+    for action in [
+        Action::Widget {
+            source_id: "title".into(),
+            event: WidgetEvent::Trigger,
+        },
+        Action::Animate {
+            scene_id: "live".into(),
+            layer_id: "title-layer".into(),
+            animation: entrance(),
+        },
+    ] {
+        let mut owner = animated_owner();
+        owner.omit_dispatch_receipt = true;
+        owner.omit_terminal_receipt = true;
+        let mut runtime = runtime_actions(&owner, followed_by_counter(action));
+        runtime.tick(&mut owner);
+        assert_eq!(runtime.jobs[0].state, JobState::AwaitingCompletion);
+        owner.completion = true;
+        runtime.tick(&mut owner);
+        assert_eq!(runtime.jobs[0].state, JobState::Completed);
+        assert_eq!(runtime.jobs[0].expected.revision, 10);
+        assert_eq!(runtime.variables.get("goals"), Some(&Scalar::Int(1)));
+        assert_eq!(owner.sent.len(), 1);
+    }
+}
+
+#[test]
+fn simulated_animated_trigger_does_not_require_owner_receipts() {
+    let mut owner = animated_owner();
+    owner.simulated = true;
+    owner.omit_dispatch_receipt = true;
+    owner.omit_terminal_receipt = true;
+    let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+    runtime.tick(&mut owner);
+    owner.completion = true;
+    runtime.tick(&mut owner);
+    assert_eq!(runtime.jobs[0].state, JobState::Simulated);
+    assert_eq!(runtime.variables.get("goals"), Some(&Scalar::Int(1)));
+    assert_eq!(runtime.jobs[0].records[1].stage, Stage::Simulated);
     assert_eq!(owner.sent.len(), 1);
 }

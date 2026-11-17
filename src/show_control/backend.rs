@@ -129,7 +129,7 @@ impl OwnerBackend<'_> {
             }
             // Inspect the accepted command shape, not a later arbitrary snapshot.
             match core_command {
-                CoreCommand::AnimateOverlay { .. } => {
+                CoreCommand::AnimateOverlay { .. } | CoreCommand::TriggerAnimatedWidget { .. } => {
                     let id = result["result"]["operation_id"]
                         .as_u64()
                         .filter(|id| *id > 0)
@@ -366,7 +366,7 @@ impl Backend for OwnerBackend<'_> {
 
 // Scalar snapshot projection only: the scene graph remains owned by Production.
 impl Production {
-    pub(super) fn show_control_production_snapshot(&self) -> ProductionSnapshot {
+    pub(in crate::core) fn show_control_production_snapshot(&self) -> ProductionSnapshot {
         let mut snapshot = ProductionSnapshot {
             pid: std::process::id(),
             revision: self.revision,

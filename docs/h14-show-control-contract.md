@@ -1,5 +1,9 @@
 # H14 — Show Control owner receipts and durable intent
 
+B3 source candidate adds the explicit [animated widget trigger](h14-animated-trigger.md):
+one durable intent, one native operation and source lifecycle receipts covering
+only its own contiguous changes. B3 media acceptance is still pending.
+
 Status: **crate foundation and direct Production-owner adapter implemented;
 multimedia acceptance pending**. This document supersedes the conservative own-revision limitation
 of the [original adapter design](../show-control/docs/integration.md). It does not

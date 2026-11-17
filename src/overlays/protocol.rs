@@ -44,6 +44,8 @@ pub fn tools() -> Vec<Value> {
     let animation = object(
         json!({"kind":{"enum":["fade_in","fade_out","slide_in","slide_out","scale_in","scale_out"]},"easing":{"enum":["linear","ease_in","ease_out","ease_in_out"]},"duration_ms":{"type":"integer","minimum":100,"maximum":10000},"distance":{"type":"number","minimum":-1920,"maximum":1920},"scale_from":{"type":"number","minimum":0.1,"maximum":2}}),
     );
+    let mut incoming_animation = animation.clone();
+    incoming_animation["properties"]["kind"]["enum"] = json!(["fade_in", "slide_in", "scale_in"]);
     let parameters = object(
         json!({"title":{"type":"string","maxLength":4096},"subtitle":{"type":"string","maxLength":4096},"background":{"type":"integer","minimum":0,"maximum":16777215},"accent":{"type":"integer","minimum":0,"maximum":16777215},"color":{"type":"integer","minimum":0,"maximum":16777215},"duration_ms":{"type":"integer","minimum":0,"maximum":3600000}}),
     );
@@ -102,6 +104,11 @@ pub fn tools() -> Vec<Value> {
             "cancel_overlay_animation",
             "Solicita cancelación por token; estado cancelled cuando el tick restaure la capa.",
             json!({"operation_id":{"type":"integer","minimum":1}}),
+        ),
+        (
+            "trigger_animated_widget",
+            "Activa alert/lower_third junto a su animación de entrada en un tick OBS atómico. Devuelve operation_id; cancelar restaura geometría y conserva un widget ya activado.",
+            json!({"source_id":id,"scene_id":id,"layer_id":id,"animation":incoming_animation}),
         ),
         (
             "overlay_presets",

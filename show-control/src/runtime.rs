@@ -496,6 +496,21 @@ fn accept_revision_receipt(
 }
 
 fn accept_poll_report(job: &mut Job, report: PollReport, simulated: bool) -> Completion {
+    if !simulated
+        && report.receipt.is_none()
+        && matches!(report.completion, Completion::Completed)
+        && job
+            .records
+            .last()
+            .and_then(|record| record.plan.as_ref())
+            .is_some_and(|plan| matches!(&plan.action, Action::TriggerAnimatedWidget { .. }))
+    {
+        job.state = JobState::NeedsReconciliation;
+        let record = job.records.last_mut().unwrap();
+        record.stage = Stage::Uncertain;
+        record.code = Some("MISSING_MUTATION_RECEIPT".into());
+        return Completion::Unknown;
+    }
     if let Some(receipt) = report.receipt {
         let operation_id = job.records.last().and_then(|r| r.operation_id.clone());
         if simulated
@@ -1071,6 +1086,23 @@ impl<C: Clock> Runtime<C> {
                 j.records.last_mut().unwrap().stage = Stage::Sent;
                 let key = action_key(j, j.cursor);
                 let report = backend.dispatch_checked(&prepared, &key, j.expected);
+                if !backend.simulated()
+                    && matches!(&prepared.action, Action::TriggerAnimatedWidget { .. })
+                    && report.receipt.is_none()
+                    && matches!(
+                        report.outcome,
+                        DispatchOutcome::Accepted { .. } | DispatchOutcome::Completed
+                    )
+                {
+                    j.state = JobState::NeedsReconciliation;
+                    let record = j.records.last_mut().unwrap();
+                    record.stage = Stage::Uncertain;
+                    record.code = Some("MISSING_MUTATION_RECEIPT".into());
+                    if let DispatchOutcome::Accepted { operation_id } = report.outcome {
+                        record.operation_id = Some(operation_id);
+                    }
+                    return;
+                }
                 if let Some(receipt) = report.receipt {
                     let operation = match &report.outcome {
                         DispatchOutcome::Accepted { operation_id } => Some(operation_id.as_str()),

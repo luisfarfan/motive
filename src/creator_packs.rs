@@ -147,9 +147,21 @@ fn live_configuration(pack: &CreatorPack, bindings: &Bindings) -> anyhow::Result
             event: WidgetEvent::Trigger,
         })
     };
+    let Action::Animate {
+        scene_id,
+        layer_id,
+        animation: goal_animation,
+    } = animation(pack, bindings, "goal-enter")?
+    else {
+        anyhow::bail!("PACK_ANIMATION_MISSING");
+    };
     let goal = vec![
-        trigger("goal-celebration")?,
-        animation(pack, bindings, "goal-enter")?,
+        Action::TriggerAnimatedWidget {
+            source_id: bound(&bindings.sources, "goal-celebration")?,
+            scene_id,
+            layer_id,
+            animation: goal_animation,
+        },
         Action::IncrementCounter {
             name: "goals".into(),
             amount: 1,
@@ -488,6 +500,25 @@ mod tests {
                 .all(|b| b.sensitive)
         );
         assert!(candidate(&new, &pack).is_err());
+    }
+    #[test]
+    fn goal_and_celebration_bind_one_atomic_entry_before_the_counter() {
+        let pack = CreatorPack::from_json(MANIFEST).unwrap();
+        let (_, bindings) = candidate(&Graph::default(), &pack).unwrap();
+        let (config, _) = live_configuration(&pack, &bindings).unwrap();
+        for id in ["deck-goal", "deck-celebrate"] {
+            let rule = config.rules.iter().find(|r| r.id == id).unwrap();
+            assert_eq!(rule.actions.len(), 2);
+            assert!(matches!(&rule.actions[0], Action::TriggerAnimatedWidget {
+                source_id, scene_id, layer_id, animation,
+            } if source_id == &bindings.sources["goal-celebration"]
+                && scene_id == &bindings.scenes["match-live"]
+                && layer_id == &bindings.layers["live-goal"]
+                && animation.duration_ms == 450));
+            assert!(
+                matches!(&rule.actions[1], Action::IncrementCounter { name, amount: 1 } if name == "goals")
+            );
+        }
     }
     #[test]
     fn graph_budget_and_missing_bindings_fail_before_dispatch() {

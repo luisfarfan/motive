@@ -52,6 +52,14 @@ impl RecordingEncoder {
 pub enum Command {
     Status,
     AudioMixer,
+    DisconnectAudioInput {
+        input_id: String,
+    },
+    ReconnectAudioInput {
+        input_id: String,
+    },
+    SaveAudioMixer,
+    LoadAudioMixer,
     AddAudioInput {
         name: String,
         source: AudioSource,
@@ -242,6 +250,7 @@ struct WindowBinding {
 pub struct Production {
     pub engine: Engine,
     audio_mixer: AudioStore,
+    observed_audio: Option<audio::AudioLifecycle>,
     profiles: ProfileStore,
     recording_profile: String,
     streaming_profile: String,
@@ -278,6 +287,7 @@ impl Production {
         let mut p = Self {
             engine: Engine::new()?,
             audio_mixer: AudioStore::default(),
+            observed_audio: None,
             profiles: ProfileStore::default(),
             recording_profile: "standard".into(),
             streaming_profile: "standard".into(),
@@ -407,10 +417,17 @@ impl Production {
                 (!code.is_empty()).then(|| (s["id"].as_str().unwrap_or("").into(), code.into()))
             })
             .collect();
-        if let Some(code) = match self.engine.audio_health() {
+        // Preserve the old single-input stop policy for legacy UI/CLI. The new
+        // mixer isolates a failed channel and keeps all other channels/output live.
+        if let Some(code) = match if self.audio_mixer.inputs.len() <= 1 {
+            self.engine.audio_health()
+        } else {
+            0
+        } {
             1 => Some("DEVICE_UNAVAILABLE"),
             2 => Some("MICROPHONE_PERMISSION_DENIED"),
             3 => Some("AUDIO_NOT_READY"),
+            6 => Some("AUDIO_STALLED"),
             _ => None,
         } {
             result.push(("audio".into(), code.into()));
@@ -418,6 +435,13 @@ impl Production {
         result
     }
     pub fn poll_health(&mut self) {
+        self.engine.poll_audio();
+        let audio = self.engine.audio_state();
+        let lifecycle = audio.lifecycle();
+        if self.observed_audio.as_ref() != Some(&lifecycle) {
+            self.observed_audio = Some(lifecycle);
+            self.revision += 1;
+        }
         self.engine.poll_scene();
         let transition = self.engine.scene_state();
         let observed = (transition.operation_id, transition.phase);
@@ -493,6 +517,11 @@ impl Production {
         Ok(())
     }
     fn source_ready(&self) -> anyhow::Result<()> {
+        let audio = self.engine.audio_state();
+        anyhow::ensure!(
+            audio.ready(),
+            "AUDIO_NOT_READY: inspect audio_mixer.issues and reconnect the affected input"
+        );
         let faults = self.faults();
         anyhow::ensure!(
             faults.is_empty(),
@@ -517,7 +546,8 @@ impl Production {
         Ok(())
     }
     pub fn audio_mixer_status(&self) -> Value {
-        json!({"store":self.audio_mixer,"runtime":self.engine.audio_state(),
+        let runtime = self.engine.audio_state();
+        json!({"store":self.audio_mixer,"issues":runtime.issues(),"runtime":runtime,
             "meter_point":"post_fader_pre_mute","meter_kind":"sample_peak_and_rms",
             "mix_meter_point":"post_fader_post_mute_pre_clamp","monitoring":"off","mix_index":0})
     }
@@ -551,41 +581,116 @@ impl Production {
             !device.is_empty() && device.len() < 512 && !device.contains('\0'),
             "INVALID_ARGUMENT: audio inválido"
         );
-        if device == self.project.audio && self.engine.audio_health() == 0 {
-            return Ok(());
-        }
-        // Compatibility selector changes only its previous channel. Other mixer
-        // inputs survive project restoration and legacy UI operations.
-        if let Some(previous) = self
+        let previous = self
             .audio_mixer
             .inputs
             .iter()
             .find(|i| i.source.device() == self.project.audio)
-            .map(|i| i.id.clone())
+            .map(|i| i.id.clone());
+        let target = self
+            .audio_mixer
+            .inputs
+            .iter()
+            .find(|i| i.source.device() == device)
+            .cloned();
+        if device != "none" {
+            if let Some(input) = target {
+                if self
+                    .engine
+                    .audio_state()
+                    .inputs
+                    .iter()
+                    .any(|r| r.id == input.id && r.phase != audio::AudioPhase::Ready)
+                {
+                    self.engine.audio_reconnect(&input)?;
+                }
+            } else {
+                let source = if device == "tone" {
+                    AudioSource::Tone
+                } else {
+                    AudioSource::Microphone {
+                        device_id: device.into(),
+                    }
+                };
+                // Prepare first: a denied/missing selection must not destroy the
+                // previous working source or rewrite its desired identity.
+                let id = self.add_audio("Audio principal".into(), source)?;
+                let input = self
+                    .audio_mixer
+                    .inputs
+                    .iter_mut()
+                    .find(|i| i.id == id)
+                    .unwrap();
+                input.gain_db = 0.0;
+                self.engine.audio_control(input)?;
+            }
+        }
+        if device != self.project.audio
+            && let Some(previous) = previous
         {
             self.remove_audio(&previous)?;
-        }
-        if device != "none" {
-            let source = if device == "tone" {
-                AudioSource::Tone
-            } else {
-                AudioSource::Microphone {
-                    device_id: device.into(),
-                }
-            };
-            let id = self.add_audio("Audio principal".into(), source)?;
-            let input = self
-                .audio_mixer
-                .inputs
-                .iter_mut()
-                .find(|i| i.id == id)
-                .unwrap();
-            input.gain_db = 0.0;
-            self.engine.audio_control(input)?;
         }
         self.project.audio = device.into();
         self.engine.audio_legacy(device)?;
         self.awaiting_recovery.insert("audio".into());
+        Ok(())
+    }
+    fn restore_audio(&mut self, store: AudioStore) -> anyhow::Result<()> {
+        self.idle()?;
+        store.validate()?;
+        let previous = self.audio_mixer.clone();
+        let previous_runtime = self.engine.audio_state();
+        // Drop obsolete captures, but retain every physical identity shared by
+        // the documents. Remap retained IDs through private temporary IDs so a
+        // valid permutation cannot collide or create a second physical capture.
+        for input in &previous.inputs {
+            if !store.inputs.iter().any(|i| i.source == input.source) {
+                self.engine.audio_remove(&input.id)?;
+            }
+        }
+        let mut reused = Vec::new();
+        for (index, input) in previous.inputs.iter().enumerate() {
+            if let Some(target) = store.inputs.iter().find(|i| i.source == input.source) {
+                let temp = format!("restore-{index}");
+                self.engine.audio_rename_id(&input.id, &temp)?;
+                let retry = previous_runtime.inputs.iter().any(|r| {
+                    r.id == input.id
+                        && matches!(
+                            r.phase,
+                            audio::AudioPhase::Failed | audio::AudioPhase::Disconnected
+                        )
+                });
+                reused.push((temp, target, retry));
+            }
+        }
+        for (temp, input, retry) in reused {
+            self.engine.audio_rename_id(&temp, &input.id)?;
+            self.engine.audio_control(input)?;
+            if retry {
+                let _ = self.engine.audio_reconnect(input);
+            }
+        }
+        for input in &store.inputs {
+            if !previous.inputs.iter().any(|i| i.source == input.source)
+                && self
+                    .engine
+                    .audio_add(input, &data_dir().join("tone.wav").to_string_lossy())
+                    .is_err()
+            {
+                self.engine.audio_restore_missing(input)?;
+            }
+        }
+        self.audio_mixer = store;
+        let legacy_exists = self
+            .audio_mixer
+            .inputs
+            .iter()
+            .any(|i| i.source.device() == self.project.audio);
+        self.engine.audio_legacy(if legacy_exists {
+            &self.project.audio
+        } else {
+            "none"
+        })?;
         Ok(())
     }
     fn native_graph(
@@ -760,6 +865,7 @@ impl Production {
             }
         }
         let old = self.project.clone();
+        let old_audio = self.audio_mixer.clone();
         let old_bindings = self.bindings.clone();
         let result = (|| {
             self.engine.variant(p.variant == Variant::Vertical)?;
@@ -771,7 +877,8 @@ impl Production {
         if let Err(failure) = result {
             let rollback = (|| {
                 self.engine.variant(old.variant == Variant::Vertical)?;
-                self.audio(&old.audio)?;
+                self.project.audio = old.audio.clone();
+                self.restore_audio(old_audio)?;
                 self.project.variant = old.variant;
                 self.sync(old.graph.clone().unwrap(), old_bindings, "")?;
                 Ok::<_, anyhow::Error>(())
@@ -1151,6 +1258,36 @@ impl Production {
                 Command::SelectCamera { id } => {
                     self.legacy_source(SourceInput::Camera { device_id: id })?
                 }
+                Command::SaveAudioMixer => {
+                    self.audio_mixer.validate()?;
+                    let path = data_dir().join("audio-mixer.json");
+                    let temp = path.with_extension("json.tmp");
+                    use std::io::Write;
+                    let mut file = fs::File::create(&temp)?;
+                    file.write_all(&serde_json::to_vec_pretty(&self.audio_mixer)?)?;
+                    file.sync_all()?;
+                    fs::rename(temp, path)?;
+                    fs::File::open(data_dir())?.sync_all()?;
+                }
+                Command::LoadAudioMixer => {
+                    use std::io::Read;
+                    let mut bytes = vec![];
+                    fs::File::open(data_dir().join("audio-mixer.json"))?
+                        .take(65537)
+                        .read_to_end(&mut bytes)?;
+                    self.restore_audio(AudioStore::parse(&bytes)?)?;
+                }
+                Command::DisconnectAudioInput { input_id } => {
+                    self.audio_mixer.input(&input_id)?;
+                    self.engine.audio_disconnect(&input_id)?;
+                }
+                Command::ReconnectAudioInput { input_id } => {
+                    let input = self.audio_mixer.input(&input_id)?.clone();
+                    self.engine.audio_reconnect(&input)?;
+                    if input.source.device() == self.project.audio {
+                        self.awaiting_recovery.insert("audio".into());
+                    }
+                }
                 Command::AddAudioInput { name, source } => {
                     self.idle()?;
                     self.add_audio(name, source)?;
@@ -1198,9 +1335,9 @@ impl Production {
                 Command::ReconnectSources => {
                     self.idle()?;
                     self.sync(self.graph().clone(), self.bindings.clone(), "*")?;
-                    let selected = self.project.audio.clone();
-                    self.project.audio = "none".into();
-                    self.audio(&selected)?;
+                    for input in &self.audio_mixer.inputs {
+                        self.engine.audio_reconnect(input)?;
+                    }
                     self.engine.reset_output()?;
                     self.recovery.resolve("output");
                     self.awaiting_recovery.extend(
@@ -1337,6 +1474,7 @@ impl Production {
                 let mut response = command_error(e);
                 response["revision"] = json!(self.revision);
                 response["transition"] = json!(self.engine.scene_state());
+                response["audio_mixer"] = self.audio_mixer_status();
                 response
             }
         }

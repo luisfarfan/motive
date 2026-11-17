@@ -29,6 +29,11 @@ class VerificationPaths:
     def socket(self):
         return self.data_root / 'run/motive.sock'
 
+    @property
+    def diagnostics_root(self):
+        return (self.data_root.parent.parent / 'Logs/Motive'
+                if self.portable else self.root / 'var/evidence')
+
     def lock_matches(self, text, development_milestone='H13'):
         if not self.portable:
             return development_milestone in text and str(self.root) in text
@@ -40,8 +45,9 @@ class VerificationPaths:
                 and isinstance(owner.get('owner'), str) and 'H14' in owner['owner'].split())
 
     def manifest(self):
-        return {key: str(value) if isinstance(value, Path) else value
-                for key, value in self.__dict__.items()}
+        return {**{key: str(value) if isinstance(value, Path) else value
+                   for key, value in self.__dict__.items()},
+                'diagnostics_root': str(self.diagnostics_root)}
 
 
 def _absolute(value, label):

@@ -40,12 +40,15 @@ class VerificationPathTests(unittest.TestCase):
         self.assertEqual(value.client_executable, self.root / 'target/debug/motive')
         self.assertEqual(value.data_root, self.root / 'var')
         self.assertEqual(value.recordings_root, self.root / 'var/recordings')
+        self.assertEqual(value.diagnostics_root, self.root / 'var/evidence')
         self.assertFalse(self.root.exists())
 
     def test_portable_uses_one_binary_and_real_user_paths_without_creating_them(self):
         value = self.resolve()
         self.assertEqual(value.app_executable, value.client_executable)
         self.assertEqual(value.socket, Path(self.env['MOTIVE_TEST_DATA_ROOT']) / 'run/motive.sock')
+        self.assertEqual(value.diagnostics_root, self.home / 'Library/Logs/Motive')
+        self.assertEqual(value.manifest()['diagnostics_root'], str(value.diagnostics_root))
         self.assertFalse(self.home.exists())
         self.assertTrue(value.portable)
 

@@ -244,7 +244,7 @@ try:
     report['checks'].append('save, graceful shutdown, new PID, load, identical stable IDs/layouts, valid new recording')
     report['final_state'] = end
     command('snapshot')
-    (EVIDENCE/'scene-composition.png').write_bytes((EVIDENCE/'preview.png').read_bytes())
+    (EVIDENCE/'scene-composition.png').write_bytes((VERIFY.diagnostics_root/'preview.png').read_bytes())
     report['ok'] = True
 except BaseException as exc:
     report['error'] = repr(exc)

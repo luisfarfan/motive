@@ -236,3 +236,38 @@ La preparación GPUI anterior queda registrada como preparación, sin salidas
 iniciadas, en `var/evidence/h13-native-1794936995861463000/`. No acredita la toma
 dual final. La ventana compacta 1024×780, temas y cierre idle por Cmd+Q/menú sí
 se observaron en `var/evidence/h13-ui-increment/`; cierre con salidas pendiente.
+
+## Incremento 6: sello de cierre e importaciones en curso
+
+La auditoría encontró que `shutdown` legacy no establecía el guard de cierre y
+que las mutaciones tempranas de overlays lo omitían. El núcleo ahora bloquea
+nuevos trabajos tanto en la fase pendiente como cuando ya está listo para salir.
+El cierre también espera una importación existente sin entrar prematuramente
+en el `join` de su destructor en el hilo de UI. No cambia el parche RTMP H8.
+
+Bundle SHA-256
+`d9b8d7026e301330d62f2f541af90c1dd245a86f79ad1fd8a35e81b08e0e2d93`:
+71 tests, Clippy y formato PASS (`h13-build/shutdown-gate-*.log`). La prueba
+de ventana estrecha por sockets no reprodujo un rechazo observable: primer
+ensayo conserva un fallo del chequeo de PID del harness, segundo INCONCLUSIVE
+por cierre antes de la admisión. No se declara reproducción multimedia de esa
+carrera ni se acepta EOF como prueba del guard.
+
+Prueba determinista H8 en
+`var/evidence/h13-regressions-1794937943048758000/manifest.json`: PASS, 14 ciclos
+y 47,6 s. Con conexión silenciosa y cierre pendiente, los dos arranques dirigidos,
+ambos preflights e importación se rechazan con `SHUTDOWN_PENDING`; consultas de
+overlays, assets y outputs siguen funcionando, sin incrementar intentos. El
+owner sale después de liberar el peer; restauración completa sin errores.
+
+Importación real de clip 1080p/20,27 s mientras se cierra, en
+`var/evidence/h13-import-shutdown-1794938158330488000/report.json`: PASS.
+29 consultas posteriores observan el mismo worker activo; máximo 88,9 ms,
+petición de cierre 30,7 ms. Se observa el resultado `completed` antes de salir
+en 3,271 s. Stores intactos y copia propia del inbox eliminada después del cierre.
+El primer informe conserva un falso fallo del harness al recibir `TIMEOUT` tras
+haber observado el resultado terminal: el servidor usa ese código también al
+cerrarse el canal de respuesta. Solo se admite ese límite si ya se vio el final
+real y la consulta tardó menos de 1 s; no se usa para inferir un worker terminado.
+
+Aceptación GPUI con salidas y resto de regresiones finales todavía pendientes.

@@ -104,7 +104,7 @@ impl Studio {
             return true;
         }
         if self.lifecycle.shutdown_waiting {
-            self.message = "Cierre pendiente: finalizando las salidas y esperando sus conexiones. La aplicación permanecerá abierta hasta terminar.".into();
+            self.message = "Cierre pendiente: esperando salidas, conexiones e importaciones. La aplicación permanecerá abierta hasta terminar.".into();
         }
         false
     }

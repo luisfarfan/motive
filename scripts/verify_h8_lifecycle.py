@@ -76,6 +76,23 @@ try:
     port,accepted,release=silent(20);cancel(port,accepted)
     response=c.call('request_shutdown')['state'];assert response['output']=='cancel_pending' and response['output_lifecycle']['shutdown_pending']
     assert c.call('start_recording',expect=False)['error']['code']=='SHUTDOWN_PENDING'
+    # Exercise the same terminal admission gate through the real owner while
+    # the silent RTMP peer makes shutdown_pending deterministic. Neither target
+    # nor the early overlay dispatch may reopen work during this interval.
+    rejected=[]
+    for op,args in [
+        ('start_output',{'target':'recording'}),
+        ('start_output',{'target':'streaming'}),
+        ('preflight_output',{'target':'recording'}),
+        ('preflight_output',{'target':'streaming'}),
+        ('import_asset',{'file_name':'h8-shutdown-must-not-import.png'}),
+    ]:
+        result=c.call(op,expect=False,**args)
+        assert result['error']['code']=='SHUTDOWN_PENDING',result
+        rejected.append({'op':op,'arguments':args,'response':result})
+    queries={op:c.call(op) for op in ('overlay_state','list_assets','outputs')}
+    for target in ('recording','streaming'):
+        assert queries['outputs']['outputs'][target]['attempt_id']==response['outputs'][target]['attempt_id']
     time.sleep(.5);assert c.state()['output_lifecycle']['native_busy']
     release.set();deadline=time.monotonic()+12
     while time.monotonic()<deadline:
@@ -83,7 +100,7 @@ try:
         except ProcessLookupError:break
         time.sleep(.1)
     else:raise AssertionError('Motive did not finish deferred shutdown')
-    report['shutdown']={'request':response,'process_exited':True}
+    report['shutdown']={'request':response,'rejected_after_request':rejected,'queries_after_request':queries,'process_exited':True}
     report['ok']=True
 except BaseException as e:report['error']=repr(e);raise
 finally:

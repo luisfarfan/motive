@@ -2,10 +2,12 @@
 
 Estado al 2026-11-17: **núcleo, CLI/MCP y presentación GPUI implementados;
 aceptación H13 pendiente**, sobre OBS 33.0.1. El registro y los comandos siguientes
-ya existen en el worktree H13. Las primeras pruebas reales acreditan control de
-dos salidas, supervivencia y recuperación por destino; una discontinuidad de
-audio conserva el resultado global de la matriz en FAIL. La nueva presentación
-GPUI aún requiere build integrado y operación nativa. Ver los límites y la
+ya existen en el worktree H13. Las pruebas reales acreditan control de
+dos salidas, supervivencia y recuperación por destino. La primera matriz falló
+por una discontinuidad del tono; después de corregir su entrega, la matriz
+normal completa pasa en los doce medios conservando el fallo original.
+GPUI está en el bundle integrado y su aceptación de producción sigue pendiente.
+Ver los límites y la
 evidencia concreta en las secciones 9 y 10; implementar no equivale a completar
 la aceptación.
 
@@ -292,11 +294,18 @@ No incluir claves, URLs con credenciales ni mensajes arbitrarios secretos en
 H9 y solicita finalizar cada slot. Cualquier conexión pendiente mantiene el
 owner y su memoria vivos. El polling del owner ejecuta el stop diferido cuando
 sea seguro. `shutdown_requested` solo se publica cuando todos los outputs y
-workers son quiescentes. Cmd+Q, menú Quit y cierre de ventana usan este camino.
+workers son quiescentes, incluida cualquier importación H11 en curso. La UI
+continúa consultando hasta recoger su resultado; no entra en el `join` del
+destructor mientras ese worker siga activo. Cmd+Q, menú Quit y cierre de ventana
+usan este camino.
 
 Durante shutdown se permiten consultas y peticiones repetidas de cancelación/
 shutdown; los nuevos arranques o cambios de configuración devuelven
-`SHUTDOWN_PENDING`. La UI muestra el motivo de espera por destino. Un timeout
+`SHUTDOWN_PENDING`, incluidas las mutaciones de overlays y su entrada temprana.
+El sello se aplica tanto a `shutdown_pending` como al estado listo para salir;
+el comando legacy también lo establece antes de responder, para impedir que
+otro arranque de la cola pueda reabrir una salida. La UI muestra el motivo de
+espera por destino. Un timeout
 de observación no fuerza destrucción. `shutdown` inmediato heredado sigue
 rechazando outputs ocupados. Ante un drop anormal del owner, conservar la
 protección nativa que evita liberar memoria usada por workers.

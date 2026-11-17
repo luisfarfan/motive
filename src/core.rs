@@ -213,6 +213,26 @@ pub enum Command {
     #[serde(untagged)]
     Overlay(overlays::OverlayCommand),
 }
+// Applied after read-only queries: once either shutdown phase is reached, no
+// queued mutation may reopen an output before the owner dispatches native Quit.
+fn admit_shutdown_mutation(
+    command: &Command,
+    pending: bool,
+    requested: bool,
+) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        !(pending || requested)
+            || matches!(
+                command,
+                Command::CancelOutput
+                    | Command::CancelOutputTarget { .. }
+                    | Command::CancelAllOutputs
+                    | Command::RequestShutdown
+            ),
+        "SHUTDOWN_PENDING: native output must finish before exit"
+    );
+    Ok(())
+}
 fn same_shape(a: &Value, b: &Value) -> bool {
     match (a, b) {
         (Value::Object(a), Value::Object(b)) => {
@@ -465,7 +485,11 @@ impl Production {
                 "deferred_cancellation_supported":true,"rtmp_lifecycle":"obs-33.0.1-pinned-joinable-workers"})
     }
     fn preflight(&self, target: OutputTarget) -> anyhow::Result<()> {
-        anyhow::ensure!(!self.shutdown_pending, "SHUTDOWN_PENDING");
+        admit_shutdown_mutation(
+            &Command::PreflightOutput { target },
+            self.shutdown_pending,
+            self.shutdown_requested,
+        )?;
         anyhow::ensure!(!self.overlays.busy(), "ASSET_IMPORT_BUSY");
         self.scene_quiescent()?;
         let outputs = self.output_snapshot();
@@ -583,7 +607,11 @@ impl Production {
                 self.issues.join(", ")
             );
         }
-        if self.shutdown_pending && !self.outputs.busy() && self.engine.output_state() == 0 {
+        if self.shutdown_pending
+            && !self.outputs.busy()
+            && self.engine.output_state() == 0
+            && !self.overlays.busy()
+        {
             self.shutdown_requested = true;
         }
         let ready: Vec<_> = self
@@ -1190,6 +1218,12 @@ impl Production {
     }
     pub fn apply(&mut self, command: Command, origin: &str) -> Value {
         self.poll_health();
+        if matches!(&command, Command::Overlay(overlay) if !overlay.query())
+            && let Err(e) =
+                admit_shutdown_mutation(&command, self.shutdown_pending, self.shutdown_requested)
+        {
+            return command_error(e);
+        }
         if let Command::Overlay(command) = command {
             return self.apply_overlay(command, origin);
         }
@@ -1252,17 +1286,7 @@ impl Production {
             .unwrap()
             .to_owned();
         let result = (|| -> anyhow::Result<()> {
-            anyhow::ensure!(
-                !self.shutdown_pending
-                    || matches!(
-                        command,
-                        Command::CancelOutput
-                            | Command::CancelOutputTarget { .. }
-                            | Command::CancelAllOutputs
-                            | Command::RequestShutdown
-                    ),
-                "SHUTDOWN_PENDING: native output must finish before exit"
-            );
+            admit_shutdown_mutation(&command, self.shutdown_pending, self.shutdown_requested)?;
             match command {
                 Command::ConfigureVideo { video } => {
                     self.configure_video(Some(video), self.project.variant)?;
@@ -1517,7 +1541,9 @@ impl Production {
                     self.engine
                         .cancel_scene(self.engine.scene_state().operation_id)?;
                     self.cancel_all_outputs();
-                    if !self.output_snapshot().busy() {
+                    // Let the owner keep polling an import before dropping its
+                    // worker; State::drop must not join a live job on the UI thread.
+                    if !self.output_snapshot().busy() && !self.overlays.busy() {
                         self.shutdown_requested = true;
                     }
                 }
@@ -1556,6 +1582,7 @@ impl Production {
                 }
                 Command::Shutdown => {
                     self.idle()?;
+                    self.shutdown_pending = true;
                     self.shutdown_requested = true;
                 }
                 Command::SetTestWindow { open } => {
@@ -1762,6 +1789,44 @@ fn create_tone() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn shutdown_admission_blocks_queued_starts_in_both_terminal_phases() {
+        let commands = [
+            json!({"op":"start_recording"}),
+            json!({"op":"start_local_stream"}),
+            json!({"op":"start_stream"}),
+            json!({"op":"start_output","target":"recording"}),
+            json!({"op":"start_output","target":"streaming"}),
+            json!({"op":"preflight_output","target":"recording"}),
+            json!({"op":"set_test_window","open":true}),
+            json!({"op":"import_asset","file_name":"queued.png"}),
+            json!({"op":"save_project"}),
+        ];
+        for value in commands {
+            let command = parse_command(value.clone()).unwrap();
+            assert!(admit_shutdown_mutation(&command, false, false).is_ok());
+            // Include requested-only as a defensive terminal snapshot: native
+            // Quit must never trust that flag while an accepted start can race it.
+            for (pending, requested) in [(true, false), (true, true), (false, true)] {
+                let response = command_error(
+                    admit_shutdown_mutation(&command, pending, requested).unwrap_err(),
+                );
+                assert_eq!(response["error"]["code"], "SHUTDOWN_PENDING", "{value}");
+            }
+        }
+        for value in [
+            json!({"op":"cancel_output"}),
+            json!({"op":"cancel_output_target","target":"recording"}),
+            json!({"op":"cancel_output_target","target":"streaming"}),
+            json!({"op":"cancel_all_outputs"}),
+            json!({"op":"request_shutdown"}),
+        ] {
+            let command = parse_command(value).unwrap();
+            for (pending, requested) in [(true, false), (true, true), (false, true)] {
+                assert!(admit_shutdown_mutation(&command, pending, requested).is_ok());
+            }
+        }
+    }
     #[test]
     fn video_projects_are_explicit_and_legacy_coordinates_roundtrip_unchanged() {
         for version in 1..=4 {

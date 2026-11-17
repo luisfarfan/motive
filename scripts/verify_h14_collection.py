@@ -19,7 +19,7 @@ import time
 import traceback
 
 from h14_collection_helpers import (PHASES, counter_patches, counter_summary, decode_counter, focus_conditions, owned_stop_command,
-    require, validate_fixture, validate_manifest, validate_markers)
+    require, unique_owned_tone, validate_fixture, validate_manifest, validate_markers)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LIMIT = 16 * 1024 * 1024
@@ -194,6 +194,7 @@ def run_trial(args):
                         'No external destination, physical audio/camera, app launch, GUI control or automatic restart.']}
     client = receiver = initial = None; changed = False; tone = None; profile_id = 'h14-collection-'+manifest['trial_id']
     attempted = {}; owned = {}; profiles_created = False; start = end = None; prior_fixture_rows = 0
+    tone_name = 'H14 collection internal tone '+manifest['trial_id']; prior_audio_ids = set(); tone_attempted = False
     def flush(): save(out/'report.json', report)
     def sample(label):
         nonlocal prior_fixture_rows
@@ -240,8 +241,14 @@ def run_trial(args):
         changed = True
         client.call('configure_video', video={'version':1,'resolution':'full_hd1080','fps':30,'coordinate_space':'design960'})
         client.call('set_overlay', visible=False)
-        response = client.call('add_audio_input', name='H14 collection internal tone '+manifest['trial_id'], source={'kind':'tone'})
-        tone = response['state']['audio_mixer']['store']['inputs'][0]['id']; client.call('set_audio_gain',input_id=tone,gain_db=-12)
+        prior_audio_ids = {item['id'] for item in client.state()['audio_mixer']['store']['inputs']}
+        require(not prior_audio_ids, 'Mixer changed before own tone admission')
+        tone_attempted = True
+        response = client.call('add_audio_input', name=tone_name, source={'kind':'tone'})
+        inputs = response['state']['audio_mixer']['store']['inputs']
+        tone = unique_owned_tone(inputs, tone_name, prior_audio_ids)
+        require(len(inputs) == 1, 'Concurrent unrelated mixer input; do not start outputs')
+        client.call('set_audio_gain',input_id=tone,gain_db=-12)
         profile = {'id':profile_id,'encoder':'videotoolbox','bitrate_kbps':4000,'rate_control':'cbr','keyframe_seconds':1,'frame_reordering':False}
         client.call('upsert_output_profile',profile=profile); profiles_created=True; report['profile']=profile
         for target in ('recording','streaming'):client.call('select_output_profile',target=target,profile_id=profile_id)
@@ -319,7 +326,15 @@ def run_trial(args):
                     state=client.state();require(all(not s['native_busy'] for s in state['outputs'].values()),'Unrelated output busy; resource cleanup withheld')
                     require(state['window_id'] in (None,manifest['fixture']['window_id']),'Window selection changed; leave it for owner')
                     client.call('select_source',window_id=None)
-                    if tone:client.call('remove_audio_input',input_id=tone)
+                    if tone_attempted:
+                        inputs = client.state()['audio_mixer']['store']['inputs']
+                        if tone is None and any(i.get('name') == tone_name for i in inputs):
+                            tone = unique_owned_tone(inputs, tone_name, prior_audio_ids)
+                        matching = [i for i in inputs if i['id'] == tone]
+                        if matching:
+                            require(len(matching) == 1 and matching[0]['name'] == tone_name
+                                    and matching[0]['source'] == {'kind':'tone'}, 'Tone identity changed; cleanup withheld')
+                            client.call('remove_audio_input',input_id=tone)
                     for target in ('recording','streaming'):
                         current=client.state()['output_configuration'][target+'_profile']
                         original=report['original_configuration'][target+'_profile']

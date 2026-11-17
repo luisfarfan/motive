@@ -5,11 +5,21 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from h14_collection_helpers import (PHASES, counter_patches, counter_summary, decode_counter, focus_conditions, owned_stop_command,
-    validate_fixture, validate_manifest, validate_markers)
+    unique_owned_tone, validate_fixture, validate_manifest, validate_markers)
 from verify_h14_collection import Client, plan
 
 
 class CollectionTests(unittest.TestCase):
+    def test_new_owned_tone_ignores_order_and_rejects_reuse_or_ambiguity(self):
+        mine={'id':'audio-2','name':'owned','source':{'kind':'tone'},'muted':False}
+        foreign={'id':'audio-1','name':'foreign','source':{'kind':'microphone','device_id':'other'},'muted':False}
+        self.assertEqual(unique_owned_tone([foreign,mine],'owned',{'audio-1'}),'audio-2')
+        self.assertEqual(unique_owned_tone([mine,foreign],'owned',{'audio-1'}),'audio-2')
+        for inputs,prior in [([mine],{'audio-2'}), ([mine,{**mine,'id':'audio-3'}],set()),
+                             ([{**mine,'muted':True}],set()), ([{**mine,'source':foreign['source']}],set()),
+                             ([mine,{**foreign,'id':'audio-2'}],set())]:
+            with self.assertRaises(ValueError):unique_owned_tone(inputs,'owned',prior)
+
     def setUp(self):
         self.manifest=plan()['manifest']
         self.ready={'event':'ready','pid':222,'window_id':333,'bundle_id':'local.motive.collectionfixture',

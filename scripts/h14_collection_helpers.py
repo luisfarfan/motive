@@ -215,3 +215,16 @@ def owned_stop_command(slot, attempt):
     if not slot['native_busy']:
         return None
     return 'stop_output_target' if slot['phase'] == 'active' else 'cancel_output_target'
+
+
+def unique_owned_tone(inputs, name, prior_ids):
+    """Identify a newly admitted exact tone, independent of input list order."""
+    require(isinstance(inputs, list) and len(inputs) <= 8 and all(isinstance(item, dict) for item in inputs),
+            'Bounded mixer input objects required')
+    candidates = [item for item in inputs if isinstance(item, dict)
+                  and isinstance(item.get('id'), str) and bool(item['id']) and item['id'] not in prior_ids
+                  and item.get('name') == name and item.get('source') == {'kind': 'tone'}
+                  and item.get('muted') is False]
+    require(len(candidates) == 1, 'Exactly one new owned unmuted tone is required')
+    require(sum(item.get('id') == candidates[0]['id'] for item in inputs) == 1, 'Tone ID must be unique')
+    return candidates[0]['id']

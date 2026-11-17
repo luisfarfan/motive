@@ -118,10 +118,7 @@ impl Studio {
         let state = self.production.status();
         col()
             .gap(px(10.))
-            .child(label(
-                "Perfiles v1 · definiciones separadas del proyecto",
-                p.secondary,
-            ))
+            .child(label("Perfiles de grabación y streaming", p.secondary))
             .children(self.forms.profiles.iter().enumerate().map(|(i, profile)| {
                 let draft = profile.clone();
                 row()
@@ -279,17 +276,17 @@ impl Studio {
             .child(self.action("preflight-stream","Comprobar streaming",Command::PreflightOutput{target:OutputTarget::Streaming},cx))
             .child(self.action("start-stream","Iniciar transmisión local",Command::StartStream,cx))
             .child(self.action("recover-output","Recuperar salida",Command::RecoverOutput,cx))
-            .child(label("RTMPS mantiene validación TLS. La prueba positiva sigue pendiente; no se aceptan certificados inválidos.",p.muted))
+            .child(label("RTMPS verifica el certificado y el nombre del receptor.",p.muted))
             .child(field("Referencia Keychain (kc_…; nunca la clave)",&self.forms.credential,p))
             .child(row().child(quiet("bind-credential","Vincular referencia").on_click(cx.listener(|v,_,_,cx|{let credential_ref=v.forms.credential.read(cx).value().to_string();if valid_credential_ref(&credential_ref){v.form_submit(Command::SelectStreamCredential{credential_ref:Some(credential_ref)},cx)}else{v.message="Referencia opaca inválida; no se envió ningún valor al núcleo.".into();cx.notify();}})))
                 .child(self.action("clear-credential","Desvincular",Command::SelectStreamCredential{credential_ref:None},cx)))
             .child(quiet("credential-status","Consultar acceso Keychain").on_click(cx.listener(|v,_,_,cx|{let credential_ref=v.forms.credential.read(cx).value().to_string();if valid_credential_ref(&credential_ref){let r=v.command(Command::CredentialStatus{credential_ref},"UI",cx);v.message=format!("Keychain: {}",r["access"].as_str().unwrap_or("Error de consulta"));}else{v.message="Referencia opaca inválida".into();}cx.notify();})))
-            .child(label("Registrar/reemplazar/eliminar secretos requiere el flujo local autorizado del helper Keychain; no se capturan secretos en GPUI.",p.muted))
+            .child(label("Gestiona los secretos con el asistente local de credenciales. Aquí solo se vinculan sus referencias.",p.muted))
     }
     pub(super) fn studio_settings(&self, cx: &mut Context<Self>) -> Div {
         let p = Palette::new(self.dark);
         let s = self.production.status();
-        col().gap(px(10.)).child(label("Apariencia local; no modifica proyecto v3",p.secondary))
+        col().gap(px(10.)).child(label("Proyecto y apariencia se guardan por separado.",p.secondary))
             .child(quiet("theme-setting",if self.dark{"Cambiar a tema claro"}else{"Cambiar a tema oscuro"}).on_click(cx.listener(|v,_,w,cx|{v.dark = !v.dark;Palette::apply(v.dark,Some(w),cx);cx.notify();})))
             .child(quiet("safe-setting","Mostrar / ocultar margen seguro (⇧S)").on_click(cx.listener(|v,_,_,cx|{v.toggle_safe();cx.notify();})))
             .child(quiet("save-ui-preferences","Guardar apariencia y guías").on_click(cx.listener(|v,_,_,cx|{let prefs=crate::ui::preferences::Preferences{version:1,dark:v.dark,safe_margin:v.safe_margin()};v.message=match prefs.save(){Ok(())=>"Preferencias visuales guardadas".into(),Err(_)=>"No se pudieron guardar las preferencias visuales".into()};cx.notify();})))
@@ -300,6 +297,5 @@ impl Studio {
             .child(self.action("record-preflight","Comprobar grabación",Command::PreflightOutput{target:OutputTarget::Recording},cx))
             .child(label(format!("Encoder: {}",s["encoding"]["selected_id"].as_str().unwrap_or("sin selección activa")),p.secondary))
             .child(label(format!("Último archivo de esta sesión: {}",s["output_path"].as_str().unwrap_or("ninguno")),p.secondary))
-            .child(label("La biblioteca de grabaciones requiere un contrato del núcleo; no se exploran rutas arbitrarias.",p.muted))
     }
 }

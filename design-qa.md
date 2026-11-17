@@ -1,6 +1,6 @@
 # Native studio visual QA
 
-final result: pass for implemented UI-0–UI-3 scope, with the explicit limits below
+final result: blocked for UI evolution until final native validation; the prior UI-0–UI-3 review below remains historical evidence
 
 Source: approved `design/screens/phase-1/`, Phase 1 artboards and the unmodified
 local prototype. Implementation: signed native GPUI app, actual libobs preview.

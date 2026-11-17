@@ -8,7 +8,7 @@ impl Studio {
         let title = match panel {
             "project" => "Mi producción",
             "add-source" => "Añadir fuente",
-            "audio" => "Entrada de audio",
+            "audio" => "Mixer de audio",
             "output" => "Salida RTMP local",
             "agent" => "Control por agentes",
             "layer" => "Propiedades de capa",
@@ -53,10 +53,16 @@ impl Studio {
                         ),
                         p.secondary,
                     ))
-                    .child(label("Propuestas visuales de agentes: futuras.", p.muted));
+                    .child(label(
+                        "El historial refleja las operaciones aplicadas al estudio.",
+                        p.muted,
+                    ));
             }
-            "add-source" | "audio" => {
-                content = content.child(self.device_picker(panel, cx));
+            "audio" => {
+                content = content.child(self.mixer_settings(cx));
+            }
+            "add-source" => {
+                content = content.child(self.device_picker(cx));
             }
             "output" => {
                 content = content.child(self.output_settings(cx));

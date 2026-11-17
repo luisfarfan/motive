@@ -10,7 +10,10 @@ impl Studio {
         quiet(id, text).on_click(cx.listener(move |v, _, w, cx| {
             if matches!(
                 command,
-                Command::RemoveScene { .. }
+                Command::RemoveAudioInput { .. }
+                    | Command::DisconnectAudioInput { .. }
+                    | Command::LoadAudioMixer
+                    | Command::RemoveScene { .. }
                     | Command::RemoveLayer { .. }
                     | Command::RemoveSource { .. }
                     | Command::RemoveOutputProfile { .. }
@@ -66,21 +69,19 @@ impl Studio {
         cx: &mut Context<Self>,
     ) -> gpui_kit::component::popover::Popover {
         let id = panel.id();
-        let disabled = false;
         self.popover(
             id,
             panel,
             quiet((ElementId::from("trigger"), id), text)
                 .icon(icon)
                 .tooltip(match id {
-                    "audio" => "Seleccionar entrada de audio",
+                    "audio" => "Configurar mixer de audio",
                     "profiles" => "Perfiles de salida",
                     "settings" => "Preferencias y diagnóstico",
                     "scenes" => "Escenas y transiciones",
                     "add-source" => "Añadir fuente",
                     _ => text,
-                })
-                .disabled(disabled),
+                }),
             None,
             cx,
         )

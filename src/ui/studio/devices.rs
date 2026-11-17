@@ -1,12 +1,12 @@
 use super::*;
 impl Studio {
-    pub(super) fn device_picker(&self, panel: &str, cx: &mut Context<Self>) -> Div {
+    pub(super) fn device_picker(&self, cx: &mut Context<Self>) -> Div {
         let p = Palette::new(self.dark);
         let graph = self.production.graph();
         let scene = graph.scene(&graph.active_scene).unwrap();
         let mut content = col().gap(px(8.));
 
-        if panel == "add-source" {
+        {
             content = content
                 .child(
                     row().children(
@@ -92,31 +92,8 @@ impl Studio {
                             )
                         }),
                 );
-        } else {
-            content = content
-                .child(
-                    row()
-                        .child(self.action(
-                            "audio-none",
-                            "Sin audio",
-                            Command::SelectAudio { id: "none".into() },
-                            cx,
-                        ))
-                        .child(self.action(
-                            "audio-tone",
-                            "Tono de prueba",
-                            Command::SelectAudio { id: "tone".into() },
-                            cx,
-                        )),
-                )
-                .child(label("Micrófonos disponibles", p.muted));
         }
-        let kind = if panel == "audio" {
-            Some("audio")
-        } else {
-            self.picker
-        };
-        if let Some(kind) = kind {
+        if let Some(kind) = self.picker {
             let entries = self.devices[kind].as_array().cloned().unwrap_or_default();
             if entries.is_empty() {
                 content = content.child(label(
@@ -131,26 +108,21 @@ impl Studio {
                     .filter(|c| !c.is_control())
                     .take(80)
                     .collect::<String>();
-                let command = match kind {
-                    "audio" => Command::SelectAudio {
-                        id: d["id"].as_str()?.into(),
+                let command = Command::AddSource {
+                    scene_id: scene.id.clone(),
+                    name: if clean.trim().is_empty() {
+                        "Fuente".into()
+                    } else {
+                        clean
                     },
-                    _ => Command::AddSource {
-                        scene_id: scene.id.clone(),
-                        name: if clean.trim().is_empty() {
-                            "Fuente".into()
-                        } else {
-                            clean
-                        },
-                        source: if kind == "windows" {
-                            SourceInput::Window {
-                                window_id: d["id"].as_u64()? as u32,
-                            }
-                        } else {
-                            SourceInput::Camera {
-                                device_id: d["id"].as_str()?.into(),
-                            }
-                        },
+                    source: if kind == "windows" {
+                        SourceInput::Window {
+                            window_id: d["id"].as_u64()? as u32,
+                        }
+                    } else {
+                        SourceInput::Camera {
+                            device_id: d["id"].as_str()?.into(),
+                        }
                     },
                 };
                 Some(self.action(("device", i), name.to_owned(), command, cx))
@@ -158,7 +130,6 @@ impl Studio {
             content = content.child(quiet("permission", "Revisar permiso de macOS").on_click(
                 cx.listener(move |v, _, _, cx| {
                     v.production.engine.request_permission(match kind {
-                        "audio" => 1,
                         "cameras" => 2,
                         _ => 0,
                     });

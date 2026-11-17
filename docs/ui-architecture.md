@@ -1,8 +1,10 @@
 # Native UI architecture
 
-Baseline: 7280c5c. Worktree: motive-ui, branch codex/ui-evolution. No H10 code
-is imported. Claude Phase 1 remains the visual authority; Phase 2–5 designs are
-not published. No engine, project-v3 or profile-v1 changes are planned.
+Baseline: 7280c5c. Worktree: motive-ui, branch codex/ui-evolution. H10 was subsequently merged and verified in main at 0370ca4. Its three complete
+commits (076b6c2, ec1b00c, 6e76820) were imported as complete checkpoints; no
+partial engine integration. Claude Phase 1 remains the visual authority; Phase
+2–5 designs are not published. UI work does not change the engine or the
+project-v3/profile-v1 contracts.
 
 ## Audit and boundaries
 
@@ -56,3 +58,21 @@ Confirmations capture the revision and reject stale intent. Components include
 Kit button styles, property groups, numeric/text inputs and a real peak meter.
 Editor geometry and canvas rendering are separate. Appearance/safe-margin
 preferences have a strict local UI-only v1 schema; no multimedia state is stored.
+
+
+## Increment 3 — H10 presentation
+
+The mixer joins stored inputs and native runtime meters by stable ID. It owns
+only Kit Slider entities, pointer focus and revision-bound gesture drafts; gain,
+mute, devices, recovery and persistence remain H10 Commands. Release commits one
+command. Keyboard changes use Kit's step/release behavior. Native pointer focus
+needed a small adapter: Kit 0.10 does not focus its thumb on mouse-down. A real
+regression moved a selected layer when pressing Left after clicking a fader;
+the adapter now keeps arrows in the fader, verified against both gain and X.
+
+Two real inputs, mute/master silence, disconnect/reconnect and mixer restore
+were verified in GPUI and through MCP. A GPUI-started/stopped VT recording decoded
+542 H.264 frames with AAC. Native forms also exercised create/remove scene,
+source reuse/release, overlay RGB, Fade/cancel and exact X=64.125. Query profile
+lists refresh after UI and MCP mutations without overwriting open drafts.
+30 unit tests and Clippy pass; final media regression evidence follows.

@@ -193,6 +193,15 @@ impl Studio {
         let revision = self.production.revision;
         let weak = cx.entity().downgrade();
         let description = match &command {
+            Command::RemoveAudioInput { input_id } => {
+                format!("Eliminar entrada {input_id} y liberar su captura.")
+            }
+            Command::DisconnectAudioInput { input_id } => {
+                format!("Desconectar {input_id}; las otras entradas continúan.")
+            }
+            Command::LoadAudioMixer => {
+                "Restaurar el mixer guardado y reemplazar las entradas actuales.".into()
+            }
             Command::RemoveScene { scene_id } => format!(
                 "Eliminar escena {scene_id} y sus capas. Las fuentes compartidas se conservan."
             ),

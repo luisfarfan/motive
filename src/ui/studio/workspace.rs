@@ -4,6 +4,7 @@ impl Render for Studio {
         self.sync_fields(window, cx);
         let p = Palette::new(self.dark);
         let status = self.production.status();
+        self.sync_mixer_controls(&status, window, cx);
         let bounds = window.viewport_size();
         let width = f32::from(bounds.width);
         let height = f32::from(bounds.height);

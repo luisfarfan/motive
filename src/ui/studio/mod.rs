@@ -34,6 +34,7 @@ pub struct Studio {
     focus: FocusHandle,
     editor: editor::Editor,
     forms: forms::Forms,
+    mixer_ui: audio::MixerUi,
 }
 impl Studio {
     pub fn new(
@@ -134,6 +135,7 @@ impl Studio {
             focus: cx.focus_handle(),
             editor,
             forms,
+            mixer_ui: audio::MixerUi::default(),
         }
     }
     fn command(&mut self, cmd: Command, origin: &str, cx: &mut Context<Self>) -> Value {
@@ -152,6 +154,10 @@ impl Studio {
             self.message = "Configuración válida. La comprobación no abre una conexión.".into();
         } else if self.production.revision != revision {
             self.message = self.production.last_action.clone();
+        }
+        if result["ok"] == true && self.production.revision != revision {
+            // Query snapshots follow both UI and MCP writes; drafts retain their guard.
+            self.refresh_profiles();
         }
         if origin == "UI" && self.forms.revision == revision {
             self.forms.revision = self.production.revision;

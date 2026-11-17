@@ -153,3 +153,30 @@ La confirmación mantiene el guard de revisión existente.
 Desactivar reordering reduce el riesgo observado; no se presenta como un fix de
 flush ni certifica una salida. El informe general H14 conserva las métricas y
 los gates de aceptación abiertos del binario final.
+
+## B3: diferencia anterior a la parada
+
+Las trazas de `h14-show-control-b3-01` permiten acotar otra interpretación:
+la diferencia encoder→observador ya está presente durante la salida activa,
+no aparece exclusivamente al parar. En MKV, la primera traza conserva
+`encoded_frames=5`, tres paquetes observados y PTS `0,1,2`; antes de parar,
+2268 codificados frente a 2267 observados. RTMP empieza con 4 frente a 3 y
+antes de parar tiene 2262 frente a 2260. Al terminar, las diferencias son dos
+en ambos destinos. Los snapshots activos no son transacciones simultáneas.
+
+El código fijado de `libobs/obs-output.c:2204–2220` solo considera enviable
+un paquete cuando existe otro del medio opuesto con timestamp superior.
+`interleave_packets` puede conservar paquetes que el contador del encoder
+ya contó; `send_interleaved` observa una etapa posterior. El cierre
+(`:2837–2872`) retira callbacks de los encoders sin un vaciado indiscriminado
+del interleaver; `free_packets` (`:263–268`, usado al destruir/resetear)
+libera sus referencias restantes. Esa retención es una explicación compatible
+con las diferencias activas, **no una prueba de la ubicación exacta de las dos
+unidades terminales de esta toma**.
+
+No se ha añadido un callback privado anterior al interleaver ni se ha cambiado
+su algoritmo. El callback público empleado observa después de esa cola.
+Por tanto, la identidad temporal de las unidades anteriores al observador
+sigue sin medirse. La [prueba B3](h14-show-control-b3-verification.md) sí
+correlaciona los paquetes finales que alcanzaron el observador con los medios:
+su resultado conserva por separado los AAC posteriores a parada no escritos.

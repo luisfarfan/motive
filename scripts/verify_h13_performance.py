@@ -135,35 +135,65 @@ def analyze_media(record, directory):
     result['packet_timelines'] = {}
     for kind in ('video', 'audio'):
         values = [p for p in packets if p['codec_type'] == kind]
-        check(len(values) >= 2 and all('dts_time' in p and 'pts_time' in p for p in values),
-              'packet timestamp fields', kind=kind)
-        dts = [float(p['dts_time']) for p in values]
-        check(all(b > a for a, b in zip(dts, dts[1:])), 'monotonic packet DTS', kind=kind)
+        missing_pts = [i for i, p in enumerate(values) if 'pts_time' not in p]
+        missing_dts = [i for i, p in enumerate(values) if 'dts_time' not in p]
+        depth = video.get('has_b_frames', 0) if kind == 'video' else 0
+        check(type(depth) is int and depth >= 0, 'reported reorder depth', depth=depth)
+        prefix_only = missing_dts == list(range(len(missing_dts)))
+        summary = {'packets': len(values), 'missing_pts_packet_indices': missing_pts,
+            'missing_dts_packet_indices': missing_dts, 'reported_reorder_depth': depth,
+            'missing_dts_is_initial_prefix': prefix_only, 'inferred_dts_count': 0,
+            'known_dts_count': len(values)-len(missing_dts)}
+        result['packet_timelines'][kind] = summary
+        check(len(values) >= 2 and not missing_pts, 'complete packet PTS', kind=kind, timeline=summary)
+        packet_pts = [float(p['pts_time']) for p in values]
+        check(all(math.isfinite(p) for p in packet_pts), 'finite packet PTS', kind=kind)
+        # Matroska can omit only the decoder's initial reordering prefix. The
+        # actual stream depth bounds the exception; no DTS is synthesized and
+        # missing interior/tail DTS (or any missing audio DTS) still fails.
+        matroska = 'matroska' in probe.get('format', {}).get('format_name', '').split(',')
+        allowed_prefix = (kind == 'video' and matroska and depth > 0 and
+                          result['video']['b_frames'] > 0 and prefix_only and len(missing_dts) <= depth)
+        check(not missing_dts or allowed_prefix, 'DTS absent only in bounded initial reorder prefix',
+              kind=kind, timeline=summary)
+        known_dts = [(i, float(p['dts_time'])) for i, p in enumerate(values) if 'dts_time' in p]
+        check(len(known_dts) >= 2 and all(math.isfinite(d) for _, d in known_dts),
+              'finite known packet DTS', kind=kind, timeline=summary)
+        dts = [d for _, d in known_dts]
+        summary['known_dts_strictly_increasing'] = all(b > a for a, b in zip(dts, dts[1:]))
+        check(summary['known_dts_strictly_increasing'], 'monotonic known packet DTS', kind=kind)
         fallback = 1/fps if kind == 'video' else 1024/48000
         ends[kind] = max(float(p['pts_time']) + float(p.get('duration_time', fallback)) for p in values)
-        result['packet_timelines'][kind] = {'first_pts': min(float(p['pts_time']) for p in values),
-            'first_dts': dts[0], 'last_dts': dts[-1], 'presentation_end_s': ends[kind],
-            'durations_inferred': sum('duration_time' not in p for p in values)}
+        summary.update(first_pts=min(packet_pts), first_dts=dts[0] if not missing_dts else None,
+            first_known_dts_packet_index=known_dts[0][0], first_known_dts=dts[0], last_dts=dts[-1],
+            presentation_end_s=ends[kind], durations_inferred=sum('duration_time' not in p for p in values))
         if kind == 'audio':
             audio_pts = [float(p['pts_time']) for p in values]
             audio_gaps = [b-a for a, b in zip(audio_pts, audio_pts[1:])]
             result['packet_timelines'][kind]['max_gap_s'] = max(audio_gaps)
             result['gates']['continuous_aac'] = min(audio_gaps) > 0 and max(audio_gaps) <= .023
+    # Compare one actual channel with its native per-channel meter. Generic
+    # stereo -> mono downmix sums these identical channels with +3.01 dB gain.
     pcm = array.array('f', run('ffmpeg', '-nostdin', '-v', 'error', '-i', str(path), '-vn',
-                              '-ac', '1', '-ar', '48000', '-f', 'f32le', '-', timeout=600))
+                              '-af', 'pan=mono|c0=c0', '-ar', '48000', '-f', 'f32le', '-', timeout=600))
     rms = [math.sqrt(sum(x*x for x in pcm[i:i+960])/960)
            for i in range(0, len(pcm)-959, 960)][5:-5]
     peak = max(abs(x) for x in pcm)
     expected = 10**(-30/20)/math.sqrt(2)  # -24 dBFS peak tone, input gain -6 dB.
-    result['audio'] = {'decoded_samples': len(pcm), 'duration_s': len(pcm)/48000,
+    errors_db = [20*math.log10(max(v, 1e-12)/expected) for v in rms]
+    result['audio'] = {'decoded_channel': 'left; pan=mono|c0=c0; no summing or normalization',
+        'decoded_samples': len(pcm), 'duration_s': len(pcm)/48000,
         'rms_min': min(rms), 'rms_max': max(rms), 'peak': peak,
+        'expected_channel_rms': expected, 'max_abs_rms_error_db': max(map(abs, errors_db)),
+        'out_of_range_blocks': [{'start_seconds': (i+5)*.02, 'error_db': e}
+                               for i, e in enumerate(errors_db) if abs(e) >= 1],
         'packet_av_end_delta_s': ends['audio']-ends['video'],
         'last_100ms_rms': math.sqrt(sum(x*x for x in pcm[-4800:])/4800),
         'end_note': 'Packet durations included; AAC priming/padding mean this is not a drift measurement.'}
     result['gates']['continuous_unclipped_tone'] = (
-        peak < .1 and all(abs(20*math.log10(max(v, 1e-12)/expected)) < 1 for v in rms))
+        peak < .1 and all(abs(e) < 1 for e in errors_db))
     # Preserve a moving pattern strip even with the optional H11 clip at top right.
-    strip = run('ffmpeg', '-nostdin', '-v', 'error', '-ss', '.3', '-i', str(path), '-t', '1',
+    strip = run('ffmpeg', '-nostdin', '-v', 'error', '-ss', '0.3', '-i', str(path), '-t', '1',
         '-vf', 'scale=960:540:flags=area,format=rgb24,crop=960:1:0:270',
         '-fps_mode', 'passthrough', '-pix_fmt', 'rgb24', '-f', 'rawvideo', '-', timeout=600)
     centers = []

@@ -33,6 +33,7 @@ char *motive_encoding_info(motive_engine *e) {
     NSArray *available=e->encoder_inventory ? [NSJSONSerialization JSONObjectWithData:
         [@(e->encoder_inventory) dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil]:@[];
     NSDictionary *info=@{@"available":available,@"rtmp_available":@(e->rtmp_loaded),@"videotoolbox_loaded":@(e->vt_loaded),
+        @"native_logs_suppressed":@(atomic_load(&protect_obs_logs)),
         @"videotoolbox_id":e->vt_h264_id[0] ? @(e->vt_h264_id):[NSNull null],
         @"unavailable_reason":e->vt_unavailable_reason[0] ? @(e->vt_unavailable_reason):[NSNull null],
         @"selected_id":e->selected_encoder[0] ? @(e->selected_encoder):[NSNull null],
@@ -51,7 +52,7 @@ uint32_t motive_video_skipped_frames(void) { return video_output_get_skipped_fra
  * flags argument is ignored; unattached audio encoders are skipped. This makes
  * auto fallback specific to video initialization, before a mux helper starts.
  * A disk/mux/audio error must never silently retry or overwrite a partial file. */
-static bool prepare_encoded_video(motive_engine *e,const char *path,const char *id,obs_data_t *profile,bool stream) {
+static bool prepare_encoded_video(motive_engine *e,const char *path,const char *id,obs_data_t *profile,bool stream,const char *credential) {
     obs_data_t *settings=obs_data_create();
     obs_data_set_string(settings,"path",path);
     if (stream) {
@@ -62,8 +63,13 @@ static bool prepare_encoded_video(motive_engine *e,const char *path,const char *
     obs_data_release(settings);
     if (!e->output) {snprintf(e->error,sizeof(e->error),"OUTPUT_UNAVAILABLE");return false;}
     if (stream) {
+        calldata_t state;calldata_init(&state);
+        bool supported=proc_handler_call(obs_output_get_proc_handler(e->output),"get_thread_state",&state);
+        calldata_free(&state);
+        if (!supported) {snprintf(e->error,sizeof(e->error),"RTMP_LIFECYCLE_UNAVAILABLE");return false;}
         obs_data_t *service=obs_data_create();
         obs_data_set_string(service,"server",path);
+        obs_data_set_string(service,"credential_ref",credential ?: "");
         e->service=obs_service_create("motive_local_service","Local receiver",service,NULL);
         obs_data_release(service);
         if (!e->service) {snprintf(e->error,sizeof(e->error),"SERVICE_UNAVAILABLE");return false;}
@@ -92,7 +98,7 @@ static bool prepare_encoded_video(motive_engine *e,const char *path,const char *
     return true;
 }
 
-static bool start_encoded(motive_engine *e,const char *path,obs_data_t *profile,bool stream) {
+static bool start_encoded(motive_engine *e,const char *path,obs_data_t *profile,bool stream,const char *credential) {
     const char *policy=obs_data_get_string(profile,"encoder");
     bool automatic=!strcmp(policy,"auto");
     bool use_vt=strcmp(policy,"x264") && e->vt_h264_id[0];
@@ -103,12 +109,12 @@ static bool start_encoded(motive_engine *e,const char *path,obs_data_t *profile,
     if (automatic && !use_vt)
         snprintf(e->fallback_reason,sizeof(e->fallback_reason),"%s",e->vt_unavailable_reason);
     const char *id=use_vt ? e->vt_h264_id:"obs_x264";
-    bool ready=prepare_encoded_video(e,path,id,profile,stream);
+    bool ready=prepare_encoded_video(e,path,id,profile,stream,credential);
     if (!ready && automatic && use_vt && strncmp(e->error,"VIDEO_ENCODER_",14)==0) {
         snprintf(e->fallback_reason,sizeof(e->fallback_reason),"VIDEOTOOLBOX_INITIALIZATION_FAILED");
         release_output(e);
         e->error[0]=0;use_vt=false;id="obs_x264";
-        ready=prepare_encoded_video(e,path,id,profile,stream);
+        ready=prepare_encoded_video(e,path,id,profile,stream,credential);
     }
     if (!ready) {release_output(e);return false;}
     obs_data_t *a=obs_data_create();obs_data_set_int(a,"bitrate",160);
@@ -122,7 +128,7 @@ static bool start_encoded(motive_engine *e,const char *path,obs_data_t *profile,
     signal_handler_connect(obs_output_get_signal_handler(e->output),"start",output_started,e);
     signal_handler_connect(obs_output_get_signal_handler(e->output),"stop",output_stopped,e);
     if (!obs_output_start(e->output)) {
-        snprintf(e->error,sizeof(e->error),"OUTPUT_START_FAILED: %.440s",obs_output_get_last_error(e->output) ?: "see local OBS log");
+        snprintf(e->error,sizeof(e->error),"OUTPUT_START_FAILED");
         release_output(e);atomic_store(&e->output_stopped,true);return false;
     }
     snprintf(e->selected_encoder,sizeof(e->selected_encoder),"%s",id);
@@ -130,7 +136,7 @@ static bool start_encoded(motive_engine *e,const char *path,obs_data_t *profile,
     return true;
 }
 
-static bool start_profile(motive_engine *e,const char *path,const char *json,bool stream) {
+static bool start_profile(motive_engine *e,const char *path,const char *json,bool stream,const char *credential) {
     obs_data_t *p=obs_data_create_from_json(json);
     const char *encoder=obs_data_get_string(p,"encoder");
     long long bitrate=obs_data_get_int(p,"bitrate_kbps"),keyint=obs_data_get_int(p,"keyframe_seconds");
@@ -138,13 +144,13 @@ static bool start_profile(motive_engine *e,const char *path,const char *json,boo
         !strcmp(obs_data_get_string(p,"rate_control"),"cbr") &&
         (!strcmp(encoder,"auto") || !strcmp(encoder,"videotoolbox") || !strcmp(encoder,"x264"));
     if (!valid) {obs_data_release(p);snprintf(e->error,sizeof(e->error),"INVALID_PROFILE");return false;}
-    bool ok=start_encoded(e,path,p,stream);obs_data_release(p);return ok;
+    bool ok=start_encoded(e,path,p,stream,credential);obs_data_release(p);return ok;
 }
-bool motive_start_stream(motive_engine *e,const char *url,const char *json) {
+bool motive_start_stream(motive_engine *e,const char *url,const char *json,const char *credential) {
     e->error[0]=0;
     if (motive_output_state(e)) {snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY");return false;}
     if (!e->rtmp_loaded) {snprintf(e->error,sizeof(e->error),"SERVICE_UNAVAILABLE");return false;}
     release_output(e);
     e->selected_encoder[0]=0;e->fallback_reason[0]=0;e->selected_hardware=false;
-    return start_profile(e,url,json,true);
+    return start_profile(e,url,json,true,credential);
 }

@@ -145,6 +145,7 @@ pub fn send(command: Value, origin: &str) -> Value {
                 | "output_capabilities"
                 | "output_profiles"
                 | "preflight_output"
+                | "credential_status"
         )
     );
     let mut payload = json!({"command":command,"origin":origin}).to_string();
@@ -186,8 +187,13 @@ fn tool(
             | "save_output_profiles"
             | "load_output_profiles"
             | "stop_output"
+            | "cancel_output"
+            | "request_shutdown"
     );
-    let development = matches!(name, "snapshot" | "shutdown" | "set_test_window");
+    let development = matches!(
+        name,
+        "snapshot" | "shutdown" | "request_shutdown" | "set_test_window"
+    );
     json!({"name":name,"description":description,"inputSchema":{"type":"object","properties":properties,"required":required,"additionalProperties":false},
         "annotations":{"readOnlyHint":readonly,"destructiveHint":destructive,"idempotentHint":readonly,"openWorldHint":false},
         "_meta":{"motive/category":if development {"development"} else {"production"}}})
@@ -382,6 +388,11 @@ pub fn tools() -> Vec<Value> {
     ] {
         result.push(tool(op, description, properties, &required, readonly));
     }
+    result.push(tool("cancel_output", "Solicita parada; durante handshake devuelve cancel_pending sin interrumpir red ni liberar recursos. Consultar status hasta idle/error.", json!({}), &[], false));
+    let credential_ref = json!({"type":"string","pattern":"^kc_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"});
+    result.push(tool("credential_status", "Comprueba acceso no interactivo a una referencia de Keychain. Nunca devuelve valor, longitud ni atributos del secreto.", json!({"credential_ref":credential_ref}), &["credential_ref"], true));
+    result.push(tool("select_stream_credential", "Selecciona referencia de Keychain vinculada al puerto RTMPS local; null la deselecciona. Registro/reemplazo/borrado solo mediante asistente local, nunca MCP. Cambiar endpoint deselecciona la referencia.", json!({"credential_ref":{"anyOf":[credential_ref,{"type":"null"}]}}), &["credential_ref"], false));
+    result.push(tool("request_shutdown", "Desarrollo: solicita parada diferida y cierra únicamente después de terminar todos los workers. Puede esperar el timeout del receptor.", json!({}), &[], false));
     let id = json!({"type":"string","minLength":1,"maxLength":48});
     let name = json!({"type":"string","minLength":1,"maxLength":80});
     let variant = json!({"type":"string","enum":["horizontal","vertical"]});

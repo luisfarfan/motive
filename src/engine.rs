@@ -33,8 +33,13 @@ unsafe extern "C" {
         local_stream: bool,
         policy: *const c_char,
     ) -> bool;
-    fn motive_start_stream(engine: *mut c_void, url: *const c_char, profile: *const c_char)
-    -> bool;
+    fn motive_start_stream(
+        engine: *mut c_void,
+        url: *const c_char,
+        profile: *const c_char,
+        credential: *const c_char,
+    ) -> bool;
+    fn motive_credential_status(reference: *const c_char, port: i32) -> i32;
     fn motive_encoding_info(engine: *mut c_void) -> *mut c_char;
     fn motive_encoded_frames(engine: *mut c_void) -> u32;
     fn motive_video_skipped_frames() -> u32;
@@ -155,10 +160,29 @@ impl Engine {
             motive_start_output(self.raw, path.as_ptr(), stream, policy.as_ptr())
         })
     }
-    pub fn start_stream(&mut self, url: &str, profile: &str) -> anyhow::Result<()> {
+    pub fn credential_status(&self, reference: &str, port: u16) -> i32 {
+        let Ok(reference) = CString::new(reference) else {
+            return 4;
+        };
+        unsafe { motive_credential_status(reference.as_ptr(), i32::from(port)) }
+    }
+    pub fn start_stream(
+        &mut self,
+        url: &str,
+        profile: &str,
+        credential: Option<&str>,
+    ) -> anyhow::Result<()> {
         let url = CString::new(url)?;
         let profile = CString::new(profile)?;
-        self.checked(unsafe { motive_start_stream(self.raw, url.as_ptr(), profile.as_ptr()) })
+        let credential = CString::new(credential.unwrap_or_default())?;
+        self.checked(unsafe {
+            motive_start_stream(
+                self.raw,
+                url.as_ptr(),
+                profile.as_ptr(),
+                credential.as_ptr(),
+            )
+        })
     }
     pub fn stop_output(&mut self) {
         unsafe { motive_stop_output(self.raw) };

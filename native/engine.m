@@ -103,6 +103,7 @@ static void connect_preview(motive_engine *e) {
 static bool load_module(motive_engine *e, const char *name) {
     char binary[8192], data[8192]; obs_module_t *module = NULL;
     snprintf(binary,sizeof(binary),"%s/PlugIns/%s.plugin/Contents/MacOS/%s",e->base,name,name);
+    if (!strcmp(name,"obs-outputs")) snprintf(binary,sizeof(binary),"%s",MOTIVE_RTMP_MODULE);
     snprintf(data,sizeof(data),"%s/PlugIns/%s.plugin/Contents/Resources",e->base,name);
     int code=obs_open_module(&module,binary,data);
     if (code || !obs_init_module(module)) {
@@ -120,6 +121,19 @@ static int reset_video(motive_engine *e) {
     return obs_reset_video(&v);
 }
 static struct obs_source_info watch_info;
+#include "credentials.inc"
+// Native plugins may log a server's reply containing the stream key. Once a
+// credential is used, suppress free-form OBS logs for the process lifetime;
+// structured error codes/metrics remain available. Never keep a redaction list
+// of secrets or rely on plugins always sanitizing messages.
+static atomic_bool protect_obs_logs;
+static log_handler_t previous_log_handler;
+static void *previous_log_context;
+static void private_log(int level,const char *format,va_list args,void *unused) {
+    (void)unused;
+    if (!atomic_load(&protect_obs_logs) && previous_log_handler)
+        previous_log_handler(level,format,args,previous_log_context);
+}
 #include "local-service.inc"
 static void discover_encoders(motive_engine *e);
 void motive_destroy(motive_engine *e);
@@ -128,6 +142,8 @@ motive_engine *motive_create(const char *base) {
     pthread_mutex_init(&e->lock,NULL); e->width=960; e->height=540;
     snprintf(e->base,sizeof(e->base),"%s",base);
     [NSApplication sharedApplication];
+    base_get_log_handler(&previous_log_handler,&previous_log_context);
+    base_set_log_handler(private_log,NULL);
     if (!obs_startup("en-US",NULL,NULL)) { snprintf(e->error,sizeof(e->error),"obs_startup falló"); return e; }
     char resources[8192];
     snprintf(resources,sizeof(resources),"%s/Frameworks/libobs.framework/Resources",base);
@@ -191,6 +207,16 @@ static void output_stopped(void *data, calldata_t *cd) {
 }
 int motive_output_state(motive_engine *e) {
     if (!e->output) return 0;
+    if (e->network_output) {
+        calldata_t state;calldata_init(&state);
+        bool known=proc_handler_call(obs_output_get_proc_handler(e->output),"get_thread_state",&state);
+        bool connecting=calldata_bool(&state,"connecting");
+        bool workers=calldata_bool(&state,"workers_active");calldata_free(&state);
+        // Fail closed if the lifecycle extension is missing. Public start/stop
+        // signals alone do not establish that plugin workers have returned.
+        if (!known || connecting) return 3;
+        if (atomic_load(&e->output_stopped) && workers) return 2;
+    }
     if (atomic_load(&e->output_stopped)) return obs_output_active(e->output) ? 2:0;
     if (e->network_output && !atomic_load(&e->output_started)) return 3;
     return obs_output_active(e->output) ? 1 : 2;
@@ -205,7 +231,7 @@ bool motive_start_output(motive_engine *e,const char *path,bool local_stream,con
     if (motive_output_state(e)) { snprintf(e->error,sizeof(e->error),"OUTPUT_BUSY"); return false; }
     release_output(e);
     e->selected_encoder[0]=0;e->fallback_reason[0]=0;e->selected_hardware=false;
-    if (!local_stream) return start_profile(e,path,profile,false);
+    if (!local_stream) return start_profile(e,path,profile,false,NULL);
     e->network_output=false;
     obs_data_t *settings=obs_data_create();
     if (local_stream) {
@@ -395,8 +421,10 @@ bool motive_audio(motive_engine *e,const char *id,const char *tone_path) {
 void motive_destroy(motive_engine *e) {
     if (!e) return;
     if (e->output && motive_output_state(e)) {
-        obs_output_force_stop(e->output);
-        for (int i=0;i<200 && !atomic_load(&e->output_stopped);i++) usleep(10000);
+        // Normal shutdown is rejected/deferred by Production until quiescent.
+        // An abnormal owner drop must not free memory still used by workers or
+        // join a network handshake on the UI thread. Process exit reclaims it.
+        return;
     }
     release_output(e);
     if (e->pixels) obs_remove_raw_video_callback(receive_frame,e);

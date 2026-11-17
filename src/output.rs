@@ -3,6 +3,29 @@ use super::RecordingEncoder;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
+pub fn valid_credential_ref(reference: &str) -> bool {
+    reference.len() == 39
+        && reference.starts_with("kc_")
+        && reference.bytes().enumerate().skip(3).all(|(i, b)| {
+            if [11, 16, 21, 26].contains(&i) {
+                b == b'-'
+            } else {
+                b.is_ascii_digit() || (b'a'..=b'f').contains(&b)
+            }
+        })
+}
+
+pub fn credential_code(code: i32) -> &'static str {
+    match code {
+        0 => "available",
+        1 => "CREDENTIAL_MISSING",
+        2 => "CREDENTIAL_ACCESS_DENIED",
+        4 => "INVALID_CREDENTIAL_REFERENCE",
+        5 => "CREDENTIAL_BINDING_MISMATCH",
+        _ => "KEYCHAIN_UNAVAILABLE",
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum OutputTarget {
@@ -133,6 +156,21 @@ impl LocalEndpoint {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn credential_references_are_opaque_and_cannot_encode_urls() {
+        assert!(valid_credential_ref(
+            "kc_12345678-1234-1234-1234-123456abcdef"
+        ));
+        for value in [
+            "",
+            "rtmps://localhost/key",
+            "kc_12345678-1234-1234-1234-123456abcdeF",
+            "kc_1234567811234-1234-1234-123456abcdef",
+            "key\nsecret",
+        ] {
+            assert!(!valid_credential_ref(value));
+        }
+    }
     #[test]
     fn bounded_profiles_and_versioned_roundtrip() {
         let mut store = ProfileStore::default();

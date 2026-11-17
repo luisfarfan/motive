@@ -1,0 +1,196 @@
+--- a/rtmp-stream.c
++++ b/rtmp-stream.c
+@@ -104,21 +104,21 @@
+ {
+ 	struct rtmp_stream *stream = data;
+ 
+-	if (stopping(stream) && !connecting(stream)) {
+-		pthread_join(stream->send_thread, NULL);
+-
+-	} else if (connecting(stream) || active(stream)) {
+-		if (stream->connecting)
+-			pthread_join(stream->connect_thread, NULL);
+-
++	/* Workers remain joinable and are reaped exactly once by the owner.
++	 * Never race a caller joining against a worker detaching itself. */
++	if (stream->connect_thread_valid) {
++		pthread_join(stream->connect_thread, NULL);
++		stream->connect_thread_valid = false;
++	}
++	if (active(stream)) {
+ 		stream->stop_ts = 0;
+ 		os_event_signal(stream->stop_event);
+-
+-		if (active(stream)) {
+-			os_sem_post(stream->send_sem);
+-			obs_output_end_data_capture(stream->output);
+-			pthread_join(stream->send_thread, NULL);
+-		}
++		os_sem_post(stream->send_sem);
++		obs_output_end_data_capture(stream->output);
++	}
++	if (stream->send_thread_valid) {
++		pthread_join(stream->send_thread, NULL);
++		stream->send_thread_valid = false;
+ 	}
+ 
+ 	RTMP_TLS_Free(&stream->rtmp);
+@@ -151,6 +151,28 @@
+ 	bfree(stream);
+ }
+ 
++/* Call on the serialized output-control thread, never from output signals.
++ * False means no worker can access this output again. Reaping at this point
++ * waits only for a worker's return after its final atomic store, not network IO.
++ * Stock stop remains blocking during connect for compatibility; clients can
++ * defer stop until this procedure reports connecting=false. */
++static void get_thread_state(void *data, calldata_t *params)
++{
++	struct rtmp_stream *stream = data;
++	bool pending = connecting(stream);
++	bool running = pending || active(stream);
++	if (!pending && stream->connect_thread_valid) {
++		pthread_join(stream->connect_thread, NULL);
++		stream->connect_thread_valid = false;
++	}
++	if (!running && stream->send_thread_valid) {
++		pthread_join(stream->send_thread, NULL);
++		stream->send_thread_valid = false;
++	}
++	calldata_set_bool(params, "connecting", pending);
++	calldata_set_bool(params, "workers_active", running);
++}
++
+ static void *rtmp_stream_create(obs_data_t *settings, obs_output_t *output)
+ {
+ 	struct rtmp_stream *stream = bzalloc(sizeof(struct rtmp_stream));
+@@ -192,6 +214,9 @@
+ 		goto fail;
+ 	}
+ 
++	proc_handler_add(obs_output_get_proc_handler(output),
++			 "void get_thread_state(out bool connecting, out bool workers_active)",
++			 get_thread_state, stream);
+ 	UNUSED_PARAMETER(settings);
+ 	return stream;
+ 
+@@ -207,8 +232,10 @@
+ 	if (stopping(stream) && ts != 0)
+ 		return;
+ 
+-	if (connecting(stream))
++	if (connecting(stream) && stream->connect_thread_valid) {
+ 		pthread_join(stream->connect_thread, NULL);
++		stream->connect_thread_valid = false;
++	}
+ 
+ 	stream->stop_ts = ts / 1000ULL;
+ 
+@@ -731,7 +758,6 @@
+ 	}
+ 
+ 	if (!stopping(stream)) {
+-		pthread_detach(stream->send_thread);
+ 		obs_output_signal_stop(stream->output, OBS_OUTPUT_DISCONNECTED);
+ 	} else if (encode_error) {
+ 		obs_output_signal_stop(stream->output, OBS_OUTPUT_ENCODE_ERROR);
+@@ -741,8 +767,9 @@
+ 
+ 	free_packets(stream);
+ 	os_event_reset(stream->stop_event);
++	stream->sent_headers = false;
++	/* Final access: owner may now reap and destroy. */
+ 	os_atomic_set_bool(&stream->active, false);
+-	stream->sent_headers = false;
+ 
+ 	return NULL;
+ }
+@@ -983,6 +1010,7 @@
+ 	reset_semaphore(stream);
+ 
+ 	ret = pthread_create(&stream->send_thread, NULL, send_thread, stream);
++	stream->send_thread_valid = ret == 0;
+ 	if (ret != 0) {
+ 		RTMP_Close(&stream->rtmp);
+ 		warn("Failed to create send thread");
+@@ -1332,10 +1360,6 @@
+ 	int64_t drop_p;
+ 	int64_t drop_b;
+ 
+-	if (stopping(stream)) {
+-		pthread_join(stream->send_thread, NULL);
+-	}
+-
+ 	free_packets(stream);
+ 
+ 	service = obs_output_get_service(stream->output);
+@@ -1505,7 +1529,7 @@
+ 
+ 	if (!init_connect(stream)) {
+ 		obs_output_signal_stop(stream->output, OBS_OUTPUT_BAD_PATH);
+-		return NULL;
++		goto done;
+ 	}
+ 
+ 	// HDR streaming disabled for AV1
+@@ -1518,7 +1542,7 @@
+ 
+ 			if (info->colorspace == VIDEO_CS_2100_HLG || info->colorspace == VIDEO_CS_2100_PQ) {
+ 				obs_output_signal_stop(stream->output, OBS_OUTPUT_HDR_DISABLED);
+-				return NULL;
++				goto done;
+ 			}
+ 		}
+ 	}
+@@ -1530,9 +1554,8 @@
+ 		info("Connection to %s failed: %d", stream->path.array, ret);
+ 	}
+ 
+-	if (!stopping(stream))
+-		pthread_detach(stream->connect_thread);
+-
++done:
++	/* Final access, including early errors. */
+ 	os_atomic_set_bool(&stream->connecting, false);
+ 	return NULL;
+ }
+@@ -1546,8 +1569,22 @@
+ 	if (!obs_output_initialize_encoders(stream->output, 0))
+ 		return false;
+ 
++	if (connecting(stream) || active(stream))
++		return false;
++	if (stream->connect_thread_valid) {
++		pthread_join(stream->connect_thread, NULL);
++		stream->connect_thread_valid = false;
++	}
++	if (stream->send_thread_valid) {
++		pthread_join(stream->send_thread, NULL);
++		stream->send_thread_valid = false;
++	}
+ 	os_atomic_set_bool(&stream->connecting, true);
+-	return pthread_create(&stream->connect_thread, NULL, connect_thread, stream) == 0;
++	int ret = pthread_create(&stream->connect_thread, NULL, connect_thread, stream);
++	stream->connect_thread_valid = ret == 0;
++	if (ret != 0)
++		os_atomic_set_bool(&stream->connecting, false);
++	return ret == 0;
+ }
+ 
+ static inline bool add_packet(struct rtmp_stream *stream, struct encoder_packet *packet)
+--- a/rtmp-stream.h
++++ b/rtmp-stream.h
+@@ -69,11 +69,13 @@
+ 
+ 	volatile bool connecting;
+ 	pthread_t connect_thread;
++	bool connect_thread_valid;
+ 
+ 	volatile bool active;
+ 	volatile bool disconnected;
+ 	volatile bool encode_error;
+ 	pthread_t send_thread;
++	bool send_thread_valid;
+ 
+ 	int max_shutdown_time_sec;
+ 

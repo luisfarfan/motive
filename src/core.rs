@@ -67,6 +67,12 @@ pub enum Command {
     ConfigureStream {
         endpoint: LocalEndpoint,
     },
+    CredentialStatus {
+        credential_ref: String,
+    },
+    SelectStreamCredential {
+        credential_ref: Option<String>,
+    },
     PreflightOutput {
         target: OutputTarget,
     },
@@ -94,6 +100,8 @@ pub enum Command {
     StartRecording,
     StartLocalStream,
     StopOutput,
+    CancelOutput,
+    RequestShutdown,
     SaveProject,
     LoadProject,
     Snapshot,
@@ -211,6 +219,7 @@ pub struct Production {
     recording_profile: String,
     streaming_profile: String,
     stream_endpoint: Option<LocalEndpoint>,
+    stream_credential: Option<String>,
     pub project: Project,
     pub revision: u64,
     pub last_action: String,
@@ -226,6 +235,7 @@ pub struct Production {
     awaiting_recovery: BTreeSet<String>,
     seen_output_error: i32,
     pub shutdown_requested: bool,
+    shutdown_pending: bool,
     pub test_window_request: Option<bool>,
 }
 pub fn error(code: &str, message: impl ToString) -> Value {
@@ -242,6 +252,7 @@ impl Production {
             recording_profile: "standard".into(),
             streaming_profile: "standard".into(),
             stream_endpoint: None,
+            stream_credential: None,
             project: Project::default(),
             revision: 0,
             last_action: "Estudio iniciado".into(),
@@ -257,6 +268,7 @@ impl Production {
             awaiting_recovery: BTreeSet::new(),
             seen_output_error: 0,
             shutdown_requested: false,
+            shutdown_pending: false,
             test_window_request: None,
         };
         p.sync(p.graph().clone(), p.bindings.clone(), "")?;
@@ -271,6 +283,8 @@ impl Production {
             "error"
         } else if state == 0 {
             "idle"
+        } else if self.stopping && state == 3 {
+            "cancel_pending"
         } else if self.stopping {
             "stopping"
         } else if state == 3 {
@@ -281,6 +295,7 @@ impl Production {
         json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"encoding":self.encoding_status(),"output_configuration":self.output_configuration(),"issues":self.issues,
             "recovery_required":self.recovery.required(),"recovery_sources":self.recovery.pending,"last_fault":self.last_fault,
             "sources":self.source_health,"window_id":self.window_id,"output":output,"output_code":self.engine.output_code(),
+            "output_lifecycle":{"native_busy":state!=0,"cancel_requested":self.stopping,"cancel_deferred":self.stopping && state==3,"shutdown_pending":self.shutdown_pending},
             "output_failure":output_failure(self.engine.output_code()),"output_path":self.output_path,"last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":30,"stats":self.engine.stats()})
     }
     fn encoding_status(&self) -> Value {
@@ -299,7 +314,7 @@ impl Production {
     fn output_configuration(&self) -> Value {
         json!({"recording_profile":self.recording_profile,"streaming_profile":self.streaming_profile,
             "recording":self.profile(OutputTarget::Recording),"streaming":self.profile(OutputTarget::Streaming),
-            "endpoint":self.stream_endpoint,"credentials_supported":false,"automatic_reconnect":false})
+            "endpoint":self.stream_endpoint,"credential_ref":self.stream_credential,"credentials_supported":true,"automatic_reconnect":false})
     }
     fn output_capabilities(&self) -> Value {
         json!({"encoders":self.engine.encoding_info(),"rate_controls":["cbr"],"bitrate_kbps":{"min":250,"max":20000},
@@ -310,7 +325,9 @@ impl Production {
             "audio":{"codec":"aac","bitrate_kbps":160,"sample_rate":48000,"channels":2},
             "streaming":{"host":"127.0.0.1","port_min":1024,"path":"/live/motive","transport":["rtmp","rtmps"],
                 "rtmps_validation":"system_trust_required; trusted media delivery not yet verified",
-                "credentials_supported":false,"public_destinations":false},"simultaneous_outputs":1,"cancel_connecting_supported":false})
+                "credentials_supported":true,"credential_storage":"macos_keychain","credential_transport":"rtmps_only",
+                "credential_logging":"freeform_obs_logs_suppressed_after_first_use","public_destinations":false},"simultaneous_outputs":1,"cancel_connecting_supported":false,
+                "deferred_cancellation_supported":true,"rtmp_lifecycle":"obs-33.0.1-pinned-joinable-workers"})
     }
     fn preflight(&self, target: OutputTarget) -> anyhow::Result<()> {
         self.idle()?;
@@ -328,6 +345,15 @@ impl Production {
                 .as_ref()
                 .ok_or_else(|| anyhow::anyhow!("ENDPOINT_REQUIRED"))?
                 .validate()?;
+            if let Some(reference) = &self.stream_credential {
+                let endpoint = self.stream_endpoint.as_ref().unwrap();
+                anyhow::ensure!(
+                    endpoint.transport == output::Transport::Rtmps,
+                    "CREDENTIAL_REQUIRES_TLS"
+                );
+                let code = self.engine.credential_status(reference, endpoint.port);
+                anyhow::ensure!(code == 0, "{}", output::credential_code(code));
+            }
             anyhow::ensure!(
                 self.engine.encoding_info()["rtmp_available"] == true,
                 "SERVICE_UNAVAILABLE"
@@ -377,6 +403,9 @@ impl Production {
         }
         if self.stopping && self.engine.output_state() == 1 {
             self.engine.stop_output();
+        }
+        if self.shutdown_pending && self.engine.output_state() == 0 {
+            self.shutdown_requested = true;
         }
         let output_error = self.engine.output_code();
         if output_error != 0 && output_error != self.seen_output_error {
@@ -818,6 +847,15 @@ impl Production {
         if matches!(command, Command::OutputProfiles) {
             return json!({"ok":true,"store":self.profiles,"configuration":self.output_configuration()});
         }
+        if let Command::CredentialStatus { credential_ref } = &command {
+            if !output::valid_credential_ref(credential_ref) {
+                return error(
+                    "INVALID_CREDENTIAL_REFERENCE",
+                    "Expected an opaque Keychain reference",
+                );
+            }
+            return json!({"ok":true,"credential_ref":credential_ref,"access":output::credential_code(self.engine.credential_status(credential_ref,0))});
+        }
         if let Command::PreflightOutput { target } = command {
             return match self.preflight(target) {
                 Ok(()) => {
@@ -832,6 +870,11 @@ impl Production {
             .unwrap()
             .to_owned();
         let result = (|| -> anyhow::Result<()> {
+            anyhow::ensure!(
+                !self.shutdown_pending
+                    || matches!(command, Command::CancelOutput | Command::RequestShutdown),
+                "SHUTDOWN_PENDING: native output must finish before exit"
+            );
             match command {
                 Command::SetEncoder { encoder } => {
                     self.idle()?;
@@ -870,6 +913,27 @@ impl Production {
                     self.idle()?;
                     endpoint.validate()?;
                     self.stream_endpoint = Some(endpoint);
+                    self.stream_credential = None;
+                }
+                Command::SelectStreamCredential { credential_ref } => {
+                    self.idle()?;
+                    if let Some(reference) = &credential_ref {
+                        anyhow::ensure!(
+                            output::valid_credential_ref(reference),
+                            "INVALID_CREDENTIAL_REFERENCE"
+                        );
+                        let endpoint = self
+                            .stream_endpoint
+                            .as_ref()
+                            .ok_or_else(|| anyhow::anyhow!("ENDPOINT_REQUIRED"))?;
+                        anyhow::ensure!(
+                            endpoint.transport == output::Transport::Rtmps,
+                            "CREDENTIAL_REQUIRES_TLS"
+                        );
+                        let code = self.engine.credential_status(reference, endpoint.port);
+                        anyhow::ensure!(code == 0, "{}", output::credential_code(code));
+                    }
+                    self.stream_credential = credential_ref;
                 }
                 Command::SaveOutputProfiles => {
                     use std::{io::Write, os::unix::fs::OpenOptionsExt};
@@ -909,6 +973,7 @@ impl Production {
                     self.engine.start_stream(
                         &self.stream_endpoint.as_ref().unwrap().url(),
                         &serde_json::to_string(self.profile(OutputTarget::Streaming))?,
+                        self.stream_credential.as_deref(),
                     )?;
                     self.output_kind = "streaming".into();
                     self.output_path = None;
@@ -1027,6 +1092,16 @@ impl Production {
                     self.engine.stop_output();
                     self.stopping = self.engine.output_state() != 0;
                 }
+                Command::CancelOutput | Command::RequestShutdown => {
+                    self.shutdown_pending |= matches!(command, Command::RequestShutdown);
+                    // Only the existing owner calls libobs. A pending handshake
+                    // is left running; poll_health stops after worker completion.
+                    self.engine.stop_output();
+                    self.stopping = self.engine.output_state() != 0;
+                    if self.shutdown_pending && !self.stopping {
+                        self.shutdown_requested = true;
+                    }
+                }
                 Command::SaveProject => {
                     let path = data_dir().join("project.json");
                     let temp = path.with_extension("json.tmp");
@@ -1071,6 +1146,7 @@ impl Production {
                 | Command::Encoders
                 | Command::OutputCapabilities
                 | Command::OutputProfiles
+                | Command::CredentialStatus { .. }
                 | Command::PreflightOutput { .. } => unreachable!(),
                 graph_command => self.graph_command(graph_command)?,
             }

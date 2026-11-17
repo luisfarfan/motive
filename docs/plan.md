@@ -14,6 +14,7 @@ para esta fase y REA no bloqueó los hitos.
 | 5 — Primer editor | Ventana + webcam + overlay; transformaciones y orden por MCP; persistencia v3 y reapertura; UI refleja el núcleo | Ver [verificación de escenas](scene-graph-verification.md); una composición/output activo, cambios de recursos solo detenido |
 | 6 — Encoder Apple Silicon | Módulo oficial VideoToolbox, selección compartida y fallback x264; comparación de archivos y recursos | Ver [verificación VideoToolbox](videotoolbox-verification.md); alcance inicial H.264, misma resolución/FPS, sin cambiar UI ni UDP local |
 | 7 — Salidas configurables | Perfiles v1 separados de escenas v3; RTMP local H.264/AAC, preflight y recuperación por CLI/MCP; rechazo TLS no confiable | Ver [verificación H7](h7-output-verification.md); sin claves ni destinos públicos, RTMPS positivo y cancelación inmediata de handshake pendientes |
+| 8 — Streaming confiable | Cancelación diferida con workers finalizados, cierre explícito, Keychain con referencias opacas y pruebas reales | Ver [H8](h8-streaming-verification.md); RTMPS positivo pendiente por falta de destino/cadena confiable, sin cambios a la confianza global |
 
 ## Reproducir y consultar evidencia
 
@@ -64,18 +65,17 @@ de compatibilidad ejecutada.
 
 ## Siguiente hito recomendado
 
-Sobre el editor actual, añadir campos numéricos directos y selección visual de
-capas, conservando el mismo contrato del núcleo. Antes de permitir cambio de
-cámara/escena durante una salida, probar hot-unplug con dispositivos removibles,
-sleep/wake y sesiones de mayor duración. El monitor de entrega de frames de cámara
-ya existe; el atasco físico y una ventana viva con imagen congelada no están
-verificados. Preparar el bundle distribuible y optimizar preview cuando una
-medición específica lo justifique.
+Después de H8, validar RTMPS positivo con un destino controlado y certificado
+públicamente confiable. Antes de habilitarlo, registrar localmente destinos
+autorizados y vincular sus referencias Keychain a hostname/puerto/aplicación;
+MCP seleccionará destinos aprobados, sin recibir claves ni URLs arbitrarias.
+No requiere un dominio propio de Motive. Ver el [informe H8](h8-streaming-verification.md)
+para el bloqueo de una CA aislada, evidencia y secuencia de prueba privada.
 
-Mantener fuera nube, pagos, marketplace, framework genérico de plugins y
-emisiones públicas. REA se reconsidera solo ante una pregunta concreta que
-fuentes públicas y reproducción controlada no resuelvan. Ver detalles,
-problemas corregidos y fuentes en docs/decisions.md.
+Conservar pendientes sesiones largas, USB hot-unplug, sleep/wake, matriz de
+macOS y bundle portable/notarizado. No añadir multistream, nube, pagos ni
+marketplace, ni emitir a servicios públicos sin autorización. El trabajo GPUI
+continúa por separado; no se modificó en H8.
 
 ## Ampliación H1
 
@@ -88,6 +88,6 @@ Las grabaciones y los inventarios de dispositivos permanecen fuera de Git.
 
 El formato v3 añade escenas, recursos reutilizables y capas con IDs estables y
 transformaciones horizontal/vertical independientes. UI, CLI y MCP usan
-Production (39 herramientas con perfiles y RTMP local). Se conservan las pruebas anteriores y se añaden pruebas
+Production (43 herramientas con perfiles y RTMP local). Se conservan las pruebas anteriores y se añaden pruebas
 reales de composición y recuperación del muxer. La evidencia y las limitaciones
 actuales están en [scene-graph-verification.md](scene-graph-verification.md).

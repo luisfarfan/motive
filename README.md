@@ -144,11 +144,15 @@ For an MCP client, use an absolute path to your checkout:
 
 `output_capabilities` · `output_profiles` · `upsert_output_profile` · `remove_output_profile` · `select_output_profile` · `save_output_profiles` · `load_output_profiles` · `configure_stream` · `preflight_output` · `start_stream` · `recover_output`
 
+`cancel_output` · `request_shutdown` · `credential_status` · `select_stream_credential`
+
 Responses include the shared PID/revision, source issues and real engine counters. Inputs reject unknown fields. Disconnecting the MCP client leaves the production engine running.
 
 </details>
 
-The API accepts no arbitrary output paths, public stream URLs, shell commands or stream keys. `configure_stream` accepts only an RTMP/RTMPS transport and an unprivileged port at **127.0.0.1**, using the fixed public test path `/live/motive`. Local RTMP media delivery and RTMPS rejection of an untrusted certificate are verified; trusted RTMPS delivery is pending. During a pending handshake, `stop_output` returns `OUTPUT_CONNECTING` to avoid an observed upstream cancellation race; wait for connection completion, then stop or recover. The legacy CLI-only `start_local_stream` still sends MPEG-TS to **127.0.0.1:19350** using its original libx264 settings. No public platform or credential integration is implemented.
+The API accepts no arbitrary output paths, public stream URLs, shell commands or stream-key values. `configure_stream` accepts only RTMP/RTMPS and an unprivileged port at **127.0.0.1**. `cancel_output` queues safe deferred cancellation (`cancel_pending`) while a handshake finishes; `stop_output` retains its immediate-cancellation guard. Native worker completion is checked through a pinned lifecycle patch to the official OBS output module.
+
+Credentials can be enrolled locally in **macOS Keychain** using the signed terminal helper; CLI/MCP see only opaque references, bound to an RTMPS port. Trusted RTMPS delivery remains pending: OBS 33.0.1 does not expose an isolated development-CA setting on macOS. See [H8 verification and security limits](docs/h8-streaming-verification.md). No public destination is enabled. The legacy CLI-only `start_local_stream` still sends MPEG-TS to **127.0.0.1:19350** using its original libx264 settings.
 
 If a forced shutdown leaves a stale socket, first confirm no Motive process remains and `ctl` cannot connect, then remove only `var/run/motive.sock`. Motive never unlinks another running instance's socket.
 
@@ -168,6 +172,8 @@ python3 scripts/verify_vt_stop.py
 python3 scripts/verify_rtmp.py
 python3 scripts/verify_rtmps.py
 python3 scripts/verify_connect_stop.py
+python3 scripts/verify_h8_lifecycle.py
+python3 scripts/verify_h8_keychain.py
 python3 scripts/verify_profiles_restart.py
 ```
 

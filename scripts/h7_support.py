@@ -71,10 +71,14 @@ def media(path,minimum=2,geometry=(960,540),pixels=False):
         'bytes':pathlib.Path(path).stat().st_size,'sha256':hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()}
     if pixels:
         def crop(t):return subprocess.check_output(['ffmpeg','-nostdin','-v','error','-ss',str(t),'-i',path,'-frames:v','1','-vf','crop=320:72:32:436','-pix_fmt','rgb24','-f','rawvideo','-'])
-        first=crop(.5);last=crop(1.5)
+        first=crop(.5)
         mint=sum(all(abs(first[i+j]-[51,232,181][j])<32 for j in range(3)) for i in range(0,len(first),3))
-        changed=sum(abs(a-b)>25 for a,b in zip(first,last));assert mint>500 and changed>300,(mint,changed)
-        result['overlay']={'mint_pixels':mint,'changed_channels':changed}
+        # A periodic animation may revisit its position at exactly 1.5 seconds.
+        # Keep that observation, but sample multiple phases; a frozen overlay
+        # still fails the same motion threshold. See H8's retained failed clip.
+        changes={str(t):sum(abs(a-b)>25 for a,b in zip(first,crop(t))) for t in (.8,1.1,1.5,1.9)}
+        changed=max(changes.values());assert mint>500 and changed>300,(mint,changed)
+        result['overlay']={'mint_pixels':mint,'changed_channels':changed,'changed_channels_by_time':changes}
     return result
 
 def setup_owned(c):

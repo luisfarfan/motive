@@ -16,6 +16,11 @@ subprocess.run(['cargo', 'build', '--locked'], cwd=ROOT, check=True)
 app = ROOT / 'target/Motive.app/Contents'
 (app / 'MacOS').mkdir(parents=True, exist_ok=True)
 shutil.copy2(ROOT / 'target/debug/motive', app / 'MacOS/motive')
+subprocess.run(['clang', '-arch', 'arm64', '-mmacosx-version-min=15.0', '-fobjc-arc',
+                '-Wno-deprecated-declarations', '-framework', 'Foundation', '-framework', 'Security',
+                str(ROOT / 'native/credentials_cli.m'), '-o', str(app / 'MacOS/motive-credentials')], check=True)
+subprocess.run(['codesign', '--force', '--sign', args.sign_identity, '--identifier',
+                'local.motive.credentials', str(app / 'MacOS/motive-credentials')], check=True)
 # The OBS muxer is located by the OBS plugin beside the executable.
 shutil.copy2(ROOT / '.deps/OBS.app/Contents/MacOS/obs-ffmpeg-mux', app / 'MacOS/obs-ffmpeg-mux')
 if not (app / 'Frameworks').exists():

@@ -86,15 +86,26 @@ omitidos en paquetes crates.io mediante el commit exacto registrado en
 No sustituye una revisión ausente por la rama actual. Los avisos no encontrados
 se enumeran expresamente y no cuentan como resueltos.
 
-El checkpoint de avisos recupera **46 paquetes**. Permanecen cuatro casos
-explícitos: `mac 0.1.1` no incluye revisión VCS ni texto de licencia;
-`pathfinder_geometry 0.5.1` referencia una revisión no disponible en GitHub;
-`seahash 4.1.0` referencia un GitLab que rechaza el acceso al texto; y
-`simd_helpers 0.1.0` declara MIT sin incluir el aviso en la revisión indicada.
-La procedencia, hashes y causas están en
-`target/portable-licenses/manifest.json`. El empaquetador permite staging local
-con ese estado **PARTIAL**; `--require-complete-notices` lo rechaza mientras
-haya avisos sin resolver. No hay autorización implícita para distribuirlo.
+El checkpoint inicial recuperaba **46 paquetes** y dejaba cuatro casos
+explícitos pendientes. El rescan completo del 17 de noviembre recupera
+**50 paquetes con avisos omitidos**, conserva **86 archivos** de textos y
+procedencia, y termina **PASS** con `missing=[]`; no es el total de dependencias
+Rust, pues los avisos ya presentes se copian directamente de cada crate.
+`mac 0.1.1` y `pathfinder_geometry 0.5.1` usan la alternativa Apache-2.0 que
+declaran sus archivos publicados, preservados junto al texto canónico.
+`seahash 4.1.0` y `simd_helpers 0.1.0` usan commits oficiales cuyo único cambio
+respecto del padre publicado es añadir `LICENSE`. El resolver verifica el
+archivo original contra Cargo.lock, todos sus miembros contra el cache local,
+los padres/diffs y los hashes de los textos antes de aceptarlos. No modifica el
+registry ni inventa avisos de copyright.
+
+La procedencia completa y los límites están en
+[h14-license-notices.md](h14-license-notices.md),
+`target/portable-licenses/manifest.json` y la evidencia
+`var/evidence/h14-license-inventory-1794952511870168000/`.
+`--require-complete-notices` sigue rechazando cualquier aviso sin resolver;
+el PASS del inventario no autoriza distribución ni certifica la totalidad de
+sus obligaciones.
 
 `Resources/ThirdParty/PROVENANCE.json` registra versiones, hashes, módulos,
 estado del árbol y fuentes. Las rutas de build que aparecen como procedencia
@@ -109,9 +120,13 @@ crates originales comprobados contra Cargo.lock y snapshot del árbol Motive.
 El primer candidato, `target/source-candidate-initial/manifest.json`, tiene
 **19 archivos de fuentes nativas y 463 crates**, sin descargas pendientes.
 Su `material_status` es PASS, pero el conjunto sigue **PARTIAL**: hay que
-revisar submódulos de opus, mbedtls, simde y obs-studio, cerrar los cuatro
-avisos y comprobar correspondencia con el binario final. Ese snapshot es
-anterior al binario final y debe regenerarse para la entrega correspondiente.
+revisar los submódulos detectados y comprobar correspondencia con el binario
+final. El detector también marca el `.gitmodules` vacío de opus; la revisión
+debe distinguirlo de framework (mbedtls), test/munit (simde) y los submódulos
+de OBS. Ese snapshot, incluido su inventario de avisos PARTIAL, se conserva
+como evidencia anterior: debe regenerarse con los avisos resueltos y todas
+las fuentes/parches del binario final. El informe de avisos detalla estos
+gates sin modificar el resultado histórico.
 
 Referencias oficiales: [estructura y firma de código anidado de Apple](https://developer.apple.com/library/archive/technotes/tn2206/),
 [firma desde dentro hacia fuera](https://developer.apple.com/documentation/Xcode/using-the-latest-code-signature-format),
@@ -128,7 +143,7 @@ final. El build de los CLI quedó en `target/portable-tools/manifest.json`.
 
 Pendientes: ejecutar el binario integrado y firmado desde otro directorio,
 con PATH sin herramientas del desarrollador, comprobar plugins/importación/
-producción/reapertura, confirmar datos fuera del bundle, completar fuentes y
-avisos, evaluar firma de distribución/notarización y probar otra Mac autorizada.
+producción/reapertura, confirmar datos fuera del bundle, completar fuentes
+correspondientes, evaluar firma de distribución/notarización y probar otra Mac autorizada.
 Cada uno requiere su evidencia independiente; la inspección estática no los
 convierte en PASS.

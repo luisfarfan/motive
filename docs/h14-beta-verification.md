@@ -58,15 +58,15 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 
 | Área | Estado actual | Evidencia pendiente |
 |---|---|---|
-| Frescura y detección de captura | PARTIAL | Instrumentación compilada; reproducir escenario y analizar contenido real |
-| Integridad/finalización de salidas | PARTIAL | Callback oficial y harness; matriz A/B multimedia |
-| Memoria y sesión prolongada | NOT IMPLEMENTED | Mediciones H14 de carga equivalente |
+| Frescura y detección de captura | FAIL | GPUI propio avanza en MKV/RTMP; fixture suspendida y recuperación fallida conservadas; repetir final |
+| Integridad/finalización de salidas | PARTIAL | Matriz A/B ejecutada; reordering falla al cerrar, mitigación por defecto sin reordering; repetir final |
+| Memoria y sesión prolongada | PARTIAL | Instrumento y self-test PASS; runner y fixture listos, owner/soak pendientes |
 | Bundle autocontenido | PARTIAL | Cierre Mach-O estático preparado; ejecución fuera del checkout pendiente |
-| RTMPS externo seguro | NOT IMPLEMENTED | Dominio/entrada segura en desarrollo; destino privado autorizado pendiente |
-| Show Control real | PARTIAL | Recibos/journal con 108 tests; adapter propietario y medios pendientes |
-| Live Deck y MATCHDAY | NOT IMPLEMENTED | Instalación revisable y operación real GPUI |
-| Voz opcional | NOT IMPLEMENTED | Comparación y benchmark WAV, sin modelo obligatorio |
-| UX y biblioteca de grabaciones | NOT IMPLEMENTED | Listado/estados/Finder y recorrido real |
+| RTMPS externo seguro | PARTIAL | Dominio/native sheet/Keychain/servicio implementados; persistencia en revisión; destino YouTube indicado, clave y prueba privada pendientes |
+| Show Control real | PARTIAL | Adapter owner, journal y persistencia integrados; medios reales pendientes |
+| Live Deck y MATCHDAY | PARTIAL | GPUI e instalación revisable implementados, prueba nativa y medios pendientes |
+| Voz opcional | PARTIAL | Benchmark offline ejecutado, recall 50% falla fiabilidad; voz en vivo NOT IMPLEMENTED |
+| UX y biblioteca de grabaciones | PARTIAL | Biblioteca y controles integrados; recorrido nativo final pendiente |
 | Suite unificada sobre binario final | NOT IMPLEMENTED | Identidad final, medios y manifiesto |
 
 Primer checkpoint de instrumentación: **75 tests Rust**, Clippy all-targets
@@ -88,8 +88,15 @@ intentaba crear el segundo perfil después de iniciar la primera salida, y el
 núcleo lo rechazó con `OUTPUT_BUSY`. Ahora prepara ambos perfiles antes de
 iniciar. La repetición `h14-output-integrity-1794950260066766000` decodifica MKV
 y RTMP sin huecos ni clipping; los paquetes AAC ausentes de cola caen después
-de la orden de parada. La matriz completa y el diagnóstico causal siguen
-pendientes; no se restan contadores para declarar equivalencia.
+de la orden de parada. La matriz completa posterior conserva los fallos de
+reordenamiento y la interpretación causal en [contabilidad](h14-output-accounting.md);
+no se restan contadores para declarar equivalencia.
+
+El [informe de captura](h14-capture-investigation.md) conserva la comparación de
+productores y recuperación fallida. El benchmark opcional de
+[voz offline](h14-voice-offline.md) no habilita voz en vivo. Los controles nuevos
+de [Live Deck](h14-live-deck-ui.md) aún necesitan recorrido nativo y medios sobre
+el bundle integrado. Ninguna prueba de fuente sustituye esa aceptación final.
 
 Pruebas físicas exclusivamente bajo `motive/var/run/physical-test.lock`, owner
 H14 root. Cada fallo y cada repetición conservarán su directorio de evidencia.

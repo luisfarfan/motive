@@ -1,13 +1,117 @@
 # H14 — Show Control owner receipts and durable intent
 
-Status: **crate foundation implemented; live integration and multimedia acceptance
-pending**. This document supersedes only the conservative own-revision limitation
+Status: **crate foundation and direct Production-owner adapter implemented;
+multimedia acceptance pending**. This document supersedes the conservative own-revision limitation
 of the [original adapter design](../show-control/docs/integration.md). It does not
-claim a live adapter, installed pack, native Deck, animation or recording.
+claim a verified installed pack, visible native animation or recording.
 
 The crate still owns rules, cooldowns, counters, deduplication and action history.
 `Production` remains the sole authority for scenes, native operations, source
 health and revisions. Event payloads cannot create a receipt or grant trust.
+
+## Live owner integration
+
+`src/show_control.rs` is a child of the existing `core` module. It temporarily
+takes its `State` out of the same `Production` while the backend borrows
+`&mut Production`; it does not create a second engine or send commands over a
+socket. The outer GPUI owner heartbeat calls `poll_health` then
+`poll_show_control` once. Inner command health polling never runs rules. Closing
+an MCP client therefore does not cancel the owner runtime.
+
+Dispatch rebuilds the typed action against a fresh projection of the real graph,
+checks its exact PID/revision, synchronizes the intent journal, and invokes the
+existing allowlisted `Production::apply` commands without yielding. During this
+scope, `apply` skips its usual leading health poll because the adapter has just
+performed that check; the post-command polls remain and retain their provenance.
+Cut/Fade configure/select remains two commands in one owner turn, with a check
+between them. A partial failure is uncertain, never described as a rollback.
+Selecting the current scene is an acknowledged no-op and cannot claim an old
+native operation ID.
+
+The bounded revision ledger records explicit command deltas, individual native
+animation IDs, individual transition IDs, source lifecycle IDs, and external
+deltas. Audio, output, import, UI/MCP and unrelated lifecycle changes cannot
+enter an own receipt. Native IDs are registered at acceptance before polling.
+Source changes can be attributed only to the exact source in the synchronous
+event/update dispatch scope; later autonomous timer/hide changes are
+conservatively external. The ledger keeps 4096 deltas; a gap or eviction denies
+rebasing. Its 512-operation limit fails closed rather than forgetting an owner.
+
+Operation tokens contain a fresh 128-bit random owner session, namespace,
+native ID and owner serial. Animation completion requires the native terminal
+phase **and** the existing model/acknowledgment barrier. Transition completion
+requires the matching native ID and terminal phase. A successful widget/text
+call is a control acknowledgment; it is not proof of a rendered frame. Unknown
+observations remain reconcilable and never replay. A failed native cancel reply
+after durable cancel intent still forces explicit reconciliation.
+
+Only existing overlays/widgets, animations, cancellation, Cut/Fade and compatible
+text definitions enter this adapter. Rules cannot start external streaming,
+install sources, run shell code, synthesize audio or create another media clock.
+
+## Shared control and native UI contract
+
+The following JSON operations use the same CLI transport and MCP tools:
+
+| Operation | Required fields | Effect |
+|---|---|---|
+| `show_control_status` | none | Bounded shared rules, Deck, jobs, receipts and history |
+| `press_show_control` | `session`, `button_id`, `event_id` | Submit an existing nonsensitive button; stable event ID deduplicates |
+| `cancel_show_control` | `session`, `job_id` | Durable cancellation request; does not claim native completion |
+| `reconcile_show_control` | `session`, `job_id` | Observe only; never resume remaining actions |
+| `save_show_control` | none | Explicit private configuration v1 save |
+| `load_show_control` | none | Explicit restore into a new **disarmed** session |
+| `arm_show_control` | `pid`, `revision` | Exact owner revision plus binding fingerprint check |
+
+Remote job controls require the exact random session returned by status. PID
+and numeric job IDs can be reused after restart, so those values alone are
+insufficient. No public command accepts confirmation booleans, owner receipts,
+arbitrary native operations or journal paths. `configure_show_control` accepts
+typed Config/Deck through the owner/CLI; it is not a published MCP enrollment
+tool. Creator Pack installation uses the same owner method after its review.
+
+The native UI calls `configure_show_control`, `press_show_control`,
+`cancel_show_control`, and `reconcile_show_control` on its one Production. A
+sensitive button uses `prepare_show_control_confirmation` and displays the
+returned token's `label()`, `button_id()` and exact `actions()`. It consumes that
+non-Clone, non-Deserialize token with `confirm_show_control_local(token,event_id)`.
+The token binds owner session, PID, revision, button/configuration and 60 seconds
+of monotonic time. No RPC may mint or serialize it.
+
+The crate's existing `DeckRuntime` owns cooldown, pending and history once.
+`authorize_live`/`press_live` require the embedding owner's validated local
+authority; this model permission itself does not establish Production authority.
+`finish_live` records real completed/rejected/cancelled/reconciliation results.
+It cannot label a simulated press as live, nor finish a live request through
+`finish_simulation`. GPUI must not implement another cooldown counter.
+
+Status exposes the last 16 jobs, last 4 records per job, 64 decisions and 32
+native operation entries, with total counts and limits. It omits copied text
+plans and arbitrary string variables; full dispatch evidence stays in private
+journals. Missing older entries from this projection do not permit replay.
+
+## Explicit configuration persistence
+
+`show-control/configuration.json` is a separate version-1 document containing
+typed Config, Deck and a SHA-256 fingerprint of actual scene/layer/source IDs,
+source types and immutable resource bindings. Live selection, text, visibility
+and transforms are excluded so the deck's own legitimate actions do not
+invalidate it. A structural identity or resource change requires review.
+Scenes, profile stores and audio documents are not rewritten.
+
+The private store is bounded to 1 MiB, requires a 0700 owned directory and 0600
+regular file, refuses symlinks/unknown fields/future versions, and saves with
+exclusive temporary creation, file synchronization, rename and directory
+synchronization. It never chmods or deletes an incompatible existing store.
+After a rename/directory-sync failure, durability is uncertain, not rolled back.
+
+Loading creates no jobs and grants no authority to replay. Explicit arming checks
+the supplied PID/revision and current binding fingerprint; new button presses
+also reject replaced bindings. The configuration is never auto-loaded, armed or
+saved. Each session has a new durable journal; at 128 retained directory entries
+new sessions are refused until an explicit archive/review. Past-session journals
+remain evidence for `IntentJournal::read`; their native tokens cannot cancel or
+resume operations in a new process.
 
 ## Checked dispatch and attributed revisions
 
@@ -170,5 +274,43 @@ duplicate/mismatched writes and bounded failure preserving the prior bytes.
 Run `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`
 and `cargo fmt -- --check` in `show-control/`. These are crate contract and
 filesystem tests, **not multimedia acceptance**. H14 still requires the actual
-owner adapter, native Deck/MATCHDAY installation and visible recorded/RTMP
-celebration before claiming live Show Control.
+real owner/Deck/MATCHDAY exercise and visible recorded/RTMP celebration before
+claiming multimedia acceptance. The integrated root suite passed 111 tests,
+the independent Show Control crate passed 111 tests, and both Clippy runs with
+`-D warnings` passed after live-adapter integration. These counts include
+domain/storage/receipt checks, not physical assertions.
+
+## Prepared real verification harness
+
+`scripts/verify_h14_show_control.py --plan` is offline and performs no app or
+device operation. Execution requires `--lock-held`, an already-open signed
+`--app`, its real `--data-dir`, and a fresh `--output` directory. It checks the
+canonical git-common-directory physical lock's H14 owner text, exact process
+executable, idle outputs, a GPUI-installed complete MATCHDAY binding table, an
+armed session, an idle countdown and an empty/controlled-tone mixer.
+
+It uses the real H13 `Client` and `Receiver`, selects MATCHDAY Live, creates
+temporary output profiles, starts simultaneous recording and **loopback** RTMP,
+submits MCP/CLI goal/countdown events, observes own revision receipts, rejects
+cooldown and a repeated event after cooldown, attempts a real MCP/CLI concurrent
+edit, and disconnects MCP while a native animation is pending. CLI then observes
+the same owner and output attempts completing. It never installs MATCHDAY,
+invents a UI origin, writes a configuration store or starts an external
+destination. Output attempts and canonical lock identity are checked throughout.
+
+The harness retains snapshots, MCP/CLI transcript, current owner journal, native
+operation IDs, unchanged recorded/received media, hashes, decoded PTS, audio
+measurements and contact sheets. It restores selected profiles, local
+credentials, approved destination selection, controlled tone state, touched
+layouts/visibility and the prior scene/transition when the same owner is safe to
+modify. The real goal counter/history/dedup evidence remains. If the previous
+loopback endpoint was unset, there is no unset command, so its temporary endpoint
+is explicitly reported as a retained change. No project/audio/profile/Show
+Control/destination store is saved; their before/after hashes are compared.
+
+Even a successful run reports overall **PARTIAL** until actual decoded animation
+visibility and GPUI evidence are reviewed. A concurrent race not observed stays
+`NOT_OBSERVED`; it never becomes a simulated pass. Exact packet tail delivery and
+A/V synchronization remain separate H14 output gates. At harness preparation,
+only Python compilation and offline `--plan` were run; no new physical result is
+claimed by its existence.

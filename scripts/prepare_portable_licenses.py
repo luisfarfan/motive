@@ -3,14 +3,17 @@
 
 Crates.io packages sometimes omit their workspace LICENSE. This build-only
 step reads their .cargo_vcs_info.json, never a moving branch, and records each
-download URL and SHA-256. It does not modify Cargo's registry or user settings.
+download URL and SHA-256. Reviewed exceptions use checksum-verified published
+declarations or license-only child commits. It never changes Cargo's registry.
 """
+import argparse
 import hashlib
 import json
 import pathlib
 import re
 import subprocess
 import urllib.request
+from portable_rust_notices import specifications, supplement
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CACHE = ROOT / 'target/portable-licenses'
@@ -32,7 +35,50 @@ def local_notices(directory):
             and p.name.lower().startswith(('license', 'licence', 'copying', 'notice'))]
 
 
+def retry_missing(registry_directory):
+    """Repair only the previous inventory's omissions without invoking Cargo."""
+    manifest = CACHE / 'manifest.json'
+    previous = json.loads(manifest.read_text())
+    specs = specifications(ROOT)
+    records = list(previous['records'])
+    missing = []
+    # Keep old successes only while their original cached bytes still match.
+    for record in records:
+        for item in record['files']:
+            name = item['file']
+            if pathlib.PurePath(name).name != name:
+                raise ValueError('Invalid cached notice filename')
+            path = CACHE / f"{record['package']}-{record['version']}" / name
+            if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
+                raise ValueError('Previously cached notice hash mismatch')
+    for item in previous['missing']:
+        name = item['package']
+        try:
+            spec = next(value for value in specs.values() if f"{value['name']}-{value['version']}" == name)
+            records.append(supplement(ROOT, CACHE, registry_directory / name, spec, request))
+        except (OSError, ValueError, KeyError, RuntimeError, StopIteration) as failure:
+            missing.append({'package': name, 'reason': str(failure) or 'No reviewed supplement'})
+    result = {'schema_version': 1, 'records': records, 'missing': missing,
+              'status': 'PASS' if not missing else 'PARTIAL',
+              'inventory_scope': 'previous_inventory_omissions_only; full dependency rescan required for final bundle',
+              'previous_manifest_sha256': hashlib.sha256(manifest.read_bytes()).hexdigest()}
+    manifest.write_text(json.dumps(result, indent=2) + '\n')
+    print(json.dumps({'status': result['status'], 'packages': len(records), 'missing': missing,
+                      'scope': result['inventory_scope'], 'manifest': str(manifest)}))
+    return bool(missing)
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--retry-missing', action='store_true', help='Repair prior omissions without running Cargo')
+    parser.add_argument('--registry-dir', type=pathlib.Path, help='Exact cached registry source directory for --retry-missing')
+    args = parser.parse_args()
+    if args.retry_missing:
+        if args.registry_dir is None:
+            parser.error('--retry-missing requires --registry-dir')
+        raise SystemExit(retry_missing(args.registry_dir))
+    if args.registry_dir is not None:
+        parser.error('--registry-dir is only used with --retry-missing')
     CACHE.mkdir(parents=True, exist_ok=True)
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--offline',
                                                   '--format-version', '1', '--filter-platform',
@@ -46,6 +92,7 @@ def main():
         selected.add(item)
         pending.extend(p['pkg'] for p in nodes[item]['deps'])
     trees, records, missing = {}, [], []
+    supplements = specifications(ROOT)
     for package in metadata['packages']:
         if package['id'] not in selected:
             continue
@@ -56,6 +103,10 @@ def main():
         repository = package.get('repository') or REPOSITORY_OVERRIDES.get((package['name'], package['version']), '')
         match = re.fullmatch(r'https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?/?', repository)
         try:
+            reviewed = supplements.get((package['name'], package['version']))
+            if reviewed:
+                records.append(supplement(ROOT, CACHE, directory, reviewed, request))
+                continue
             if not match:
                 raise ValueError('No supported immutable GitHub provenance')
             vcs = json.loads((directory / '.cargo_vcs_info.json').read_text())

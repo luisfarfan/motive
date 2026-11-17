@@ -60,14 +60,14 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 |---|---|---|
 | Frescura y detección de captura | FAIL | GPUI propio avanza en MKV/RTMP; fixture suspendida y recuperación fallida conservadas; repetir final |
 | Integridad/finalización de salidas | PARTIAL | Matriz A/B ejecutada; reordering falla al cerrar, mitigación por defecto sin reordering; repetir final |
-| Memoria y sesión prolongada | PARTIAL | Instrumento y self-test PASS; runner y fixture listos, owner/soak pendientes |
-| Bundle autocontenido | PARTIAL | B1/B2 ejecutados fuera del checkout, firma/closure/tools PASS; segunda Mac, notarización y reconstrucción pendientes |
+| Memoria y sesión prolongada | PARTIAL | Lifecycle B2/B3 1080p30 medido; pausa explícita reduce CPU; RPC excede presupuesto; B3 1080p60/soak en ejecución |
+| Bundle autocontenido | PARTIAL | B1/B2/B3 ejecutados fuera del checkout, firma/closure/tools PASS; segunda Mac, notarización y reconstrucción pendientes |
 | RTMPS externo seguro | PARTIAL | B2 emitió 104,837 s a YouTube privado; usuario confirmó video/audio; MKV decodificado; copia remota y contabilidad completa siguen pendientes |
-| Show Control real | PARTIAL | B1 aceptó evento real de GPUI y completó animación; harness falló durante espera, repetición B2 pendiente |
-| Live Deck y MATCHDAY | PARTIAL | Instalación GPUI 73/73 y celebración visibles en B1; comprobación completa de medios y repetición B2 pendientes |
+| Show Control real | PARTIAL | B3 demuestra entradas completas en ambos medios, cancelación posterior y continuidad sin MCP; cancelación anterior y concurrencia UI pendientes |
+| Live Deck y MATCHDAY | PARTIAL | B3 instalado por GPUI 73/73, celebración real y restauración exacta del proyecto/reglas desactivadas; recorrido de producción restante pendiente |
 | Voz opcional | PARTIAL | Benchmark offline ejecutado, recall 50% falla fiabilidad; voz en vivo NOT IMPLEMENTED |
 | UX y biblioteca de grabaciones | PARTIAL | Biblioteca y controles integrados; recorrido nativo final pendiente |
-| Suite unificada sobre binario final | NOT IMPLEMENTED | Identidad final, medios y manifiesto |
+| Suite unificada sobre binario final | PARTIAL | Coordinador de etapas en preparación; adaptación portable de regresiones y ejecución final pendientes |
 
 Primer checkpoint de instrumentación: **75 tests Rust**, Clippy all-targets
 con warnings como errores y formato pasan. Logs en
@@ -157,6 +157,59 @@ la siguiente prueba compara pausa manual sin cambiar comportamiento automático.
 La sesión prolongada todavía está pendiente.
 
 La revisión de los cuadros B1 detectó un frame a escala completa antes del
-ScaleIn de la celebración: Trigger y Animate eran acciones separadas. B3 está
-en construcción para admitir una acción nativa compuesta y recibos exactos;
-ningún resultado B2 certifica esa corrección hasta repetir medios.
+ScaleIn de la celebración: Trigger y Animate eran acciones separadas. B3
+incorpora una acción nativa compuesta y recibos exactos; los resultados de B3
+siguientes verifican la corrección sin convertir la toma B1 en PASS.
+
+## Checkpoint B3 — 17 de noviembre
+
+Ejecutable SHA-256
+`797b9722b0fe4725b13d5ccd1d2868c21d8f2cfa7ca3db784fee6297504549dc`,
+compilado desde `d0deeb5` y empaquetado desde `ceb40ce`, en
+`/Users/luisfarfan/Developer/motive-h14-portable/b3/Motive.app`.
+116 tests raíz y 129 Show Control, ambos Clippy y formato pasan; logs
+`var/evidence/h14-build/*-b3-*.log`. La firma estricta, closure ARM64 y herramientas
+del bundle pasan. El PID 11038 cargó 37 rutas nativas observadas sin dependencia
+del checkout; su contexto y lista están en
+`var/evidence/h14-portable-b3-1794955908679384000`.
+
+El [lifecycle B3 1080p30](h14-memory-b3-verification.md) conserva 89 muestras y
+tres ciclos con una fase adicional de pausa explícita. En cada ciclo la CPU
+mediana cae 43.7–50.5% respecto a los mismos videos ocultos reproduciéndose;
+la pausa mantiene hijos y asignaciones vivas. Retirar las fuentes reduce
+aproximadamente 499–502 MiB de malloc in-use. No es un dictamen de fuga ni una
+comparación causal B2/B3. Colección nativa p95 0.897 ms cumple el presupuesto;
+RPC p95 48.05 ms lo excede. GPU y A/V no están medidos en este lifecycle.
+
+La [verificación Show Control B3](h14-show-control-b3-verification.md) conserva
+75 s de MKV y RTMP local. La instalación GPUI completó 73/73 pasos. La pulsación
+real de celebración produjo `ui-11038-1`; los cuadros decodificados de las tres
+celebraciones completas (UI, MCP y desconexión del cliente) crecen sin el salto
+de escala B1 en ambos medios. Hay 2273 frames MKV y 2266 RTMP, hueco máximo
+34 ms, PCM continuo sin clipping. El contador progresa solo `0→1→2→3`.
+La cancelación posterior, la protección ante edición concurrente MCP/CLI y la
+continuidad después de desconectar MCP pasan. Dos intentos no observaron
+cancelación anterior al primer tick; se conserva `NOT_OBSERVED`. La edición
+concurrente desde GPUI sigue pendiente. Un trabajo concurrente permanece
+`needs_reconciliation`, sin reejecución ni incremento de contador.
+
+Las trazas iniciales permiten correlacionar las colas de ambos medios: los
+100 paquetes de video retenidos aparecen en cada contenedor; falta un AAC
+posterior a la orden de parada por salida. Dos frames entre encoder y observer
+siguen sin atribución. Esto no se presenta como equivalencia entre contadores
+ni entrega total garantizada.
+
+La persistencia B3 está en `var/evidence/h14-persistence-b3-01`: copias anteriores,
+guardadas, estado de reinicio y restauración, y recibos de cierre. Proyecto y
+Show Control se guardaron/restauraron por GPUI. El proyecto restaurado es
+exactamente igual al JSON guardado; reglas y deck coinciden. El nuevo owner
+inició con producción predeterminada; al restaurar Show Control quedó
+desactivado, sin trabajos ni salida automática. Los stores de mixer y destinos
+mantuvieron sus hashes. Las capturas de UI posteriores al reinicio muestran
+una miniatura de Stage Manager; AX y JSON del núcleo prueban estas operaciones,
+pero no sustituyen una revisión visual completa de ese tramo.
+
+El PID 32487, nuevo y sin proyecto restaurado, ejecuta el lifecycle a 1080p60
+y después una fase dual de 1800 s en
+`var/evidence/h14-memory-b3-60-soak-01`. Hasta terminar y analizar sus medios,
+esta sesión no constituye PASS de duración, frescura ni sincronización.

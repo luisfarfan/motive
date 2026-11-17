@@ -27,7 +27,7 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 
 > **Experimental developer preview.** Recording and local loopback streaming work. This is not yet a packaged release or a full replacement for OBS Studio. The current interface is in Spanish; this README is in English.
 
-**Status — November 17, 2026:** H13 implements configurable production video, application/desktop audio and simultaneous MKV recording + local RTMP, with independent controls in the shared core and GPUI. The current bundle passes the latest runs of all 23 H1–H12 regression suites, the four dual-output scenarios and visible A/V alignment. **H13 acceptance remains partial:** the native GPUI production and a dual-output session exceeding 30 minutes have run. The compact follow-up confirms the corrected alert and safe deferred shutdown; the latest controlled self-audio exclusion test also passes. Captured-window freezes, terminal frame accounting and measured memory limits keep acceptance partial. Earlier failures remain preserved. See the [H13 evidence index](docs/h13-evidence-index.md) and [measured limits](docs/h13-production-verification.md); the [H12 results](docs/h12-creative-studio-verification.md) remain historical evidence for their own bundles.
+**Status — November 17, 2026:** H14 verification is in progress; **the beta is not accepted**. The signed B3 app runs outside the checkout, installs MATCHDAY through GPUI and records real Show Control celebrations to MKV and local RTMP. A separate B2 build completed an authorized private YouTube RTMPS test with user-observed video and audio. Window-capture failures, output accounting and remaining final-build regressions keep acceptance open. See the [H14 results and gates](docs/h14-beta-verification.md). The [23 H1–H12 regression passes and H13 production results](docs/h13-evidence-index.md) remain evidence for the historical H13 bundle, not certification of B3.
 
 ## ✨ What is taking shape
 
@@ -60,7 +60,7 @@ open target/Motive.app
 
 The bootstrap fetches pinned, checksum-verified **OBS Studio 33.0.1** and its full source tree, plus **SIMDe 0.8.2**, into `.deps/`. It does not install global packages. Cargo.lock pins **GPUI Kit 0.10.0** and its **GPUI 0.3.12** dependency.
 
-**Keep the app in this checkout.** This ad-hoc-signed development bundle links to `.deps/` using local paths. A self-contained, signed and notarized release is still future work. Launch the bundle rather than `cargo run` so the official muxing helper is in the expected location.
+**Keep this development app in the checkout.** The command above creates an ad-hoc-signed bundle that links to `.deps/` using local paths. H14 also provides a separate [self-contained app builder](docs/h14-portable-app.md), with dependencies and import tools inside the bundle. Local signed builds have run outside the checkout; notarization and testing on another Mac remain open. No installer or release is published. Launch the bundle rather than `cargo run` so the official muxing helper is in the expected location.
 
 Ad-hoc rebuilds change the code identity and can require macOS permissions again. If you already have a local Apple Development identity, use `python3 scripts/bundle.py --sign-identity "YOUR_EXISTING_IDENTITY"` for a stable development identity. The script never creates certificates or changes the keychain. Close Motive before rebuilding.
 

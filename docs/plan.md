@@ -4,7 +4,14 @@ Estado: 2026-11-17 (America/Lima). Base experimental ejecutable; no es una
 release ni paridad con OBS/Meld. La investigación documental quedó resuelta
 para esta fase y REA no bloqueó los hitos.
 
-**H13 implementado; aceptación PARCIAL, EN CURSO.** Canvas configurable, audio del
+**H14 en ejecución; beta no aceptada.** El bundle B3 autocontenido, Show Control
+real, instalación MATCHDAY y persistencia GPUI tienen evidencia local. La prueba
+RTMPS privada corresponde al bundle B2. El [índice H14](h14-beta-verification.md)
+separa los resultados por binario y conserva los gates pendientes de captura,
+salidas, regresiones finales y distribución. Las verificaciones H13 siguientes
+son históricas y no certifican automáticamente B3.
+
+**H13 implementado; aceptación PARCIAL.** Canvas configurable, audio del
 sistema y salidas MKV/RTMP independientes ya comparten núcleo, CLI/MCP y GPUI.
 Las 23 suites H1–H12 pasan en sus últimas ejecuciones del bundle G; también
 pasan la matriz dual de cuatro casos/doce medios y el A/V visible. Ya se ejecutó

@@ -2,12 +2,16 @@
 
 B3 source candidate adds the explicit [animated widget trigger](h14-animated-trigger.md):
 one durable intent, one native operation and source lifecycle receipts covering
-only its own contiguous changes. B3 media acceptance is still pending.
+only its own contiguous changes. The [real B3 verification](h14-show-control-b3-verification.md)
+observed native GPUI/MCP celebrations in decoded MKV and loopback RTMP, including
+entry, hold and exit, with the corresponding owner receipts and journal.
 
-Status: **crate foundation and direct Production-owner adapter implemented;
-multimedia acceptance pending**. This document supersedes the conservative own-revision limitation
-of the [original adapter design](../show-control/docs/integration.md). It does not
-claim a verified installed pack, visible native animation or recording.
+Status: **PARTIAL — real B3 installation, celebration media and owner integration
+verified within the recorded coverage**. Concurrent GPUI editing remains pending;
+cancellation before the first native tick remains `NOT_OBSERVED`. This document
+supersedes the conservative own-revision limitation of the
+[original adapter design](../show-control/docs/integration.md). Full output delivery
+and A/V synchronization remain separate gates.
 
 The crate still owns rules, cooldowns, counters, deduplication and action history.
 `Production` remains the sole authority for scenes, native operations, source
@@ -116,6 +120,12 @@ saved. Each session has a new durable journal; at 128 retained directory entries
 new sessions are refused until an explicit archive/review. Past-session journals
 remain evidence for `IntentJournal::read`; their native tokens cannot cancel or
 resume operations in a new process.
+
+The [B3 persistence verification](../var/evidence/h14-persistence-b3-01/verification.json)
+confirmed real GPUI save/restore, exact project roundtrip, restored rules/deck,
+an unarmed new session, no replayed jobs and idle outputs after a normal restart.
+Its post-restart AX/core evidence does not establish full-resolution visual
+acceptance: those screenshots showed a Stage Manager thumbnail.
 
 ## Checked dispatch and attributed revisions
 
@@ -278,13 +288,14 @@ duplicate/mismatched writes and bounded failure preserving the prior bytes.
 Run `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`
 and `cargo fmt -- --check` in `show-control/`. These are crate contract and
 filesystem tests, **not multimedia acceptance**. H14 still requires the actual
-real owner/Deck/MATCHDAY exercise and visible recorded/RTMP celebration before
-claiming multimedia acceptance. The integrated root suite passed 111 tests,
+owner/Deck/MATCHDAY exercise and decoded recorded/RTMP celebration for any tested
+binary; the [B3 report](h14-show-control-b3-verification.md) supplies that evidence
+for its stated coverage. At the live-adapter integration checkpoint, the root suite passed 111 tests,
 the independent Show Control crate passed 111 tests, and both Clippy runs with
 `-D warnings` passed after live-adapter integration. These counts include
 domain/storage/receipt checks, not physical assertions.
 
-## Prepared real verification harness
+## Real verification harness and B3 evidence
 
 `scripts/verify_h14_show_control.py --plan` is offline and performs no app or
 device operation. Execution requires `--lock-held`, an already-open signed
@@ -312,9 +323,11 @@ loopback endpoint was unset, there is no unset command, so its temporary endpoin
 is explicitly reported as a retained change. No project/audio/profile/Show
 Control/destination store is saved; their before/after hashes are compared.
 
-Even a successful run reports overall **PARTIAL** until actual decoded animation
-visibility and GPUI evidence are reviewed. A concurrent race not observed stays
-`NOT_OBSERVED`; it never becomes a simulated pass. Exact packet tail delivery and
-A/V synchronization remain separate H14 output gates. At harness preparation,
-only Python compilation and offline `--plan` were run; no new physical result is
-claimed by its existence.
+The [B3 run and independent media audit](h14-show-control-b3-verification.md)
+verified the real GPUI celebration, decoded entry/hold/exit in both outputs,
+cooldown, duplicate rejection, MCP/CLI concurrent-edit fencing and continuation
+after MCP disconnect. Overall acceptance remains **PARTIAL**: concurrent GPUI
+editing is still pending, and the two pre-first-tick cancellation attempts stayed
+`NOT_OBSERVED`. Exact packet delivery and A/V synchronization remain separate
+H14 output gates. A prepared harness or an unobserved race supplies no additional
+physical acceptance.

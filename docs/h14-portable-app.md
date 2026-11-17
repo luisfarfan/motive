@@ -1,9 +1,12 @@
 # H14 — aplicación autocontenida: contrato y verificación
 
-Estado inicial: **PARTIAL**. El empaquetador y el resolver de rutas están
-implementados. El primer staging unsigned pasa inspección estática; todavía no
-acredita el binario final, carga real de plugins, permisos ni producción fuera
-del checkout. No se publicó un instalador ni se solicitó notarización.
+Estado actual: **PARTIAL**. B3 se ejecutó firmado fuera del checkout y cargó
+37 rutas de dependencias nativas observadas sin depender de `.deps`; firma
+estricta, closure ARM64 y herramientas incluidas pasan. MATCHDAY y las salidas
+reales tienen su [evidencia B3](h14-show-control-b3-verification.md). La prueba
+en otra Mac, notarización y reconstrucción de los binarios upstream siguen
+pendientes. El staging unsigned descrito abajo se conserva como evidencia
+inicial distinta. No se publicó un instalador ni se solicitó notarización.
 
 ## Layout y ownership
 
@@ -42,9 +45,10 @@ El resolver no crea directorios ni migra o elimina contenido.
 | Módulos y recursos OBS | `Motive.app/Contents` | `<checkout>/.deps/OBS.app/Contents` |
 | Herramientas de importación | `Contents/MacOS/ffmpeg` y `ffprobe` | Herramientas de desarrollo en PATH |
 
-El almacenamiento de Show Control comparte el root de soporte de la app cuando
-su adaptador lo use; no se copian automáticamente configuraciones del simulador.
-Las grabaciones requieren aún la presentación/selección apropiada en la UI.
+El almacenamiento de Show Control comparte el root de soporte de la app;
+no se copian automáticamente configuraciones del simulador. La
+[biblioteca de grabaciones](h14-recordings.md) presenta los archivos administrados
+y su ubicación, con revisión nativa final separada del empaquetado.
 Las pruebas de formatos v1–v5 pertenecen a sus contratos, no al empaquetador.
 
 Los helpers portables deben existir, ser ejecutables y resolver dentro del
@@ -141,9 +145,14 @@ ARM64**, cero dependencias/rpaths/symlinks externos y 156152668 bytes de payload
 No se lanzó ni se firmó; no es la beta candidate ni un resultado del binario
 final. El build de los CLI quedó en `target/portable-tools/manifest.json`.
 
-Pendientes: ejecutar el binario integrado y firmado desde otro directorio,
-con PATH sin herramientas del desarrollador, comprobar plugins/importación/
-producción/reapertura, confirmar datos fuera del bundle, completar fuentes
-correspondientes, evaluar firma de distribución/notarización y probar otra Mac autorizada.
-Cada uno requiere su evidencia independiente; la inspección estática no los
-convierte en PASS.
+En aquel staging estaban pendientes ejecución, plugins, datos y reapertura.
+Los checkpoints B1/B2/B3 posteriores del [índice H14](h14-beta-verification.md)
+registran esas operaciones sobre bundles identificados. B3 usa PATH del sistema
+y carece de overrides DYLD; guarda proyecto/Show Control fuera del bundle y
+los restaura explícitamente tras reabrir, sin iniciar salidas.
+
+El [candidato de fuentes B3](h14-source-correspondence.md) tiene su propia
+procedencia y límites; material disponible no equivale a reconstrucción
+reproducible ya ejecutada. Firma de distribución/notarización, otra Mac y los
+gates de producción restantes continúan separados. La inspección estática no
+los convierte en PASS.

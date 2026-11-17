@@ -1,17 +1,29 @@
 # H14 — approved RTMPS destinations and local start authority
 
-Status: **domain and native bridge implemented; owner/UI/service integration and
-trusted external media verification pending**. No destination was contacted, no
-Keychain entry was created and no sheet was opened by this increment's tests.
-The [H8 trust limitation](h8-streaming-verification.md) remains applicable until
-an authorized private receiver with a trusted certificate is verified.
+Status: **domain, native bridge, owner, GPUI and approved RTMPS service
+integrated; external acceptance remains PARTIAL**. The initial domain/bridge
+tests did not contact a destination, create a Keychain entry or open a sheet.
+Those test limits describe that initial increment, not the later B2 run.
+
+The [authorized private B2 RTMPS trial](h14-rtmps-b2-verification.md) subsequently
+ran for **104.837 active seconds** with local GPUI start confirmation. The user
+observed the controlled video and audio in YouTube Studio; the simultaneous
+local MKV was independently decoded. The provider copy was not independently
+downloaded or decoded, and output-tail accounting remains partial. B3 has not
+repeated this external trial, so B2 evidence does not certify B3 delivery.
+The earlier [H8 trust limitation](h8-streaming-verification.md) remains the
+historical result for H8, with the later B2 evidence scoped separately here.
 
 ## GPUI integration
 
 The native studio now has a **Destinos RTMPS** panel, accessible from the globe
-button and from **Salidas → Configurar destinos RTMPS**. This wiring still needs
-the integrated build and physical UI verification recorded by the H14 owner;
-the domain checks below do not certify that visual flow.
+button and from **Salidas → Configurar destinos RTMPS**. The integrated B2 flow
+has separate [secure-entry verification](h14-secure-paste.md#b2-user-verification)
+and [private streaming evidence](h14-rtmps-b2-verification.md). The user confirmed
+successful paste/save, and the owner observed association with a durable
+receipt. The native routing test and visible **Pegar** workflow do not establish
+a separate physical Cmd+V result; that keyboard-path check remains unverified.
+The domain checks below alone do not certify the visual flow.
 
 The five ordinary GPUI inputs are stable ID, display name, host, port and
 application path. They never accept a credential value or editable opaque
@@ -207,7 +219,8 @@ be declared as a plaintext-returning Rust UI/MCP wrapper or copied into
 `obs_data`. The native service must construct its URL from the same validated
 tuple, enable H8 secret-log suppression **before** handing the key to OBS, wipe
 its native copy on destruction, and retain H8 TLS verification and quiescence.
-The current loopback-only service is not widened by this standalone increment.
+The integrated `motive_approved_service` handles locally authorized external
+destinations separately; the H8 loopback service retains its restricted scope.
 
 ## Persistence and checks
 
@@ -266,8 +279,10 @@ They were compiled with the real `src/output.rs` in an isolated local harness;
 all twelve plus its seven output tests pass, with Clippy `-D warnings` and
 rustfmt. The AppKit bridge passes ARM64/macOS 15 ARC syntax compilation with
 warnings as errors. No Keychain/runtime UI/TLS success is inferred from these
-tests. Owner integration and the user's authorized external receiver remain
-mandatory before announcing real streaming.
+tests. Owner integration and real external verification were pending at that
+initial test stage; the later B2 evidence linked above supplies a separately
+scoped private run, not a claim of independently decoded remote delivery or a
+repeat on B3.
 
 Six additional owner-state tests inject save failure before and after the
 rename/durability boundary, verify failed association and invalid-edit behavior,

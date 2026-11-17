@@ -29,7 +29,14 @@ impl Studio {
                     let (icon, detail) = match source.spec {
                         SourceKind::Window { .. } => (IconName::Monitor, "Captura de ventana"),
                         SourceKind::Camera { .. } => (IconName::Video, "Cámara"),
-                        SourceKind::Overlay { .. } => (IconName::Layers, "Gráfico animado"),
+                        SourceKind::Overlay { .. } => (
+                            IconName::Layers,
+                            source
+                                .overlay
+                                .as_ref()
+                                .map(creative::inspector::kind_label)
+                                .unwrap_or("Overlay clásico"),
+                        ),
                         SourceKind::Pattern => (IconName::Monitor, "Patrón libobs"),
                     };
                     let fault = health

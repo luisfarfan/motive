@@ -50,6 +50,7 @@ impl Studio {
                         v.selected_layer = Some(layer.clone());
                     }
                     v.prepare_forms(w, cx);
+                    v.prepare_overlay_inspector(w, cx);
                     if panel == Panel::Creative {
                         v.refresh_assets();
                     }

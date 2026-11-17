@@ -77,3 +77,39 @@ la siguiente captura de la ventana principal funcionaron. La selección genéric
 por nombre de app resolvió accidentalmente el bundle H10: se cerró su proceso
 idle enseguida, sin pruebas físicas concurrentes. Las siguientes selecciones
 usan la ruta completa del bundle H12.
+
+## Incremento 2 — edición y ejecución nativas
+
+Biblioteca con Crear/Recursos/Presets/Fuentes; texto multilínea, imagen, video,
+rectángulo/círculo, countdown/alerta y catálogo original de presets. Inspector
+Contenido/En vivo/Animación. Los comandos son `CreateOverlay`, `UpdateOverlay`,
+`OverlayEvent`, `AnimateOverlay` y `CancelOverlayAnimation`, todos mediante el
+mismo `Studio.command`/`Production.apply`. `SetOverlayColor` solo aparece para
+el overlay clásico sin `definition`. Reutilizar añade una capa de la fuente
+existente. Los borradores tienen revisión propia y recarga explícita; los estados
+nativos se consultan independientemente de esa revisión.
+
+**Verificado nativamente:** crear texto UTF-8 y multilineal, grabar VideoToolbox,
+Slide out 3000 ms, Fade in 3000 ms, editar el texto durante esa misma grabación,
+finalizar con el diálogo nativo y guardar proyecto v4. Ninguna operación de
+producción de este flujo se envió por terminal; CLI solo observó estado.
+
+Evidencia en `var/evidence/h12-ui/`: capturas 01–04, estados
+`first-recording-live.json`/`first-recording-stopped.json`, informe
+`first-recording-media.json`, fotogramas original/hidden/edited y MKV referenciado.
+SHA-256 ejecutable de ese ensayo:
+`34f469a968b38a8bd5b34f7caef53bc645b6295a99667590f6723e06c43b9c01`.
+105,733 s, 3171 frames H.264, AAC 48 kHz; decodificación completa sin errores.
+PTS interiores máximos 34 ms, cola final 67 ms (se conserva, no se oculta);
+DTS monotónicos. Cero render lag, drops de salida y skipped encoder frames en
+la observación durante salida. Un source ID, una instancia nativa de texto y
+un hijo FT2 después de editar. ROI fija decodificada: 986/0/1126 píxeles claros
+antes/oculto/editado; 2721 píxeles cambiaron entre los dos textos. Este clip
+contiene silencio AAC: no verifica el mixer ni sustituye la producción conjunta.
+
+**Implementado, pendiente de prueba nativa:** resto de tipos, importación video,
+controles widgets/presets, cancelación, RTMP conjunto y recuperación desde picker.
+55 tests Rust y Clippy PASS. La revisión visual de este flujo identificó acciones
+al final de formularios largos: el siguiente build mueve Aplicar arriba y pone
+el último recibo/cancelación antes de las opciones de animación. Al cambiar de
+pestaña/fuente se reinicia el ámbito del scroll; los borradores se conservan.

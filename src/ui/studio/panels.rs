@@ -86,6 +86,9 @@ impl Studio {
                     .iter()
                     .find(|l| Some(&l.id) == self.selected_layer.as_ref())
                 {
+                    if self.has_overlay_draft_for(&l.source_id) {
+                        content = content.child(self.creative_inspector(cx));
+                    }
                     let variant = self.production.project.variant;
                     let t = l.layouts.get(variant);
                     content = content
@@ -223,7 +226,15 @@ impl Studio {
                     ))
                 },
             )
-            .child(content.id("panel-scroll").overflow_y_scroll())
+            .child(
+                content
+                    .id(SharedString::from(format!(
+                        "panel-scroll-{panel}-{}-{}",
+                        self.selected_layer.as_deref().unwrap_or(""),
+                        self.creative_scroll_key()
+                    )))
+                    .overflow_y_scroll(),
+            )
             .child(label(self.message.clone(), p.secondary))
     }
 }

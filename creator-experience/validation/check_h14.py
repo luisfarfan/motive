@@ -57,7 +57,7 @@ def main():
     report["source_hashes_after"] = hashes()
     report["source_stable_during_check"] = report["source_hashes"] == report["source_hashes_after"]
     report["status"] = "PASS" if not failed and report["source_stable_during_check"] and report.get("check_status") == "PASS" else "FAIL"
-    (evidence / "contracts-h14-build.log").write_text("\n".join(log))
+    (evidence / "contracts-h14-build.log").write_text("\n".join(log).rstrip() + "\n")
     (evidence / "contracts-h14-snapshot.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({key: report[key] for key in ("status", "h14_commit", "source_stable_during_check")}, indent=2))
     return report["status"] != "PASS"

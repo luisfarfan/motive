@@ -1,6 +1,6 @@
 # Validación independiente
 
-Desde cualquier directorio:
+Desde el checkout:
 
 ```sh
 python3 creator-experience/validation/validate.py
@@ -60,3 +60,16 @@ Este es un verificador de materiales controlados de autoría; no un sandbox ni
 instalador de paquetes hostiles. No garantiza rendering de FreeType, decodificación
 nativa, confianza del autor, permisos de captura, RSS, operaciones live o calidad
 visual. Esas fronteras se documentan en `docs/audit.md`.
+
+## Navegador independiente
+
+`browser-checks.js` contiene una función `(page, {artifactDir})`. Ejecutarla
+únicamente mediante `proxima-browser.browser_run_code_unsafe`, envolviéndola con
+una función que pase el `page` del MCP y un directorio de artefactos permitido
+por ese servidor. El servidor local debe estar activo en 127.0.0.1:8768.
+No ejecutarla con otra instancia de Playwright ni un navegador por CDP.
+
+El MCP de esta sesión permite su cache de screenshots, pero no escribir en el
+worktree hermano. Por eso se capturó en ese cache y después se copiaron los PNG
+a `evidence/`. El script no fija ninguna ruta del checkout; `artifactDir` se
+selecciona al invocarlo. El reporte archivado usa rutas relativas de entrega.

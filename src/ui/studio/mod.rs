@@ -37,6 +37,7 @@ pub struct Studio {
     mixer_ui: audio::MixerUi,
     creative: creative::Creative,
     lifecycle: lifecycle::Lifecycle,
+    recordings: recordings::RecordingsUi,
 }
 impl Studio {
     pub fn new(
@@ -140,6 +141,7 @@ impl Studio {
             mixer_ui: audio::MixerUi::default(),
             creative: creative::Creative::default(),
             lifecycle: lifecycle::Lifecycle::new(window.window_handle()),
+            recordings: recordings::RecordingsUi::default(),
         }
     }
     fn command(&mut self, cmd: Command, origin: &str, cx: &mut Context<Self>) -> Value {
@@ -163,7 +165,21 @@ impl Studio {
                     .unwrap_or("Operación rechazada")
             );
         } else if preflight {
-            self.message = "Configuración válida. La comprobación no abre una conexión.".into();
+            let warnings = result["preflight"]["warnings"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|warning| warning["message"].as_str())
+                .collect::<Vec<_>>();
+            self.message = if warnings.is_empty() {
+                "Configuración válida. La comprobación no abre una conexión ni verifica el medio."
+                    .into()
+            } else {
+                format!(
+                    "Configuración válida con advertencia: {}",
+                    warnings.join(" ")
+                )
+            };
         } else if self.production.revision != revision {
             self.message = self.production.last_action.clone();
         }
@@ -194,6 +210,7 @@ mod configuration;
 mod forms;
 mod lifecycle;
 mod outputs;
+mod recordings;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Panel {
@@ -207,6 +224,7 @@ enum Panel {
     Settings,
     Scenes,
     Creative,
+    Recordings,
 }
 impl Panel {
     fn id(self) -> &'static str {
@@ -221,6 +239,7 @@ impl Panel {
             Self::Settings => "settings",
             Self::Scenes => "scenes",
             Self::Creative => "creative",
+            Self::Recordings => "recordings",
         }
     }
 }

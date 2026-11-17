@@ -93,6 +93,8 @@ pub enum Command {
     Encoders,
     OutputCapabilities,
     Outputs,
+    Recordings,
+    RefreshRecordings,
     OutputDiagnostics {
         target: OutputTarget,
     },
@@ -317,6 +319,7 @@ pub struct Production {
     pub revision: u64,
     pub last_action: String,
     outputs: OutputRegistry,
+    recordings: crate::recordings::Library,
     pub window_id: Option<u32>,
     pub issues: Vec<String>,
     pub recovery: Recovery,
@@ -352,6 +355,7 @@ impl Production {
             revision: 0,
             last_action: "Estudio iniciado".into(),
             outputs: OutputRegistry::default(),
+            recordings: crate::recordings::Library::new(),
             window_id: None,
             issues: vec![],
             recovery: Recovery::default(),
@@ -370,6 +374,9 @@ impl Production {
     }
     pub fn graph(&self) -> &Graph {
         self.project.graph.as_ref().expect("validated graph")
+    }
+    pub fn recordings_snapshot(&self) -> crate::recordings::Snapshot {
+        self.recordings.snapshot(&self.output_snapshot().recording)
     }
     pub fn status(&self) -> Value {
         let outputs = self.output_snapshot();
@@ -399,7 +406,7 @@ impl Production {
             "sources":self.source_health,"window_id":self.window_id,"output":legacy.map_or("multiple", |slot|slot.legacy_state()),
             "output_code":legacy.map(|slot|slot.failure.as_ref().and_then(|f|f.native_code).unwrap_or(0)),
             "transition_configuration":self.transition,"transition":self.engine.scene_state(),
-            "output_lifecycle":{"native_busy":outputs.busy(),"cancel_requested":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_requested && outputs.get(*t).native_busy),"cancel_deferred":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_deferred),"shutdown_pending":self.shutdown_pending},
+            "output_lifecycle":{"native_busy":outputs.busy(),"cancel_requested":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_requested && outputs.get(*t).native_busy),"cancel_deferred":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_deferred),"shutdown_pending":self.shutdown_pending,"shutdown_requested":self.shutdown_requested,"recordings_busy":self.recordings.busy()},
             "output_failure":legacy.and_then(|slot|slot.failure.as_ref()),"output_path":legacy.and_then(|slot|slot.path.as_ref()),
             "output_contract_version":1,"outputs":outputs,
             "last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":self.engine.fps,"video":self.video_status(),"stats":stats})
@@ -468,6 +475,9 @@ impl Production {
             OutputTarget::Streaming => &self.streaming_profile,
         };
         self.profiles.get(id).expect("validated active profile")
+    }
+    pub fn output_warnings(&self, target: OutputTarget) -> Vec<output::OutputWarning> {
+        self.profile(target).warnings()
     }
     fn output_configuration(&self) -> Value {
         json!({"recording_profile":self.recording_profile,"streaming_profile":self.streaming_profile,
@@ -568,7 +578,10 @@ impl Production {
     pub fn persist_shutdown_diagnostics(&self) -> anyhow::Result<()> {
         let outputs = self.output_snapshot();
         anyhow::ensure!(
-            self.shutdown_requested && !outputs.busy() && self.engine.output_state() == 0,
+            self.shutdown_requested
+                && !outputs.busy()
+                && self.engine.output_state() == 0
+                && !self.recordings.busy(),
             "OUTPUT_STILL_FINALIZING"
         );
         crate::diagnostics::write_shutdown(
@@ -584,6 +597,7 @@ impl Production {
         )
     }
     pub fn poll_health(&mut self) {
+        self.recordings.poll();
         self.poll_overlays();
         self.engine.poll_audio();
         let audio = self.engine.audio_state();
@@ -632,6 +646,7 @@ impl Production {
             && !self.outputs.busy()
             && self.engine.output_state() == 0
             && !self.overlays.busy()
+            && !self.recordings.busy()
         {
             self.shutdown_requested = true;
         }
@@ -1278,6 +1293,9 @@ impl Production {
         if matches!(command, Command::Outputs) {
             return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"output_contract_version":1,"outputs":self.output_snapshot()});
         }
+        if matches!(command, Command::Recordings) {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"recordings":self.recordings_snapshot()});
+        }
         if let Command::OutputDiagnostics { target } = &command {
             return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,
                 "output":self.output_snapshot().get(*target),"packet_trace":self.engine.output_packet_trace(*target)});
@@ -1301,7 +1319,7 @@ impl Production {
             return match self.preflight(target) {
                 Ok(()) => {
                     json!({"ok":true,"preflight":{"ready":true,"target":target,"profile":self.profile(target),
-                    "configuration":self.output_configuration(),"network_tested":false,"encoder_initialized":false}})
+                    "configuration":self.output_configuration(),"warnings":self.output_warnings(target),"network_tested":false,"encoder_initialized":false}})
                 }
                 Err(e) => command_error(e),
             };
@@ -1313,6 +1331,9 @@ impl Production {
         let result = (|| -> anyhow::Result<()> {
             admit_shutdown_mutation(&command, self.shutdown_pending, self.shutdown_requested)?;
             match command {
+                Command::RefreshRecordings => {
+                    self.recordings.refresh()?;
+                }
                 Command::ConfigureVideo { video } => {
                     self.configure_video(Some(video), self.project.variant)?;
                 }
@@ -1568,7 +1589,10 @@ impl Production {
                     self.cancel_all_outputs();
                     // Let the owner keep polling an import before dropping its
                     // worker; State::drop must not join a live job on the UI thread.
-                    if !self.output_snapshot().busy() && !self.overlays.busy() {
+                    if !self.output_snapshot().busy()
+                        && !self.overlays.busy()
+                        && !self.recordings.busy()
+                    {
                         self.shutdown_requested = true;
                     }
                 }
@@ -1608,7 +1632,7 @@ impl Production {
                 Command::Shutdown => {
                     self.idle()?;
                     self.shutdown_pending = true;
-                    self.shutdown_requested = true;
+                    self.shutdown_requested = !self.recordings.busy();
                 }
                 Command::SetTestWindow { open } => {
                     self.test_window_request = Some(open);
@@ -1621,6 +1645,7 @@ impl Production {
                 | Command::Encoders
                 | Command::OutputCapabilities
                 | Command::Outputs
+                | Command::Recordings
                 | Command::OutputDiagnostics { .. }
                 | Command::VideoCapabilities
                 | Command::OutputProfiles
@@ -1816,6 +1841,17 @@ fn create_tone() -> anyhow::Result<()> {
 mod tests {
     use super::*;
     #[test]
+    fn recordings_commands_accept_no_paths_or_extra_fields() {
+        for op in ["recordings", "refresh_recordings"] {
+            assert!(parse_command(json!({"op":op})).is_ok());
+            for field in ["path", "directory", "id", "limit"] {
+                let mut value = json!({"op":op});
+                value[field] = json!("/tmp/arbitrary");
+                assert!(parse_command(value).is_err(), "{op} {field}");
+            }
+        }
+    }
+    #[test]
     fn shutdown_admission_blocks_queued_starts_in_both_terminal_phases() {
         let commands = [
             json!({"op":"start_recording"}),
@@ -1827,6 +1863,7 @@ mod tests {
             json!({"op":"set_test_window","open":true}),
             json!({"op":"import_asset","file_name":"queued.png"}),
             json!({"op":"save_project"}),
+            json!({"op":"refresh_recordings"}),
         ];
         for value in commands {
             let command = parse_command(value.clone()).unwrap();

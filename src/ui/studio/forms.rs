@@ -38,7 +38,7 @@ impl Forms {
             port: input(),
             credential: input(),
             encoder: RecordingEncoder::Auto,
-            reorder: true,
+            reorder: false,
             transport: Transport::Rtmp,
             profiles: vec![],
             revision: 0,
@@ -193,6 +193,11 @@ impl Studio {
         let revision = self.production.revision;
         let weak = cx.entity().downgrade();
         let description = match &command {
+            Command::StartOutput { target } => {
+                let warnings = self.production.output_warnings(*target);
+                let details = warnings.iter().map(|w| format!("{} {}", w.message, w.recommendation)).collect::<Vec<_>>().join("\n");
+                format!("{details}\nConfirmar inicia la salida con el perfil actual.")
+            }
             Command::RemoveAudioInput { input_id } => {
                 format!("Eliminar entrada {input_id} y liberar su captura.")
             }

@@ -399,6 +399,17 @@ impl OutputRegistry {
 pub enum RateControl {
     Cbr,
 }
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum OutputWarningCode {
+    FrameReorderingTailRisk,
+}
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct OutputWarning {
+    pub code: OutputWarningCode,
+    pub message: &'static str,
+    pub recommendation: &'static str,
+}
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct OutputProfile {
@@ -417,11 +428,24 @@ impl Default for OutputProfile {
             bitrate_kbps: 2500,
             rate_control: RateControl::Cbr,
             keyframe_seconds: 2,
-            frame_reordering: true,
+            frame_reordering: false,
         }
     }
 }
 impl OutputProfile {
+    /// A measured risk advisory, not an acceptance gate or delivery receipt.
+    /// Saved profiles retain their explicit setting and receive the same warning.
+    pub fn warnings(&self) -> Vec<OutputWarning> {
+        if self.frame_reordering {
+            vec![OutputWarning {
+                code: OutputWarningCode::FrameReorderingTailRisk,
+                message: "El reordenamiento puede dejar saltos de video al finalizar la salida.",
+                recommendation: "Desactiva el reordenamiento en el perfil para reducir este riesgo. La integridad de la salida todavía requiere verificación.",
+            }]
+        } else {
+            Vec::new()
+        }
+    }
     pub fn validate(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
             !self.id.is_empty()
@@ -677,6 +701,36 @@ mod tests {
         assert!(store.validate().is_err());
         store.version = 2;
         assert!(store.validate().is_err());
+    }
+    #[test]
+    fn default_avoids_reordering_without_migrating_saved_v1_profiles() {
+        assert!(!OutputProfile::default().frame_reordering);
+        assert!(OutputProfile::default().warnings().is_empty());
+        let saved = serde_json::json!({"version":1,"profiles":[{
+            "id":"saved","encoder":"auto","bitrate_kbps":4000,
+            "rate_control":"cbr","keyframe_seconds":2,"frame_reordering":true
+        }]});
+        let restored: ProfileStore = serde_json::from_value(saved.clone()).unwrap();
+        restored.validate().unwrap();
+        assert_eq!(serde_json::to_value(&restored).unwrap(), saved);
+        let warnings = restored.profiles[0].warnings();
+        assert_eq!(warnings.len(), 1);
+        assert_eq!(warnings[0].code, OutputWarningCode::FrameReorderingTailRisk);
+        assert_eq!(
+            serde_json::to_value(warnings).unwrap()[0]["code"],
+            "FRAME_REORDERING_TAIL_RISK"
+        );
+        for encoder in [
+            RecordingEncoder::Auto,
+            RecordingEncoder::Videotoolbox,
+            RecordingEncoder::X264,
+        ] {
+            let mut p = restored.profiles[0].clone();
+            p.encoder = encoder;
+            assert!(!p.warnings().is_empty());
+            p.frame_reordering = false;
+            assert!(p.warnings().is_empty());
+        }
     }
     #[test]
     fn endpoints_never_accept_urls_credentials_or_public_hosts() {

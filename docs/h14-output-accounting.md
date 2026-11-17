@@ -113,6 +113,43 @@ Las pruebas en `scripts/test_h14_output_accounting.py` verifican que una pérdid
 pre-stop, una frontera incierta y una traza incompleta no se conviertan en PASS.
 Son tests del analizador con datos construidos, no pruebas audiovisuales.
 
-Pendiente de ejecución física serial: matriz, medidas reales y conclusiones
-sobre el binario final. No se declara cerrada la aceptación P0 por la revisión
-de código ni por que un archivo pueda decodificarse.
+## Riesgo medido y mitigación conservadora
+
+La matriz serial `var/evidence/h14-output-matrix-1794950314099626000/matrix.json`
+conserva los casos y sus informes completos. La inspección offline de esos JSON
+confirma gaps finales de 66–67 ms con VideoToolbox y de hasta 133 ms con x264
+cuando `frame_reordering:true`. Los seis casos normales con reordering (cada
+encoder × MKV/RTMP/dual) son FAIL agregado; la ausencia de gap en uno de los
+medios de un caso dual no elimina su pérdida de cola.
+
+Ejemplo: `h14-output-integrity-1794950334334523000`, VT/MKV, decodifica 251
+frames frente a 252 despachados y 253 contabilizados por el encoder. El paquete
+video secuencia 643 posterior al bracket de stop y el AAC secuencia 644
+anterior al bracket están ausentes. Esto concuerda con el muxer oficial:
+`ffmpeg_mux_data` desactiva toda la salida al primer `sys_dts_usec >= stop_ts`;
+la siguiente entrega puede ser AAC con `sys_dts_usec` anterior y se rechaza por
+salida inactiva. Con reordering, orden de presentación y DTS difieren, así que
+el cutoff por DTS puede dejar huecos internos de PTS cerca del final.
+
+El corte por DTS y el contador previo al plugin explican observaciones de la
+frontera. No prueban que todo el backlog del encoder se haya vaciado ni que un
+helper con exit code 0 haya escrito todos los paquetes. No se modifica libobs,
+su barrera H8, la instrumentación, los medios, los gates ni el clasificador.
+
+Los casos sin reordering inspeccionados mantienen gap máximo de video de 34 ms,
+pero conservan diferencias de contador y ausencias de frontera. Por ejemplo,
+x264/MKV puede tener `output_frames - decoded = 1`; VT mantiene diferencias
+de encoder. Su agregado permanece PARTIAL, no aceptación beta.
+
+`OutputProfile::default` y el borrador inicial UI usan ahora
+`frame_reordering:false`. Los perfiles v1 persistidos no se migran ni se
+reescriben: su valor explícito se conserva. `OutputProfile::warnings()` produce
+la advertencia tipada `FRAME_REORDERING_TAIL_RISK` cuando está activado.
+`preflight_output.preflight.warnings` la expone a CLI/MCP; `ready:true` describe
+admisión de configuración, no integridad de medios. El panel de perfiles, la
+tarjeta de salida y la confirmación previa al inicio UI usan esa misma regla.
+La confirmación mantiene el guard de revisión existente.
+
+Desactivar reordering reduce el riesgo observado; no se presenta como un fix de
+flush ni certifica una salida. El informe general H14 conserva las métricas y
+los gates de aceptación abiertos del binario final.

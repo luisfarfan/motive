@@ -93,6 +93,13 @@ impl Studio {
             });
         }
         if self.production.shutdown_requested {
+            // A metadata-only reveal task owns filesystem handles, not Engine.
+            // Keep the UI alive until its worker result is drained; never join.
+            if self.recordings.revealing {
+                self.message = "Cierre pendiente: finalizando la consulta de grabaciones.".into();
+                cx.notify();
+                return false;
+            }
             if !self.lifecycle.diagnostics_saved {
                 if self.production.persist_shutdown_diagnostics().is_err() {
                     eprintln!("{{\"code\":\"SHUTDOWN_DIAGNOSTIC_WRITE_FAILED\"}}");

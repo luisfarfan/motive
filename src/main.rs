@@ -3,6 +3,7 @@ mod core;
 mod diagnostics;
 mod engine;
 mod paths;
+mod recordings;
 mod scene;
 
 use core::Production;

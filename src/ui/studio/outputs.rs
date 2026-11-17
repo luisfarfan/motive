@@ -186,7 +186,7 @@ impl Studio {
             if matches!(
                 command,
                 Command::StopOutputTarget { .. } | Command::CancelOutputTarget { .. }
-            ) {
+            ) || matches!(command, Command::StartOutput { target } if !v.production.output_warnings(target).is_empty()) {
                 v.confirm_command(command.clone(), w, cx);
             } else {
                 v.command(command.clone(), "UI", cx);
@@ -303,6 +303,12 @@ impl Studio {
                 format!("Perfil seleccionado: {selected}"),
                 p.secondary,
             ));
+        for warning in self.production.output_warnings(target) {
+            card = card.child(label(
+                format!("{} {}", warning.message, warning.recommendation),
+                p.warn,
+            ));
+        }
         if slot["attempt_id"].is_number() {
             let profile = slot["profile"]["id"].as_str().unwrap_or("—");
             let encoder = slot["encoding"]["selected_id"]

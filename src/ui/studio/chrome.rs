@@ -55,6 +55,9 @@ impl Studio {
                     if panel == Panel::Creative {
                         v.refresh_assets();
                     }
+                    if panel == Panel::Recordings && !v.recordings_closing() {
+                        v.refresh_recordings(cx);
+                    }
                     v.devices = v.production.engine.devices();
                 } else {
                     v.panel = None;
@@ -80,6 +83,9 @@ impl Studio {
             panel,
             quiet((ElementId::from("trigger"), id), text)
                 .icon(icon)
+                .when(panel == Panel::Recordings, |button| {
+                    button.accessibility_label("Biblioteca de grabaciones")
+                })
                 .tooltip(match id {
                     "audio" => "Configurar mixer de audio",
                     "profiles" => "Perfiles de salida",
@@ -87,6 +93,7 @@ impl Studio {
                     "scenes" => "Escenas y transiciones",
                     "add-source" => "Añadir fuente",
                     "output" => "Estados y controles de grabación y transmisión",
+                    "recordings" => "Biblioteca de grabaciones",
                     _ => text,
                 }),
             None,
@@ -167,6 +174,7 @@ impl Studio {
                     )
                     .child(self.panel_button(Panel::Settings, "", IconName::Settings, cx))
                     .child(self.panel_button(Panel::Profiles, "", IconName::SlidersHorizontal, cx))
+                    .child(self.panel_button(Panel::Recordings, "", IconName::FolderOpen, cx))
                     .child(self.panel_button(Panel::Agent, "MCP", IconName::Circle, cx))
                     .child(self.output_control(status, OutputTarget::Recording, true, cx))
                     .child(self.output_control(status, OutputTarget::Streaming, true, cx))

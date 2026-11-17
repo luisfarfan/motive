@@ -16,6 +16,7 @@ impl Studio {
             "settings" => "Preferencias y diagnóstico",
             "scenes" => "Escenas y transiciones",
             "creative" => "Biblioteca creativa",
+            "recordings" => "Grabaciones",
             _ => "Estudio",
         };
         let mut content = col().gap(px(8.));
@@ -64,6 +65,9 @@ impl Studio {
             }
             "creative" => {
                 content = content.child(self.creative_library(cx));
+            }
+            "recordings" => {
+                content = content.child(self.recordings_panel(cx));
             }
             "add-source" => {
                 content = content.child(self.device_picker(cx));
@@ -218,7 +222,9 @@ impl Studio {
                     ),
             )
             .when(
-                panel != "creative" && self.forms.revision != self.production.revision,
+                panel != "creative"
+                    && panel != "recordings"
+                    && self.forms.revision != self.production.revision,
                 |d| {
                     d.child(label(
                         "El estado cambió. Reabre para actualizar los formularios.",

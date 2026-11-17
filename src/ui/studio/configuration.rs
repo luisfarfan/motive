@@ -288,6 +288,19 @@ impl Studio {
                     cx.notify();
                 })),
             )
+            .children(
+                self.forms
+                    .profile(cx)
+                    .map(|profile| profile.warnings())
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|warning| {
+                        label(
+                            format!("{} {}", warning.message, warning.recommendation),
+                            p.warn,
+                        )
+                    }),
+            )
             .child(
                 quiet("apply-profile", "Crear / actualizar perfil").on_click(cx.listener(
                     |v, _, w, cx| {

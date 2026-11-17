@@ -79,12 +79,9 @@ impl Studio {
                 .as_u64()
                 .filter(|_| matches!(draft.definition, Definition::Widget { .. }))
             {
+                let seconds = ms.div_ceil(1000);
                 body = body.child(label(
-                    format!(
-                        "Tiempo nativo: {:02}:{:02} · {ms} ms",
-                        ms / 60000,
-                        (ms / 1000) % 60
-                    ),
+                    format!("Restante: {:02}:{:02}", seconds / 60, seconds % 60),
                     p.ink,
                 ));
             }
@@ -98,6 +95,7 @@ impl Studio {
                     ),
                     p.secondary,
                 ));
+                body = body.child(label("Ocultar una capa no detiene el video. Usa Pausar o Detener para parar su reproducción.", p.muted));
             }
         } else {
             body = body.child(label("Sin estado nativo para esta fuente.", p.warn));

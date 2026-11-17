@@ -29,6 +29,32 @@ def db(value):
     return 20 * math.log10(max(value, 1e-15))
 
 
+def isolated_rms(samples, stage, index):
+    # libobs 33.0.1 obs-audio-controls.c:volmeter_process_magnitude computes
+    # RMS per audio buffer. A median of those readings is NOT whole-second
+    # energy RMS when a physical signal contains transients. Compare the same
+    # statistic on the same interval, keeping the original 2 dB tolerance.
+    # These decoded 20 ms blocks approximate capture-buffer duration; this is
+    # a sampled meter comparison, not a sample-exact timestamp calibration.
+    observations = stage['samples'][3:]
+    assert len(observations) >= 8
+    lo, hi = observations[0]['seconds'], observations[-1]['seconds']
+    native = [s['state']['audio_mixer']['runtime']['inputs'][index]['levels']['rms_dbfs'][0]
+              for s in observations]
+    assert all(v is not None and math.isfinite(v) for v in native), native
+    blocks = []
+    for offset in range(round(lo * 48000), round(hi * 48000) - 959, 960):
+        block = samples[offset:offset + 960]
+        assert len(block) == 960
+        blocks.append(db(math.sqrt(sum(x*x for x in block)/len(block))))
+    assert len(blocks) >= 50
+    native_median, decoded_median = statistics.median(native), statistics.median(blocks)
+    return {'window_seconds': [lo, hi], 'decoded_block_ms': 20,
+            'native_dbfs': native, 'decoded_block_dbfs': blocks,
+            'native_median_dbfs': native_median, 'decoded_median_dbfs': decoded_median,
+            'error_db': decoded_median - native_median}
+
+
 def analyse(path, stages):
     samples = decoded(path)
     result = {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'duration': len(samples)/48000,
@@ -53,16 +79,16 @@ def analyse(path, stages):
     assert r['both_muted']['rms_dbfs'] < -100, r['both_muted']
     # Match native per-input RMS to decoded isolated channels. Physical speaker
     # acoustics can vary, so retain all samples and allow a measured 2 dB margin.
-    errors = {}
+    errors, meter_windows = {}, {}
     for name, index in [('mic_muted', 1), ('tone_muted', 0)]:
         stage = next(s for s in stages if s['name'] == name)
-        native = statistics.median(s['state']['audio_mixer']['runtime']['inputs'][index]['levels']['rms_dbfs'][0]
-                                   for s in stage['samples'][3:])
-        errors[name] = r[name]['rms_dbfs'] - native
-        assert abs(errors[name]) < 2, (name, native, r[name])
+        meter_windows[name] = isolated_rms(samples, stage, index)
+        errors[name] = meter_windows[name]['error_db']
+        assert abs(errors[name]) < 2, (name, meter_windows[name])
     result['microphone_gain_delta_db'] = db(r['mic_lower']['a997']/r['mic_unmuted']['a997'])
     assert -14 < result['microphone_gain_delta_db'] < -10, result['microphone_gain_delta_db']
     result['isolated_rms_error_db'] = errors
+    result['isolated_rms_windows'] = meter_windows
     assert result['peak_dbfs'] < -.5, result['peak_dbfs']
     # The 440 Hz path stays continuous through microphone disconnect and all
     # Cut/Fade switches. Check every 100 ms window of these complete sections.

@@ -3,9 +3,12 @@ use crate::core::overlays::{Definition, Shape, WidgetKind, assets::AssetKind};
 impl Studio {
     fn asset_library(&self, cx: &mut Context<Self>) -> Div {
         let p = Palette::new(self.dark);
+        let state = self.production.overlay_status();
+        let job = &state["import"];
         let busy = self.creative.choosing
             || self.creative.copying
             || self.creative.staged.is_some()
+            || job["phase"] == "running"
             || self.production.status()["output"] != "idle";
         let mut body = col().gap(px(10.))
             .child(label("Recursos locales", p.secondary))
@@ -15,6 +18,27 @@ impl Studio {
             .child(label("La importación requiere la salida detenida. El audio de los videos permanece desactivado.", p.muted))
             .child(label(self.creative.import_message.clone(), p.secondary))
             .child(quiet("refresh-assets", "Actualizar recursos").disabled(busy).on_click(cx.listener(|v, _, _, cx| {v.refresh_assets(); cx.notify();})));
+        if let Some(id) = job["operation_id"].as_u64() {
+            body = body.child(label(
+                format!(
+                    "Importación #{id}: {}",
+                    match job["phase"].as_str() {
+                        Some("running") => "procesando…",
+                        Some("completed") => "finalizada",
+                        Some("failed") => "fallida",
+                        _ => "estado no disponible",
+                    }
+                ),
+                if job["phase"] == "failed" {
+                    p.warn
+                } else {
+                    p.secondary
+                },
+            ));
+            if let Some(code) = job["error"]["code"].as_str() {
+                body = body.child(label(code.to_owned(), p.warn));
+            }
+        }
         if let Some(error) = &self.creative.inventory_error {
             body = body.child(label(error.clone(), p.warn));
         }

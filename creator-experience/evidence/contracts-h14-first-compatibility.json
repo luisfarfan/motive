@@ -1,0 +1,4511 @@
+{
+  "mode": "offline_contract_validation",
+  "production_connection": false,
+  "reports": [
+    {
+      "adversarial_checks": [
+        {
+          "case": "unknown_executable_field",
+          "rejected_with": "PACK_SCHEMA",
+          "status": "PASS"
+        },
+        {
+          "case": "future_schema",
+          "rejected_with": "PACK_VERSION",
+          "status": "PASS"
+        },
+        {
+          "case": "undeclared_capability",
+          "rejected_with": "PACK_CAPABILITY",
+          "status": "PASS"
+        },
+        {
+          "case": "missing_source",
+          "rejected_with": "PACK_REFERENCE",
+          "status": "PASS"
+        },
+        {
+          "case": "underbudget_texture",
+          "rejected_with": "PACK_BUDGET",
+          "status": "PASS"
+        },
+        {
+          "case": "zero_vertical_width",
+          "rejected_with": "PACK_LAYOUT",
+          "status": "PASS"
+        },
+        {
+          "case": "global_layer_overflow",
+          "rejected_with": "PACK_LIMIT",
+          "status": "PASS"
+        },
+        {
+          "case": "resource_path_traversal",
+          "rejected_with": "PACK_RESOURCE",
+          "status": "PASS"
+        },
+        {
+          "case": "unsupported_fade_easing",
+          "rejected_with": "PACK_ANIMATION",
+          "status": "PASS"
+        },
+        {
+          "case": "typed_property_transaction",
+          "status": "PASS"
+        },
+        {
+          "case": "deck_confirmation_pending_cooldown_monotonic_clock",
+          "mode": "simulation_only",
+          "status": "PASS"
+        },
+        {
+          "case": "rule_cross_reference_missing",
+          "rejected_with": "PACK_SOURCE_MISSING",
+          "status": "PASS"
+        },
+        {
+          "case": "countdown_cannot_target_shape",
+          "rejected_with": "INVALID_OVERLAY_ACTION",
+          "status": "PASS"
+        }
+      ],
+      "counts": {
+        "animations": 10,
+        "buttons": 8,
+        "layers": 27,
+        "properties": 12,
+        "resources": 2,
+        "rules": 3,
+        "scenes": 6,
+        "sources": 12
+      },
+      "deck": [
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "tech-lower-third",
+                "type": "show_overlay"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "presenter",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-presenter",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-presenter",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "tech-lower-third",
+                    "type": "show_overlay"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-presenter",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-presenter",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "tech-lower-third",
+                        "type": "show_overlay"
+                      },
+                      "commands": [
+                        {
+                          "event": "show",
+                          "op": "overlay_event",
+                          "source_id": "tech-lower-third"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-presenter:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "tech-lower-third",
+                    "type": "show_overlay"
+                  },
+                  "commands": [
+                    {
+                      "event": "show",
+                      "op": "overlay_event",
+                      "source_id": "tech-lower-third"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "presenter",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "tech-chapter",
+                "type": "show_overlay"
+              },
+              "rule": "tech-deck-chapter",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "chapter",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-chapter",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-chapter",
+                "rule_id": "tech-deck-chapter"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "tech-chapter",
+                    "type": "show_overlay"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-chapter",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-chapter",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "tech-deck-chapter"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "tech-chapter",
+                        "type": "show_overlay"
+                      },
+                      "commands": [
+                        {
+                          "event": "show",
+                          "op": "overlay_event",
+                          "source_id": "tech-chapter"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "tech-deck-chapter",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-chapter:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "tech-chapter",
+                    "type": "show_overlay"
+                  },
+                  "commands": [
+                    {
+                      "event": "show",
+                      "op": "overlay_event",
+                      "source_id": "tech-chapter"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "chapter",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "tech-timer",
+                "type": "countdown_start"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "countdown",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-countdown",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-countdown",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "tech-timer",
+                    "type": "countdown_start"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-countdown",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-countdown",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "tech-timer",
+                        "type": "countdown_start"
+                      },
+                      "commands": [
+                        {
+                          "event": "timer_start",
+                          "op": "overlay_event",
+                          "source_id": "tech-timer"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-countdown:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "tech-timer",
+                    "type": "countdown_start"
+                  },
+                  "commands": [
+                    {
+                      "event": "timer_start",
+                      "op": "overlay_event",
+                      "source_id": "tech-timer"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "countdown",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "tech-timer",
+                "type": "countdown_reset"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "countdown-reset",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-countdown-reset",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-countdown-reset",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "tech-timer",
+                    "type": "countdown_reset"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-countdown-reset",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-countdown-reset",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "tech-timer",
+                        "type": "countdown_reset"
+                      },
+                      "commands": [
+                        {
+                          "event": "timer_reset",
+                          "op": "overlay_event",
+                          "source_id": "tech-timer"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-countdown-reset:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "tech-timer",
+                    "type": "countdown_reset"
+                  },
+                  "commands": [
+                    {
+                      "event": "timer_reset",
+                      "op": "overlay_event",
+                      "source_id": "tech-timer"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "countdown-reset",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "scene_id": "tech-live",
+                "transition": {
+                  "duration_ms": 0,
+                  "kind": "cut"
+                },
+                "type": "select_scene"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "live",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-live",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-live",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "scene_id": "tech-live",
+                    "transition": {
+                      "duration_ms": 0,
+                      "kind": "cut"
+                    },
+                    "type": "select_scene"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-live",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-live",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "scene_id": "tech-live",
+                        "transition": {
+                          "duration_ms": 0,
+                          "kind": "cut"
+                        },
+                        "type": "select_scene"
+                      },
+                      "commands": [
+                        {
+                          "op": "configure_transition",
+                          "transition": {
+                            "duration_ms": 0,
+                            "kind": "cut"
+                          }
+                        },
+                        {
+                          "op": "select_scene",
+                          "scene_id": "tech-live"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-live:1:0",
+                "prepared": {
+                  "action": {
+                    "scene_id": "tech-live",
+                    "transition": {
+                      "duration_ms": 0,
+                      "kind": "cut"
+                    },
+                    "type": "select_scene"
+                  },
+                  "commands": [
+                    {
+                      "op": "configure_transition",
+                      "transition": {
+                        "duration_ms": 0,
+                        "kind": "cut"
+                      }
+                    },
+                    {
+                      "op": "select_scene",
+                      "scene_id": "tech-live"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "live",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "scene_id": "tech-brb",
+                "transition": {
+                  "duration_ms": 350,
+                  "kind": "fade"
+                },
+                "type": "select_scene"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "brb",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-brb",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-brb",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "scene_id": "tech-brb",
+                    "transition": {
+                      "duration_ms": 350,
+                      "kind": "fade"
+                    },
+                    "type": "select_scene"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-brb",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-brb",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "scene_id": "tech-brb",
+                        "transition": {
+                          "duration_ms": 350,
+                          "kind": "fade"
+                        },
+                        "type": "select_scene"
+                      },
+                      "commands": [
+                        {
+                          "op": "configure_transition",
+                          "transition": {
+                            "duration_ms": 350,
+                            "kind": "fade"
+                          }
+                        },
+                        {
+                          "op": "select_scene",
+                          "scene_id": "tech-brb"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-brb:1:0",
+                "prepared": {
+                  "action": {
+                    "scene_id": "tech-brb",
+                    "transition": {
+                      "duration_ms": 350,
+                      "kind": "fade"
+                    },
+                    "type": "select_scene"
+                  },
+                  "commands": [
+                    {
+                      "op": "configure_transition",
+                      "transition": {
+                        "duration_ms": 350,
+                        "kind": "fade"
+                      }
+                    },
+                    {
+                      "op": "select_scene",
+                      "scene_id": "tech-brb"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "brb",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "event": "trigger",
+                "source_id": "tech-alert",
+                "type": "widget"
+              },
+              "rule": "tech-deck-alert",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "alert",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-alert",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-alert",
+                "rule_id": "tech-deck-alert"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "event": "trigger",
+                    "source_id": "tech-alert",
+                    "type": "widget"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-alert",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-alert",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "tech-deck-alert"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "event": "trigger",
+                        "source_id": "tech-alert",
+                        "type": "widget"
+                      },
+                      "commands": [
+                        {
+                          "event": "trigger",
+                          "op": "overlay_event",
+                          "source_id": "tech-alert"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "tech-deck-alert",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-alert:1:0",
+                "prepared": {
+                  "action": {
+                    "event": "trigger",
+                    "source_id": "tech-alert",
+                    "type": "widget"
+                  },
+                  "commands": [
+                    {
+                      "event": "trigger",
+                      "op": "overlay_event",
+                      "source_id": "tech-alert"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "alert",
+            "variables": {}
+          }
+        },
+        {
+          "enabled": false,
+          "id": "provider-follow",
+          "manual_binding_would_reject": "RULE_TRIGGER_MISMATCH",
+          "press_would_reject": "DECK_DISABLED",
+          "status": "DISABLED_PROVIDER_RULE"
+        }
+      ],
+      "events": [
+        {
+          "id": "tech-manual-1",
+          "kind": "manual.button_pressed",
+          "simulated": true
+        },
+        {
+          "id": "tech-manual-2",
+          "kind": "manual.button_pressed",
+          "simulated": true
+        }
+      ],
+      "live_commands_sent": 0,
+      "native_execution": false,
+      "pack_id": "creator-tech",
+      "plan": {
+        "estimated_texture_bytes": 42856112,
+        "executable": false,
+        "limitations": [
+          "Offline proposal only; no Production importer or live acceptance has been implemented.",
+          "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+          "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+          "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+          "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+        ],
+        "pack_id": "creator-tech",
+        "pack_version": "0.2.0",
+        "requires_idle": true,
+        "schema_version": 1,
+        "steps": [
+          {
+            "file_name": "tech-motif.png",
+            "operation": "import_asset_after_local_authorization",
+            "resource_ref": "tech-motif-asset"
+          },
+          {
+            "file_name": "tech-frame.png",
+            "operation": "import_asset_after_local_authorization",
+            "resource_ref": "tech-frame-asset"
+          },
+          {
+            "name": "Starting Soon",
+            "operation": "create_scene",
+            "scene_ref": "tech-starting"
+          },
+          {
+            "definition": {
+              "border_color": null,
+              "border_width": 0,
+              "color": 1055513,
+              "height": 540,
+              "kind": "shape",
+              "opacity": 1.0,
+              "shape": "rectangle",
+              "width": 960
+            },
+            "first_layer_ref": "tech-starting-bg",
+            "name": "Ink background",
+            "operation": "create_overlay",
+            "scene_ref": "tech-starting",
+            "source_ref": "tech-background"
+          },
+          {
+            "layer_ref": "tech-starting-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-starting-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "image",
+              "opacity": 1.0,
+              "resource_id": "tech-motif-asset"
+            },
+            "first_layer_ref": "tech-starting-motif",
+            "name": "Original geometric signature",
+            "operation": "create_overlay",
+            "scene_ref": "tech-starting",
+            "source_ref": "tech-motif"
+          },
+          {
+            "layer_ref": "tech-starting-motif",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 400.0,
+              "order": 2,
+              "visible": true,
+              "width": 400.0,
+              "x": 540.0,
+              "y": 70.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-starting-motif",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 390.0,
+              "order": 2,
+              "visible": true,
+              "width": 390.0,
+              "x": 75.0,
+              "y": 350.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 16052711,
+              "font": "Helvetica",
+              "height": 190,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 72,
+              "text": "Make room\nfor ideas.",
+              "width": 510
+            },
+            "first_layer_ref": "tech-starting-title",
+            "name": "Starting title",
+            "operation": "create_overlay",
+            "scene_ref": "tech-starting",
+            "source_ref": "tech-title"
+          },
+          {
+            "layer_ref": "tech-starting-title",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 190.0,
+              "order": 3,
+              "visible": true,
+              "width": 510.0,
+              "x": 48.0,
+              "y": 146.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-starting-title",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 172.0,
+              "order": 3,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 170.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 12379853,
+                "background": 1847337,
+                "color": 16052711,
+                "duration_ms": 300000,
+                "height": 120,
+                "kind": "countdown",
+                "opacity": 1.0,
+                "subtitle": "",
+                "title": "NEXT CHAPTER IN",
+                "width": 280
+              }
+            },
+            "first_layer_ref": "tech-starting-timer",
+            "name": "Session countdown",
+            "operation": "create_overlay",
+            "scene_ref": "tech-starting",
+            "source_ref": "tech-timer"
+          },
+          {
+            "layer_ref": "tech-starting-timer",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 120.0,
+              "order": 4,
+              "visible": true,
+              "width": 280.0,
+              "x": 48.0,
+              "y": 380.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-starting-timer",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 120.0,
+              "order": 4,
+              "visible": true,
+              "width": 280.0,
+              "x": 40.0,
+              "y": 770.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 12379853,
+              "font": "Menlo",
+              "height": 32,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 14,
+              "text": "CREATOR TECH / BUILD IN PUBLIC",
+              "width": 470
+            },
+            "first_layer_ref": "tech-starting-identifier",
+            "name": "Collection identifier",
+            "operation": "create_overlay",
+            "scene_ref": "tech-starting",
+            "source_ref": "tech-identity"
+          },
+          {
+            "layer_ref": "tech-starting-identifier",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 32.0,
+              "order": 5,
+              "visible": true,
+              "width": 470.0,
+              "x": 48.0,
+              "y": 40.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-starting-identifier",
+            "operation": "set_transform",
+            "scene_ref": "tech-starting",
+            "transform": {
+              "height": 32.0,
+              "order": 5,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 48.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Live Coding",
+            "operation": "create_scene",
+            "scene_ref": "tech-live"
+          },
+          {
+            "layer_ref": "tech-live-bg",
+            "operation": "add_layer",
+            "scene_ref": "tech-live",
+            "source_ref": "tech-background"
+          },
+          {
+            "layer_ref": "tech-live-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-live-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "image",
+              "opacity": 1.0,
+              "resource_id": "tech-frame-asset"
+            },
+            "first_layer_ref": "tech-live-screen-frame",
+            "name": "Transparent camera and screen frame",
+            "operation": "create_overlay",
+            "scene_ref": "tech-live",
+            "source_ref": "tech-frame"
+          },
+          {
+            "layer_ref": "tech-live-screen-frame",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 360.0,
+              "order": 2,
+              "visible": true,
+              "width": 640.0,
+              "x": 32.0,
+              "y": 108.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-live-screen-frame",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 267.75,
+              "order": 2,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 150.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-live-camera-frame",
+            "operation": "add_layer",
+            "scene_ref": "tech-live",
+            "source_ref": "tech-frame"
+          },
+          {
+            "layer_ref": "tech-live-camera-frame",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 126.0,
+              "order": 3,
+              "visible": true,
+              "width": 224.0,
+              "x": 704.0,
+              "y": 108.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-live-camera-frame",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 267.75,
+              "order": 3,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 480.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 12379853,
+              "font": "Menlo",
+              "height": 42,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 22,
+              "text": "03 / DEBUG THE ASSUMPTION",
+              "width": 700
+            },
+            "first_layer_ref": "tech-chapter-layer",
+            "name": "Chapter and session label",
+            "operation": "create_overlay",
+            "scene_ref": "tech-live",
+            "source_ref": "tech-chapter"
+          },
+          {
+            "layer_ref": "tech-chapter-layer",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 42.0,
+              "order": 4,
+              "visible": true,
+              "width": 700.0,
+              "x": 32.0,
+              "y": 44.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-chapter-layer",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 29.0,
+              "order": 4,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 80.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 12379853,
+                "background": 1847337,
+                "color": 16052711,
+                "duration_ms": 0,
+                "height": 120,
+                "kind": "lower_third",
+                "opacity": 1.0,
+                "subtitle": "Software, explained simply.",
+                "title": "Alex Rivera",
+                "width": 560
+              }
+            },
+            "first_layer_ref": "tech-presenter",
+            "name": "Creator identification",
+            "operation": "create_overlay",
+            "scene_ref": "tech-live",
+            "source_ref": "tech-lower-third"
+          },
+          {
+            "layer_ref": "tech-presenter",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 96.0,
+              "order": 5,
+              "visible": true,
+              "width": 448.0,
+              "x": 48.0,
+              "y": 412.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-presenter",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 102.0,
+              "order": 5,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 770.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 12379853,
+                "background": 1847337,
+                "color": 16052711,
+                "duration_ms": 4500,
+                "height": 120,
+                "kind": "alert",
+                "opacity": 1.0,
+                "subtitle": "Thanks for building with us.",
+                "title": "A new idea just landed.",
+                "width": 560
+              }
+            },
+            "first_layer_ref": "tech-alert-layer",
+            "name": "Community alert",
+            "operation": "create_overlay",
+            "scene_ref": "tech-live",
+            "source_ref": "tech-alert"
+          },
+          {
+            "layer_ref": "tech-alert-layer",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 116.0,
+              "order": 6,
+              "visible": true,
+              "width": 540.0,
+              "x": 210.0,
+              "y": 188.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-alert-layer",
+            "operation": "set_transform",
+            "scene_ref": "tech-live",
+            "transform": {
+              "height": 102.0,
+              "order": 6,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 420.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Camera Focus",
+            "operation": "create_scene",
+            "scene_ref": "tech-camera"
+          },
+          {
+            "layer_ref": "tech-camera-bg",
+            "operation": "add_layer",
+            "scene_ref": "tech-camera",
+            "source_ref": "tech-background"
+          },
+          {
+            "layer_ref": "tech-camera-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-camera",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-camera-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-camera",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-camera-frame",
+            "operation": "add_layer",
+            "scene_ref": "tech-camera",
+            "source_ref": "tech-frame"
+          },
+          {
+            "layer_ref": "tech-camera-frame",
+            "operation": "set_transform",
+            "scene_ref": "tech-camera",
+            "transform": {
+              "height": 468.0,
+              "order": 2,
+              "visible": true,
+              "width": 832.0,
+              "x": 64.0,
+              "y": 38.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-camera-frame",
+            "operation": "set_transform",
+            "scene_ref": "tech-camera",
+            "transform": {
+              "height": 276.75,
+              "order": 2,
+              "visible": true,
+              "width": 492.0,
+              "x": 24.0,
+              "y": 185.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-camera-presenter",
+            "operation": "add_layer",
+            "scene_ref": "tech-camera",
+            "source_ref": "tech-lower-third"
+          },
+          {
+            "layer_ref": "tech-camera-presenter",
+            "operation": "set_transform",
+            "scene_ref": "tech-camera",
+            "transform": {
+              "height": 96.0,
+              "order": 3,
+              "visible": true,
+              "width": 448.0,
+              "x": 88.0,
+              "y": 374.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-camera-presenter",
+            "operation": "set_transform",
+            "scene_ref": "tech-camera",
+            "transform": {
+              "height": 102.0,
+              "order": 3,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 540.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-camera-identifier",
+            "operation": "add_layer",
+            "scene_ref": "tech-camera",
+            "source_ref": "tech-identity"
+          },
+          {
+            "layer_ref": "tech-camera-identifier",
+            "operation": "set_transform",
+            "scene_ref": "tech-camera",
+            "transform": {
+              "height": 32.0,
+              "order": 4,
+              "visible": true,
+              "width": 470.0,
+              "x": 88.0,
+              "y": 64.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-camera-identifier",
+            "operation": "set_transform",
+            "scene_ref": "tech-camera",
+            "transform": {
+              "height": 32.0,
+              "order": 4,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 48.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Screen Presentation",
+            "operation": "create_scene",
+            "scene_ref": "tech-presentation"
+          },
+          {
+            "layer_ref": "tech-presentation-bg",
+            "operation": "add_layer",
+            "scene_ref": "tech-presentation",
+            "source_ref": "tech-background"
+          },
+          {
+            "layer_ref": "tech-presentation-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-presentation",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-presentation-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-presentation",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-presentation-frame",
+            "operation": "add_layer",
+            "scene_ref": "tech-presentation",
+            "source_ref": "tech-frame"
+          },
+          {
+            "layer_ref": "tech-presentation-frame",
+            "operation": "set_transform",
+            "scene_ref": "tech-presentation",
+            "transform": {
+              "height": 378.0,
+              "order": 2,
+              "visible": true,
+              "width": 672.0,
+              "x": 32.0,
+              "y": 92.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-presentation-frame",
+            "operation": "set_transform",
+            "scene_ref": "tech-presentation",
+            "transform": {
+              "height": 267.75,
+              "order": 2,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 160.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-presentation-chapter",
+            "operation": "add_layer",
+            "scene_ref": "tech-presentation",
+            "source_ref": "tech-chapter"
+          },
+          {
+            "layer_ref": "tech-presentation-chapter",
+            "operation": "set_transform",
+            "scene_ref": "tech-presentation",
+            "transform": {
+              "height": 42.0,
+              "order": 3,
+              "visible": true,
+              "width": 700.0,
+              "x": 32.0,
+              "y": 36.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-presentation-chapter",
+            "operation": "set_transform",
+            "scene_ref": "tech-presentation",
+            "transform": {
+              "height": 29.0,
+              "order": 3,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 80.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 16052711,
+              "font": "Helvetica",
+              "height": 120,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 30,
+              "text": "One idea.\nOne clear next step.",
+              "width": 360
+            },
+            "first_layer_ref": "tech-presentation-info",
+            "name": "Editorial note",
+            "operation": "create_overlay",
+            "scene_ref": "tech-presentation",
+            "source_ref": "tech-info"
+          },
+          {
+            "layer_ref": "tech-presentation-info",
+            "operation": "set_transform",
+            "scene_ref": "tech-presentation",
+            "transform": {
+              "height": 64.0,
+              "order": 4,
+              "visible": true,
+              "width": 192.0,
+              "x": 736.0,
+              "y": 230.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-presentation-info",
+            "operation": "set_transform",
+            "scene_ref": "tech-presentation",
+            "transform": {
+              "height": 153.3000030517578,
+              "order": 4,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 600.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Be Right Back",
+            "operation": "create_scene",
+            "scene_ref": "tech-brb"
+          },
+          {
+            "layer_ref": "tech-brb-bg",
+            "operation": "add_layer",
+            "scene_ref": "tech-brb",
+            "source_ref": "tech-background"
+          },
+          {
+            "layer_ref": "tech-brb-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-brb",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-brb-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-brb",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-brb-motif",
+            "operation": "add_layer",
+            "scene_ref": "tech-brb",
+            "source_ref": "tech-motif"
+          },
+          {
+            "layer_ref": "tech-brb-motif",
+            "operation": "set_transform",
+            "scene_ref": "tech-brb",
+            "transform": {
+              "height": 400.0,
+              "order": 2,
+              "visible": true,
+              "width": 400.0,
+              "x": 540.0,
+              "y": 70.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-brb-motif",
+            "operation": "set_transform",
+            "scene_ref": "tech-brb",
+            "transform": {
+              "height": 390.0,
+              "order": 2,
+              "visible": true,
+              "width": 390.0,
+              "x": 75.0,
+              "y": 350.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 16052711,
+              "font": "Helvetica",
+              "height": 190,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 68,
+              "text": "A little pause.\nA better idea.",
+              "width": 510
+            },
+            "first_layer_ref": "tech-brb-title",
+            "name": "Pause title",
+            "operation": "create_overlay",
+            "scene_ref": "tech-brb",
+            "source_ref": "tech-pause-title"
+          },
+          {
+            "layer_ref": "tech-brb-title",
+            "operation": "set_transform",
+            "scene_ref": "tech-brb",
+            "transform": {
+              "height": 190.0,
+              "order": 3,
+              "visible": true,
+              "width": 510.0,
+              "x": 48.0,
+              "y": 146.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-brb-title",
+            "operation": "set_transform",
+            "scene_ref": "tech-brb",
+            "transform": {
+              "height": 172.0,
+              "order": 3,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 170.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-brb-timer",
+            "operation": "add_layer",
+            "scene_ref": "tech-brb",
+            "source_ref": "tech-timer"
+          },
+          {
+            "layer_ref": "tech-brb-timer",
+            "operation": "set_transform",
+            "scene_ref": "tech-brb",
+            "transform": {
+              "height": 120.0,
+              "order": 4,
+              "visible": true,
+              "width": 280.0,
+              "x": 48.0,
+              "y": 380.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-brb-timer",
+            "operation": "set_transform",
+            "scene_ref": "tech-brb",
+            "transform": {
+              "height": 120.0,
+              "order": 4,
+              "visible": true,
+              "width": 280.0,
+              "x": 40.0,
+              "y": 770.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Ending",
+            "operation": "create_scene",
+            "scene_ref": "tech-ending"
+          },
+          {
+            "layer_ref": "tech-ending-bg",
+            "operation": "add_layer",
+            "scene_ref": "tech-ending",
+            "source_ref": "tech-background"
+          },
+          {
+            "layer_ref": "tech-ending-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-ending",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-ending-bg",
+            "operation": "set_transform",
+            "scene_ref": "tech-ending",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-ending-motif",
+            "operation": "add_layer",
+            "scene_ref": "tech-ending",
+            "source_ref": "tech-motif"
+          },
+          {
+            "layer_ref": "tech-ending-motif",
+            "operation": "set_transform",
+            "scene_ref": "tech-ending",
+            "transform": {
+              "height": 400.0,
+              "order": 2,
+              "visible": true,
+              "width": 400.0,
+              "x": 540.0,
+              "y": 70.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-ending-motif",
+            "operation": "set_transform",
+            "scene_ref": "tech-ending",
+            "transform": {
+              "height": 390.0,
+              "order": 2,
+              "visible": true,
+              "width": 390.0,
+              "x": 75.0,
+              "y": 350.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 16052711,
+              "font": "Helvetica",
+              "height": 190,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 68,
+              "text": "Keep building.\nSee you soon.",
+              "width": 510
+            },
+            "first_layer_ref": "tech-ending-title",
+            "name": "Ending title",
+            "operation": "create_overlay",
+            "scene_ref": "tech-ending",
+            "source_ref": "tech-end-title"
+          },
+          {
+            "layer_ref": "tech-ending-title",
+            "operation": "set_transform",
+            "scene_ref": "tech-ending",
+            "transform": {
+              "height": 190.0,
+              "order": 3,
+              "visible": true,
+              "width": 510.0,
+              "x": 48.0,
+              "y": 146.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-ending-title",
+            "operation": "set_transform",
+            "scene_ref": "tech-ending",
+            "transform": {
+              "height": 172.0,
+              "order": 3,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 170.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "tech-ending-identifier",
+            "operation": "add_layer",
+            "scene_ref": "tech-ending",
+            "source_ref": "tech-identity"
+          },
+          {
+            "layer_ref": "tech-ending-identifier",
+            "operation": "set_transform",
+            "scene_ref": "tech-ending",
+            "transform": {
+              "height": 32.0,
+              "order": 4,
+              "visible": true,
+              "width": 470.0,
+              "x": 48.0,
+              "y": 40.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "tech-ending-identifier",
+            "operation": "set_transform",
+            "scene_ref": "tech-ending",
+            "transform": {
+              "height": 32.0,
+              "order": 4,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 48.0
+            },
+            "variant": "vertical"
+          }
+        ],
+        "unavailable": []
+      },
+      "rules": [
+        {
+          "action": {
+            "event": "trigger",
+            "source_id": "tech-alert",
+            "type": "widget"
+          },
+          "rule": "tech-deck-alert",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "source_id": "tech-chapter",
+            "type": "show_overlay"
+          },
+          "rule": "tech-deck-chapter",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "event": "trigger",
+            "source_id": "tech-alert",
+            "type": "widget"
+          },
+          "rule": "tech-provider-follow",
+          "status": "VALID_TYPED_INTENTION"
+        }
+      ],
+      "status": "PASS",
+      "version": "0.2.0"
+    },
+    {
+      "adversarial_checks": [
+        {
+          "case": "unknown_executable_field",
+          "rejected_with": "PACK_SCHEMA",
+          "status": "PASS"
+        },
+        {
+          "case": "future_schema",
+          "rejected_with": "PACK_VERSION",
+          "status": "PASS"
+        },
+        {
+          "case": "undeclared_capability",
+          "rejected_with": "PACK_CAPABILITY",
+          "status": "PASS"
+        },
+        {
+          "case": "missing_source",
+          "rejected_with": "PACK_REFERENCE",
+          "status": "PASS"
+        },
+        {
+          "case": "underbudget_texture",
+          "rejected_with": "PACK_BUDGET",
+          "status": "PASS"
+        },
+        {
+          "case": "zero_vertical_width",
+          "rejected_with": "PACK_LAYOUT",
+          "status": "PASS"
+        },
+        {
+          "case": "global_layer_overflow",
+          "rejected_with": "PACK_LIMIT",
+          "status": "PASS"
+        },
+        {
+          "case": "resource_path_traversal",
+          "rejected_with": "PACK_RESOURCE",
+          "status": "PASS"
+        },
+        {
+          "case": "unsupported_fade_easing",
+          "rejected_with": "PACK_ANIMATION",
+          "status": "PASS"
+        },
+        {
+          "case": "typed_property_transaction",
+          "status": "PASS"
+        },
+        {
+          "case": "deck_confirmation_pending_cooldown_monotonic_clock",
+          "mode": "simulation_only",
+          "status": "PASS"
+        },
+        {
+          "case": "rule_cross_reference_missing",
+          "rejected_with": "PACK_SOURCE_MISSING",
+          "status": "PASS"
+        },
+        {
+          "case": "countdown_cannot_target_shape",
+          "rejected_with": "INVALID_OVERLAY_ACTION",
+          "status": "PASS"
+        }
+      ],
+      "counts": {
+        "animations": 12,
+        "buttons": 10,
+        "layers": 27,
+        "properties": 12,
+        "resources": 2,
+        "rules": 5,
+        "scenes": 6,
+        "sources": 12
+      },
+      "deck": [
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "arena-lower-third",
+                "type": "show_overlay"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "presenter",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-presenter",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-presenter",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "arena-lower-third",
+                    "type": "show_overlay"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-presenter",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-presenter",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "arena-lower-third",
+                        "type": "show_overlay"
+                      },
+                      "commands": [
+                        {
+                          "event": "show",
+                          "op": "overlay_event",
+                          "source_id": "arena-lower-third"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-presenter:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "arena-lower-third",
+                    "type": "show_overlay"
+                  },
+                  "commands": [
+                    {
+                      "event": "show",
+                      "op": "overlay_event",
+                      "source_id": "arena-lower-third"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "presenter",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "arena-label",
+                "type": "show_overlay"
+              },
+              "rule": "arena-deck-chapter",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "chapter",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-chapter",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-chapter",
+                "rule_id": "arena-deck-chapter"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "arena-label",
+                    "type": "show_overlay"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-chapter",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-chapter",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "arena-deck-chapter"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "arena-label",
+                        "type": "show_overlay"
+                      },
+                      "commands": [
+                        {
+                          "event": "show",
+                          "op": "overlay_event",
+                          "source_id": "arena-label"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "arena-deck-chapter",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-chapter:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "arena-label",
+                    "type": "show_overlay"
+                  },
+                  "commands": [
+                    {
+                      "event": "show",
+                      "op": "overlay_event",
+                      "source_id": "arena-label"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "chapter",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "arena-timer",
+                "type": "countdown_start"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "countdown",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-countdown",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-countdown",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "arena-timer",
+                    "type": "countdown_start"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-countdown",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-countdown",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "arena-timer",
+                        "type": "countdown_start"
+                      },
+                      "commands": [
+                        {
+                          "event": "timer_start",
+                          "op": "overlay_event",
+                          "source_id": "arena-timer"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-countdown:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "arena-timer",
+                    "type": "countdown_start"
+                  },
+                  "commands": [
+                    {
+                      "event": "timer_start",
+                      "op": "overlay_event",
+                      "source_id": "arena-timer"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "countdown",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "source_id": "arena-timer",
+                "type": "countdown_reset"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "countdown-reset",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-countdown-reset",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-countdown-reset",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "source_id": "arena-timer",
+                    "type": "countdown_reset"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-countdown-reset",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-countdown-reset",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "source_id": "arena-timer",
+                        "type": "countdown_reset"
+                      },
+                      "commands": [
+                        {
+                          "event": "timer_reset",
+                          "op": "overlay_event",
+                          "source_id": "arena-timer"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-countdown-reset:1:0",
+                "prepared": {
+                  "action": {
+                    "source_id": "arena-timer",
+                    "type": "countdown_reset"
+                  },
+                  "commands": [
+                    {
+                      "event": "timer_reset",
+                      "op": "overlay_event",
+                      "source_id": "arena-timer"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "countdown-reset",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "scene_id": "arena-live",
+                "transition": {
+                  "duration_ms": 0,
+                  "kind": "cut"
+                },
+                "type": "select_scene"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "live",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-live",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-live",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "scene_id": "arena-live",
+                    "transition": {
+                      "duration_ms": 0,
+                      "kind": "cut"
+                    },
+                    "type": "select_scene"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-live",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-live",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "scene_id": "arena-live",
+                        "transition": {
+                          "duration_ms": 0,
+                          "kind": "cut"
+                        },
+                        "type": "select_scene"
+                      },
+                      "commands": [
+                        {
+                          "op": "configure_transition",
+                          "transition": {
+                            "duration_ms": 0,
+                            "kind": "cut"
+                          }
+                        },
+                        {
+                          "op": "select_scene",
+                          "scene_id": "arena-live"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-live:1:0",
+                "prepared": {
+                  "action": {
+                    "scene_id": "arena-live",
+                    "transition": {
+                      "duration_ms": 0,
+                      "kind": "cut"
+                    },
+                    "type": "select_scene"
+                  },
+                  "commands": [
+                    {
+                      "op": "configure_transition",
+                      "transition": {
+                        "duration_ms": 0,
+                        "kind": "cut"
+                      }
+                    },
+                    {
+                      "op": "select_scene",
+                      "scene_id": "arena-live"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "live",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "scene_id": "arena-brb",
+                "transition": {
+                  "duration_ms": 350,
+                  "kind": "fade"
+                },
+                "type": "select_scene"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "brb",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-brb",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-brb",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "scene_id": "arena-brb",
+                    "transition": {
+                      "duration_ms": 350,
+                      "kind": "fade"
+                    },
+                    "type": "select_scene"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-brb",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-brb",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "scene_id": "arena-brb",
+                        "transition": {
+                          "duration_ms": 350,
+                          "kind": "fade"
+                        },
+                        "type": "select_scene"
+                      },
+                      "commands": [
+                        {
+                          "op": "configure_transition",
+                          "transition": {
+                            "duration_ms": 350,
+                            "kind": "fade"
+                          }
+                        },
+                        {
+                          "op": "select_scene",
+                          "scene_id": "arena-brb"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-brb:1:0",
+                "prepared": {
+                  "action": {
+                    "scene_id": "arena-brb",
+                    "transition": {
+                      "duration_ms": 350,
+                      "kind": "fade"
+                    },
+                    "type": "select_scene"
+                  },
+                  "commands": [
+                    {
+                      "op": "configure_transition",
+                      "transition": {
+                        "duration_ms": 350,
+                        "kind": "fade"
+                      }
+                    },
+                    {
+                      "op": "select_scene",
+                      "scene_id": "arena-brb"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "brb",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "event": "trigger",
+                "source_id": "arena-alert",
+                "type": "widget"
+              },
+              "rule": "arena-deck-alert",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "alert",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-alert",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-alert",
+                "rule_id": "arena-deck-alert"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "event": "trigger",
+                    "source_id": "arena-alert",
+                    "type": "widget"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-alert",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-alert",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "arena-deck-alert"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "event": "trigger",
+                        "source_id": "arena-alert",
+                        "type": "widget"
+                      },
+                      "commands": [
+                        {
+                          "event": "trigger",
+                          "op": "overlay_event",
+                          "source_id": "arena-alert"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "arena-deck-alert",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-alert:1:0",
+                "prepared": {
+                  "action": {
+                    "event": "trigger",
+                    "source_id": "arena-alert",
+                    "type": "widget"
+                  },
+                  "commands": [
+                    {
+                      "event": "trigger",
+                      "op": "overlay_event",
+                      "source_id": "arena-alert"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "alert",
+            "variables": {}
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "event": "trigger",
+                "source_id": "arena-reward",
+                "type": "widget"
+              },
+              "rule": "arena-deck-celebrate",
+              "status": "VALID_TYPED_INTENTION"
+            },
+            {
+              "action": {
+                "amount": 1,
+                "name": "community_rewards",
+                "type": "increment_counter"
+              },
+              "rule": "arena-deck-celebrate",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "celebrate",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-celebrate",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-celebrate",
+                "rule_id": "arena-deck-celebrate"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "event": "trigger",
+                    "source_id": "arena-reward",
+                    "type": "widget"
+                  },
+                  {
+                    "amount": 1,
+                    "name": "community_rewards",
+                    "type": "increment_counter"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-celebrate",
+                "cursor": 2,
+                "deadline_ms": 5000,
+                "event_id": "check-celebrate",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "arena-deck-celebrate"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "event": "trigger",
+                        "source_id": "arena-reward",
+                        "type": "widget"
+                      },
+                      "commands": [
+                        {
+                          "event": "trigger",
+                          "op": "overlay_event",
+                          "source_id": "arena-reward"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  },
+                  {
+                    "code": null,
+                    "index": 1,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "amount": 1,
+                        "name": "community_rewards",
+                        "type": "increment_counter"
+                      },
+                      "commands": [],
+                      "local": true,
+                      "requires_completion": false
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "arena-deck-celebrate",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-celebrate:1:0",
+                "prepared": {
+                  "action": {
+                    "event": "trigger",
+                    "source_id": "arena-reward",
+                    "type": "widget"
+                  },
+                  "commands": [
+                    {
+                      "event": "trigger",
+                      "op": "overlay_event",
+                      "source_id": "arena-reward"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "celebrate",
+            "variables": {
+              "community_rewards": {
+                "type": "int",
+                "value": 1
+              }
+            }
+          }
+        },
+        {
+          "actions": [
+            {
+              "action": {
+                "animation": {
+                  "distance": 0.0,
+                  "duration_ms": 420,
+                  "easing": "ease_out",
+                  "kind": "scale_in",
+                  "scale_from": 0.8199999928474426
+                },
+                "layer_id": "arena-reward-layer",
+                "scene_id": "arena-community",
+                "type": "animate"
+              },
+              "rule": "deck-direct",
+              "status": "VALID_TYPED_INTENTION"
+            }
+          ],
+          "enabled": true,
+          "id": "reward-entry",
+          "rehearsal": {
+            "admissions": [
+              {
+                "error": null,
+                "event_id": "check-reward-entry",
+                "jobs": [
+                  1
+                ]
+              }
+            ],
+            "decisions": [
+              {
+                "at_ms": 0,
+                "code": "QUEUED",
+                "event_id": "check-reward-entry",
+                "rule_id": "deck-direct"
+              }
+            ],
+            "jobs": [
+              {
+                "actions": [
+                  {
+                    "animation": {
+                      "distance": 0.0,
+                      "duration_ms": 420,
+                      "easing": "ease_out",
+                      "kind": "scale_in",
+                      "scale_from": 0.8199999928474426
+                    },
+                    "layer_id": "arena-reward-layer",
+                    "scene_id": "arena-community",
+                    "type": "animate"
+                  }
+                ],
+                "busy_policy": "reject",
+                "correlation_id": "check-reward-entry",
+                "cursor": 1,
+                "deadline_ms": 5000,
+                "event_id": "check-reward-entry",
+                "expected": {
+                  "pid": 0,
+                  "revision": 1
+                },
+                "failure_policy": "stop",
+                "id": 1,
+                "lineage": [
+                  "deck-direct"
+                ],
+                "priority": 5,
+                "records": [
+                  {
+                    "code": null,
+                    "index": 0,
+                    "operation_id": null,
+                    "plan": {
+                      "action": {
+                        "animation": {
+                          "distance": 0.0,
+                          "duration_ms": 420,
+                          "easing": "ease_out",
+                          "kind": "scale_in",
+                          "scale_from": 0.8199999928474426
+                        },
+                        "layer_id": "arena-reward-layer",
+                        "scene_id": "arena-community",
+                        "type": "animate"
+                      },
+                      "commands": [
+                        {
+                          "animation": {
+                            "distance": 0.0,
+                            "duration_ms": 420,
+                            "easing": "ease_out",
+                            "kind": "scale_in",
+                            "scale_from": 0.8199999928474426
+                          },
+                          "layer_id": "arena-reward-layer",
+                          "op": "animate_overlay",
+                          "scene_id": "arena-community"
+                        }
+                      ],
+                      "local": false,
+                      "requires_completion": true
+                    },
+                    "stage": "simulated"
+                  }
+                ],
+                "rule_id": "deck-direct",
+                "simulated": true,
+                "state": "simulated"
+              }
+            ],
+            "live_commands_sent": 0,
+            "mode": "simulation_only",
+            "planned_dispatches": [
+              {
+                "idempotency_key": "check-reward-entry:1:0",
+                "prepared": {
+                  "action": {
+                    "animation": {
+                      "distance": 0.0,
+                      "duration_ms": 420,
+                      "easing": "ease_out",
+                      "kind": "scale_in",
+                      "scale_from": 0.8199999928474426
+                    },
+                    "layer_id": "arena-reward-layer",
+                    "scene_id": "arena-community",
+                    "type": "animate"
+                  },
+                  "commands": [
+                    {
+                      "animation": {
+                        "distance": 0.0,
+                        "duration_ms": 420,
+                        "easing": "ease_out",
+                        "kind": "scale_in",
+                        "scale_from": 0.8199999928474426
+                      },
+                      "layer_id": "arena-reward-layer",
+                      "op": "animate_overlay",
+                      "scene_id": "arena-community"
+                    }
+                  ],
+                  "local": false,
+                  "requires_completion": true
+                }
+              }
+            ],
+            "scenario": "reward-entry",
+            "variables": {}
+          }
+        },
+        {
+          "enabled": false,
+          "id": "provider-follow",
+          "manual_binding_would_reject": "RULE_TRIGGER_MISMATCH",
+          "press_would_reject": "DECK_DISABLED",
+          "status": "DISABLED_PROVIDER_RULE"
+        }
+      ],
+      "events": [
+        {
+          "id": "arena-manual-1",
+          "kind": "manual.button_pressed",
+          "simulated": true
+        },
+        {
+          "id": "arena-manual-2",
+          "kind": "manual.button_pressed",
+          "simulated": true
+        },
+        {
+          "id": "arena-manual-3",
+          "kind": "manual.button_pressed",
+          "simulated": true
+        }
+      ],
+      "live_commands_sent": 0,
+      "native_execution": false,
+      "pack_id": "neon-arena",
+      "plan": {
+        "estimated_texture_bytes": 43412912,
+        "executable": false,
+        "limitations": [
+          "Offline proposal only; no Production importer or live acceptance has been implemented.",
+          "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+          "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+          "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+          "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+        ],
+        "pack_id": "neon-arena",
+        "pack_version": "0.2.0",
+        "requires_idle": true,
+        "schema_version": 1,
+        "steps": [
+          {
+            "file_name": "arena-motif.png",
+            "operation": "import_asset_after_local_authorization",
+            "resource_ref": "arena-motif-asset"
+          },
+          {
+            "file_name": "arena-frame.png",
+            "operation": "import_asset_after_local_authorization",
+            "resource_ref": "arena-frame-asset"
+          },
+          {
+            "name": "Starting Soon",
+            "operation": "create_scene",
+            "scene_ref": "arena-starting"
+          },
+          {
+            "definition": {
+              "border_color": null,
+              "border_width": 0,
+              "color": 1314082,
+              "height": 540,
+              "kind": "shape",
+              "opacity": 1.0,
+              "shape": "rectangle",
+              "width": 960
+            },
+            "first_layer_ref": "arena-starting-bg",
+            "name": "Ink background",
+            "operation": "create_overlay",
+            "scene_ref": "arena-starting",
+            "source_ref": "arena-background"
+          },
+          {
+            "layer_ref": "arena-starting-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-starting-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "image",
+              "opacity": 1.0,
+              "resource_id": "arena-motif-asset"
+            },
+            "first_layer_ref": "arena-starting-motif",
+            "name": "Original geometric signature",
+            "operation": "create_overlay",
+            "scene_ref": "arena-starting",
+            "source_ref": "arena-motif"
+          },
+          {
+            "layer_ref": "arena-starting-motif",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 400.0,
+              "order": 2,
+              "visible": true,
+              "width": 400.0,
+              "x": 540.0,
+              "y": 70.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-starting-motif",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 390.0,
+              "order": 2,
+              "visible": true,
+              "width": 390.0,
+              "x": 75.0,
+              "y": 350.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 16051967,
+              "font": "Helvetica",
+              "height": 190,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 72,
+              "text": "Your squad.\nYour arena.",
+              "width": 510
+            },
+            "first_layer_ref": "arena-starting-title",
+            "name": "Starting title",
+            "operation": "create_overlay",
+            "scene_ref": "arena-starting",
+            "source_ref": "arena-title"
+          },
+          {
+            "layer_ref": "arena-starting-title",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 190.0,
+              "order": 3,
+              "visible": true,
+              "width": 510.0,
+              "x": 48.0,
+              "y": 146.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-starting-title",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 172.0,
+              "order": 3,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 170.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 13628778,
+                "background": 3153984,
+                "color": 16051967,
+                "duration_ms": 300000,
+                "height": 120,
+                "kind": "countdown",
+                "opacity": 1.0,
+                "subtitle": "",
+                "title": "NEXT ROUND IN",
+                "width": 280
+              }
+            },
+            "first_layer_ref": "arena-starting-timer",
+            "name": "Session countdown",
+            "operation": "create_overlay",
+            "scene_ref": "arena-starting",
+            "source_ref": "arena-timer"
+          },
+          {
+            "layer_ref": "arena-starting-timer",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 120.0,
+              "order": 4,
+              "visible": true,
+              "width": 280.0,
+              "x": 48.0,
+              "y": 380.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-starting-timer",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 120.0,
+              "order": 4,
+              "visible": true,
+              "width": 280.0,
+              "x": 40.0,
+              "y": 770.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 13628778,
+              "font": "Menlo",
+              "height": 32,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 14,
+              "text": "NEON ARENA / PLAY TOGETHER",
+              "width": 470
+            },
+            "first_layer_ref": "arena-starting-identifier",
+            "name": "Collection identifier",
+            "operation": "create_overlay",
+            "scene_ref": "arena-starting",
+            "source_ref": "arena-identity"
+          },
+          {
+            "layer_ref": "arena-starting-identifier",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 32.0,
+              "order": 5,
+              "visible": true,
+              "width": 470.0,
+              "x": 48.0,
+              "y": 40.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-starting-identifier",
+            "operation": "set_transform",
+            "scene_ref": "arena-starting",
+            "transform": {
+              "height": 32.0,
+              "order": 5,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 48.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Gameplay",
+            "operation": "create_scene",
+            "scene_ref": "arena-live"
+          },
+          {
+            "layer_ref": "arena-live-bg",
+            "operation": "add_layer",
+            "scene_ref": "arena-live",
+            "source_ref": "arena-background"
+          },
+          {
+            "layer_ref": "arena-live-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-live-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "image",
+              "opacity": 1.0,
+              "resource_id": "arena-frame-asset"
+            },
+            "first_layer_ref": "arena-live-frame",
+            "name": "Transparent camera and screen frame",
+            "operation": "create_overlay",
+            "scene_ref": "arena-live",
+            "source_ref": "arena-frame"
+          },
+          {
+            "layer_ref": "arena-live-frame",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 468.0,
+              "order": 2,
+              "visible": true,
+              "width": 832.0,
+              "x": 64.0,
+              "y": 48.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-live-frame",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 276.75,
+              "order": 2,
+              "visible": true,
+              "width": 492.0,
+              "x": 24.0,
+              "y": 185.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 13628778,
+              "font": "Menlo",
+              "height": 42,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 22,
+              "text": "SQUAD NIGHT / OPEN LOBBY",
+              "width": 700
+            },
+            "first_layer_ref": "arena-live-label",
+            "name": "Chapter and session label",
+            "operation": "create_overlay",
+            "scene_ref": "arena-live",
+            "source_ref": "arena-label"
+          },
+          {
+            "layer_ref": "arena-live-label",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 30.0,
+              "order": 3,
+              "visible": true,
+              "width": 700.0,
+              "x": 64.0,
+              "y": 12.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-live-label",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 29.0,
+              "order": 3,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 80.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 13628778,
+                "background": 3153984,
+                "color": 16051967,
+                "duration_ms": 0,
+                "height": 120,
+                "kind": "lower_third",
+                "opacity": 1.0,
+                "subtitle": "Good games. Better company.",
+                "title": "NOVA / PLAYER ONE",
+                "width": 560
+              }
+            },
+            "first_layer_ref": "arena-presenter",
+            "name": "Creator identification",
+            "operation": "create_overlay",
+            "scene_ref": "arena-live",
+            "source_ref": "arena-lower-third"
+          },
+          {
+            "layer_ref": "arena-presenter",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 96.0,
+              "order": 4,
+              "visible": true,
+              "width": 448.0,
+              "x": 88.0,
+              "y": 396.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-presenter",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 102.0,
+              "order": 4,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 760.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 13628778,
+                "background": 3153984,
+                "color": 16051967,
+                "duration_ms": 4500,
+                "height": 120,
+                "kind": "alert",
+                "opacity": 1.0,
+                "subtitle": "WELCOME TO THE ARENA",
+                "title": "PLAYER TWO JOINED",
+                "width": 560
+              }
+            },
+            "first_layer_ref": "arena-alert-layer",
+            "name": "Community alert",
+            "operation": "create_overlay",
+            "scene_ref": "arena-live",
+            "source_ref": "arena-alert"
+          },
+          {
+            "layer_ref": "arena-alert-layer",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 103.0,
+              "order": 5,
+              "visible": true,
+              "width": 480.0,
+              "x": 240.0,
+              "y": 90.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-alert-layer",
+            "operation": "set_transform",
+            "scene_ref": "arena-live",
+            "transform": {
+              "height": 102.0,
+              "order": 5,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 490.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Camera Focus",
+            "operation": "create_scene",
+            "scene_ref": "arena-camera"
+          },
+          {
+            "layer_ref": "arena-camera-bg",
+            "operation": "add_layer",
+            "scene_ref": "arena-camera",
+            "source_ref": "arena-background"
+          },
+          {
+            "layer_ref": "arena-camera-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-camera",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-camera-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-camera",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-camera-frame",
+            "operation": "add_layer",
+            "scene_ref": "arena-camera",
+            "source_ref": "arena-frame"
+          },
+          {
+            "layer_ref": "arena-camera-frame",
+            "operation": "set_transform",
+            "scene_ref": "arena-camera",
+            "transform": {
+              "height": 468.0,
+              "order": 2,
+              "visible": true,
+              "width": 832.0,
+              "x": 64.0,
+              "y": 38.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-camera-frame",
+            "operation": "set_transform",
+            "scene_ref": "arena-camera",
+            "transform": {
+              "height": 276.75,
+              "order": 2,
+              "visible": true,
+              "width": 492.0,
+              "x": 24.0,
+              "y": 185.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-camera-presenter",
+            "operation": "add_layer",
+            "scene_ref": "arena-camera",
+            "source_ref": "arena-lower-third"
+          },
+          {
+            "layer_ref": "arena-camera-presenter",
+            "operation": "set_transform",
+            "scene_ref": "arena-camera",
+            "transform": {
+              "height": 96.0,
+              "order": 3,
+              "visible": true,
+              "width": 448.0,
+              "x": 88.0,
+              "y": 374.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-camera-presenter",
+            "operation": "set_transform",
+            "scene_ref": "arena-camera",
+            "transform": {
+              "height": 102.0,
+              "order": 3,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 540.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-camera-identifier",
+            "operation": "add_layer",
+            "scene_ref": "arena-camera",
+            "source_ref": "arena-identity"
+          },
+          {
+            "layer_ref": "arena-camera-identifier",
+            "operation": "set_transform",
+            "scene_ref": "arena-camera",
+            "transform": {
+              "height": 32.0,
+              "order": 4,
+              "visible": true,
+              "width": 470.0,
+              "x": 88.0,
+              "y": 64.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-camera-identifier",
+            "operation": "set_transform",
+            "scene_ref": "arena-camera",
+            "transform": {
+              "height": 32.0,
+              "order": 4,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 48.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Community Interaction",
+            "operation": "create_scene",
+            "scene_ref": "arena-community"
+          },
+          {
+            "layer_ref": "arena-community-bg",
+            "operation": "add_layer",
+            "scene_ref": "arena-community",
+            "source_ref": "arena-background"
+          },
+          {
+            "layer_ref": "arena-community-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-community-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-community-motif",
+            "operation": "add_layer",
+            "scene_ref": "arena-community",
+            "source_ref": "arena-motif"
+          },
+          {
+            "layer_ref": "arena-community-motif",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 400.0,
+              "order": 2,
+              "visible": true,
+              "width": 400.0,
+              "x": 540.0,
+              "y": 70.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-community-motif",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 390.0,
+              "order": 2,
+              "visible": true,
+              "width": 390.0,
+              "x": 75.0,
+              "y": 350.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-community-label",
+            "operation": "add_layer",
+            "scene_ref": "arena-community",
+            "source_ref": "arena-label"
+          },
+          {
+            "layer_ref": "arena-community-label",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 42.0,
+              "order": 3,
+              "visible": true,
+              "width": 700.0,
+              "x": 48.0,
+              "y": 40.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-community-label",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 28.0,
+              "order": 3,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 60.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-community-alert",
+            "operation": "add_layer",
+            "scene_ref": "arena-community",
+            "source_ref": "arena-alert"
+          },
+          {
+            "layer_ref": "arena-community-alert",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 120.0,
+              "order": 4,
+              "visible": true,
+              "width": 560.0,
+              "x": 48.0,
+              "y": 170.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-community-alert",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 102.0,
+              "order": 4,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 185.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 7029650,
+                "background": 13628778,
+                "color": 1576742,
+                "duration_ms": 3500,
+                "height": 120,
+                "kind": "alert",
+                "opacity": 1.0,
+                "subtitle": "A COMMUNITY REWARD",
+                "title": "POWER UP!",
+                "width": 560
+              }
+            },
+            "first_layer_ref": "arena-reward-layer",
+            "name": "Reward celebration",
+            "operation": "create_overlay",
+            "scene_ref": "arena-community",
+            "source_ref": "arena-reward"
+          },
+          {
+            "layer_ref": "arena-reward-layer",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 120.0,
+              "order": 5,
+              "visible": true,
+              "width": 560.0,
+              "x": 48.0,
+              "y": 340.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-reward-layer",
+            "operation": "set_transform",
+            "scene_ref": "arena-community",
+            "transform": {
+              "height": 102.0,
+              "order": 5,
+              "visible": true,
+              "width": 476.0,
+              "x": 32.0,
+              "y": 760.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Be Right Back",
+            "operation": "create_scene",
+            "scene_ref": "arena-brb"
+          },
+          {
+            "layer_ref": "arena-brb-bg",
+            "operation": "add_layer",
+            "scene_ref": "arena-brb",
+            "source_ref": "arena-background"
+          },
+          {
+            "layer_ref": "arena-brb-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-brb",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-brb-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-brb",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-brb-motif",
+            "operation": "add_layer",
+            "scene_ref": "arena-brb",
+            "source_ref": "arena-motif"
+          },
+          {
+            "layer_ref": "arena-brb-motif",
+            "operation": "set_transform",
+            "scene_ref": "arena-brb",
+            "transform": {
+              "height": 400.0,
+              "order": 2,
+              "visible": true,
+              "width": 400.0,
+              "x": 540.0,
+              "y": 70.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-brb-motif",
+            "operation": "set_transform",
+            "scene_ref": "arena-brb",
+            "transform": {
+              "height": 390.0,
+              "order": 2,
+              "visible": true,
+              "width": 390.0,
+              "x": 75.0,
+              "y": 350.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 16051967,
+              "font": "Helvetica",
+              "height": 190,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 68,
+              "text": "Recharge.\nThen rejoin.",
+              "width": 510
+            },
+            "first_layer_ref": "arena-brb-title",
+            "name": "Pause title",
+            "operation": "create_overlay",
+            "scene_ref": "arena-brb",
+            "source_ref": "arena-pause-title"
+          },
+          {
+            "layer_ref": "arena-brb-title",
+            "operation": "set_transform",
+            "scene_ref": "arena-brb",
+            "transform": {
+              "height": 190.0,
+              "order": 3,
+              "visible": true,
+              "width": 510.0,
+              "x": 48.0,
+              "y": 146.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-brb-title",
+            "operation": "set_transform",
+            "scene_ref": "arena-brb",
+            "transform": {
+              "height": 172.0,
+              "order": 3,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 170.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-brb-timer",
+            "operation": "add_layer",
+            "scene_ref": "arena-brb",
+            "source_ref": "arena-timer"
+          },
+          {
+            "layer_ref": "arena-brb-timer",
+            "operation": "set_transform",
+            "scene_ref": "arena-brb",
+            "transform": {
+              "height": 120.0,
+              "order": 4,
+              "visible": true,
+              "width": 280.0,
+              "x": 48.0,
+              "y": 380.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-brb-timer",
+            "operation": "set_transform",
+            "scene_ref": "arena-brb",
+            "transform": {
+              "height": 120.0,
+              "order": 4,
+              "visible": true,
+              "width": 280.0,
+              "x": 40.0,
+              "y": 770.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "name": "Ending",
+            "operation": "create_scene",
+            "scene_ref": "arena-ending"
+          },
+          {
+            "layer_ref": "arena-ending-bg",
+            "operation": "add_layer",
+            "scene_ref": "arena-ending",
+            "source_ref": "arena-background"
+          },
+          {
+            "layer_ref": "arena-ending-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-ending",
+            "transform": {
+              "height": 540.0,
+              "order": 0,
+              "visible": true,
+              "width": 960.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-ending-bg",
+            "operation": "set_transform",
+            "scene_ref": "arena-ending",
+            "transform": {
+              "height": 960.0,
+              "order": 0,
+              "visible": true,
+              "width": 540.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-ending-motif",
+            "operation": "add_layer",
+            "scene_ref": "arena-ending",
+            "source_ref": "arena-motif"
+          },
+          {
+            "layer_ref": "arena-ending-motif",
+            "operation": "set_transform",
+            "scene_ref": "arena-ending",
+            "transform": {
+              "height": 400.0,
+              "order": 2,
+              "visible": true,
+              "width": 400.0,
+              "x": 540.0,
+              "y": 70.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-ending-motif",
+            "operation": "set_transform",
+            "scene_ref": "arena-ending",
+            "transform": {
+              "height": 390.0,
+              "order": 2,
+              "visible": true,
+              "width": 390.0,
+              "x": 75.0,
+              "y": 350.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "align": "left",
+              "background": null,
+              "background_opacity": 0.0,
+              "color": 16051967,
+              "font": "Helvetica",
+              "height": 190,
+              "kind": "text",
+              "opacity": 1.0,
+              "outline": false,
+              "size": 68,
+              "text": "Good games.\nGreat people.",
+              "width": 510
+            },
+            "first_layer_ref": "arena-ending-title",
+            "name": "Ending title",
+            "operation": "create_overlay",
+            "scene_ref": "arena-ending",
+            "source_ref": "arena-end-title"
+          },
+          {
+            "layer_ref": "arena-ending-title",
+            "operation": "set_transform",
+            "scene_ref": "arena-ending",
+            "transform": {
+              "height": 190.0,
+              "order": 3,
+              "visible": true,
+              "width": 510.0,
+              "x": 48.0,
+              "y": 146.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-ending-title",
+            "operation": "set_transform",
+            "scene_ref": "arena-ending",
+            "transform": {
+              "height": 172.0,
+              "order": 3,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 170.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "layer_ref": "arena-ending-identifier",
+            "operation": "add_layer",
+            "scene_ref": "arena-ending",
+            "source_ref": "arena-identity"
+          },
+          {
+            "layer_ref": "arena-ending-identifier",
+            "operation": "set_transform",
+            "scene_ref": "arena-ending",
+            "transform": {
+              "height": 32.0,
+              "order": 4,
+              "visible": true,
+              "width": 470.0,
+              "x": 48.0,
+              "y": 40.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "arena-ending-identifier",
+            "operation": "set_transform",
+            "scene_ref": "arena-ending",
+            "transform": {
+              "height": 32.0,
+              "order": 4,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 48.0
+            },
+            "variant": "vertical"
+          }
+        ],
+        "unavailable": []
+      },
+      "rules": [
+        {
+          "action": {
+            "event": "trigger",
+            "source_id": "arena-alert",
+            "type": "widget"
+          },
+          "rule": "arena-deck-alert",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "source_id": "arena-label",
+            "type": "show_overlay"
+          },
+          "rule": "arena-deck-chapter",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "event": "trigger",
+            "source_id": "arena-alert",
+            "type": "widget"
+          },
+          "rule": "arena-provider-follow",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "event": "trigger",
+            "source_id": "arena-reward",
+            "type": "widget"
+          },
+          "rule": "arena-deck-celebrate",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "amount": 1,
+            "name": "community_rewards",
+            "type": "increment_counter"
+          },
+          "rule": "arena-deck-celebrate",
+          "status": "VALID_TYPED_INTENTION"
+        },
+        {
+          "action": {
+            "event": "trigger",
+            "source_id": "arena-reward",
+            "type": "widget"
+          },
+          "rule": "arena-provider-reward",
+          "status": "VALID_TYPED_INTENTION"
+        }
+      ],
+      "status": "PASS",
+      "version": "0.2.0"
+    }
+  ],
+  "status": "PASS"
+}

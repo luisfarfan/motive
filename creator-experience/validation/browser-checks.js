@@ -22,6 +22,7 @@ async (page, {artifactDir}) => {
   };
   const shot = async name => {
     await page.evaluate(async () => { await document.fonts.ready; await Promise.all([...document.images].map(i => i.decode().catch(() => {}))); });
+    await page.evaluate(()=>window.scrollTo(0,0));
     const path = `${artifactDir}/creator-${name}.png`;
     await page.screenshot({path, fullPage:true, scale:'css'});
     screenshots.push({name, path, viewport:page.viewportSize()});
@@ -97,12 +98,16 @@ async (page, {artifactDir}) => {
   await page.locator('[data-button="celebrate"]').click();
   await shot('deck-desktop');
   await goto('motion');
-  await page.locator('[data-play="slide_in"]').click();
-  const motion = await page.locator('#sample-slide_in').evaluate(el => el.getAnimations({subtree:true}).map(a => ({duration:a.effect.getTiming().duration,frames:a.effect.getKeyframes().map(f=>f.transform)})));
+  await page.locator('#pack-animation').selectOption('creator-tech/tech-lower-in');
+  const motion = await page.locator('#play-selected-motion').evaluate(el => {
+    el.click();
+    return document.querySelector('#selected-motion-stage').getAnimations({subtree:true}).map(a => ({duration:a.effect.getTiming().duration,frames:a.effect.getKeyframes().map(f=>f.transform)}));
+  });
   assert('motion_actual_declared_target', motion.length > 0 && motion[0].frames.some(x=>x?.includes('-')), motion);
   await page.locator('#reduced-motion').check();
-  await page.locator('[data-play="scale_in"]').click();
-  assert('explicit_reduced_motion_static', await page.locator('#sample-scale_in').evaluate(el=>el.getAnimations({subtree:true}).length) === 0);
+  await page.locator('#pack-animation').selectOption('creator-tech/tech-alert-in');
+  await page.locator('#play-selected-motion').click();
+  assert('explicit_reduced_motion_static', await page.locator('#selected-motion-stage').evaluate(el=>el.getAnimations({subtree:true}).length) === 0);
   await shot('motion-desktop');
   await page.emulateMedia({reducedMotion:'reduce'});
   await goto('motion');

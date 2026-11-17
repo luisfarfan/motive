@@ -1,10 +1,11 @@
 # Motive · Creator Experience
 
-Dos colecciones originales v0.2.0, listas para inspección y autoría local, con
-manifests v1 validados. **La instalación de estas colecciones en H14 sigue
-pendiente:** el instalador observado solo incorpora MATCHDAY y rechaza recursos.
+Dos colecciones originales v0.2.0 con recursos editables, manifests v1 validados,
+Motion System y un prototipo independiente de biblioteca, personalización,
+instalación y Live Deck. La [matriz de aceptación](docs/acceptance-matrix.md)
+relaciona cada sección del pedido con sus entregables y evidencia.
 
-![Biblioteca local](evidence/library-desktop.png)
+![Biblioteca local](evidence/completion-regression-library-desktop.png)
 
 ## Explorar
 
@@ -17,7 +18,8 @@ python3 creator-experience/prototype/serve.py --port 8768
 Abrir `http://127.0.0.1:8768/prototype/`. Es un servidor estático en loopback,
 sin dependencias de red. Ctrl+C lo detiene. El prototipo permite buscar, revisar
 colecciones, editar propiedades, descargar un manifest, comprobar un plan y
-ensayar el Deck/movimiento. Todo ensayo está identificado como independiente
+ensayar el Deck, las 22 animaciones y siete estados visuales de instalación.
+Todo ensayo está identificado como independiente
 de Production. No instala ni controla Motive.
 
 | Colección | Composiciones | Fuentes / capas | Animaciones | Propiedades | Assets PNG |
@@ -31,17 +33,22 @@ presentación, ARENA gameplay y comunidad. Cuatro PNG alpha, sus SVG editables,
 widgets permanecen nativos/editables; las capturas son recetas de selección
 posterior. Sin assets propietarios ni fuentes redistribuidas.
 
-## Qué está terminado y qué falta
+## Entregables y alcance
 
 | Entrega | Estado comprobado |
 |---|---|
 | Arte, manifests, ambas orientaciones, properties, reglas y Deck | Implementados y validados offline |
-| [Motion System](motion/README.md) | 22 definiciones reales indexadas; seis previews representativos y transición BRB |
-| Biblioteca, personalizador, plan y Live Deck | Prototipo funcional de navegador; no UI GPUI |
-| [Autoría por agentes](agent-authoring/README.md) | Workflow, límites, ejemplos y checklist sin proveedor obligatorio |
-| [`.motivepack`](docs/motivepack-proposal.md) | Propuesta versionada; no nuevo instalador ni archivo distribuible certificado |
+| [Motion System](motion/README.md) | 22 previews seleccionables, parámetros acotados, ambas orientaciones, reducción y transición BRB |
+| Biblioteca, personalizador, plan y Live Deck | Prototipo funcional: color/texto/estilo/variantes, siete fixtures de instalación y recuperación |
+| [Autoría por agentes](agent-authoring/README.md) | Workflow y ejemplo reproducible de podcast con dos cámaras reservadas, lower thirds y pausa |
+| [`.motivepack`](docs/motivepack-proposal.md) | Propuesta versionada y ejemplos de metadatos/checksums calculados sobre los recursos reales |
 | [Marketplace](marketplace-concept/README.md) y [extracción](docs/repository-extraction-plan.md) | Arquitectura y roadmap; sin backend ni repositorios nuevos |
-| Importar estas colecciones en H14, bindings y aceptación audiovisual | Pendiente de integración oficial; no ejecutado |
+| GPUI, importación oficial, bindings y aceptación audiovisual | Integración futura, excluida expresamente de este pedido |
+
+El instalador H14 observado solo incorpora MATCHDAY y rechaza recursos externos.
+El prototipo rotula sus estados «instalando» e «instalado» como ejemplos visuales;
+no ejecuta un instalador ni crea entidades en Motive. `.motivepack` sigue siendo
+una especificación; no se emitió un ZIP certificado ni un instalador paralelo.
 
 Dos packs completos **no caben juntos** bajo el límite global de ocho escenas.
 Las cuotas también deben sumar el proyecto existente y las capturas elegidas.
@@ -55,6 +62,8 @@ python3 creator-experience/validation/validate.py
 python3 creator-experience/validation/test_validation.py
 python3 creator-experience/packs/tools/generate.py
 python3 creator-experience/motion/build_catalogue.py
+python3 creator-experience/agent-authoring/verify_example.py
+python3 creator-experience/docs/motivepack-examples/build_examples.py
 ```
 
 Python stdlib; generación raster con Swift/AppKit de macOS; contratos con Cargo
@@ -66,7 +75,10 @@ y [generador](packs/tools/README.md). Nada enlaza ni ejecuta el motor de Motive.
 - [QA visual](design-qa.md): capturas, iteraciones y límites.
 - [Validación de contenido](evidence/contracts-validation.json) y
   [compatibilidad H14](evidence/contracts-h14-snapshot.json).
-- [QA funcional del navegador](evidence/browser-validation.json).
+- [QA del cierre](evidence/completion-browser.json): 213 comprobaciones nuevas,
+  más [69 de regresión](evidence/completion-regression.json), todas PASS.
+- [Ejemplo de autoría](docs/authoring-example.md) y
+  [ejemplos de distribución](docs/motivepack-examples/README.md).
 - [TECH · contact sheet](packs/creator-tech/previews/contact-sheet.png) y
   [ARENA · contact sheet](packs/neon-arena/previews/contact-sheet.png).
 

@@ -73,3 +73,17 @@ El MCP de esta sesión permite su cache de screenshots, pero no escribir en el
 worktree hermano. Por eso se capturó en ese cache y después se copiaron los PNG
 a `evidence/`. El script no fija ninguna ruta del checkout; `artifactDir` se
 selecciona al invocarlo. El reporte archivado usa rutas relativas de entrega.
+
+`browser-completion-checks.js` acepta además `phase`: `motion`, `lifecycle`,
+`styles` o `edges`. Ejecutar las cuatro fases mediante el mismo MCP; acreditan
+213 checks nuevos. La suite original actualizada añade 69 regresiones sobre
+el código final. Cada fase recoge errores, red y screenshots y devuelve un
+reporte PASS/FAIL; no convertir un resultado FAIL en aprobación por haber
+capturado una imagen. `completion-browser.json` y `completion-regression.json`
+conservan la ejecución final. Se captura desde scroll cero, sin modificar CSS.
+
+El ejemplo de podcast dispone de su propio comando reproducible:
+`python3 creator-experience/agent-authoring/verify_example.py`.
+Los envoltorios propuestos se recalculan con
+`python3 creator-experience/docs/motivepack-examples/build_examples.py`.
+Ambos scripts están aislados y no producen una instalación ni comandos live.

@@ -29,6 +29,28 @@
   visual conjunta. QA final `passed` para diseño/prototipo. Ver `design-qa.md`,
   `browser-validation.json`, `browser-edge-validation.json` e informe final.
 
+- L — Auditoría del pedido completo tras la observación del usuario. El primer
+  cierre omitía el preview de todas las animaciones, el lifecycle visual de
+  instalación y controles explícitos de estilo/variante. Se conservó la evidencia
+  inicial y se abrió `docs/acceptance-matrix.md` con los cierres M1/P1/P2/Q1.
+- M — Ejemplo concreto de podcast con dos cámaras reservadas: generación de 12
+  archivos reproducibles, parser real, 12 controles adversariales, cinco botones
+  y cuatro eventos simulados PASS. Capturas H/V inspeccionadas. Envoltorios
+  `.motivepack` de ambas colecciones con checksums/tamaños reales; 25 archivos
+  lógicos cada uno, cero ZIP y ningún instalador.
+  Commit `b1b50dc`.
+- N — Workbench de 22 animaciones, H/V, parámetros acotados y reducción. Siete
+  fixtures de instalación/recuperación, presets de fondo y receta reducida.
+  Corregidos estados de revisión, reconciliación, callbacks antiguos y foco.
+  Commit `59651ee`.
+- O — QA final: 213 checks nuevos + 69 regresiones PASS sobre la UI final; dos
+  exports de estilo pasan Rust y solo cambian los dos valores permitidos.
+  Screenshots escritorio/tablet/móvil inspeccionados. H14 actualizado en lectura
+  a `8d6ac470da391ecdfdeac4f2b8ab56880a5c5adb`: contratos PASS y snapshot estable.
+  Los resultados anteriores se conservan; no acreditan instalación nativa.
+  `completion-isolation.json` registra hashes del código final, 168 enlaces
+  locales verificados, contratos/diseños intactos y main original limpio.
+
 Un commit no equivale a aceptación nativa. No se adquirió el lock físico ni
 se lanzó Motive. La instalación oficial y la aceptación audiovisual quedan
 pendientes, expresamente fuera del alcance ejecutado.

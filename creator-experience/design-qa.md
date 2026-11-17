@@ -3,6 +3,58 @@
 Fecha: 2026-11-17. **final result: passed** para el prototipo y los materiales
 de diseño revisados; aceptación audiovisual nativa **no evaluada**.
 
+El cierre revisado incluye las 22 animaciones, siete fixtures de instalación y
+estilos/variantes. La primera entrega omitía parte de esas interacciones;
+la evidencia siguiente registra la ampliación y vuelve a verificar la regresión.
+
+## Cierre del alcance completo
+
+`evidence/completion-browser.json` registra **213 comprobaciones PASS** sobre
+el código final: 133 de movimiento, 41 de instalación, 24 de estilos y 15 de
+casos de borde. `evidence/completion-regression.json` vuelve a verificar las
+69 comprobaciones del flujo anterior; sus selectores se actualizaron al
+workbench completo. No se suman repeticiones de una misma suite como cobertura
+adicional. El código reproducible está en `validation/browser-completion-checks.js`.
+
+- Las 22 entradas se reproducen en ambos layouts. Se comprueban capa, duración,
+  dirección y punto medio de las curvas cuadráticas; reducción estática por
+  cada ID, límites válidos/inválidos y Fade restringido a Linear. La transición
+  BRB conserva Fade350 y Cut reducido.
+- Los siete estados son ejemplos visuales separados del plan. Se recorren
+  revisión, avance manual, instalado, cancelación, error parcial, inspección,
+  reconciliación, recurso faltante y revisión obsoleta en ambas colecciones.
+- El preset de fondo modifica únicamente la property `shape_color` y su fuente;
+  los dos manifests descargados pasan el harness Rust real en
+  `evidence/completion-style-roundtrip.json`. La receta reducida no se serializa
+  como un campo v1 inventado. El color manual y el selector de estilo permanecen
+  sincronizados; Restablecer recupera la colección original.
+- Se verifican conservación de foco en selects, corrección independiente de
+  campos inválidos, preferencia del sistema cambiada sin recargar, rechazo de
+  callbacks antiguos y conservación de revisión/entidades al reconciliar.
+- Escritorio 1440, tablet 1024 y móvil 390 px: sin overflow horizontal ni imágenes
+  rotas. Cero errores/warnings de consola, HTTP fallidos o requests externos.
+
+Revisión visual directa: `completion-motion-desktop.png`,
+`completion-motion-midpoint.png`, `completion-motion-390.png`,
+`completion-installed-example.png`, `completion-lifecycle-390.png` y
+`completion-style-vertical.png`. Se confirma jerarquía, contraste, controles
+legibles, adaptación y separación entre shell claro y composición oscura.
+Las capturas completas se toman desde scroll cero: evita que Chrome incluya
+un elemento fijo situado fuera del viewport como si flotara a mitad de página.
+No se oculta ni retoca contenido del producto para capturar.
+
+El ejemplo didáctico de podcast también se abrió en Proxima Browser a 960×540 y
+540×960: `completion-podcast-horizontal.png` y `completion-podcast-vertical.png`.
+Las dos guías de cámara están rotuladas como selección pendiente y no son fuentes
+de video. Texto, márgenes y lower thirds se revisaron sin oclusión ni recorte.
+
+La revisión de código detectó y corrigió antes del gate final: preferencia
+reducida capturada al abrir, finalizaciones antiguas que podían cambiar el
+estatus nuevo, paso parcialmente creado marcado como completo, número de
+revisión obsoleto y foco perdido al reconstruir controles. Los casos de borde
+anteriores acreditan esas correcciones. No quedan fallos P0/P1/P2 identificados
+en el alcance revisado. Las siguientes secciones conservan la revisión inicial.
+
 ## Fuente y comparación
 
 Fuente visual: `../design/claude-design/studio-fase-1/project/Main.dc.html`,
@@ -86,8 +138,8 @@ skip link, cancelación/repetición frente a callbacks anteriores, rechazo simul
 selector de escena Motion, Fade350, Cut reducido y lower third representativo
 con 320 ms y distancia −32 px. La captura
 `motion-midpoint.png` pausa **la animación del navegador** en mitad del tiempo
-declarado para inspeccionar posición; no es una muestra del reloj OBS. La galería
-ilustra seis gestos reales, y un ejemplo separado de transición de escena.
+declarado para inspeccionar posición; no es una muestra del reloj OBS. La galería inicial
+ilustraba seis gestos reales y un ejemplo separado de transición de escena.
 
 Foco visible, skip link, inputs con label, botones nativos, diálogo modal y
 estatus legibles por texto comprobados. Preferencia de movimiento reducido

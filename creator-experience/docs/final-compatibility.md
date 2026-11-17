@@ -2,6 +2,8 @@
 
 Fecha: 2026-11-17, America/Lima. Rama `codex/creator-experience`, base `57de1c5`.
 Esta entrega conserva el aislamiento: solo añade/modifica `creator-experience/`.
+El [chequeo final de aislamiento](../evidence/completion-isolation.json) fija los
+hashes de UI/pruebas, confirma main limpio y 12 archivos Claude Design intactos.
 
 ## Resultados verificables
 
@@ -14,8 +16,11 @@ Esta entrega conserva el aislamiento: solo añade/modifica `creator-experience/`
 | Rust formato y Clippy | PASS | `../evidence/contracts-clippy.log` |
 | Regeneración en esta Mac | 86 archivos idénticos en dos generaciones | `../packs/tools/reproducibility.json` |
 | Parser/acciones/Deck contra H14 | PASS; hashes antes/después estables | `../evidence/contracts-h14-snapshot.json` |
-| Navegador independiente | 69 comprobaciones + 8 controles adicionales PASS | `../evidence/browser-validation.json`, `browser-edge-validation.json` |
+| Navegador independiente final | 213 comprobaciones nuevas + 69 de regresión PASS | `../evidence/completion-browser.json`, `completion-regression.json` |
 | Manifest personalizado descargado | PASS contra el harness Rust real | `../evidence/customized-roundtrip.json` |
+| Estilo exportado de ambos packs | PASS Rust; cambian solo property y fuente de fondo | `../evidence/completion-style-roundtrip.json` |
+| Ejemplo de autoría podcast | 12 archivos idénticos, 12 controles, cinco botones y cuatro eventos simulados | `../agent-authoring/example/evidence/verification.json` |
+| Metadatos/checksums propuestos | Dos proyecciones verificadas, 25 archivos cada una; sin ZIP | `motivepack-examples/projection-validation.json` |
 | Grabación, streaming, permisos, importación o rendimiento nativo | NO EJECUTADO | Fuera del alcance autorizado |
 
 Se conserva el primer fallo real de reglas/geometría y su corrección: versiones
@@ -27,11 +32,13 @@ una prueba nativa ni se elimina de la evidencia.
 
 ## Encaje con H14
 
-Observación final del crate en `977d2006b35ef70af6ccc5c96dbfb4485e513901`, árbol
+Observación final del crate en `8d6ac470da391ecdfdeac4f2b8ab56880a5c5adb`, árbol
 H14 con trabajo en curso. La prueba fue de solo lectura y no ejecutó Motive.
 `packs.rs` coincide con la base; Deck tiene ampliaciones live que no rompen estos
 documentos. El hash del instalador observado se mantuvo
-`6926e94d24b9a300e83dd8b41768e3e2ae26e0857ece3a7e6775abe8bca9fefa`.
+`edd82033af16e47ec9723a056e499d98ae3c3ab1e35c570003cfcee4bf98c40d`.
+La primera observación se conserva en `contracts-h14-first-*`; H14 avanzó
+durante este trabajo y el gate final se repitió sobre el nuevo snapshot estable.
 
 La instalación sigue siendo una brecha concreta: `include_str!` de MATCHDAY y
 `PACK_RESOURCES_UNSUPPORTED` para listas de medios no vacías. Los cuatro PNG
@@ -66,9 +73,21 @@ tipografía/imagen equivalente a un recurso con mayor resolución intrínseca.
 Biblioteca/personalizador/Deck se sirven como HTML local para estudiar interacción.
 El preview es un render aproximado; usa texto de navegador y widgets ilustrados
 activos. Sus timers son únicamente ensayos UI y no marcan el reloj multimedia.
-«Plan revisado» nunca se presenta como «pack instalado». El estado instalado real
-se especifica para el handoff GPUI, pero no se finge una instalación en este estudio.
+«Plan revisado» nunca se presenta como «pack instalado». Una pestaña separada
+permite recorrer siete fixtures visuales: preparado, revisado, instalando,
+instalado, error parcial, recurso faltante y revisión obsoleta. Los estados y sus
+recuperaciones están rotulados como ejemplos, con avance manual y ningún recibo
+nativo. La variante de fondo modifica solo `shape_color`; la receta reducida
+afecta al preview sin inventar un campo v1. Las 22 animaciones tienen reproducción
+individual, parámetros acotados y ambas orientaciones.
 
 La propuesta `.motivepack`, marketplace y extracción son documentos revisables.
 No hay backend, cuenta, pago, infraestructura cloud, plugin ejecutable ni repo
 adicional. La app y el uso de packs locales siguen independientes de un catálogo.
+
+La [matriz de aceptación](acceptance-matrix.md) vincula las 17 secciones y los
+15 criterios finales con esta evidencia. El cierre inicial omitía tres partes
+del prototipo; se añadieron, revisaron y probaron explícitamente. El informe
+actual acredita el alcance creativo, los prototipos independientes y las
+especificaciones solicitadas. La integración audiovisual sigue siendo otro
+trabajo, excluido por instrucción del pedido.

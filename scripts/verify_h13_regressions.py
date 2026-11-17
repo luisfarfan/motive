@@ -35,6 +35,7 @@ import traceback
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 from verification_paths import verification_paths
+from regression_reports import primary_acceptance, primary_report_path
 VERIFY = verification_paths(ROOT)
 APP = VERIFY.app_executable
 CLIENT = VERIFY.client_executable
@@ -68,6 +69,23 @@ def write_json(path, value):
     temporary = path.with_suffix('.tmp')
     temporary.write_text(json.dumps(value, indent=2, allow_nan=False)+'\n')
     temporary.replace(path)
+
+
+def assess_retained_primary(suite, entry, directory, expected_app_sha256):
+    """Read only this invocation's immutable copy, never a historical alias."""
+    assessment = {'status': 'FAIL', 'issues': [], 'path': None, 'sha256': None}
+    try:
+        relative = primary_report_path(suite, entry['reports'])
+        retained = directory/'reports'/suite/relative
+        content = retained.read_bytes()
+        observed_hash = hashlib.sha256(content).hexdigest()
+        assessment.update(path=str(retained), evidence_relative=relative, sha256=observed_hash)
+        check(observed_hash == entry['reports'][relative], 'retained primary hash unchanged')
+        assessment.update(primary_acceptance(json.loads(content), expected_app_sha256))
+    except Exception as error:
+        assessment.update(status='FAIL', issues=[{'code': 'PRIMARY_UNAVAILABLE_OR_INVALID',
+                                                  'error': repr(error)}])
+    return assessment
 
 
 def ctl(op, *, expect=True, **args):
@@ -369,12 +387,17 @@ def main():
                     retained.write_bytes(path.read_bytes())
                     entry['reports'][str(relative)] = digest(retained)
                 write_json(directory/'manifest.json', report)
+            entry['primary_acceptance'] = assess_retained_primary(name, entry, directory, report['app_sha256'])
+            write_json(directory/'manifest.json', report)
             entry['after'] = state()
             owner(entry['after'])
             check(quiescent(entry['after']), 'suite leaves both native slots quiescent', suite=name)
             restore_stores(saved)
             print(name, entry['exit_code'], round(entry['seconds'], 1), flush=True)
             check(entry['exit_code'] == 0, 'original suite passed', suite=name)
+            check(entry['primary_acceptance']['status'] == 'PASS',
+                  'fresh primary acknowledges success without reported cleanup failure',
+                  suite=name, primary_acceptance=entry['primary_acceptance'])
         report['suites_passed'] = True
     except BaseException as error:
         report.update(error=repr(error), traceback=traceback.format_exc())

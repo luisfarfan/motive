@@ -149,6 +149,7 @@ pub fn send(command: Value, origin: &str) -> Value {
         command["op"].as_str(),
         Some(
             "status"
+                | "audio_mixer"
                 | "scenes"
                 | "devices"
                 | "encoders"
@@ -184,7 +185,8 @@ fn tool(
 ) -> Value {
     let destructive = matches!(
         name,
-        "remove_scene"
+        "remove_audio_input"
+            | "remove_scene"
             | "remove_source"
             | "remove_layer"
             | "save_project"
@@ -211,6 +213,41 @@ fn tool(
 }
 pub fn tools() -> Vec<Value> {
     let mut result = vec![
+        tool(
+            "audio_mixer",
+            "Mezclador global compartido: canales, ganancia/mute, peak/RMS post-fader/pre-mute y suma final pre-clamp. Monitoring desactivado.",
+            json!({}),
+            &[],
+            true,
+        ),
+        tool(
+            "add_audio_input",
+            "Añade micrófono por UID o tono controlado; reutiliza el ID existente sin duplicar captura. Requiere salida detenida.",
+            json!({"name":{"type":"string","minLength":1,"maxLength":80},"source":{"oneOf":[{"type":"object","properties":{"kind":{"const":"tone"}},"required":["kind"],"additionalProperties":false},{"type":"object","properties":{"kind":{"const":"microphone"},"device_id":{"type":"string","minLength":1,"maxLength":511}},"required":["kind","device_id"],"additionalProperties":false}]}}),
+            &["name", "source"],
+            false,
+        ),
+        tool(
+            "remove_audio_input",
+            "Libera un canal del mezclador; requiere salida detenida.",
+            json!({"input_id":{"type":"string"}}),
+            &["input_id"],
+            false,
+        ),
+        tool(
+            "set_audio_gain",
+            "Ganancia del canal en libobs, -60..24 dB, también en vivo. No reinicia fuentes ni encoders.",
+            json!({"input_id":{"type":"string"},"gain_db":{"type":"number","minimum":-60,"maximum":24}}),
+            &["input_id", "gain_db"],
+            false,
+        ),
+        tool(
+            "set_audio_mute",
+            "Mute/unmute en libobs sin parar la captura ni las demás entradas.",
+            json!({"input_id":{"type":"string"},"muted":{"type":"boolean"}}),
+            &["input_id", "muted"],
+            false,
+        ),
         tool(
             "scenes",
             "Escenas, revisión, configuración y transición nativa: preparar/running/completed/cancelled/failed. El progreso sigue el reloj de OBS.",

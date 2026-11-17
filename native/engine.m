@@ -1,4 +1,5 @@
 #include <obs.h>
+#include <obs-audio-controls.h>
 #include <graphics/vec4.h>
 #include <pthread.h>
 #include <stdatomic.h>
@@ -11,6 +12,8 @@
 
 /* All functions except the frame callback run on the main/GPUI thread.
  * OBS owns render/audio/output threads. No GPUI object crosses that boundary. */
+typedef struct audio_input audio_input;
+typedef struct audio_mix_meter audio_mix_meter;
 typedef struct visual_source visual_source;
 typedef struct visual_scene visual_scene;
 enum scene_phase { SCENE_IDLE, SCENE_PREPARING, SCENE_RUNNING, SCENE_COMPLETED, SCENE_CANCELLED, SCENE_FAILED };
@@ -20,6 +23,8 @@ typedef struct {
     uint8_t *pixels;
     uint32_t width, height;
     char audio_id[512];
+    audio_input *audio_inputs[8];uint64_t audio_instances;
+    audio_mix_meter *mix_meter;
     visual_source *visuals[16];visual_scene *scenes[8];size_t visual_count,scene_count;
     obs_source_t *transitions[2];unsigned transition_index;
     transition_events transition_events[2];uint64_t transition_stop_baseline;
@@ -29,11 +34,8 @@ typedef struct {
     unsigned scene_kind,scene_duration_ms;float scene_progress;
     uint64_t scene_prepare_ns,scene_ready_frame;bool scene_needs_warmup,scene_target_held;
     visual_scene *scene_from_native,*scene_target_native;
-    atomic_uint_fast64_t audio_seen_ns, audio_frames;
-    atomic_uint audio_peak;
     uint64_t sequence, timestamp;
     atomic_uint_fast64_t busy_drops;
-    obs_source_t *audio;
     atomic_uint_fast64_t preview_copies;
     obs_output_t *output;
     obs_service_t *service;
@@ -131,6 +133,7 @@ static int reset_video(motive_engine *e) {
     return obs_reset_video(&v);
 }
 static struct obs_source_info watch_info;
+static struct obs_source_info tone_info;
 #include "credentials.inc"
 // Native plugins may log a server's reply containing the stream key. Once a
 // credential is used, suppress free-form OBS logs for the process lifetime;
@@ -146,6 +149,8 @@ static void private_log(int level,const char *format,va_list args,void *unused) 
 }
 #include "local-service.inc"
 static void discover_encoders(motive_engine *e);
+static void audio_mix_start(motive_engine *e);
+static void audio_mix_stop(motive_engine *e);
 void motive_destroy(motive_engine *e);
 motive_engine *motive_create(const char *base) {
     motive_engine *e=calloc(1,sizeof(*e));
@@ -181,8 +186,10 @@ motive_engine *motive_create(const char *base) {
     discover_encoders(e);
     obs_register_source(&pattern_info);
     obs_register_source(&watch_info);
+    obs_register_source(&tone_info);
     e->pixels=calloc(e->width*e->height,4);
     connect_preview(e);
+    audio_mix_start(e);
     return e;
 }
 const char *motive_error(motive_engine *e) { return e->error; }
@@ -380,55 +387,7 @@ void motive_request_permission(int kind) {
 void motive_close_test_window(void) {
     for (NSWindow *w in NSApp.windows) if ([w.title isEqualToString:@"Motive — Fuente controlada"]) [w performClose:nil];
 }
-static void receive_audio(void *param,obs_source_t *source,const struct audio_data *data,bool muted) {
-    (void)source; motive_engine *e=param; float peak=0;
-    // libobs supplies resampled planar float in its configured stereo format.
-    for (size_t c=0;c<2;c++) if (data->data[c]) {
-        const float *samples=(const float *)data->data[c];
-        for (size_t i=0;i<data->frames;i++) peak=fmaxf(peak,fabsf(samples[i]));
-    }
-    atomic_store(&e->audio_peak,muted ? 0:(unsigned)(fminf(peak,1)*1000000));
-    atomic_fetch_add(&e->audio_frames,data->frames);
-    atomic_store(&e->audio_seen_ns,os_gettime_ns());
-}
-int motive_audio_health(motive_engine *e) {
-    if (!e->audio || !strcmp(e->audio_id,"tone")) return 0;
-    if ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio]!=AVAuthorizationStatusAuthorized) return 2;
-    if (!audio_available(e->audio_id)) return 1;
-    uint64_t seen=atomic_load(&e->audio_seen_ns);
-    return seen && os_gettime_ns()-seen<3000000000ULL ? 0:3;
-}
-uint64_t motive_audio_frames(motive_engine *e) { return atomic_load(&e->audio_frames); }
-float motive_audio_peak(motive_engine *e) {
-    uint64_t seen=atomic_load(&e->audio_seen_ns);
-    return seen && os_gettime_ns()-seen<1000000000ULL ? atomic_load(&e->audio_peak)/1000000.0f:0;
-}
-bool motive_audio(motive_engine *e,const char *id,const char *tone_path) {
-    obs_source_t *source=NULL;
-    if (strcmp(id,"none")) {
-        obs_data_t *settings=obs_data_create();
-        if (!strcmp(id,"tone")) {
-            obs_data_set_string(settings,"local_file",tone_path);
-            obs_data_set_bool(settings,"is_local_file",true); obs_data_set_bool(settings,"looping",true);
-            source=obs_source_create_private("ffmpeg_source","Controlled tone",settings);
-        } else {
-            if ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio]!=AVAuthorizationStatusAuthorized) {
-                obs_data_release(settings); snprintf(e->error,sizeof(e->error),"MICROPHONE_PERMISSION_DENIED: autoriza Motive en Ajustes de privacidad"); return false;
-            }
-            if (!audio_available(id)) { obs_data_release(settings); snprintf(e->error,sizeof(e->error),"DEVICE_UNAVAILABLE: elige un UID explícito de devices"); return false; }
-            obs_data_set_string(settings,"device_id",id);
-            source=obs_source_create_private("coreaudio_input_capture","Selected microphone",settings);
-        }
-        obs_data_release(settings);
-        if (!source) { snprintf(e->error,sizeof(e->error),"AUDIO_CREATE_FAILED"); return false; }
-    }
-    if (e->audio) obs_source_remove_audio_capture_callback(e->audio,receive_audio,e);
-    atomic_store(&e->audio_seen_ns,0); atomic_store(&e->audio_frames,0); atomic_store(&e->audio_peak,0);
-    if (source) obs_source_add_audio_capture_callback(source,receive_audio,e);
-    obs_set_output_source(1,source);
-    if (e->audio) obs_source_release(e->audio);
-    e->audio=source; snprintf(e->audio_id,sizeof(e->audio_id),"%s",id); return true;
-}
+#include "audio-mixer.inc"
 void motive_destroy(motive_engine *e) {
     if (!e) return;
     if (e->output && motive_output_state(e)) {
@@ -440,9 +399,10 @@ void motive_destroy(motive_engine *e) {
     release_output(e);
     if (e->pixels) obs_remove_raw_video_callback(receive_frame,e);
     if (obs_initialized()) {
-        obs_set_output_source(0,NULL); obs_set_output_source(1,NULL);
+        obs_set_output_source(0,NULL);
+        audio_mix_stop(e);
         graph_release(e);
-        if (e->audio) { obs_source_remove_audio_capture_callback(e->audio,receive_audio,e); obs_source_release(e->audio); }
+
 
         obs_shutdown();
     }

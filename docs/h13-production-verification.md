@@ -1,12 +1,15 @@
 # H13 — verificación incremental
 
-H13 está implementado con **aceptación parcial; cierre final EN CURSO**. El
+H13 está implementado con **aceptación parcial; no completo**. El
 recorrido GPUI integrado y una producción dual de más de 30 minutos ya se
-ejecutaron en G. La toma conserva una alerta ocluida y un fallo posterior de
-continuidad visual en REC3; no acredita aceptación completa. Las regresiones H1–H12 reúnen
+ejecutaron en G. La alerta se revalidó después de corregir su orden por UI;
+la continuidad de ventana vuelve a fallar en la toma compacta. Contabilidad
+terminal y memoria siguen pendientes. Las regresiones H1–H12 reúnen
 23/23 PASS en sus últimas ejecuciones G, con metrología H10 revisada y fallos
 anteriores conservados. A/V tiene evidencia acotada a condiciones visibles;
-la exclusión propia final no pasó y su causa sigue sin atribuir. El [índice de evidencia](h13-evidence-index.md)
+la exclusión propia pasó en la única repetición controlada G, sin borrar su
+primer FAIL ni atribuir su fondo. Las pruebas físicas terminaron y el lock
+se liberó. El [índice de evidencia](h13-evidence-index.md)
 separa bundles, resultados confirmados y fallos conservados.
 
 ## Incremento 1: canvas real y coordenadas persistentes
@@ -218,7 +221,7 @@ GPUI: controles independientes compilados y panel observado visualmente a
 recorrido de producción final ni a la comprobación de tamaño compacto/cierre.
 Las mediciones posteriores están en la [investigación de rendimiento y colas](h13-encoder-tail-investigation.md).
 Al cierre de ese incremento, sesión prolongada y regresiones finales seguían
-pendientes; los incrementos 7 y 8 documentan las ejecuciones posteriores.
+pendientes; los incrementos 7–9 documentan las ejecuciones posteriores.
 
 ## Incremento 5: rechazo de identidades de audio malformadas
 
@@ -241,7 +244,8 @@ ubicación del snapshot runtime), sin atribuirlos a fallos del producto.
 La preparación GPUI anterior queda registrada como preparación, sin salidas
 iniciadas, en `var/evidence/h13-native-1794936995861463000/`. No acredita la toma
 dual final. La ventana compacta 1024×780, temas y cierre idle por Cmd+Q/menú sí
-se observaron en `var/evidence/h13-ui-increment/`; cierre con salidas pendiente.
+se observaron en `var/evidence/h13-ui-increment/`; el cierre con salidas quedaba
+pendiente en ese incremento (véanse las ejecuciones posteriores 8–9).
 
 ## Incremento 6: sello de cierre e importaciones en curso
 
@@ -442,17 +446,29 @@ rango **33 ms**, dentro de los gates |desfase| <250 ms y rango <100 ms.
 Incluye latencia de reproducción/redraw y mide alineación de extremo a
 extremo; no acredita latencia cero ni explica los congelamientos históricos.
 
-La [exclusión propia final](h13-system-audio-exclusion-final.md) tiene resultado
-distinto: **ensayo G FAIL, atribución INCONCLUSIVE**. El
+El primer ensayo de [exclusión propia G](h13-system-audio-exclusion-final.md)
+conserva **FAIL, atribución INCONCLUSIVE**. El
 [reporte original](../var/evidence/h13-self-audio-exclusion-1794940665168715000/report.json)
 mide supresión 2011 Hz de −16,412088 dB frente al gate <−45 dB. El diagnóstico
 encuentra fondo adicional de banda ancha y tres bloques saturados en la
 entrada, aunque el contador de mezcla final es cero. No permite atribuir
 el residuo exclusivamente a Motive ni confirmar una regresión concreta de
-ScreenCaptureKit. Tampoco permite dar por cumplida la exclusión. Se conservan
-el PASS de C y FAIL de G, sin sustituir el criterio, filtrar el fondo ni
-identificar contenido ajeno. El agregado 23/23 de regresiones no cierra este
-gate específico H13.
+ScreenCaptureKit. Ese ensayo no acredita exclusión. Se conservan el PASS de C
+y FAIL de G, sin sustituir el criterio, filtrar el fondo ni identificar
+contenido ajeno. El agregado 23/23 de regresiones no evalúa este gate H13.
+
+Después de un único [control de piso PASS](../var/evidence/h13-self-audio-floor-1794946499075579000/report.json),
+la [única repetición del verificador original](../var/evidence/h13-self-audio-exclusion-1794946744795131000/report.json)
+pasa sobre el mismo G: supresión relativa **−123,174221 dB**, frente al gate
+<−45 dB, con 997 Hz externo presente y 2011 Hz externo detectable como control
+positivo. La estimación está próxima al piso numérico; no promete atenuación
+universal. Cero bloques saturados de entrada/mezcla, lag, skips y drops;
+pico PCM global −35,317477 dBFS. El gap final de video de 133 ms permanece
+dentro del gate funcional original de 150 ms, sin declararlo cadencia nominal.
+No hubo cambio de producto, verificador original ni gates. El diagnóstico terminó
+normalmente, stores intactos y sin emisor propio activo. Procedencia, límites
+y limpieza quedan en el [informe final](h13-system-audio-exclusion-final.md)
+(commit `0573f8b`).
 
 ### Probe de memoria G: finalizado, sin gate de RSS
 
@@ -503,10 +519,11 @@ Se ejercitaron stop/restart independientes, pérdida real del receptor,
 recuperación dirigida, cancelación diferida de un handshake y cierre dual.
 La [captura de confirmación](../var/evidence/h13-native-1794941679130733000/17-confirm-quit-dual.png)
 y las barreras del observador acreditan ese cierre concreto, no todos los
-flujos compactos del [checklist nativo](h13-native-acceptance.md). Tras reabrir
+flujos compactos del [checklist nativo](h13-native-checklist.md). Tras reabrir
 en la sesión compacta PID 36494 se observaron por GPUI la restauración del
-proyecto, mixer y definiciones de perfiles; la nueva toma y los restantes
-flujos de cierre compacto siguen pendientes.
+proyecto, mixer y definiciones de perfiles. La toma compacta y los cierres
+Q4/Q5 posteriores se documentan en el incremento 9 y en la
+[aceptación nativa](h13-native-acceptance.md).
 
 ### Duración y recursos: alcance dual explícito
 
@@ -627,8 +644,8 @@ esto no garantiza ausencia de congelamientos dentro de cada intervalo.
 La alerta de REC3/RTMP3 está **parcialmente ocluida**: su capa y la ventana
 comparten `order=2`; el desempate por ID deja la ventana arriba. No pasa
 legibilidad completa aunque el runtime recorra sus fases. El orden de esa
-composición se corrigió después mediante UI en el estudio compacto; la nueva
-grabación de revalidación está pendiente y no sustituye el FAIL original.
+composición se corrigió después mediante UI en el estudio compacto; su nueva
+grabación revalida la alerta (incremento 9) sin sustituir el FAIL original.
 
 El segundo fallo corresponde a **REC3, no al tramo largo**: contador visual
 136267776 repetido a PTS 185 y 245 s; RTMP6 muestra el mismo valor en su única
@@ -639,8 +656,75 @@ su oclusión cambia; el snapshot de source-2 sigue activo pero no ofrece
 WindowServer, SCK y retención posterior es **INCONCLUSIVE**. No se imputa a
 Stage Manager ni se declara reparación por elevar la ventana.
 
-**Pendiente:** revalidación visual de alerta y continuidad de ventana, explicación
-de la contabilidad terminal, toma y flujos restantes de cierre compacto y
-exclusión propia en condiciones controladas. La producción prolongada ya se
-ejecutó; sus resultados parciales, las 23/23 regresiones y los instrumentos
-offline no declaran H13 completo.
+## Incremento 9: cierre compacto y última exclusión G
+
+La sesión GPUI compacta PID **36494**, 1024×780 y mismo bundle G, terminó con
+2493 snapshots, `collector_ok=true` y `observed_shutdown=true` en el
+[observador cerrado](../var/evidence/h13-native-1794944801555031000/report.json).
+Proyecto, mixer y perfiles restaurados por UI preceden a la nueva toma; la
+alerta conserva `order=3` sobre la ventana `order=2`. El
+[manifiesto compacto](../var/evidence/h13-native-compact-1794944782314737000/media-manifest.json)
+identifica dos medios, ambos intento 1 en su destino.
+
+### Dos medios: PASS funcional/cadencia, cobertura inconclusa
+
+El [análisis estructural compacto](../var/evidence/h13-native-analysis-1794946801711114000/report.json)
+da **2/2 funcional/integridad PASS y 2/2 cadencia estricta PASS**, con
+`coverage_status=INCONCLUSIVE`: los intentos posteriores de handshake no
+produjeron medios. No equivale a aceptación integral. Ambos archivos son
+1080p30, AAC 48 kHz estéreo; decode completo, PTS de video con máximo 34 ms
+y AAC con máximo 22 ms. El PCM completo es finito y sin muestras saturadas;
+picos MKV **−12,314496 dBFS**, RTMP **−16,729690 dBFS**. No se hizo una nueva
+validación de referencias aisladas de ganancia en esta toma.
+
+| Medio compacto | Encoded nativo | Output nativo terminal | Decodificados | Diferencia decoded−output |
+| --- | ---: | ---: | ---: | ---: |
+| MKV intento 1 | 13883 | 13880 | 13880 | 0 |
+| RTMP intento 1 | 5030 | 5028 | 5027 | **−1** |
+
+La discrepancia RTMP añade otro caso de contabilidad terminal
+pendiente. El analizador no tiene un gate de igualdad output/decodificado;
+el PASS de cadencia y cero drops nativos no prueban conservación de todos los
+últimos cuadros. Los contadores encoded tampoco representan entrega.
+
+### Alerta revalidada; continuidad de ventana vuelve a fallar
+
+La [revisión visual compacta](../var/evidence/h13-native-visual-extract-1794946829324892000/visual-review.md)
+conserva **alerta PASS, continuidad de ventana FAIL, conjunto visual FAIL**.
+Un evento real y dos ventanas evento/medio muestran “ALERTA H13” y “Motive”
+completos, ocultos antes/después, con la corrección de orden aplicada por GPUI.
+No acredita una duración exacta de 4000 ms ni repite Cut/Fade/edición de lower.
+Tras restaurar, el countdown queda idle en 00:30 y el lower hidden, de acuerdo
+con sus estados efímeros.
+
+Las **11 muestras periódicas** repiten `193356288`: ocho de MKV en PTS
+5, 65, 125, 185, 245, 305, 365 y 425 s; tres de RTMP en 5,021, 65,021 y
+125,021 s. Confirman ausencia del avance esperado entre esas muestras, sin
+fijar inicio/fin ni demostrar congelación ininterrumpida en cada intervalo.
+La fuente sigue activa, instancia 3 y sin issue; `frame_age_ms`/FPS medidos
+son null. La causa sigue **INCONCLUSIVE** y no se atribuye a Stage Manager,
+WindowServer o SCK. Se preservan ambos FAIL visuales originales.
+
+### Cierre GPUI Q4/Q5 y limpieza
+
+Q5 quedó observado cuando el primer peer agotó su timeout de 30 s antes de
+confirmar Quit: el diálogo obsoleto no cerró Motive y MKV continuó. El segundo
+peer mantuvo un handshake incompleto con un byte RTMP v3 y 15 bytes de S1.
+Tras confirmar Cmd+Q (Q4), el
+[estado pendiente](../var/evidence/h13-native-compact-1794944782314737000/shutdown-pending-state.json)
+conserva `shutdown_pending=true`, MKV `idle/native_busy=false` y RTMP
+`connecting/native_busy=true/cancel_deferred=true`. Motive permaneció abierto
+hasta liberar el peer. El [resultado](../var/evidence/h13-native-compact-1794944782314737000/shutdown-outcome.json)
+mide salida **0,835 s desde la solicitud de liberación del peer**, no desde
+Cmd+Q; no se envió ninguna señal forzada a Motive. Esto no acredita botón
+rojo, Dock Quit ni cierre con permisos revocados.
+
+La [limpieza física final](../var/evidence/h13-build/final-physical-cleanup.json)
+registra ausentes los PID propios de app/fixtures/helpers, sin force-kill de
+Motive y `lock_released=true`. La exclusión propia G pasa en la única
+repetición controlada descrita arriba; su primer FAIL permanece archivado.
+
+**H13 permanece PARTIAL:** continuidad visual de ventana, explicación y gate
+de contabilidad terminal, y límites de memoria siguen pendientes. Las pruebas
+físicas terminaron; no se amplían sus alcances por los PASS estructurales, las
+23/23 regresiones ni la limpieza final.

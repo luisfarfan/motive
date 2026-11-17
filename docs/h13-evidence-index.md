@@ -1,4 +1,4 @@
-# H13 — índice de evidencia · EN CURSO
+# H13 — índice de evidencia · PARTIAL
 
 Inventario de lectura del 2026-11-17. **No declara H13 completo.** Las pruebas
 pertenecen al ejecutable indicado en cada fila; un PASS de un incremento no
@@ -6,7 +6,9 @@ certifica por sí solo el bundle final. Los informes originales fallidos se
 conservan. Rutas relativas a este worktree, con métricas y hashes de medios en
 los JSON enlazados; no se vuelven a decodificar para elaborar este índice.
 La producción GPUI dual de más de 30 minutos ya se ejecutó en G; su aceptación
-es **parcial**, con fallos visuales y contabilidad terminal todavía pendientes.
+es **parcial**, con continuidad visual, contabilidad terminal y memoria todavía
+pendientes. La alerta corregida y la única repetición controlada de exclusión G
+pasan; las pruebas físicas terminaron y el lock se liberó.
 
 ## Bundles separados
 
@@ -41,12 +43,15 @@ es **parcial**, con fallos visuales y contabilidad terminal todavía pendientes.
 | Importación real durante cierre | G | [PASS](../var/evidence/h13-import-shutdown-1794938158330488000/report.json): clip 1080p/20,27 s; 29 consultas con worker activo, máximo 88,9 ms. Cierre solicita en 30,7 ms; resultado `completed` observado antes de salir en 3,271 s. Stores intactos e inbox propio retirado. |
 | Sistema de audio repetido en el bundle actual | G | [Siete etapas PASS](../var/evidence/h13-system-audio-1794940056194848000/report.json): pilot, RTMP, recovery, silence, transitions, persistence y microphone. 4080 frames; ganancia −12 dB medida entre −11,988 y −11,996 dB; error RMS aislado máximo 0,023 dB. Sin clipping/lag/skips/drops, AAC ≤22 ms. Colas de video de hasta 134 ms conservadas. No incluye A/V, exclusión propia ni ausencia real de paquetes SCK. |
 | A/V visible final | G | [PASS](../var/evidence/h13-system-audio-1794941016583790000/report.json): siete pulsos, mediana audio−video +24,271 ms y rango 33 ms; fixture visible activada mediante Finder/CUA, sin snapshots diagnósticos. Alineación de extremo a extremo, incluida reproducción/redraw; no latencia cero ni resolución de los congelamientos históricos. |
-| Exclusión propia final | G | [Ensayo FAIL, atribución INCONCLUSIVE](h13-system-audio-exclusion-final.md): −16,412 dB frente al gate <−45 dB, con fondo adicional de banda ancha. No demuestra una regresión concreta de SCK ni acredita exclusión final; el PASS de C sigue separado. |
+| Exclusión propia final | G | [Única repetición PASS](../var/evidence/h13-self-audio-exclusion-1794946744795131000/report.json), tras [control de piso PASS](../var/evidence/h13-self-audio-floor-1794946499075579000/report.json): −123,174221 dB frente al gate <−45 dB, estimación próxima al piso numérico y con control positivo externo. Mismo verificador/gates, cero saturación/lag/skips/drops; gap final de video 133 ms conservado. El [informe final](h13-system-audio-exclusion-final.md) mantiene el primer G FAIL de −16,412 dB y la atribución del fondo INCONCLUSIVE; no se convierte ese archivo ni el PASS de C en esta nueva evidencia. |
 | Memoria tras liberar videos | G | [Probe completado](../var/evidence/h13-video-memory-1794940705116187000/report.json), documentado en `89eed5e`: baseline → cuatro videos → cuatro reemplazados → cero durante 20 s. RSS mediana 178,41 → 673,55 → 1030,91 → 1141,38 MiB. Resultado explícito `PROBE_COMPLETED_NOT_A_MEMORY_BUDGET_PASS`; sin gate RSS ni afirmación de ausencia de fugas. [Investigación y vmmap](h13-encoder-tail-investigation.md). |
 | Producción GPUI prolongada | G | [Observador cerrado PID 92305](../var/evidence/h13-native-1794941679130733000/report.json): 5402 snapshots, mismo hash G, `collector_ok` y `observed_shutdown` verdaderos. Canvas 1080p30, ventana/cámara, micrófono/app, widgets y perfiles VT 6000/4000 kb/s. [Métricas duales](../var/evidence/h13-native-1794941679130733000/metrics-summary.json): 1814,745 s con ambas salidas activas; RTMP1 1815762 ms (30 min 15,762 s), REC1 1884483 ms. Stop/restart, fallo/recovery dirigidos, cancelación de handshake y cierre dual observados. Aceptación parcial. |
 | Medios de la producción nativa | G | [Ocho archivos estructurales](../var/evidence/h13-native-analysis-1794944731171479000/report.json): siete funcional/integridad PASS y RTMP3 intencionalmente parcial INCONCLUSIVE; cadencia estricta 8/8 PASS, video ≤34 ms/AAC ≤22 ms, PCM completo sin saturación. Global INCONCLUSIVE por cobertura/fallo intencional, no aceptación GPUI. El intento RTMP5 no produjo archivo. Diferencias terminales output/decodificado se conservan debajo; ese gate no formaba parte del PASS. |
 | Audio nativo con anclas observadas | G | [Informe PCM](../var/evidence/h13-native-pcm-1794944899076084000/report.json) y [resumen](../var/evidence/h13-native-pcm-1794944899076084000/summary.json): 18 comparaciones de ganancia PASS, −12,000512…−11,994918 dB; error RMS máximo 0,142828 dB. REC1/RTMP1 referencias PASS y 34 ventanas de eventos calibradas PASS. 79 fragmentos, 48684 ventanas superpuestas de 20 ms, cero saturación. Fallos RTMP3/5 en REC3 son diagnósticos extrapolados desde ancla posterior; global INCONCLUSIVE, sin afirmar continuidad audible completa ni atribuir el 997 Hz del micrófono a la app. |
 | Contenido visual de la toma nativa | G | [Revisión visual FAIL](../var/evidence/h13-native-visual-extract-1794944740966518000/visual-review.md): 16 probes Cut/Fade completos PASS, lower y countdown visibles; Fade cancelado conserva su alcance parcial. Alerta REC3/RTMP3 ocluida por orden de capas; contador de ventana repetido en REC3 a 185/245 s y en una muestra RTMP6. Causa del freeze INCONCLUSIVE. En el tramo largo sí avanza entre las 32 muestras REC1 y 31 RTMP1 de 60 s; no garantiza continuidad dentro de esos intervalos. |
+| Medios compactos GPUI | G | [Dos medios funcionales y cadencia estricta PASS](../var/evidence/h13-native-analysis-1794946801711114000/report.json), cobertura INCONCLUSIVE por intentos de handshake sin medio. Video ≤34 ms/AAC ≤22 ms, PCM completo finito sin saturación; peaks MKV/RTMP −12,314496/−16,729690 dBFS. MKV output/decoded 13880/13880; **RTMP 5028/5027**, discrepancia terminal de un frame que no forma parte del gate PASS. Encoded 13883/5030 no equivale a entrega. |
+| Revalidación visual compacta | G | [Alerta PASS, ventana FAIL](../var/evidence/h13-native-visual-extract-1794946829324892000/visual-review.md): alerta `order=3` legible completa en ambos medios. Once muestras periódicas (ocho MKV, tres RTMP) conservan contador 193356288; causa INCONCLUSIVE, sin fijar inicio/fin ni garantizar lo ocurrido entre muestras. No repite las verificaciones de Cut/Fade/lower/countdown de la toma principal. |
+| Cierre compacto y limpieza | G | [Observador PID 36494 cerrado](../var/evidence/h13-native-1794944801555031000/report.json): 2493 snapshots, collector/shutdown verdaderos. Q5 diálogo obsoleto tras timeout; Q4 mantiene shutdown_pending y RTMP cancel_deferred hasta liberar peer, MKV ya idle. [Salida en 0,835 s desde solicitud de liberación](../var/evidence/h13-native-compact-1794944782314737000/shutdown-outcome.json), no desde Cmd+Q. [Limpieza final](../var/evidence/h13-build/final-physical-cleanup.json): PID propios ausentes, sin force-kill de Motive y lock liberado. |
 
 ## Rendimiento y límites de calidad
 
@@ -81,6 +86,9 @@ recepción final; el log de REC3 imprime 8176 frente al máximo 8177 del snapsho
 La semántica de parada es compatible con diferencias terminales, sin una traza
 que identifique cada paquete. Cadencia 8/8 PASS y cero drops no acreditan
 preservación de todos los últimos cuadros. [Tabla, código y log](h13-production-verification.md#medios-estructurales-y-contabilidad-terminal).
+La toma compacta suma otro caso: RTMP **5028 output/5027 decodificados**,
+con 5030 encoded; MKV coincide 13880/13880, con 13883 encoded. Sus dos PASS
+de cadencia no resuelven esta contabilidad ni cambian el alcance del gate.
 
 ## Estado del bundle G y pendientes de cierre
 
@@ -138,22 +146,29 @@ sumar estas 23 suites. Sus resultados y los FAIL conservados siguen separados.
   [observador cerrado](../var/evidence/h13-native-1794941679130733000/report.json).
   La última acción es `request_shutdown` UI revisión 179; ambos slots llegan
   a `idle/native_busy=false` antes de observar salida del PID. La revalidación
-  compacta y sus flujos restantes de cierre siguen abiertos en el
-  [checklist nativo](h13-native-acceptance.md).
+  compacta y sus cierres Q4/Q5 están registrados en la
+  [aceptación nativa](h13-native-acceptance.md); el
+  [checklist](h13-native-checklist.md) conserva los pasos y alcances no ejecutados.
   Proyecto, mixer y definiciones de perfiles ya se restauraron por GPUI tras
   reabrir en la sesión compacta PID 36494.
   [Observador previo](../var/evidence/h13-native-1794936995861463000/report.json)
   corresponde únicamente a preparación sin salidas y conserva ese alcance.
 - La sesión prolongada **sí se ejecutó**, con más de 30 minutos de ambos
   primeros outputs. No recibe un PASS global: quedan el FAIL visual posterior
-  de REC3, la alerta ocluida, contabilidad terminal y nueva toma/aceptación
-  compacta. La corrección del orden de alerta se hizo por UI después de la
-  toma; su nueva grabación está pendiente. Nada de esto borra los archivos
-  originales ni convierte el muestreo de 60 s en prueba de frescura por frame.
+  de REC3, el nuevo FAIL de continuidad compacta, contabilidad terminal y
+  memoria. La alerta ocluida original permanece archivada; corregir su orden
+  por UI sí produjo una nueva toma con alerta completa PASS. Nada de esto
+  borra los archivos originales ni convierte el muestreo de 60 s en prueba
+  de frescura por frame.
   La restauración de los manifiestos de regresiones anteriores sí se comprobó.
-- La exclusión propia en G sigue **sin aceptación**: ensayo FAIL y origen del
-  fondo INCONCLUSIVE. Véase el [informe final](h13-system-audio-exclusion-final.md);
-  el agregado 23/23 de regresiones no incluye ni cierra ese gate H13.
+- La exclusión propia en G tiene **una repetición controlada PASS** después
+  de un único control de piso PASS. El primer FAIL y el origen INCONCLUSIVE
+  de su fondo permanecen en el [informe final](h13-system-audio-exclusion-final.md).
+  Este gate H13 es independiente del agregado 23/23 y no acredita atenuación
+  universal ni una corrección de producto.
+- Las pruebas físicas terminaron. La [limpieza final](../var/evidence/h13-build/final-physical-cleanup.json)
+  registra PID propios ausentes y lock liberado, sin force-kill de Motive.
+  Esto no transforma la aceptación parcial en H13 completo.
 - Las ventanas de cierre por sockets dejaron un ensayo **INCONCLUSIVE** porque
   el proceso terminó antes de la admisión; EOF no demuestra el guard. El H8
   determinista y la importación real constituyen evidencias separadas.
@@ -168,6 +183,8 @@ El [freeze nativo posterior de REC3](../var/evidence/h13-native-visual-extract-1
 también sigue sin atribución: el fixture registra dibujo/audio avanzando y una
 correlación con oclusión, pero el snapshot de captura no mide frescura. No se
 adjudica a Stage Manager ni se demuestra reparación por activar la ventana.
+La [toma compacta](../var/evidence/h13-native-visual-extract-1794946829324892000/visual-review.md)
+añade once muestras sin avance del contador; la atribución sigue inconclusa.
 
 Sin aceptación física de revocación de permisos, USB hot-unplug, cambio de
 display, sleep/wake ni `awaiting_audio` por ausencia real de paquetes. Cámara

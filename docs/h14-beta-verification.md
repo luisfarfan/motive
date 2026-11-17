@@ -60,14 +60,14 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 |---|---|---|
 | Frescura y detección de captura | FAIL | GPUI propio avanza en MKV/RTMP; fixture suspendida y recuperación fallida conservadas; repetir final |
 | Integridad/finalización de salidas | PARTIAL | Matriz A/B ejecutada; reordering falla al cerrar, mitigación por defecto sin reordering; repetir final |
-| Memoria y sesión prolongada | PARTIAL | Lifecycle B2/B3 1080p30 medido; pausa explícita reduce CPU; RPC excede presupuesto; B3 1080p60/soak en ejecución |
+| Memoria y sesión prolongada | PARTIAL | B3 30/60 FPS y soak dual de 1800 s medidos; ambos medios pasan decode/cadencia/PCM; 39 skips y pausa visual 0.601 s conservados; RPC excedido y A/V no evaluado |
 | Bundle autocontenido | PARTIAL | B1/B2/B3 ejecutados fuera del checkout, firma/closure/tools PASS; segunda Mac, notarización y reconstrucción pendientes |
 | RTMPS externo seguro | PARTIAL | B2 emitió 104,837 s a YouTube privado; usuario confirmó video/audio; MKV decodificado; copia remota y contabilidad completa siguen pendientes |
 | Show Control real | PARTIAL | B3 demuestra entradas completas en ambos medios, cancelación posterior y continuidad sin MCP; cancelación anterior y concurrencia UI pendientes |
 | Live Deck y MATCHDAY | PARTIAL | B3 instalado por GPUI 73/73, celebración real y restauración exacta del proyecto/reglas desactivadas; recorrido de producción restante pendiente |
 | Voz opcional | PARTIAL | Benchmark offline ejecutado, recall 50% falla fiabilidad; voz en vivo NOT IMPLEMENTED |
 | UX y biblioteca de grabaciones | PARTIAL | Biblioteca y controles integrados; recorrido nativo final pendiente |
-| Suite unificada sobre binario final | PARTIAL | Coordinador de etapas en preparación; adaptación portable de regresiones y ejecución final pendientes |
+| Suite unificada sobre binario final | PARTIAL | Coordinador ejecutado; 116+129 tests, Clippy y formato PASS; CLI/MCP y H1 PASS; demás regresiones en curso |
 
 Primer checkpoint de instrumentación: **75 tests Rust**, Clippy all-targets
 con warnings como errores y formato pasan. Logs en
@@ -209,7 +209,20 @@ mantuvieron sus hashes. Las capturas de UI posteriores al reinicio muestran
 una miniatura de Stage Manager; AX y JSON del núcleo prueban estas operaciones,
 pero no sustituyen una revisión visual completa de ese tramo.
 
-El PID 32487, nuevo y sin proyecto restaurado, ejecuta el lifecycle a 1080p60
-y después una fase dual de 1800 s en
-`var/evidence/h14-memory-b3-60-soak-01`. Hasta terminar y analizar sus medios,
-esta sesión no constituye PASS de duración, frescura ni sincronización.
+El PID 32487 completó el [lifecycle 1080p60 y soak dual de 1800 s](h14-memory-b3-soak-verification.md).
+Ambos medios pasan decodificación completa, cadencia y PCM; hay 108057 frames
+MKV y 108028 recibidos por RTMP. CPU mediana 52.72% de un núcleo, footprint
+máximo muestreado 1277.03 MiB, sin clipping ni ventanas silenciosas de 100 ms.
+Se conservan 39 skips, un render lagged y una pausa visual de hasta 0.601 s.
+RPC de memoria p95 50.88 ms excede 20 ms. Entrega exacta INCONCLUSIVE y A/V
+NOT_EVALUATED; no se infiere ausencia de fuga. Ambos outputs llegaron a
+quiescence en 189 ms y el owner cerró normalmente, sin errores de cleanup.
+
+La repetición estática `h14-beta-b3-static-01` verifica 116 tests raíz, 129 Show
+Control, ambos Clippy all-targets y formato. Los inputs del producto coinciden
+exactamente con `d0deeb5`; scripts/documentación avanzan por separado. Las dos
+suites de control en `h14-beta-b3-control-01` pasan con informe primario fresco
+y cleanup confirmado. `h14-beta-b3-regressions-01` pasa H1 físico, pero conserva
+un fallo del harness de escenas al buscar `preview.png` bajo el checkout en
+vez del diagnóstico portable. Se corrigieron sus tres lectores y se repite
+la suite completa; aquel informe no se convierte retrospectivamente en PASS.

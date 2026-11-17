@@ -281,12 +281,18 @@ def main():
         state = client.call('add_audio_input', name='H14 controlled 440 Hz', source={'kind': 'tone'})['state']
         tone = next(i['id'] for i in state['audio_mixer']['store']['inputs'] if i['source']['kind'] == 'tone')
         client.call('set_audio_gain', input_id=tone, gain_db=-12)
+        prepared_profiles = {}
         for target in targets:
             identifier = 'h14-' + target + '-' + str(time.time_ns())
             value = {'id': identifier, 'encoder': args.encoder, 'bitrate_kbps': 4000,
                      'rate_control': 'cbr', 'keyframe_seconds': 1, 'frame_reordering': args.reordering}
             client.call('upsert_output_profile', profile=value);profiles.append(identifier)
             client.call('select_output_profile', target=target, profile_id=identifier)
+            prepared_profiles[target] = value
+        # Configuration is immutable while either output is busy. Prepare both
+        # independent profiles before beginning the first native output.
+        for target in targets:
+            value = prepared_profiles[target]
             state = client.call('start_output', target=target)['state']
             item = slots(state)[target]
             record = {'target': target, 'attempt_id': item['attempt_id'], 'reordering': args.reordering,

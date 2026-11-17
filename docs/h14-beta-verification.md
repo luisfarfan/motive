@@ -74,5 +74,22 @@ con warnings como errores y formato pasan. Logs en
 `var/evidence/h14-build/diagnostic-{tests,clippy}-reviewed.log`.
 Son checks del incremento, no PASS sobre un binario final de beta.
 
+Primer arranque nativo conservado en `h14-capture-1794949837386172000`:
+falló antes de crear medios porque `@(!bool)` producía un entero JSON, mientras
+el contrato Rust exige booleano. Se corrigió a `@NO`/`@YES`, sin relajar el
+schema; el arranque siguiente y la consulta MCP del owner pasan. La primera
+captura observa un callback SCK `suspended`, cero superficies y
+`CAPTURE_NOT_READY`, aunque la fixture registra dibujos. No se inició ninguna
+salida con esa fuente. Es evidencia de suspensión, no una atribución causal a
+Stage Manager ni prueba de contenido fresco.
+
+El primer ensayo dual del harness conservó su fallo de orden de configuración:
+intentaba crear el segundo perfil después de iniciar la primera salida, y el
+núcleo lo rechazó con `OUTPUT_BUSY`. Ahora prepara ambos perfiles antes de
+iniciar. La repetición `h14-output-integrity-1794950260066766000` decodifica MKV
+y RTMP sin huecos ni clipping; los paquetes AAC ausentes de cola caen después
+de la orden de parada. La matriz completa y el diagnóstico causal siguen
+pendientes; no se restan contadores para declarar equivalencia.
+
 Pruebas físicas exclusivamente bajo `motive/var/run/physical-test.lock`, owner
 H14 root. Cada fallo y cada repetición conservarán su directorio de evidencia.

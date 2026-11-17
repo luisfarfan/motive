@@ -31,7 +31,7 @@ static id output_optional_ns(uint64_t value) {return value ? @(value):[NSNull nu
 static NSDictionary *output_diagnostic_summary(output_slot *s) {
     output_packet_trace *trace=&s->packet_trace;
     uint64_t stop=atomic_load(&s->stopped_ns);
-    return @{@"version":@1,@"packet_observer_available":@(!s->legacy_udp),
+    return @{@"version":@1,@"packet_observer_available":s->legacy_udp ? @NO : @YES,
         @"observed_video_packets":s->legacy_udp ? [NSNull null]:@(atomic_load(&trace->video_packets)),
         @"observed_audio_packets":s->legacy_udp ? [NSNull null]:@(atomic_load(&trace->audio_packets)),
         @"trace_capacity":@(MOTIVE_OUTPUT_TRACE_CAPACITY),

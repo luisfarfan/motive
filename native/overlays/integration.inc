@@ -19,7 +19,11 @@ char *motive_overlay_capabilities(motive_engine *e) {
 void motive_poll_overlays(motive_engine *e) {
     if(scene_busy(e))return;
     for(size_t i=0;i<e->scene_count;i++) {visual_scene *scene=e->scenes[i];uint32_t mask=0;
-        for(size_t j=0;j<scene->layer_count;j++)if(obs_sceneitem_visible(scene->items[j])) {
+        // A failed replacement can retire a capture before staging commits.
+        // Keep its logical visibility so health/preflight still report the
+        // missing source; never dereference a removed borrowed scene item.
+        for(size_t k=0;k<e->visual_count;k++)if(!e->visuals[k]->source)mask|=scene->visible_mask&(1u<<k);
+        for(size_t j=0;j<scene->layer_count;j++)if(scene->items[j] && obs_sceneitem_visible(scene->items[j])) {
             obs_source_t *source=obs_sceneitem_get_source(scene->items[j]);
             for(size_t k=0;k<e->visual_count;k++)if(e->visuals[k]->source==source)mask|=1u<<k;
         }
@@ -71,7 +75,7 @@ static bool motive_animate_overlay_inner(motive_engine *e,const char *source_id,
         }
         size_t references=0;
         for(size_t i=0;i<e->scene_count;i++)if(!strcmp(e->scenes[i]->id,scene))
-            for(size_t j=0;j<e->scenes[i]->layer_count;j++)references+=obs_sceneitem_get_source(e->scenes[i]->items[j])==trigger_source;
+            for(size_t j=0;j<e->scenes[i]->layer_count;j++)if(e->scenes[i]->items[j])references+=obs_sceneitem_get_source(e->scenes[i]->items[j])==trigger_source;
         if(references!=1){snprintf(e->error,sizeof(e->error),"SHARED_WIDGET_SOURCE");return false;}
     }
     uint64_t operation=0;

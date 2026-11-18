@@ -39,17 +39,13 @@ static void visual_destroy(visual_source *s) {
     if (s->source) obs_source_release(s->source);
     free(s->overlay_json);free(s);
 }
-static bool detach_capture_item(obs_scene_t *scene,obs_sceneitem_t *item,void *source) {
-    (void)scene;
-    if(obs_sceneitem_get_source(item)==source) obs_sceneitem_remove(item);
-    return true;
-}
+#include "scene-items.h"
 static void release_capture_source(motive_engine *e,visual_source *s) {
     // Detach every layer, then join OBS source destruction before replacement.
     // AVFoundation stops synchronously. Official SCK starts asynchronous stop;
     // the API exposes no completion barrier, so SCStream overlap is unverified.
     for(size_t i=0;i<e->scene_count;i++)
-        obs_scene_enum_items(e->scenes[i]->scene,detach_capture_item,s->source);
+        motive_detach_scene_source(e->scenes[i]->items,e->scenes[i]->layer_count,s->source);
     if(s->watch) {obs_source_filter_remove(s->source,s->watch);obs_source_release(s->watch);s->watch=NULL;}
     obs_source_release(s->source);s->source=NULL;
     obs_wait_for_destroy_queue();
@@ -75,6 +71,7 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
         }
         obs_wait_for_destroy_queue();s->capture_fps=e->fps;
         type="screen_capture";obs_data_set_int(settings,"type",1);obs_data_set_int(settings,"window",s->window);
+        obs_data_set_int(settings,"motive_window_owner_pid",s->owner);
         obs_data_set_bool(settings,"show_cursor",false);obs_data_set_bool(settings,"show_hidden_windows",true);
     } else if ([kind isEqualToString:@"camera"]) {
         snprintf(s->device,sizeof(s->device),"%s",[d[@"spec"][@"device_id"] UTF8String]);

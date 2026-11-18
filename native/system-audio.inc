@@ -91,15 +91,26 @@ static int system_audio_resolve(audio_input *a) {
     if(running.firstObject.processIdentifier!=pid || running.firstObject.terminated)return 10;
     a->application_pid=pid;a->system_display=main;return 0;
 }
-static int system_audio_target_health(const audio_input *a) {
+static int system_audio_target_health(audio_input *a) {
     if(atomic_load(&a->system_stopped))return 14;
     if(!CGPreflightScreenCaptureAccess())return 7;
     if(a->system_display!=CGMainDisplayID() || !CGDisplayIsActive(a->system_display))return 12;
     if(a->kind==3)return [system_display_uuid(a->system_display) isEqualToString:@(a->device)]?0:12;
     NSString *bundle=@(a->device);
     NSArray<NSRunningApplication *> *running=[NSRunningApplication runningApplicationsWithBundleIdentifier:bundle];
-    if(running.count!=1)return running.count?11:10;
     NSRunningApplication *app=running.firstObject;
+    // Owner-only metadata, frozen when fault is latched. Inspect the exact
+    // authorized PID independently of LaunchServices' bundle enumeration.
+    // This observation never authorizes a replacement or changes health policy.
+    NSRunningApplication *pinned=[NSRunningApplication runningApplicationWithProcessIdentifier:a->application_pid];
+    a->identity_checked_ns=os_gettime_ns();a->identity_instances=(unsigned)running.count;
+    a->identity_observed_pid=app?app.processIdentifier:0;
+    a->identity_terminated=app?app.terminated:false;
+    a->identity_pinned_present=pinned!=nil;a->identity_pinned_terminated=pinned?pinned.terminated:false;
+    a->identity_bundle_matches=pinned && [pinned.bundleIdentifier isEqualToString:bundle];
+    a->identity_reason=!running.count?"no_registered_instance":running.count!=1?"multiple_registered_instances":
+        app.terminated?"registered_instance_terminated":app.processIdentifier!=a->application_pid?"registered_pid_changed":"matching";
+    if(running.count!=1)return running.count?11:10;
     if(app.terminated || app.processIdentifier!=a->application_pid)return 10;
     return system_audio_is_self(bundle,app.processIdentifier)?13:0;
 }

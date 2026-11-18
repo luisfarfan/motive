@@ -396,6 +396,13 @@ class Run:
         if not ready_zeros:
             self.report.setdefault('pending_coverage', []).append('SCK did not deliver measured zero buffers during the owned zero/pause intervals')
         trial['tone_continuity'] = tone_continuity(samples, trial['stages'], .0316227766)
+        # H15: the former single resumed window missed H14's later application
+        # loss. Keep the original checks and additionally cover every interior
+        # 100ms window of each continuous-tone phase, including the final tail.
+        trial['application_continuity'] = application_continuity(
+            samples, trial['stages'], stages['tone']['decoded']['a997'], self.system)
+        self.save()
+        assert trial['application_continuity']['ok'], trial['application_continuity']
         if av:
             trial['av_pulses'] = analyse_pulses(pathlib.Path(trial['path']), samples, stages['pulses'], trial['media'])
             self.client.call('configure_transition', transition=dict(kind='cut', duration_ms=0))
@@ -621,6 +628,29 @@ def tone_continuity(samples, stages, reference):
         amplitudes = [power(samples[i:i+4800], 440) for i in range(lo, hi-4799, 4800)]
         assert amplitudes and min(amplitudes) > reference*.65, dict(stage=stage['name'], minimum=min(amplitudes, default=0), reference=reference)
         result[stage['name']] = dict(minimum=min(amplitudes), maximum=max(amplitudes), windows=len(amplitudes))
+    return result
+
+
+def application_continuity(samples, stages, reference, input_id):
+    result = {'ok': reference > .005, 'reference_997': reference, 'phases': {},
+              'unexpected_failures': [], 'window_ms': 100, 'boundary_guard_ms': 200}
+    for stage in stages:
+        failures = [input_state(v['state'], input_id) for v in stage['samples']
+                    if input_state(v['state'], input_id)['phase'] in ('failed', 'disconnected')]
+        if failures:
+            result['unexpected_failures'].append({'phase': stage['name'], 'count': len(failures),
+                                                   'first': failures[0]})
+            result['ok'] = False
+        if stage['name'] not in ('tone', 'tone_resumed', 'tail'):
+            continue  # Digital silence, engine pause and pulsed tone have other gates.
+        lo, hi = round((stage['start']+.2)*48000), round((stage['end']-.2)*48000)
+        amplitudes = [power(samples[i:i+4800], 997) for i in range(lo, hi-4799, 4800)]
+        minimum = min(amplitudes, default=0)
+        passed = bool(amplitudes) and minimum > reference*.65
+        result['phases'][stage['name']] = {'ok': passed, 'minimum': minimum,
+                                          'windows': len(amplitudes)}
+        result['ok'] = result['ok'] and passed
+    result['ok'] = result['ok'] and set(result['phases']) == {'tone', 'tone_resumed', 'tail'}
     return result
 
 

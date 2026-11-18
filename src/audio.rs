@@ -287,12 +287,27 @@ pub struct AudioLevels {
     pub clipped_blocks: u64,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ApplicationIdentityObservation {
+    pub checked_ns: u64,
+    pub expected_pid: i32,
+    pub registered_instances: u32,
+    pub observed_pid: i32,
+    pub registered_terminated: bool,
+    pub pinned_process_present: bool,
+    pub pinned_process_terminated: bool,
+    pub pinned_bundle_matches: bool,
+    pub reason: String,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AudioInputRuntime {
     pub id: String,
     pub instance_id: u64,
     pub phase: AudioPhase,
     pub issue: Option<AudioIssueCode>,
     pub levels: AudioLevels,
+    /// Last identity observation; retained after failure, not a reconnect grant.
+    #[serde(default)]
+    pub application_identity: Option<ApplicationIdentityObservation>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AudioRuntime {
@@ -506,6 +521,7 @@ mod tests {
             phase: AudioPhase::Ready,
             issue: None,
             levels: AudioLevels::default(),
+            application_identity: None,
         });
         assert!(runtime.ready());
         runtime.mix.clipped_blocks = 4;
@@ -645,6 +661,7 @@ mod tests {
             instance_id: 1,
             phase: AudioPhase::AwaitingAudio,
             issue: Some(AudioIssueCode::SystemAudioNoSamples),
+            application_identity: None,
             levels: AudioLevels {
                 stale: true,
                 ..AudioLevels::default()

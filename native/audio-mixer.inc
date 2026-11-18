@@ -218,6 +218,11 @@ struct audio_input {
     char id[64],device[512];
     unsigned kind;
     pid_t application_pid;
+    uint64_t identity_checked_ns;
+    unsigned identity_instances;
+    pid_t identity_observed_pid;
+    bool identity_terminated,identity_pinned_present,identity_pinned_terminated,identity_bundle_matches;
+    const char *identity_reason;
     CGDirectDisplayID system_display;
     atomic_bool system_stopped;
     obs_source_t *source;
@@ -534,7 +539,16 @@ char *motive_audio_state(motive_engine *e) {
         audio_input *a=e->audio_inputs[i];int health=audio_health(a);
         [inputs addObject:@{@"id":@(a->id),@"instance_id":@(a->instance),@"issue":health?@(audio_fault_name(health)):[NSNull null],
             @"phase":health==0?@"ready":health==3?@"warming":health==5?@"disconnected":health==15?@"awaiting_audio":@"failed",
-            @"levels":audio_metrics_json(&a->metrics)}];
+            @"levels":audio_metrics_json(&a->metrics),
+            @"application_identity":a->kind==2?@{
+                @"checked_ns":@(a->identity_checked_ns),@"expected_pid":@(a->application_pid),
+                @"registered_instances":@(a->identity_instances),@"observed_pid":@(a->identity_observed_pid),
+                @"registered_terminated":@(a->identity_terminated),
+                @"pinned_process_present":@(a->identity_pinned_present),
+                @"pinned_process_terminated":@(a->identity_pinned_terminated),
+                @"pinned_bundle_matches":@(a->identity_bundle_matches),
+                @"reason":a->identity_reason?@(a->identity_reason):@"not_checked"
+            }:(id)NSNull.null}];
     }
     NSDictionary *state=@{@"available":@YES,@"inputs":inputs,@"instances_created":@(e->audio_instances),
         @"mix":e->mix_meter?audio_metrics_json(&e->mix_meter->metrics):@{}};

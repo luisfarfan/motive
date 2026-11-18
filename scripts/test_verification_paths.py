@@ -99,9 +99,10 @@ class VerificationPathTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.resolve()
 
-    def test_portable_lock_requires_exact_worktree_and_h14_owner(self):
+    def test_portable_lock_requires_exact_worktree_and_known_owner(self):
         paths = self.resolve()
         self.assertTrue(paths.lock_matches(json.dumps({'owner': 'Codex H14 root', 'worktree': str(self.root)})))
+        self.assertTrue(paths.lock_matches(json.dumps({'owner': 'H15 root', 'worktree': str(self.root)})))
         for value in ({'owner': 'Codex H13 root', 'worktree': str(self.root)},
                       {'owner': 'Codex H14 root', 'worktree': str(self.root) + '-other'}):
             self.assertFalse(paths.lock_matches(json.dumps(value)))

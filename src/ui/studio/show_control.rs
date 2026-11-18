@@ -1,7 +1,7 @@
 //! Presentation of the owner's live scheduler. No local rule execution,
 //! cooldown clock, trusted event flag or cloneable confirmation authority.
 use super::*;
-use crate::core::show_control::{LocalDeckConfirmation, ShowControlCommand};
+use crate::core::show_control::{ConfigurationGuard, LocalDeckConfirmation, ShowControlCommand};
 use gpui_kit::component::{
     WindowExt,
     dialog::{DialogAction, DialogButtonProps, DialogClose, DialogFooter},
@@ -146,13 +146,18 @@ impl Studio {
         let armed = snapshot["armed"] == true;
         let bindings_current = snapshot["bindings_current"] == true;
         let closing = self.deck_closing();
+        let guard = ConfigurationGuard {
+            pid: std::process::id(),
+            revision: self.production.revision,
+            session: snapshot["session"].as_str().unwrap_or_default().into(),
+        };
         let mut body = col().gap(px(10.)).on_key_down(cx.listener(Self::live_deck_key))
             .child(self.matchday_card(cx))
             .child(label(if armed { "Producción activada" } else { "Producción desactivada" }, if armed { p.ready } else { p.warn }))
             .child(label("Los botones controlan esta producción. Los atajos funcionan cuando el foco está dentro de Live Deck.", p.secondary))
             .child(row()
                 .child(quiet("save-show-control", "Guardar").disabled(!configured || closing)
-                    .on_click(cx.listener(|view, _, _, cx| view.show_control_command(ShowControlCommand::SaveShowControl, cx))))
+                    .on_click(cx.listener(move |view, _, _, cx| view.show_control_command(ShowControlCommand::SaveShowControl { expected: Some(guard.clone()) }, cx))))
                 .child(quiet("load-show-control", "Restaurar…").disabled(closing)
                     .on_click(cx.listener(|view, _, window, cx| view.confirm_load_deck(window, cx))))
                 .child(quiet("arm-show-control", "Activar producción").disabled(!configured || armed || closing)
@@ -161,6 +166,18 @@ impl Studio {
                             pid: std::process::id(), revision: view.production.revision,
                         }, cx);
                     }))));
+        if let Some(sequence) = snapshot["last_save"]["sequence"].as_u64() {
+            body = body.child(label(
+                format!(
+                    "Configuración guardada · recibo {sequence} · revisión {}",
+                    snapshot["last_save"]["revision"]
+                ),
+                p.ready,
+            ));
+        }
+        if let Some(error) = snapshot["last_save_error"].as_str() {
+            body = body.child(label(format!("No se pudo guardar · {error}"), p.warn));
+        }
         if let Some(failure) = snapshot["failure"].as_str() {
             body = body.child(label(
                 format!("{failure} · Revisa los trabajos y el registro antes de continuar."),

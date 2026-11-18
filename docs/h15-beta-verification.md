@@ -105,3 +105,17 @@ B2 mediana 1,326 ms / p95 10,983 ms, máximo 42,765 ms. Evidencia:
 binario/fuentes en cada build-binding. Presupuesto p95 <20 ms PASS en este caso,
 no garantiza latencia bajo carga ni cierra el soak H14. Tests raíz y Clippy PASS.
 No se ha demostrado una fuga ni se modifica el compositor/allocator.
+
+### F — guardado observable y validación de bindings
+
+La escritura ya era durable. El defecto concreto era el feedback: Guardar no
+incrementa la revisión de producción y la UI solo anunciaba cambios de revisión.
+Ahora devuelve recibo tras fsync/rename/fsync de directorio (SHA-256 exacto, bytes,
+sesión, PID, revisión, secuencia y fingerprint) y muestra resultado/error persistente
+en Live Deck. GPUI envía la sesión/revisión mostrada; CLI/MCP pueden exigirla con
+`expected`. El comando legacy sin guard conserva la semántica de guardar el estado
+actual. Guardar no invalida jobs admitidos ni modifica el ledger de revisiones.
+Configurar/guardar/activar rechazan referencias de fuente/escena/capa inexistentes;
+restaurar permanece desarmado. 118 tests raíz y Clippy PASS, incluidos rechazo
+stale/sesión, IDs rotos, hash de bytes durables y preservación ante error.
+Recorrido nativo/reapertura aún pendiente de comprobar sobre el candidato.

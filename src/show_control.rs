@@ -32,7 +32,10 @@ use std::{
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ShowControlCommand {
     ShowControlStatus,
-    SaveShowControl,
+    SaveShowControl {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        expected: Option<ConfigurationGuard>,
+    },
     LoadShowControl,
     ArmShowControl {
         pid: u32,
@@ -57,6 +60,41 @@ pub enum ShowControlCommand {
     },
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConfigurationGuard {
+    pub pid: u32,
+    pub revision: u64,
+    pub session: String,
+}
+impl ConfigurationGuard {
+    fn check(&self, pid: u32, revision: u64, session: &str) -> Result<(), Error> {
+        if self.pid != pid || self.session != session {
+            return Err(Error::new(
+                "CORE_SESSION_CHANGED",
+                "Refresh the current Show Control session before saving",
+            ));
+        }
+        if self.revision != revision {
+            return Err(Error::new(
+                "STALE_REVISION",
+                "Production changed; review the current configuration before saving",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ConfigurationSaveReceipt {
+    pub pid: u32,
+    pub revision: u64,
+    pub session: String,
+    pub sequence: u64,
+    pub project_fingerprint: String,
+    pub write: storage::WriteReceipt,
+}
+
 pub(super) struct State {
     runtime: Option<Runtime<MonotonicClock>>,
     original_config: Config,
@@ -71,6 +109,8 @@ pub(super) struct State {
     next_operation_token: u64,
     failure: Option<String>,
     started: Instant,
+    last_save: Option<ConfigurationSaveReceipt>,
+    last_save_error: Option<String>,
 }
 impl State {
     fn new(
@@ -140,6 +180,8 @@ impl State {
             next_operation_token: 0,
             failure: None,
             started: Instant::now(),
+            last_save: None,
+            last_save_error: None,
         })
     }
     fn now(&self) -> u64 {
@@ -232,6 +274,73 @@ impl LocalDeckConfirmation {
 pub(in crate::core) fn validate_bindings(config: Config, deck: &Deck) -> Result<(), Error> {
     bind_deck(config, deck).map(|_| ())
 }
+fn validate_configuration_bindings(
+    config: &Config,
+    deck: &Deck,
+    graph: &crate::scene::Graph,
+) -> Result<(), Error> {
+    let missing = || {
+        Error::new(
+            "SHOW_CONTROL_BINDING_MISSING",
+            "A configured scene, layer or source no longer exists; review the bindings",
+        )
+    };
+    let source_exists = |id: &str| graph.sources.iter().any(|s| s.id == id);
+    for rule in bind_deck(config.clone(), deck)?.rules {
+        for action in rule.actions {
+            for action in action.flattened()? {
+                match action {
+                    Action::ShowOverlay { source_id }
+                    | Action::HideOverlay { source_id }
+                    | Action::Widget { source_id, .. }
+                    | Action::CountdownStart { source_id }
+                    | Action::CountdownReset { source_id }
+                    | Action::UpdateText { source_id, .. } => {
+                        if !source_exists(&source_id) {
+                            return Err(missing());
+                        }
+                    }
+                    Action::Animate {
+                        scene_id, layer_id, ..
+                    } => {
+                        if !graph
+                            .scene(&scene_id)
+                            .map_err(|_| missing())?
+                            .layers
+                            .iter()
+                            .any(|l| l.id == layer_id)
+                        {
+                            return Err(missing());
+                        }
+                    }
+                    Action::TriggerAnimatedWidget {
+                        source_id,
+                        scene_id,
+                        layer_id,
+                        ..
+                    } => {
+                        if !source_exists(&source_id)
+                            || !graph
+                                .scene(&scene_id)
+                                .map_err(|_| missing())?
+                                .layers
+                                .iter()
+                                .any(|l| l.id == layer_id && l.source_id == source_id)
+                        {
+                            return Err(missing());
+                        }
+                    }
+                    Action::SelectScene { scene_id, .. } => {
+                        graph.scene(&scene_id).map_err(|_| missing())?;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn bind_deck(mut config: Config, deck: &Deck) -> Result<Config, Error> {
     config.validate()?;
     deck.validate()?;
@@ -379,7 +488,7 @@ impl Production {
             "decisions":runtime.decisions.iter().rev().take(64).collect::<Vec<_>>(),"counters":runtime.variables.iter().filter(|(_,v)|matches!(v,Scalar::Int(_))).collect::<BTreeMap<_,_>>(),"history":state.deck.history(),
             "operations":state.operations.iter().rev().take(32).map(|(id,op)|json!({"id":id,"action_key":op.action_key,"cancel_requested":op.cancelled,"terminal":op.terminal})).collect::<Vec<_>>(),
             "status_limits":{"jobs":16,"records_per_job":4,"decisions":64,"operations":32},"jobs_total":runtime.jobs.len(),"operations_total":state.operations.len(),
-            "presentation_verified":false})
+            "last_save":state.last_save,"last_save_error":state.last_save_error,"presentation_verified":false})
     }
     pub fn configure_show_control(&mut self, config: Config, deck: Deck) -> Result<(), Error> {
         if self.shutdown_pending || self.shutdown_requested {
@@ -401,23 +510,37 @@ impl Production {
                 "Complete or reconcile the current session before reconfiguration",
             ));
         }
+        validate_configuration_bindings(&config, &deck, self.graph())?;
         let state = State::new(config, deck, self.show_control_binding_fingerprint(), true)?;
         self.show_control = Some(state);
         self.bump_external_revision();
         Ok(())
     }
-    pub fn save_show_control(&self) -> Result<(), Error> {
+    pub fn save_show_control(
+        &mut self,
+        expected: Option<&ConfigurationGuard>,
+    ) -> Result<ConfigurationSaveReceipt, Error> {
         let state = self
             .show_control
             .as_ref()
             .ok_or_else(|| Error::new("SHOW_CONTROL_UNCONFIGURED", "No configuration to save"))?;
+        if let Some(expected) = expected {
+            expected.check(std::process::id(), self.revision, &state.session)?;
+        }
         if state.project_fingerprint != self.show_control_binding_fingerprint() {
             return Err(Error::new(
                 "SHOW_CONTROL_BINDINGS_CHANGED",
                 "Review the configuration against the changed production before saving",
             ));
         }
-        storage::SavedConfiguration {
+        validate_configuration_bindings(&state.original_config, state.deck.deck(), self.graph())?;
+        let sequence = state
+            .last_save
+            .as_ref()
+            .map_or(0, |r| r.sequence)
+            .checked_add(1)
+            .ok_or_else(|| Error::new("SHOW_CONTROL_SAVE_LIMIT", "Save sequence exhausted"))?;
+        let write = storage::SavedConfiguration {
             version: 1,
             project_fingerprint: state.project_fingerprint.clone(),
             config: state.original_config.clone(),
@@ -426,7 +549,17 @@ impl Production {
         .save(
             &super::data_dir().join("show-control/configuration.json"),
             &state.session,
-        )
+        )?;
+        let receipt = ConfigurationSaveReceipt {
+            pid: std::process::id(),
+            revision: self.revision,
+            session: state.session.clone(),
+            sequence,
+            project_fingerprint: state.project_fingerprint.clone(),
+            write,
+        };
+        self.show_control.as_mut().unwrap().last_save = Some(receipt.clone());
+        Ok(receipt)
     }
     pub fn load_show_control(&mut self) -> Result<(), Error> {
         if self.shutdown_pending || self.shutdown_requested {
@@ -468,6 +601,13 @@ impl Production {
             return Err(Error::new("SHUTDOWN_PENDING", "Cannot arm during shutdown"));
         }
         let fingerprint = self.show_control_binding_fingerprint();
+        if let Some(state) = &self.show_control {
+            validate_configuration_bindings(
+                &state.original_config,
+                state.deck.deck(),
+                self.graph(),
+            )?;
+        }
         let state = self
             .show_control
             .as_mut()
@@ -724,7 +864,13 @@ impl Production {
             ShowControlCommand::ShowControlStatus => {
                 return json!({"ok":true,"show_control":self.show_control_status()});
             }
-            ShowControlCommand::SaveShowControl => self.save_show_control().map(|()| Value::Null),
+            ShowControlCommand::SaveShowControl { expected } => {
+                let result = self.save_show_control(expected.as_ref());
+                if let Some(state) = self.show_control.as_mut() {
+                    state.last_save_error = result.as_ref().err().map(|error| error.code.clone());
+                }
+                result.map(|receipt| json!({"saved_configuration":receipt}))
+            }
             ShowControlCommand::LoadShowControl => self.load_show_control().map(|()| Value::Null),
             ShowControlCommand::ArmShowControl { pid, revision } => {
                 self.arm_show_control(pid, revision).map(|()| Value::Null)
@@ -942,5 +1088,66 @@ mod tests {
         assert_eq!(binding_fingerprint(&graph), original);
         graph.scenes[0].layers[0].source_id = "different-source".into();
         assert_ne!(binding_fingerprint(&graph), original);
+    }
+    #[test]
+    fn save_guard_rejects_stale_revision_and_replaced_session() {
+        let guard = ConfigurationGuard {
+            pid: 10,
+            revision: 4,
+            session: "a".repeat(32),
+        };
+        assert!(guard.check(10, 4, &"a".repeat(32)).is_ok());
+        assert_eq!(
+            guard.check(10, 5, &"a".repeat(32)).unwrap_err().code,
+            "STALE_REVISION"
+        );
+        assert_eq!(
+            guard.check(11, 4, &"a".repeat(32)).unwrap_err().code,
+            "CORE_SESSION_CHANGED"
+        );
+        assert_eq!(
+            guard.check(10, 4, &"b".repeat(32)).unwrap_err().code,
+            "CORE_SESSION_CHANGED"
+        );
+        assert!(super::super::parse_command(json!({"op":"save_show_control"})).is_ok());
+        assert!(
+            super::super::parse_command(json!({"op":"save_show_control", "expected":guard}))
+                .is_ok()
+        );
+    }
+    #[test]
+    fn configuration_checks_rule_and_generated_deck_bindings() {
+        let (mut config, mut deck) = inputs();
+        let graph = crate::scene::Graph::default();
+        config.rules[0].actions = vec![Action::Sequence {
+            actions: vec![Action::ShowOverlay {
+                source_id: "overlay".into(),
+            }],
+        }];
+        assert!(validate_configuration_bindings(&config, &deck, &graph).is_ok());
+        config.rules[0].actions = vec![Action::SelectScene {
+            scene_id: "missing".into(),
+            transition: Transition {
+                kind: TransitionKind::Cut,
+                duration_ms: 0,
+            },
+        }];
+        assert_eq!(
+            validate_configuration_bindings(&config, &deck, &graph)
+                .unwrap_err()
+                .code,
+            "SHOW_CONTROL_BINDING_MISSING"
+        );
+        config.rules.clear();
+        deck.buttons[0].target = ButtonTarget::Overlay {
+            source_ref: "missing".into(),
+            show: true,
+        };
+        assert_eq!(
+            validate_configuration_bindings(&config, &deck, &graph)
+                .unwrap_err()
+                .code,
+            "SHOW_CONTROL_BINDING_MISSING"
+        );
     }
 }

@@ -181,6 +181,9 @@ impl Studio {
                     .as_str()
                     .unwrap_or("Operación rechazada")
             );
+        } else if let Some(sequence) = result["result"]["saved_configuration"]["sequence"].as_u64()
+        {
+            self.message = format!("Configuración guardada · recibo {sequence}");
         } else if preflight {
             let warnings = result["preflight"]["warnings"]
                 .as_array()

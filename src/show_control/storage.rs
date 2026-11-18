@@ -2,6 +2,7 @@
 //! intentionally absent. Journals remain separate and are never auto-replayed.
 use motive_show_control::{deck::Deck, model::Error, runtime::Config};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
@@ -9,6 +10,12 @@ use std::{
     path::Path,
 };
 const MAX_BYTES: usize = 1024 * 1024;
+#[derive(Clone, Debug, Serialize)]
+pub struct WriteReceipt {
+    pub document_sha256: String,
+    pub bytes: usize,
+    pub durable: bool,
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct SavedConfiguration {
@@ -66,7 +73,7 @@ impl SavedConfiguration {
         configuration.validate()?;
         Ok(configuration)
     }
-    pub(super) fn save(&self, path: &Path, session: &str) -> Result<(), Error> {
+    pub(super) fn save(&self, path: &Path, session: &str) -> Result<WriteReceipt, Error> {
         self.validate()?;
         let directory = private_parent(path)?;
         if let Ok(metadata) = path.symlink_metadata()
@@ -106,7 +113,12 @@ impl SavedConfiguration {
         if owned {
             let _ = fs::remove_file(temporary);
         }
-        result
+        result?;
+        Ok(WriteReceipt {
+            document_sha256: format!("{:x}", Sha256::digest(&bytes)),
+            bytes: bytes.len(),
+            durable: true,
+        })
     }
 }
 fn private_parent(path: &Path) -> Result<File, Error> {
@@ -155,7 +167,14 @@ mod tests {
             .create(&directory)
             .unwrap();
         let path = directory.join("configuration.json");
-        value.save(&path, &"b".repeat(32)).unwrap();
+        let receipt = value.save(&path, &"b".repeat(32)).unwrap();
+        let saved = fs::read(&path).unwrap();
+        assert!(receipt.durable);
+        assert_eq!(receipt.bytes, saved.len());
+        assert_eq!(
+            receipt.document_sha256,
+            format!("{:x}", Sha256::digest(&saved))
+        );
         assert_eq!(SavedConfiguration::read(&path).unwrap().version, 1);
         assert_eq!(path.metadata().unwrap().permissions().mode() & 0o777, 0o600);
         let mut document = serde_json::to_value(&value).unwrap();
@@ -164,6 +183,7 @@ mod tests {
         let mut wrong = value.clone();
         wrong.version = 2;
         assert!(wrong.save(&path, &"b".repeat(32)).is_err());
+        assert_eq!(fs::read(&path).unwrap(), saved);
         fs::remove_file(&path).unwrap();
         let target = directory.join("unrelated");
         fs::write(&target, b"preserve").unwrap();

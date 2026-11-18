@@ -136,3 +136,40 @@ con capturas [horizontal](../evidence/binding/goal-final-horizontal.png) y
 [vertical reducido](../evidence/binding/goal-final-vertical-reduced.png).
 Se observó `disposed`, MessagePort cerrado y ausencia de los dos procesos propios
 servidor/fixture después del cierre. Los resultados anteriores se conservan.
+
+### Documento fijo para el candidato CEF — etapa separada
+
+`web/native-bootstrap.html`, `.css` y `.mjs` preparan el documento externo
+controlado del candidato CEF. El host sirve el HTML en `/host/index.html` y sus
+módulos bajo `/host/`; los bytes originales del widget se autorizan como inventario
+exacto bajo `/widget/`. El módulo no carga URLs suministradas por el creador.
+Comprueba que identidad/generación, ubicación del host y entrada coincidan.
+
+El renderer principal recibe del adaptador CEF una única función nativa
+`motiveNativePostStatus`. El módulo captura esa referencia, publica el objeto
+inmutable `MotiveNativeVisual` y envía `{kind:'bootstrap_loaded'}`. El browser
+puede entonces invocar `initialize({identity,contract,entry})`,
+`deliver(envelope, nowMs)` y `revoke()` mediante **valores CefV8Value**, sin eval ni
+strings de JavaScript interpolados. La implementación C++ debe verificar
+browser/frame/proceso emisor y generación antes de invocar esos métodos. Todas
+las respuestas posteriores conservan los tipos existentes `renderer_ready`,
+`visual_ack` y `visual_state`; no prueban un resultado terminal nativo.
+
+[Cinco tests Node](../evidence/binding/native-bootstrap.json) pasan con
+MessageChannel real y el runtime MotiveElement original: datos tipados incluyendo
+texto con delimitadores de script, finalización visual/secuencia, cancelación,
+reanudación, disposición, supresión de completion tardía, rechazo de generación
+antigua y URLs/configuraciones ajenas. Son pruebas del adaptador y del contrato;
+**no se ejecutó este nuevo documento en CEF ni en otro navegador**. El candidato
+nativo separado requiere su propia evidencia de compile/link en `web-host-lab/`
+y una autorización específica para cualquier ejecución de Goal Celebration.
+Una excepción concedida para la fixture H16 original no lo cubre.
+
+La fixture DOM anterior, su binario y sus 46 archivos registrados no cambiaron
+al añadir este módulo; su evidencia final permanece acotada al recorrido de
+`fixture.mjs`. No se extrapola a este documento, a OnPaint, sandbox, libobs o
+Production. Reproducir el nuevo contrato sin navegador:
+
+```sh
+node --test creator-runtime-lab/binding/tests/native-bootstrap.test.mjs
+```

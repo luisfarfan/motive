@@ -44,6 +44,16 @@ def validate_manifest(value):
     return value
 
 
+def validate_media_duration(duration, manifest):
+    # Preserve the original 60s trial +30s decode allowance. Longer CUA
+    # observation changes only this work bound, never audiovisual acceptance.
+    validate_manifest(manifest)
+    limit = min(manifest['seconds'] + 30, 210)
+    require(type(duration) in (int, float) and math.isfinite(duration)
+            and 0 < duration <= limit, 'Bounded trial media duration required')
+    return limit
+
+
 def validate_fixture(events, manifest):
     fixture = manifest['fixture']
     require(1 <= len(events) <= 2048, 'Bounded fresh fixture log required')

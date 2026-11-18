@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from h14_collection_helpers import (PHASES, collection_profile_id, counter_patches, counter_summary, decode_counter, focus_conditions, owned_stop_command,
-    unique_owned_tone, validate_fixture, validate_manifest, validate_markers)
+    unique_owned_tone, validate_fixture, validate_manifest, validate_markers, validate_media_duration)
 from verify_h14_collection import Client, plan
 
 
@@ -77,6 +77,20 @@ class CollectionTests(unittest.TestCase):
         for ident in ('grupo-A1','A1','a'*34,'','-_','mañana','a/b','a.b',' a1','a\n','a\0',True,None):
             with self.subTest(trial_id=ident):
                 with self.assertRaises(ValueError):validate_manifest({**self.manifest,'trial_id':ident})
+
+    def test_media_decode_bound_uses_validated_trial_plus_thirty_seconds(self):
+        for seconds,limit in ((45,75),(60,90),(180,210)):
+            manifest={**self.manifest,'seconds':seconds}
+            with self.subTest(seconds=seconds):
+                self.assertEqual(validate_media_duration(limit,manifest),limit)
+                self.assertEqual(validate_media_duration(seconds+.1,manifest),limit)
+                with self.assertRaises(ValueError):validate_media_duration(limit+.001,manifest)
+        for invalid in (0,-1,True,False,float('nan'),float('inf'),'180',None):
+            with self.subTest(duration=invalid):
+                with self.assertRaises(ValueError):validate_media_duration(invalid,self.manifest)
+        for changed in ({'seconds':181},{'seconds':180.0},{'trial_id':'grouped-A1'},{'version':True}):
+            with self.subTest(manifest_change=changed):
+                with self.assertRaises(ValueError):validate_media_duration(60,{**self.manifest,**changed})
 
     def test_markers_reject_raw_clock_wrong_phase_and_other_process(self):
         markers=self.markers();validate_markers(markers,self.manifest,True)

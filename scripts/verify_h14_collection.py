@@ -19,7 +19,7 @@ import time
 import traceback
 
 from h14_collection_helpers import (PHASES, collection_profile_id, counter_patches, counter_summary, decode_counter, focus_conditions, owned_stop_command,
-    require, unique_owned_tone, validate_fixture, validate_manifest, validate_markers)
+    require, unique_owned_tone, validate_fixture, validate_manifest, validate_markers, validate_media_duration)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LIMIT = 16 * 1024 * 1024
@@ -402,7 +402,7 @@ def analyze(args):
             probe=json.loads(command(args.ffprobe,['-v','error','-show_streams','-show_format','-of','json',str(path)]))
             video=next(x for x in probe['streams'] if x['codec_type']=='video')
             require((video['width'],video['height'],video['avg_frame_rate'])==(1920,1080,'30/1'),'Unexpected video format')
-            require(0<float(probe['format']['duration'])<=90,'Bounded trial media duration required')
+            validate_media_duration(float(probe['format']['duration']),report['manifest'])
             frames=json.loads(command(args.ffprobe,['-v','error','-threads','2','-select_streams','v:0','-show_frames',
                 '-show_entries','frame=best_effort_timestamp_time,pict_type','-of','json',str(path)]))['frames']
             packets=json.loads(command(args.ffprobe,['-v','error','-show_packets','-show_entries',

@@ -386,14 +386,15 @@ fn pending() -> (StrictOwnerModel, Installation, Receipt, Snapshot, Snapshot) {
 }
 #[test]
 fn receipt_rejects_wrong_session_revision_step_fingerprint_and_identity() {
-    for field in 0..5 {
+    for field in 0..6 {
         let (_, mut i, mut r, b, a) = pending();
         match field {
             0 => r.session = "alien".into(),
             1 => r.after += 1,
             2 => r.step += 1,
             3 => r.operation_sha256 = "b".repeat(64),
-            _ => r.instance_id = "alien".into(),
+            4 => r.instance_id = "alien".into(),
+            _ => i.plan.steps.clear(), // Malformed journal must reject, not index/panic.
         }
         assert!(i.accept(r, &b, &a).is_err());
         assert_eq!(i.phase, Phase::NeedsReconciliation);
@@ -534,11 +535,21 @@ fn store_rejects_new_version_unknown_fields_or_self_authorized_trust() {
 }
 #[test]
 fn legacy_project_fixtures_remain_byte_identical_without_mandatory_sidecar() {
+    // Independently computed SHA-256 of the actual fixture bytes, not a JSON
+    // serialization of a byte array. Keeps this evidence usable by native tools.
+    let expected = [
+        "008ab93d716f08d0f6d86035cc991fb201c4dde5d99b5307a31c7ea8b6217589",
+        "f31b4452f4484daccb0dde8ac4d57320c5ad6a6e07b703b26f715b6d4fff03fd",
+        "d49464b89ca2961a3cf627c41af17e51e3bec8f70c13ca03f04a446f560d9df3",
+        "9729b321ea2546dce64e68ec3bb244d3bcad58ff60e57d5b6ae89b7bb119247c",
+        "5a9840cb9ed0a6aa2c97dd382f19285d9b2e3bbbcac32a38ae9a8b24905e95cf",
+    ];
     for version in 1..=5 {
         let bytes =
             format!("{{\"version\":{version},\"fixture\":\"opaque-preserved\"}}").into_bytes();
         let before = bytes.clone();
         let report = preserve_legacy_project(&bytes, None).unwrap();
+        assert_eq!(report["input_bytes_sha256"], expected[version - 1]);
         assert_eq!(bytes, before);
         assert_eq!(report["project_rewritten"], false);
         assert_eq!(report["production_parser_executed"], false);
@@ -640,4 +651,80 @@ fn store_rejects_foreign_rule_references_and_nonvisual_commands() {
         changed.instances[0].visual_bindings.rules[0].actions = vec![action];
         assert!(Store::parse(&serde_json::to_vec(&changed).unwrap()).is_err());
     }
+}
+
+#[test]
+fn hostile_resource_metadata_returns_errors_without_arithmetic_panic() {
+    let mut o = owner();
+    install(&mut o, request("lower-third", "a"));
+    for case in 0..5 {
+        let mut bad = o.snapshot.clone();
+        let asset = bad.assets.values_mut().next().unwrap();
+        match case {
+            0 => {
+                asset.descriptor.width = u32::MAX;
+                asset.descriptor.height = u32::MAX;
+            }
+            1 => asset.descriptor.file_name = "../escape.png".into(),
+            2 => asset.descriptor.duration_ms = Some(1000),
+            3 => asset.descriptor.height = 0,
+            _ => asset.license = "unreviewed-license".into(),
+        }
+        assert!(bad.validate().is_err());
+    }
+    let mut resource = request("lower-third", "a").pack.resources[0].clone();
+    resource.width = u32::MAX;
+    resource.height = u32::MAX;
+    let source = VisualDefinition::Image {
+        resource_id: resource.id.clone(),
+        opacity: 1.,
+    };
+    assert_eq!(
+        texture_bytes(&source, &BTreeMap::from([(resource.id.clone(), resource)]))
+            .unwrap_err()
+            .code,
+        "BUDGET_OVERFLOW"
+    );
+}
+
+#[test]
+fn real_native_asset_receipt_identity_is_supported_separately_from_symbols() {
+    let (mut o, mut i, mut receipt, before, _) = pending();
+    receipt.result = StepResult::Asset {
+        id: ResourceId(format!(
+            "asset-{}",
+            i.plan.resources.values().next().unwrap().sha256
+        )),
+    };
+    let after = apply_model_step(&before, &i.plan, &i.bindings, 0, &receipt.result).unwrap();
+    i.accept(receipt, &before, &after).unwrap();
+    o.snapshot = after;
+    while i.phase == Phase::Installing {
+        o.step(&mut i).unwrap();
+    }
+    o.snapshot.validate().unwrap();
+    assert!(o.snapshot.assets.keys().all(|r| r.0.len() == 70));
+}
+
+#[test]
+fn existing_event_names_do_not_make_actions_compatible_with_source_kinds() {
+    let mut req = request("lower-third", "a");
+    req.rules.rules[0].actions = vec![motive_show_control::actions::Action::CountdownStart {
+        source_id: "lower-third-motif".into(),
+    }];
+    assert!(prepare(req, &Snapshot::empty_fixture()).is_err());
+    let mut o = owner();
+    let i = install(&mut o, request("lower-third", "a"));
+    let mut store = Store::capture(&[i], &o.snapshot).unwrap();
+    let image = store.instances[0]
+        .sources
+        .values()
+        .find(|s| matches!(s.definition, Some(VisualDefinition::Image { .. })))
+        .unwrap()
+        .id
+        .0
+        .clone();
+    store.instances[0].visual_bindings.rules[0].actions =
+        vec![motive_show_control::actions::Action::CountdownStart { source_id: image }];
+    assert!(Store::parse(&serde_json::to_vec(&store).unwrap()).is_err());
 }

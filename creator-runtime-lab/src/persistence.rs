@@ -1,7 +1,8 @@
 //! Experimental sidecar only. Production project versions 1–5 are untouched.
-use crate::{Error, check, digest, hash, label, model::*, planner::*, receipts::*};
+use crate::{Error, check, hash, label, model::*, planner::*, receipts::*};
 use motive_show_control::packs::{CreatorPack, PropertyValue, Resource, VisualDefinition};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const FORMAT: &str = "motive-creator-runtime-lab-state";
@@ -194,7 +195,7 @@ impl Store {
                 "Stored bindings are missing objects",
             )?;
             let scenes = i.symbolic_bindings.scenes.values().cloned().collect();
-            Snapshot {
+            let snapshot = Snapshot {
                 session: "store-validation".into(),
                 revision: 0,
                 busy: false,
@@ -203,8 +204,9 @@ impl Store {
                 sources: i.sources.clone(),
                 layers: i.layers.clone(),
                 assets: i.assets.clone(),
-            }
-            .validate()?;
+            };
+            snapshot.validate()?;
+            validate_actions(&i.visual_bindings, snapshot.action_snapshot()?)?;
         }
         Ok(store)
     }
@@ -367,7 +369,7 @@ pub fn preserve_legacy_project(
         Store::parse(bytes)?;
     }
     Ok(
-        serde_json::json!({"version":version,"input_bytes_sha256":digest(&project)?,"project_rewritten":false,
+        serde_json::json!({"version":version,"input_bytes_sha256":format!("{:x}", Sha256::digest(project)),"project_rewritten":false,
         "production_parser_executed":false,"sidecar_present":sidecar.is_some(),"requires_project_format_bump":false,"scripts_started":0,"show_control_armed":false}),
     )
 }

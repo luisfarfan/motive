@@ -1,6 +1,6 @@
 use crate::{Error, check, digest, hash, label, model::*};
 use motive_show_control::{
-    actions::Action,
+    actions::{self, Action, ProductionSnapshot},
     packs::{
         CreatorPack, Layout, Orientation, PlanStep, PropertyValue, Resource, VisualDefinition,
     },
@@ -104,7 +104,15 @@ pub fn prepare(request: InsertRequest, snapshot: &Snapshot) -> Result<InstancePl
         !snapshot
             .sources
             .values()
-            .any(|s| s.installation.as_ref() == Some(&request.instance_id)),
+            .any(|s| s.installation.as_ref() == Some(&request.instance_id))
+            && !snapshot
+                .layers
+                .values()
+                .any(|l| l.installation.as_ref() == Some(&request.instance_id))
+            && !snapshot
+                .assets
+                .values()
+                .any(|a| a.installation.as_ref() == Some(&request.instance_id)),
         "INSTANCE_CONFLICT",
         "Instance already exists; inspect its receipts",
     )?;
@@ -140,6 +148,7 @@ pub fn prepare(request: InsertRequest, snapshot: &Snapshot) -> Result<InstancePl
         "Required native capability unavailable",
     )?;
     simulation::validate_pack_rules(&pack, &request.rules)?;
+    validate_actions(&request.rules, simulation::pack_snapshot(&pack)?)?;
     check(
         request.rules.variables.is_empty()
             && request
@@ -369,6 +378,24 @@ pub fn prepare(request: InsertRequest, snapshot: &Snapshot) -> Result<InstancePl
         layer_symbols,
         executable_in_production: false,
     })
+}
+
+/// Run the real Show Control action preparer against a hypothetical static
+/// snapshot. No command is dispatched and Ready is not observed native health.
+pub fn validate_actions(rules: &Config, mut snapshot: ProductionSnapshot) -> Result<(), Error> {
+    for rule in &rules.rules {
+        for action in &rule.actions {
+            for leaf in action.flattened()? {
+                if let Action::Animate { scene_id, .. }
+                | Action::TriggerAnimatedWidget { scene_id, .. } = &leaf
+                {
+                    snapshot.active_scene = scene_id.clone();
+                }
+                actions::prepare(&leaf, &snapshot, None)?;
+            }
+        }
+    }
+    Ok(())
 }
 
 fn remap(value: &mut String, table: &BTreeMap<String, String>) -> Result<(), Error> {

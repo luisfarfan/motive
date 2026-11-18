@@ -125,7 +125,8 @@ impl Installation {
         check(
             self.phase == Phase::Installing
                 && self.pending_step == Some(self.receipts.len())
-                && receipt.step == self.receipts.len(),
+                && receipt.step == self.receipts.len()
+                && receipt.step < self.plan.steps.len(),
             "RECEIPT_ORDER",
             "Receipt does not acknowledge the pending operation",
         )?;

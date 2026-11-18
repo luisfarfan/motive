@@ -161,6 +161,10 @@ fn known_step_rejection_clears_intent_and_keeps_prior_receipts() {
     assert!(installation.pending_step.is_none());
     assert!(installation.bound_rules().is_err());
     assert_eq!(
+        owner.review(request("next")).err().unwrap().code,
+        "INSTANCE_CONFLICT"
+    );
+    assert_eq!(
         prepare_removal(&installation, &owner.snapshot)
             .unwrap()
             .assets

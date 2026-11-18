@@ -1,5 +1,11 @@
 use crate::{Error, check, label};
-use motive_show_control::packs::{Capability, Layout, Resource, VisualDefinition};
+use motive_show_control::{
+    actions::{LayerBinding, ProductionSnapshot, SourceKind, SourceReadiness},
+    packs::{
+        Capability, CreatorPack, Layout, PackLayer, PackOverlay, PackScene, Resource,
+        ResourceBudget, ResourceKind, VisualDefinition, WidgetKind,
+    },
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -122,7 +128,15 @@ impl Snapshot {
             label(&id.0)?;
             check(id == &source.id, "IDENTITY", "Source key differs from ID")?;
             if let Some(d) = &source.definition {
-                d.validate()?;
+                // Upstream CreatorPack uses symbolic resource refs (<=64 bytes).
+                // An owner receipt may instead use a 70-byte native asset hash ID.
+                let mut symbolic = d.clone();
+                if let VisualDefinition::Image { resource_id, .. }
+                | VisualDefinition::Video { resource_id, .. } = &mut symbolic
+                {
+                    *resource_id = "resource-validation".into();
+                }
+                symbolic.validate()?;
                 check(
                     source.video == matches!(d, VisualDefinition::Video { .. }),
                     "BUDGET_UNDERSTATED",
@@ -131,8 +145,16 @@ impl Snapshot {
             }
         }
         for (id, a) in &self.assets {
-            label(&id.0)?;
+            resource_id(&id.0)?;
             crate::hash(&a.descriptor.sha256)?;
+            validate_resource(&a.descriptor, &a.license)?;
+            if id.0.len() == 70 && id.0.starts_with("asset-") {
+                check(
+                    id.0[6..] == a.descriptor.sha256,
+                    "ASSET_IDENTITY",
+                    "Native hash ID differs from descriptor",
+                )?;
+            }
             check(
                 id == &a.id && a.descriptor.bytes > 0 && a.descriptor.bytes <= 64 * 1024 * 1024,
                 "ASSET_IDENTITY",
@@ -170,6 +192,143 @@ impl Snapshot {
     }
 }
 
+pub fn resource_id(value: &str) -> Result<(), Error> {
+    if let Some(hash) = value.strip_prefix("asset-")
+        && hash.len() == 64
+    {
+        return crate::hash(hash);
+    }
+    label(value)
+}
+
+/// Resource has no public standalone validator upstream. Validate a minimal
+/// typed CreatorPack through that existing implementation instead of copying its
+/// format, extension and dimension rules into another schema.
+pub fn validate_resource(resource: &Resource, license: &str) -> Result<(), Error> {
+    let definition = match resource.kind {
+        ResourceKind::Image => VisualDefinition::Image {
+            resource_id: resource.id.clone(),
+            opacity: 1.,
+        },
+        ResourceKind::Video => VisualDefinition::Video {
+            resource_id: resource.id.clone(),
+            opacity: 1.,
+            looping: false,
+        },
+    };
+    let layout = Layout {
+        x: 0.,
+        y: 0.,
+        width: 1.,
+        height: 1.,
+        visible: false,
+        order: 0,
+    };
+    CreatorPack {
+        schema_version: 1,
+        id: "resource-validation".into(),
+        version: "1.0.0".into(),
+        name: "Resource validation".into(),
+        author: "Motive validator".into(),
+        license: license.into(),
+        resources: vec![resource.clone()],
+        scenes: vec![PackScene {
+            id: "scene".into(),
+            name: "Validation".into(),
+            layers: vec![PackLayer {
+                id: "layer".into(),
+                overlay_id: "source".into(),
+                horizontal: layout.clone(),
+                vertical: layout,
+            }],
+        }],
+        overlays: vec![PackOverlay {
+            id: "source".into(),
+            name: "Validation".into(),
+            definition,
+        }],
+        animations: vec![],
+        properties: vec![],
+        events: vec![],
+        rule_ids: vec![],
+        requires: BTreeSet::from([if resource.kind == ResourceKind::Image {
+            Capability::ImageAsset
+        } else {
+            Capability::VideoAsset
+        }]),
+        budget: ResourceBudget {
+            max_resource_bytes: 64 * 1024 * 1024,
+            max_estimated_texture_bytes: 256 * 1024 * 1024,
+            max_simultaneous_animations: 0,
+        },
+    }
+    .validate()
+}
+
+impl Snapshot {
+    /// Semantic projection only: readiness is hypothetical and never native evidence.
+    pub fn action_snapshot(&self) -> Result<ProductionSnapshot, Error> {
+        self.validate()?;
+        let mut out = ProductionSnapshot {
+            pid: 1,
+            ..ProductionSnapshot::default()
+        };
+        out.revision = self.revision;
+        out.structural_busy = self.busy;
+        for s in self.sources.values() {
+            out.sources.insert(s.id.0.clone(), SourceReadiness::Ready);
+            let Some(d) = &s.definition else {
+                continue;
+            };
+            let kind = match d {
+                VisualDefinition::Text { .. } => SourceKind::Text,
+                VisualDefinition::Shape { .. } => SourceKind::Shape,
+                VisualDefinition::Image { .. } => SourceKind::Image,
+                VisualDefinition::Video { .. } => SourceKind::Video,
+                VisualDefinition::Widget { widget } => match widget.kind {
+                    WidgetKind::LowerThird => SourceKind::LowerThird,
+                    WidgetKind::Alert => SourceKind::Alert,
+                    WidgetKind::Countdown => SourceKind::Countdown,
+                },
+            };
+            out.source_kinds.insert(s.id.0.clone(), kind);
+            if matches!(d, VisualDefinition::Text { .. }) {
+                let mut value = serde_json::to_value(d)
+                    .map_err(|_| Error::new("ACTION_DEFINITION", "Invalid text"))?;
+                value
+                    .as_object_mut()
+                    .expect("tagged definition")
+                    .remove("kind");
+                out.text_definitions.insert(
+                    s.id.0.clone(),
+                    serde_json::from_value(value)
+                        .map_err(|_| Error::new("ACTION_DEFINITION", "Invalid text definition"))?,
+                );
+            }
+        }
+        for scene in &self.scenes {
+            out.scenes.insert(
+                scene.0.clone(),
+                self.layers
+                    .values()
+                    .filter(|l| &l.scene == scene)
+                    .map(|l| l.source.0.clone())
+                    .collect(),
+            );
+        }
+        for layer in self.layers.values() {
+            out.layers.insert(
+                layer.id.0.clone(),
+                LayerBinding {
+                    scene_id: layer.scene.0.clone(),
+                    source_id: layer.source.0.clone(),
+                },
+            );
+        }
+        Ok(out)
+    }
+}
+
 /// Same documented conservative H11 estimate used by Element Lab; not measured RSS.
 pub fn texture_bytes(
     definition: &VisualDefinition,
@@ -184,8 +343,21 @@ pub fn texture_bytes(
             let r = resources.get(resource_id).ok_or_else(|| {
                 Error::new("RESOURCE_MISSING", "Missing authorized resource receipt")
             })?;
+            check(
+                matches!(
+                    (definition, r.kind),
+                    (VisualDefinition::Image { .. }, ResourceKind::Image)
+                        | (VisualDefinition::Video { .. }, ResourceKind::Video)
+                ),
+                "RESOURCE_KIND",
+                "Source and resource kind mismatch",
+            )?;
             (r.width, r.height, 0)
         }
     };
-    Ok(u64::from(w) * u64::from(h) * 8 + extra)
+    u64::from(w)
+        .checked_mul(u64::from(h))
+        .and_then(|n| n.checked_mul(8))
+        .and_then(|n| n.checked_add(extra))
+        .ok_or_else(|| Error::new("BUDGET_OVERFLOW", "Invalid resource dimensions"))
 }

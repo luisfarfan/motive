@@ -339,7 +339,8 @@ impl Studio {
         window.open_dialog(cx, move |dialog, _, _| {
             let request = request.clone();
             let weak = weak.clone();
-            dialog.title("Revisar destino RTMPS").child(description.clone())
+            dialog.title(Text::new("destination-review-title".into(), "Revisar destino RTMPS".into()))
+                .child(Text::new("destination-review-body".into(), description.clone().into()))
                 .footer(DialogFooter::new().child(DialogClose::new().trigger(|b| b.label("Cancelar")))
                     .child(DialogAction::new().child(control("approve-destination", "Aprobar destino"))))
                 .button_props(DialogButtonProps::default().ok_text("Aprobar destino").cancel_text("Cancelar").show_cancel(true)
@@ -372,7 +373,8 @@ impl Studio {
         window.open_dialog(cx, move |dialog, _, _| {
             let request = request.clone();
             let weak = weak.clone();
-            dialog.title("Eliminar destino").child(description.clone())
+            dialog.title(Text::new("destination-remove-title".into(), "Eliminar destino".into()))
+                .child(Text::new("destination-remove-body".into(), description.clone().into()))
                 .footer(DialogFooter::new().child(DialogClose::new().trigger(|b| b.label("Cancelar")))
                     .child(DialogAction::new().child(control("confirm-remove-destination", "Eliminar destino"))))
                 .button_props(DialogButtonProps::default().ok_text("Eliminar destino").cancel_text("Cancelar").show_cancel(true)
@@ -455,7 +457,8 @@ impl Studio {
         window.open_dialog(cx, move |dialog, _, _| {
             let request = request.clone();
             let weak = weak.clone();
-            dialog.title("Confirmar transmisión RTMPS").child(description.clone())
+            dialog.title(Text::new("destination-start-title".into(), "Confirmar transmisión RTMPS".into()))
+                .child(Text::new("destination-start-body".into(), description.clone().into()))
                 .footer(DialogFooter::new().child(DialogClose::new().trigger(|b| b.label("Cancelar")))
                     .child(DialogAction::new().child(control("start-approved-destination", "Iniciar transmisión"))))
                 .button_props(DialogButtonProps::default().ok_text("Iniciar transmisión").cancel_text("Cancelar").show_cancel(true)

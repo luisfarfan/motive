@@ -462,13 +462,19 @@ impl Studio {
             let confirmation = confirmation.clone();
             let weak = weak.clone();
             dialog
-                .title("Confirmar acción de Live Deck")
+                .title(Text::new(
+                    "deck-action-confirm-title".into(),
+                    "Confirmar acción de Live Deck".into(),
+                ))
                 .child(
                     col()
                         .id("deck-confirmation-scroll")
                         .max_h(px(300.))
                         .overflow_y_scroll()
-                        .child(description.clone()),
+                        .child(Text::new(
+                            "deck-action-confirm-body".into(),
+                            description.clone().into(),
+                        )),
                 )
                 .footer(
                     DialogFooter::new()
@@ -519,8 +525,8 @@ impl Studio {
         self.panel = None;
         window.open_dialog(cx, move |dialog, _, _| {
             let expected=expected.clone();let weak=weak.clone();
-            dialog.title("Restaurar Show Control")
-                .child("Reemplaza la configuración y Live Deck por la copia guardada. La producción se restaura desactivada; no ejecuta trabajos ni inicia salidas.")
+            dialog.title(Text::new("show-restore-title".into(), "Restaurar Show Control".into()))
+                .child(Text::new("show-restore-body".into(), "Reemplaza la configuración y Live Deck por la copia guardada. La producción se restaura desactivada; no ejecuta trabajos ni inicia salidas.".into()))
                 .footer(DialogFooter::new().child(DialogClose::new().trigger(|b|b.label("Cancelar")))
                     .child(DialogAction::new().child(control("confirm-load-deck", "Restaurar"))))
                 .button_props(DialogButtonProps::default().ok_text("Restaurar").cancel_text("Cancelar").show_cancel(true)

@@ -57,8 +57,8 @@ impl Studio {
         window.open_alert_dialog(cx, move |dialog, _, _| {
             let confirm = weak.clone();
             let closed = weak.clone();
-            dialog.title("Finalizar producción y salir")
-                .description("Se detendrán todas las salidas y se cancelará la transición activa. Motive permanecerá abierto hasta que terminen la grabación y las conexiones pendientes. Los cambios del proyecto no se guardan automáticamente.")
+            dialog.title(Text::new("shutdown-confirm-title".into(), "Finalizar producción y salir".into()))
+                .description(Text::new("shutdown-confirm-body".into(), "Se detendrán todas las salidas y se cancelará la transición activa. Motive permanecerá abierto hasta que terminen la grabación y las conexiones pendientes. Los cambios del proyecto no se guardan automáticamente.".into()))
                 .confirm()
                 .ok_text("Finalizar y salir")
                 .cancel_text("Seguir produciendo")

@@ -205,8 +205,13 @@ motive_engine *motive_create(const char *base,const char *output_module,const ch
     int code=reset_video(e);
     if (code) { snprintf(e->error,sizeof(e->error),"obs_reset_video falló: %d",code); return e; }
     e->video_ready=true;
-    struct obs_audio_info audio={.samples_per_sec=48000,.speakers=SPEAKERS_STEREO};
-    if (!obs_reset_audio(&audio)) { snprintf(e->error,sizeof(e->error),"obs_reset_audio falló"); return e; }
+    // Reserve six 1024-frame blocks before mixing. SCK's observed 20 ms
+    // packets can arrive 48 ms behind PTS; dynamically growing from zero left
+    // a complete application block absent from the mix despite continuous
+    // source callbacks. OBS owns this buffer and preserves the source clock.
+    struct obs_audio_info2 audio={.samples_per_sec=48000,.speakers=SPEAKERS_STEREO,
+        .max_buffering_ms=128,.fixed_buffering=true};
+    if (!obs_reset_audio2(&audio)) { snprintf(e->error,sizeof(e->error),"obs_reset_audio falló"); return e; }
     const char *modules[]={"obs-x264","obs-ffmpeg","obs-outputs","mac-capture","mac-avcapture","obs-transitions","image-source","text-freetype2"};
     for (size_t i=0;i<sizeof(modules)/sizeof(modules[0]);i++) if (!load_module(e,modules[i])) return e;
     // Optional: an unavailable VT module must not prevent x264 recording.

@@ -1,5 +1,9 @@
 # H15 — recorrido nativo B4
 
+Este primer recorrido se conserva como evidencia histórica. La reanudación
+recuperó CUA y completó los pasos pendientes de ventana, mixer, salidas,
+biblioteca y reapertura; véase [la continuación](h15-resume-verification.md).
+
 **PARTIAL.** Auditoría de GPUI con Product Design audit y CUA, sobre contenido
 propio. Binario B4 SHA-256 `add4032b359c92fd36782d2157a1f72aaccf55fb50839e2c018d2bab739ccfb2`.
 PID 8439; reapertura núcleo PID 9922. No se abrió navegador ni dispositivo real.

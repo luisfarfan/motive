@@ -231,6 +231,9 @@ impl Studio {
             )
             .when(
                 panel != "creative"
+                    // Mixer controls use the current owner state and carry no
+                    // Forms draft. Native health updates must not stale them.
+                    && panel != "audio"
                     && panel != "recordings"
                     && panel != "destinations"
                     && panel != "live-deck"

@@ -5,7 +5,9 @@ Inicio: 2026-11-17 (America/Lima). Baseline remoto consultado mediante fetch:
 Rama local `codex/h15-beta-stabilization`, worktree `motive-h15`.
 No se modifica `element-lab/`. Sin push, merge, rebase, publicación ni RTMPS nuevo.
 
-**Cierre H15: NOT_ACCEPTED para beta privada.** B4 incorpora restricciones y
+**Primer cierre B4: NOT_ACCEPTED para beta privada.** La
+[reanudación H15](h15-resume-verification.md) conserva este cierre y sus hashes,
+y registra las correcciones y verificaciones posteriores. B4 incorpora restricciones y
 recuperación de feedback comprobadas, pero conserva fallos de frescura/recuperación
 de ventana y una caída breve de audio de aplicación. No se declara resuelto
 `APPLICATION_UNAVAILABLE`, que no volvió a reproducirse. La matriz final y los

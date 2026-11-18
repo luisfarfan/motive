@@ -235,11 +235,14 @@ class Run:
         self.previous_cpu, _ = process_sample(started['pid'])
         self.previous_time = time.monotonic()
         if name in ('silence', 'av'):
+            trial['packet_clock_observations'] = []
             for _ in range(20):
                 before = time.monotonic()
                 trace = self.client.call('output_diagnostics', target=self.kind)['packet_trace']
                 after = time.monotonic()
-                if not trace['snapshot_busy'] and any(p['media_type'] == 'audio' for p in trace['packets']):
+                trial['packet_clock_observations'].append(dict(before=before, after=after, trace=trace))
+                if (not trace['snapshot_busy'] and after-before <= .05
+                        and any(p['media_type'] == 'audio' for p in trace['packets'])):
                     break
                 time.sleep(.025)
             trial['initial_packet_clock'] = dict(before=before, after=after, trace=trace)

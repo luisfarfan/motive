@@ -1,0 +1,628 @@
+{
+  "capabilities_observed_live": false,
+  "changes": {
+    "new_assets": 1,
+    "new_instances": 1,
+    "new_layers": 2,
+    "new_scenes": 0,
+    "new_sources": 2
+  },
+  "final_budget": {
+    "layers": 2,
+    "resource_bytes": 217,
+    "resource_count": 1,
+    "scenes": 1,
+    "sources": 2,
+    "texture_bytes": 17467648,
+    "video_sources": 0
+  },
+  "installed_in_production": false,
+  "limits": {
+    "layers": 32,
+    "scenes": 8,
+    "sources": 16,
+    "texture_bytes": 268435456,
+    "video_sources": 4
+  },
+  "mode": "simulate",
+  "native_render_verified": false,
+  "notes": [
+    "Properties change one instance; shared placements of that instance share its source state.",
+    "Plans append above existing layers and retain both layout orientations; no visual overlap acceptance is claimed.",
+    "Sequential proposals use predicted model revisions; the real owner must review current state before each operation.",
+    "Preview SVG is approximate; neither JS nor modeled receipts demonstrate native frames."
+  ],
+  "owner_authorized": false,
+  "plans": [
+    {
+      "budget": {
+        "layers": 2,
+        "resource_bytes": 217,
+        "resource_count": 1,
+        "scenes": 1,
+        "sources": 2,
+        "texture_bytes": 17467648,
+        "video_sources": 0
+      },
+      "definition": {
+        "package_id": "lower-third",
+        "package_sha256": "c33d1b1b5f0976f51e41550c967488f7ec30a5ab276db0df58ec204363ee0da5",
+        "version": "1.0.0"
+      },
+      "executable_in_production": false,
+      "initial_bindings": {
+        "layers": {},
+        "resources": {},
+        "scenes": {
+          "instance-1-lower-third-placement-0": "fixture-scene"
+        },
+        "sources": {}
+      },
+      "instance_id": "instance-1-lower-third",
+      "layer_symbols": [
+        {
+          "lower-third-content-layer": "instance-1-lower-third-p0-lower-third-content-layer",
+          "lower-third-motif-layer": "instance-1-lower-third-p0-lower-third-motif-layer"
+        }
+      ],
+      "license": "GPL-3.0-or-later",
+      "properties": {
+        "lower-third-description": {
+          "type": "text",
+          "value": "Ideas que merecen una conversación"
+        },
+        "lower-third-title": {
+          "type": "text",
+          "value": "Alex Rivera"
+        }
+      },
+      "resources": {
+        "instance-1-lower-third-lower-third-motif-asset": {
+          "bytes": 217,
+          "duration_ms": null,
+          "file_name": "lower-third-motif.png",
+          "height": 48,
+          "id": "lower-third-motif-asset",
+          "kind": "image",
+          "sha256": "bfbeb727c2284939caaaec05495f3d59f3808888ae233808c98b0ff352c401a7",
+          "width": 48
+        }
+      },
+      "revision": 1,
+      "rules": {
+        "max_actions_per_event": 32,
+        "queue_capacity": 8,
+        "rate_limit": 20,
+        "rate_window_ms": 1000,
+        "rules": [
+          {
+            "actions": [
+              {
+                "animation": {
+                  "distance": 96.0,
+                  "duration_ms": 450,
+                  "easing": "ease_out",
+                  "kind": "slide_in",
+                  "scale_from": 0.8999999761581421
+                },
+                "layer_id": "instance-1-lower-third-p0-lower-third-content-layer",
+                "scene_id": "instance-1-lower-third-placement-0",
+                "source_id": "instance-1-lower-third-lower-third-content",
+                "type": "trigger_animated_widget"
+              }
+            ],
+            "busy_policy": "reject",
+            "conditions": [
+              {
+                "field": "button_id",
+                "type": "equals",
+                "value": {
+                  "type": "string",
+                  "value": "trigger"
+                }
+              }
+            ],
+            "cooldown_ms": 1000,
+            "debounce_ms": 0,
+            "enabled": false,
+            "event_kind": "manual.button_pressed",
+            "failure_policy": "stop",
+            "id": "instance-1-lower-third-p0-lower-third-trigger",
+            "priority": 5,
+            "timeout_ms": 15000
+          },
+          {
+            "actions": [
+              {
+                "animation": {
+                  "distance": 96.0,
+                  "duration_ms": 450,
+                  "easing": "ease_in",
+                  "kind": "slide_out",
+                  "scale_from": 0.8999999761581421
+                },
+                "layer_id": "instance-1-lower-third-p0-lower-third-content-layer",
+                "scene_id": "instance-1-lower-third-placement-0",
+                "type": "animate"
+              },
+              {
+                "source_id": "instance-1-lower-third-lower-third-content",
+                "type": "hide_overlay"
+              }
+            ],
+            "busy_policy": "reject",
+            "conditions": [
+              {
+                "field": "button_id",
+                "type": "equals",
+                "value": {
+                  "type": "string",
+                  "value": "exit"
+                }
+              }
+            ],
+            "cooldown_ms": 1000,
+            "debounce_ms": 0,
+            "enabled": false,
+            "event_kind": "manual.button_pressed",
+            "failure_policy": "stop",
+            "id": "instance-1-lower-third-p0-lower-third-exit",
+            "priority": 5,
+            "timeout_ms": 15000
+          }
+        ],
+        "schema_version": 1,
+        "variables": {}
+      },
+      "session": "offline-owner-session",
+      "snapshot_sha256": "afb369e66393e4a7c0acc1dba8c6d98cbb5898d1a60b62014fac9440b7bbe864",
+      "source_symbols": {
+        "lower-third-content": "instance-1-lower-third-lower-third-content",
+        "lower-third-motif": "instance-1-lower-third-lower-third-motif"
+      },
+      "source_texture_bytes": {
+        "instance-1-lower-third-lower-third-content": 17449216,
+        "instance-1-lower-third-lower-third-motif": 18432
+      },
+      "steps": [
+        {
+          "file_name": "lower-third-motif.png",
+          "operation": "import_asset_after_local_authorization",
+          "resource_ref": "instance-1-lower-third-lower-third-motif-asset"
+        },
+        {
+          "definition": {
+            "kind": "widget",
+            "widget": {
+              "accent": 16106108,
+              "background": 2237481,
+              "color": 15856372,
+              "duration_ms": 0,
+              "height": 140,
+              "kind": "lower_third",
+              "opacity": 1.0,
+              "subtitle": "Ideas que merecen una conversación",
+              "title": "Alex Rivera",
+              "width": 600
+            }
+          },
+          "first_layer_ref": "instance-1-lower-third-p0-lower-third-content-layer",
+          "name": "Minimal Lower Third",
+          "operation": "create_overlay",
+          "scene_ref": "instance-1-lower-third-placement-0",
+          "source_ref": "instance-1-lower-third-lower-third-content"
+        },
+        {
+          "layer_ref": "instance-1-lower-third-p0-lower-third-content-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-lower-third-placement-0",
+          "transform": {
+            "height": 140.0,
+            "order": 0,
+            "visible": true,
+            "width": 600.0,
+            "x": 40.0,
+            "y": 360.0
+          },
+          "variant": "horizontal"
+        },
+        {
+          "layer_ref": "instance-1-lower-third-p0-lower-third-content-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-lower-third-placement-0",
+          "transform": {
+            "height": 108.0,
+            "order": 0,
+            "visible": true,
+            "width": 460.0,
+            "x": 40.0,
+            "y": 730.0
+          },
+          "variant": "vertical"
+        },
+        {
+          "definition": {
+            "kind": "image",
+            "opacity": 0.800000011920929,
+            "resource_id": "instance-1-lower-third-lower-third-motif-asset"
+          },
+          "first_layer_ref": "instance-1-lower-third-p0-lower-third-motif-layer",
+          "name": "Original stripe motif",
+          "operation": "create_overlay",
+          "scene_ref": "instance-1-lower-third-placement-0",
+          "source_ref": "instance-1-lower-third-lower-third-motif"
+        },
+        {
+          "layer_ref": "instance-1-lower-third-p0-lower-third-motif-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-lower-third-placement-0",
+          "transform": {
+            "height": 48.0,
+            "order": 1,
+            "visible": true,
+            "width": 48.0,
+            "x": 660.0,
+            "y": 420.0
+          },
+          "variant": "horizontal"
+        },
+        {
+          "layer_ref": "instance-1-lower-third-p0-lower-third-motif-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-lower-third-placement-0",
+          "transform": {
+            "height": 48.0,
+            "order": 1,
+            "visible": true,
+            "width": 48.0,
+            "x": 246.0,
+            "y": 858.0
+          },
+          "variant": "vertical"
+        }
+      ]
+    }
+  ],
+  "production_connected": false,
+  "reviews": [
+    {
+      "content_kind": "declarative_pack",
+      "id": "lower-third",
+      "installed_in_production": false,
+      "instance_id": "instance-1-lower-third",
+      "layouts": [
+        {
+          "authored_scene": "lower-third-scene",
+          "layers": [
+            {
+              "horizontal": {
+                "height": 140,
+                "order": 0,
+                "visible": true,
+                "width": 600,
+                "x": 40,
+                "y": 360
+              },
+              "id": "lower-third-content-layer",
+              "overlay_id": "lower-third-content",
+              "vertical": {
+                "height": 108,
+                "order": 0,
+                "visible": true,
+                "width": 460,
+                "x": 40,
+                "y": 730
+              }
+            },
+            {
+              "horizontal": {
+                "height": 48,
+                "order": 1,
+                "visible": true,
+                "width": 48,
+                "x": 660,
+                "y": 420
+              },
+              "id": "lower-third-motif-layer",
+              "overlay_id": "lower-third-motif",
+              "vertical": {
+                "height": 48,
+                "order": 1,
+                "visible": true,
+                "width": 48,
+                "x": 246,
+                "y": 858
+              }
+            }
+          ]
+        }
+      ],
+      "name": "Minimal Lower Third",
+      "preview_paths": [
+        "previews/lower-third-scene-horizontal.svg",
+        "previews/lower-third-scene-vertical.svg"
+      ],
+      "previews_are_approximate": true,
+      "properties": [
+        {
+          "id": "lower-third-title",
+          "label": "Nombre",
+          "overlay_id": "lower-third-content",
+          "target": "widget_title",
+          "value": {
+            "type": "text",
+            "value": "Alex Rivera"
+          }
+        },
+        {
+          "id": "lower-third-description",
+          "label": "Descripción",
+          "overlay_id": "lower-third-content",
+          "target": "widget_subtitle",
+          "value": {
+            "type": "text",
+            "value": "Ideas que merecen una conversación"
+          }
+        }
+      ],
+      "review": {
+        "available_capabilities": [
+          "image_asset",
+          "layer_animation",
+          "scene_transition",
+          "shape",
+          "text",
+          "video_asset",
+          "widget"
+        ],
+        "budget": {
+          "counts": {
+            "layers": 2,
+            "scenes": 1,
+            "sources": 2,
+            "texture_bytes": 17467648,
+            "video_sources": 0
+          },
+          "native_texture_estimate_bytes": 17467648,
+          "occupied": {
+            "layers": 0,
+            "scenes": 0,
+            "sources": 0,
+            "texture_bytes": 0,
+            "video_sources": 0
+          },
+          "pack_texture_bytes": 18121216,
+          "remaining": {
+            "layers": 30,
+            "scenes": 7,
+            "sources": 14,
+            "texture_bytes": 250967808,
+            "video_sources": 4
+          },
+          "rss_measured": false,
+          "total": {
+            "layers": 2,
+            "scenes": 1,
+            "sources": 2,
+            "texture_bytes": 17467648,
+            "video_sources": 0
+          }
+        },
+        "bytes": 46075,
+        "cleanup": "only owned staging objects, otherwise reconciliation required",
+        "container": "motive-element-lab-review",
+        "content_kind": "declarative_pack",
+        "contract": {
+          "budget": {
+            "counts": {
+              "layers": 2,
+              "scenes": 1,
+              "sources": 2,
+              "texture_bytes": 17467648,
+              "video_sources": 0
+            },
+            "native_texture_estimate_bytes": 17467648,
+            "occupied": {
+              "layers": 0,
+              "scenes": 0,
+              "sources": 0,
+              "texture_bytes": 0,
+              "video_sources": 0
+            },
+            "pack_texture_bytes": 18121216,
+            "remaining": {
+              "layers": 30,
+              "scenes": 7,
+              "sources": 14,
+              "texture_bytes": 250967808,
+              "video_sources": 4
+            },
+            "rss_measured": false,
+            "total": {
+              "layers": 2,
+              "scenes": 1,
+              "sources": 2,
+              "texture_bytes": 17467648,
+              "video_sources": 0
+            }
+          },
+          "mode": "real_show_control_contract_offline",
+          "native_render_verified": false,
+          "pack_id": "lower-third",
+          "plan": {
+            "estimated_texture_bytes": 18121216,
+            "executable": false,
+            "limitations": [
+              "Offline proposal only; no Production importer or live acceptance has been implemented.",
+              "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+              "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+              "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+              "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+            ],
+            "pack_id": "lower-third",
+            "pack_version": "1.0.0",
+            "requires_idle": true,
+            "schema_version": 1,
+            "steps": [
+              {
+                "file_name": "lower-third-motif.png",
+                "operation": "import_asset_after_local_authorization",
+                "resource_ref": "lower-third-motif-asset"
+              },
+              {
+                "name": "Minimal Lower Third",
+                "operation": "create_scene",
+                "scene_ref": "lower-third-scene"
+              },
+              {
+                "definition": {
+                  "kind": "widget",
+                  "widget": {
+                    "accent": 16106108,
+                    "background": 2237481,
+                    "color": 15856372,
+                    "duration_ms": 0,
+                    "height": 140,
+                    "kind": "lower_third",
+                    "opacity": 1.0,
+                    "subtitle": "Ideas que merecen una conversación",
+                    "title": "Alex Rivera",
+                    "width": 600
+                  }
+                },
+                "first_layer_ref": "lower-third-content-layer",
+                "name": "Minimal Lower Third",
+                "operation": "create_overlay",
+                "scene_ref": "lower-third-scene",
+                "source_ref": "lower-third-content"
+              },
+              {
+                "layer_ref": "lower-third-content-layer",
+                "operation": "set_transform",
+                "scene_ref": "lower-third-scene",
+                "transform": {
+                  "height": 140.0,
+                  "order": 0,
+                  "visible": true,
+                  "width": 600.0,
+                  "x": 40.0,
+                  "y": 360.0
+                },
+                "variant": "horizontal"
+              },
+              {
+                "layer_ref": "lower-third-content-layer",
+                "operation": "set_transform",
+                "scene_ref": "lower-third-scene",
+                "transform": {
+                  "height": 108.0,
+                  "order": 0,
+                  "visible": true,
+                  "width": 460.0,
+                  "x": 40.0,
+                  "y": 730.0
+                },
+                "variant": "vertical"
+              },
+              {
+                "definition": {
+                  "kind": "image",
+                  "opacity": 0.800000011920929,
+                  "resource_id": "lower-third-motif-asset"
+                },
+                "first_layer_ref": "lower-third-motif-layer",
+                "name": "Original stripe motif",
+                "operation": "create_overlay",
+                "scene_ref": "lower-third-scene",
+                "source_ref": "lower-third-motif"
+              },
+              {
+                "layer_ref": "lower-third-motif-layer",
+                "operation": "set_transform",
+                "scene_ref": "lower-third-scene",
+                "transform": {
+                  "height": 48.0,
+                  "order": 1,
+                  "visible": true,
+                  "width": 48.0,
+                  "x": 660.0,
+                  "y": 420.0
+                },
+                "variant": "horizontal"
+              },
+              {
+                "layer_ref": "lower-third-motif-layer",
+                "operation": "set_transform",
+                "scene_ref": "lower-third-scene",
+                "transform": {
+                  "height": 48.0,
+                  "order": 1,
+                  "visible": true,
+                  "width": 48.0,
+                  "x": 246.0,
+                  "y": 858.0
+                },
+                "variant": "vertical"
+              }
+            ],
+            "unavailable": []
+          },
+          "prepared_actions": 3,
+          "production_connected": false,
+          "rehearsal": null,
+          "status": "PASS"
+        },
+        "creator_identity_verified": false,
+        "dependencies": {
+          "downloads": false,
+          "resolution": "embedded_inventory_only",
+          "resources": [
+            "lower-third-motif-asset"
+          ]
+        },
+        "files": 8,
+        "format": "experimental_review_package",
+        "id": "lower-third",
+        "installed": false,
+        "integrity_verified": true,
+        "license": {
+          "declared": "GPL-3.0-or-later",
+          "matches_local_policy": true,
+          "ownership_verified": false,
+          "resource_attribution": "CreatorPack v1 inherits the pack license; per-resource provenance is not carried",
+          "text_sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0"
+        },
+        "native_asset_decoder_verified": false,
+        "official_installation_format": false,
+        "owner_authorized": false,
+        "package_sha256": "c33d1b1b5f0976f51e41550c967488f7ec30a5ab276db0df58ec204363ee0da5",
+        "package_version": 1,
+        "required_capabilities": [
+          "image_asset",
+          "layer_animation",
+          "widget"
+        ],
+        "resource_bytes": 217,
+        "reviewed_for": "offline_installation_proposal",
+        "rules_arming_authorized": false,
+        "sha256": "c33d1b1b5f0976f51e41550c967488f7ec30a5ab276db0df58ec204363ee0da5",
+        "staging_budget_bytes": 269484032,
+        "staging_bytes": 92772,
+        "status": "PASS",
+        "version": "1.0.0"
+      },
+      "sha256": "c33d1b1b5f0976f51e41550c967488f7ec30a5ab276db0df58ec204363ee0da5",
+      "state": "reviewed_candidate",
+      "version": "1.0.0"
+    }
+  ],
+  "scene_ids_preserved": true,
+  "scope": "sequential_strict_offline_owner_model",
+  "show_control_armed": false,
+  "simulated_ids_only": true,
+  "staging_reverified_and_cleaned": true,
+  "status": "PASS",
+  "target_scenes": [
+    "fixture-scene"
+  ]
+}

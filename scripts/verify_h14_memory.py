@@ -113,7 +113,9 @@ def canonical_lock():
 
 
 def plan(args):
-    return {'version': 1, 'mode': args.mode, 'fps': args.fps, 'resolution': '1920x1080',
+    return {'version': 1, 'mode': args.mode, 'fps': args.fps,
+            'resolution': '1280x720' if args.resolution == 'hd720' else '1920x1080',
+            'resolution_preset': args.resolution,
             'interval_seconds': args.interval, 'baseline_seconds': args.hold,
             'cycles': args.cycles if args.mode != 'observe' else 0,
             'per_cycle': (['four_visible', 'four_hidden'] +
@@ -191,6 +193,10 @@ def execute(args):
         state = client.state()
         end = time.monotonic()
         check(state['pid'] == initial['pid'] == memory['pid'], 'same process for VM and production')
+        if args.mode != 'observe':
+            dimensions = (1280, 720) if args.resolution == 'hd720' else (1920, 1080)
+            check((state['video']['width'], state['video']['height'], state['video']['fps']) == (*dimensions, args.fps),
+                  'actual canvas matches the requested measurement profile')
         check(memory['version'] == 1 and memory['scope'] == 'current_process_only', 'native memory contract')
         interval_cpu = cpu_interval(previous_memory, memory)
         cpu_percent = interval_cpu if previous_phase == label else None
@@ -262,7 +268,7 @@ def execute(args):
             check(args.fps in (30, 60), 'explicit verified canvas rate')
             changed = True
             client.call('set_variant', variant='horizontal')
-            client.call('configure_video', video={'version': 1, 'resolution': 'full_hd1080', 'fps': args.fps, 'coordinate_space': 'design960'})
+            client.call('configure_video', video={'version': 1, 'resolution': args.resolution, 'fps': args.fps, 'coordinate_space': 'design960'})
             imports = args.store_root / 'imports'
             check(imports.is_dir() and not imports.is_symlink() and imports.stat().st_mode & 0o077 == 0, 'private existing managed inbox')
             inbox = imports / ('h14-memory-'+str(time.time_ns())+'.mp4')
@@ -407,6 +413,8 @@ def main():
     parser.add_argument('--fixture', type=pathlib.Path)
     parser.add_argument('--fixture-sha256')
     parser.add_argument('--fps', type=int, choices=[30, 60], default=30)
+    parser.add_argument('--resolution', choices=['hd720', 'full_hd1080'], default='full_hd1080',
+                        help='H17 controlled canvas; historical 1080p default is unchanged.')
     parser.add_argument('--interval', type=float, default=5)
     parser.add_argument('--hold', type=float, default=20)
     parser.add_argument('--settle', type=float, default=60)

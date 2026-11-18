@@ -6,6 +6,7 @@ owner. No devices, captured windows, user stores, outputs, or synthetic UI event
 The result is a measurement, never automatic Fast adoption or visual acceptance.
 """
 import argparse
+import ctypes
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,25 @@ NATIVE_MODULES = {
     'obs-outputs':'target/obs-outputs-h8/obs-outputs.so',
     'libobs':'.deps/OBS.app/Contents/Frameworks/libobs.framework/libobs',
 }
+
+
+def focus_reader():
+    """Metadata only: frontmost PID, never titles, app names or focus mutation."""
+    ctypes.CDLL('/System/Library/Frameworks/AppKit.framework/AppKit')
+    objc = ctypes.CDLL('/usr/lib/libobjc.A.dylib')
+    objc.objc_getClass.argtypes = [ctypes.c_char_p]
+    objc.objc_getClass.restype = ctypes.c_void_p
+    objc.sel_registerName.argtypes = [ctypes.c_char_p]
+    objc.sel_registerName.restype = ctypes.c_void_p
+    pointer = ctypes.CFUNCTYPE(ctypes.c_void_p,ctypes.c_void_p,ctypes.c_void_p)(('objc_msgSend',objc))
+    integer = ctypes.CFUNCTYPE(ctypes.c_int,ctypes.c_void_p,ctypes.c_void_p)(('objc_msgSend',objc))
+    workspace = pointer(objc.objc_getClass(b'NSWorkspace'),objc.sel_registerName(b'sharedWorkspace'))
+    front_selector = objc.sel_registerName(b'frontmostApplication')
+    pid_selector = objc.sel_registerName(b'processIdentifier')
+    def read():
+        application = pointer(workspace,front_selector)
+        return integer(application,pid_selector) if application else None
+    return read
 
 
 def save(path, value):
@@ -67,7 +87,8 @@ def prepare(args):
     (contents/'MacOS').mkdir(parents=True)
     shutil.copy2(target/'release/motive', contents/'MacOS/motive')
     shutil.copy2(ROOT/'.deps/OBS.app/Contents/MacOS/obs-ffmpeg-mux', contents/'MacOS/obs-ffmpeg-mux')
-    (contents/'Frameworks').symlink_to(ROOT/'.deps/OBS.app/Contents/Frameworks', target_is_directory=True)
+    # Clone locally: an external Frameworks symlink fails strict bundle signing.
+    subprocess.run(['cp','-cR',str(ROOT/'.deps/OBS.app/Contents/Frameworks'),str(contents/'Frameworks')],check=True)
     with (contents/'Info.plist').open('xb') as output:
         plistlib.dump({'CFBundleIdentifier':'local.motive.studio', 'CFBundleName':'Motive',
                       'CFBundleExecutable':'motive','CFBundlePackageType':'APPL',
@@ -75,6 +96,7 @@ def prepare(args):
                       'LSMinimumSystemVersion':'15.0','NSHighResolutionCapable':True,
                       'LSAppNapIsDisabled':True}, output)
     subprocess.run(['codesign','--force','--sign','-',str(app)], check=True, capture_output=True)
+    subprocess.run(['codesign','--verify','--strict',str(app)],check=True,capture_output=True)
     manifest.update(status='PASS', app=str(app), binary_sha256=digest(contents/'MacOS/motive'),
                     native_modules={name:digest(ROOT/path) for name,path in NATIVE_MODULES.items()})
     save(out/'build-binding.json',manifest)
@@ -97,11 +119,15 @@ def run(args):
     env = {key:value for key,value in os.environ.items()
            if not key.startswith(('DYLD_', 'GPUI_', 'MOTIVE_UI_'))}
     env.update(MOTIVE_UI_PROFILE='1',MOTIVE_UI_SIZE='1024x780')
-    rows, owner, client = [], None, None
+    rows, owner, client, suite = [], None, None, None
+    read_focus = focus_reader()
     report = {'version':1,'status':'FAIL','scope':args.workload+'_preview_no_outputs',
               'backend':manifest['backend'],'binary_sha256':manifest['binary_sha256'],
               'seconds_requested':args.seconds,'warmup_seconds':5,'ui_size':'1024x780',
-              'lock':ownership,'cleanup_errors':[]}
+              'lock':ownership,'cleanup_errors':[], 'focus_samples':[],
+              'instrument_sha256':digest(__file__),
+              'ui_preferences_sha256':digest(ROOT/'var/ui-preferences.json')
+                  if (ROOT/'var/ui-preferences.json').is_file() else None}
     log_path = out/'owner.log'
     with log_path.open('x') as log:
         try:
@@ -117,6 +143,19 @@ def run(args):
             else:
                 raise RuntimeError('Owner startup timeout')
             report['process'] = process_identity(owner.pid,binary)
+            if args.ensure_focus:
+                before_focus = read_focus()
+                report['activation_preflight'] = {'frontmost_before':before_focus,'requests':0}
+                if before_focus != owner.pid:
+                    activation = subprocess.run(['open','-a',str(app)],capture_output=True,text=True)
+                    report['activation_preflight'].update(requests=1,returncode=activation.returncode)
+                    deadline = time.monotonic()+2
+                    while read_focus() != owner.pid and time.monotonic() < deadline:
+                        time.sleep(.1)
+                report['activation_preflight']['frontmost_after'] = read_focus()
+                if report['activation_preflight']['frontmost_after'] != owner.pid:
+                    report['blocked'] = True
+                    raise RuntimeError('Active window not corroborated after one explicit activation; no measurement')
             time.sleep(5)
             offset = log_path.stat().st_size
             started = time.monotonic()
@@ -130,11 +169,17 @@ def run(args):
                            '--fixture', str(args.fixture), '--fixture-sha256', args.fixture_sha256,
                            '--fps', '60', '--cycles', '3', '--interval', '1', '--hold', '10', '--settle', '10']
                 with (out/'lifecycle.log').open('x') as suite_log:
-                    result = subprocess.run(command,cwd=ROOT,env=env,stdout=suite_log,stderr=suite_log,timeout=240)
-                report['lifecycle_exit'] = result.returncode
+                    suite = subprocess.Popen(command,cwd=ROOT,env=env,stdout=suite_log,stderr=suite_log)
+                    while suite.poll() is None:
+                        report['focus_samples'].append({'monotonic':time.monotonic(),'frontmost_pid':read_focus()})
+                        if time.monotonic()-started > 240:
+                            raise RuntimeError('Lifecycle exceeded 240 s; active suite and owner retained for explicit cleanup')
+                        time.sleep(.5)
+                    suite.wait()
+                report['lifecycle_exit'] = suite.returncode
                 lifecycle = json.loads((out/'lifecycle/report.json').read_text())
                 report['lifecycle'] = lifecycle
-                assert result.returncode == 0 and lifecycle.get('measurement_completed'), 'Lifecycle failed; retain its report'
+                assert suite.returncode == 0 and lifecycle.get('measurement_completed'), 'Lifecycle failed; retain its report'
                 assert not lifecycle['cleanup_errors'], 'Lifecycle cleanup incomplete'
             else:
                 previous = client.call('memory_diagnostics')['memory']
@@ -145,6 +190,7 @@ def run(args):
                     middle = time.monotonic()
                     state = client.state()
                     after = time.monotonic()
+                    report['focus_samples'].append({'monotonic':after,'frontmost_pid':read_focus()})
                     default_owner(state)
                     assert not state['issues'], 'Controlled scene has a source issue'
                     assert memory['pid'] == owner.pid and memory['status'] == 'PASS'
@@ -153,6 +199,8 @@ def run(args):
                                  'stats':state['stats'],'outputs':state['outputs']})
                     previous = memory
             report['seconds_observed'] = time.monotonic()-started
+            report['frontmost_samples'] = sum(row['frontmost_pid'] == owner.pid for row in report['focus_samples'])
+            report['focus_sample_count'] = len(report['focus_samples'])
             report['wall_offset_drift_seconds'] = (time.time()-time.monotonic())-wall_offset
             with log_path.open('rb') as source:
                 source.seek(offset)
@@ -185,15 +233,25 @@ def run(args):
                         'draw_p95_us_by_interval':distribution(r['draw'].get('p95_us') for r in selected),
                         'heartbeat_p95_us_by_interval':distribution(r['heartbeat'].get('p95_us') for r in selected)}
             report['status'] = 'PASS'
+            if report['frontmost_samples'] != report['focus_sample_count']:
+                report['status'] = 'PARTIAL'
+                report['focus_limitation'] = 'Owner was not frontmost in every sample; do not compare as an active-window benchmark'
         except Exception as error:
             report['error'] = str(error)
+            if report.get('blocked'):
+                report['status'] = 'BLOCKED'
         finally:
-            if owner and owner.poll() is None and client:
+            if suite and suite.poll() is None:
+                report['cleanup_errors'].append('Suite still active; do not race its mutations with owner shutdown')
+            elif owner and owner.poll() is None and client:
                 try:
                     client.call('request_shutdown')
                     owner.wait(timeout=25)
                 except Exception as error:
                     report['cleanup_errors'].append(str(error))
+            report['ui_preferences_after_sha256'] = digest(ROOT/'var/ui-preferences.json') if (ROOT/'var/ui-preferences.json').is_file() else None
+            if report['ui_preferences_after_sha256'] != report['ui_preferences_sha256']:
+                report['cleanup_errors'].append('UI preferences changed during measurement')
             report['owner_exit'] = owner.poll() if owner else None
             if report['cleanup_errors'] or report['owner_exit'] != 0:
                 report['status'] = 'FAIL'
@@ -216,6 +274,8 @@ def main():
     measure.add_argument('--workload',choices=['pattern','four-videos'],default='pattern')
     measure.add_argument('--fixture',type=Path)
     measure.add_argument('--fixture-sha256')
+    measure.add_argument('--ensure-focus',action='store_true',
+                         help='Require observed frontmost PID; at most one explicit activation of this app before warmup.')
     args = parser.parse_args()
     if args.command == 'prepare':
         return prepare(args)

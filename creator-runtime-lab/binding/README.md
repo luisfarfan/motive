@@ -121,3 +121,18 @@ y [red](../evidence/binding/browser-network.json).
 4. Restablecer solo configuración revisada, desarmada, con generación nueva y sin
    eventos históricos; demostrar reap, deadlines y restricciones de procesos antes
    de autorizar terceros. Este crate no altera ningún formato de proyecto.
+
+### Revalidación de la versión final
+
+Después del cambio de generaciones `3ee09a1` se reconstruyó y repitió el recorrido
+completo contra el binario actual: **11/11 DOM PASS**, movimiento reducido,
+consola 0 errores/0 avisos y 37 requests HTTP 200. El
+[manifiesto de procedencia](../evidence/binding/browser-final-provenance.json)
+registra el SHA-256 del ejecutable, 46 archivos de fuente/dependencias locales,
+HEAD observado y hashes de los resultados y capturas. Las fuentes y el binario
+no cambiaron durante la prueba; los cinco assets originales coinciden con sus
+hashes declarados. El resultado está en [browser-final.json](../evidence/binding/browser-final.json),
+con capturas [horizontal](../evidence/binding/goal-final-horizontal.png) y
+[vertical reducido](../evidence/binding/goal-final-vertical-reduced.png).
+Se observó `disposed`, MessagePort cerrado y ausencia de los dos procesos propios
+servidor/fixture después del cierre. Los resultados anteriores se conservan.

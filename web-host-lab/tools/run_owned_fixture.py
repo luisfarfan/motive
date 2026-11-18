@@ -279,12 +279,12 @@ def classify(supervision, samples):
             "counter_wrap_possible": True}
 
 
-def invoke_supervisor(supervisor, command, report):
+def invoke_supervisor(supervisor, command, report, **options):
     """An attempted launch is not proof of execution or proof that it never began."""
     report["native_host_execution_attempted"] = True
     report["native_host_executed"] = None
     try:
-        supervision = supervisor.run(command)
+        supervision = supervisor.run(command, **options)
         report["native_host_executed"] = True
         return supervision
     except BaseException as error:
@@ -374,7 +374,9 @@ def main(argv=None):
                       build_report_sha256=sha(regular_bytes(report_path, 2 * 1024**2)),
                       expected_executable_sha256=args.expected_sha256, requested={"width": args.width, "height": args.height,
                       "fps": args.fps, "duration_ms": args.duration_ms, "deadline_seconds": args.deadline_seconds,
-                      "rss_limit_mib": args.rss_limit_mib}, source_identity=build_report.get("source_sha256"), credential_backend=build_report.get("credential_backend"))
+                      "rss_limit_mib": args.rss_limit_mib}, source_identity=build_report.get("source_sha256"), credential_backend=build_report.get("credential_backend"),
+                      collector_sha256={"launcher": sha(regular_bytes(Path(__file__), 1024**2)),
+                                        "supervisor": sha(regular_bytes(LAB / "poc/browser-host/supervisor.py", 1024**2))})
         if args.preflight_only:
             report.update(status="PASS", scope="static_preflight_only", native_host_executed=False)
         else:
@@ -409,7 +411,7 @@ def main(argv=None):
                     data = regular_bytes(path, 2 * 1024**2)
                     write_new(output / name, data)
             report["limits"] = ["Cleanup concerns the observed tree, not proof against hostile process escape.",
-                "ps CPU is a sampled estimate; footprint and GPU are not measured.",
+                "ps CPU remains separately labeled; resource_measurements reports public CPU deltas and physical footprint with coverage limits. GPU is not measured.",
                 "Missing frame metadata remains missing; no host index or PTS is synthesized.",
                 "A changed visible counter is modulo 256 and does not measure every displayed frame."]
         save_json(output / "report.json", report)

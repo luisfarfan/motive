@@ -40,3 +40,39 @@ pruebas de contratos no sustituyen captura o medios decodificados.
 
 - A: baseline remoto verificado y worktree aislado; auditoría inicial registrada.
 - B–J: en ejecución. Resultados y hashes se añadirán al cerrar cada checkpoint.
+
+### B — foco observable (checkpoint)
+
+`h15-focus-01/report.json`: AppKit consultado desde un proceso independiente
+corrobora fixture→Motive→fixture contra active/key de la fixture. No se usa CUA
+ni se cambian preferencias. La petición LaunchServices no cuenta como prueba:
+solo la coincidencia contemporánea permite un marcador. Metadata no prueba píxeles.
+
+La primera toma `h15-focus-capture-b1-01` termina antes de capturar porque la
+fixture anunció ready antes de publicar metadata CG. Se corrige la espera del
+harness; el fallo permanece. La segunda toma de 45 s produce MKV/RTMP locales y
+verifica foco durante las tres fases (23/20/16 observaciones interiores, spans
+12,29/10,60/8,40 s). Cleanup sin errores y owner cerrado normalmente.
+El análisis original queda INCONCLUSIVE: el rectángulo CG cambia al perder foco.
+Se incorpora observación separada de frame/content AppKit para comprobar la
+geometría del productor sin confundirla con el rectángulo de una miniatura.
+No se declara resuelta la captura antes de medir los píxeles por fase.
+
+### C — diagnóstico de audio y cobertura de continuidad (checkpoint)
+
+B1 añade metadata de identidad de aplicación: PID autorizado/observado, cantidad
+de instancias registradas, terminated, consulta independiente del PID y motivo
+exacto. Se conserva al fijar el fallo. No modifica la política de salud, no
+reconecta automáticamente ni acepta otra identidad. Los 116 tests raíz pasan.
+
+`h13-system-audio-1794977342854410000/report.json` repite en orden pilot, RTMP,
+recovery, transitions, persistence y silence sobre B1: seis etapas PASS, sin
+fallo inesperado en reanudación/cola. No abrió cámara ni micrófono. La pérdida
+controlada registra `no_registered_instance` y PID ausente, seguida de recuperación
+explícita. **El fallo intermitente H14 no fue reproducido; no está reparado.**
+
+El verificador ahora comprueba todas las ventanas interiores de 100 ms de tono,
+reanudación y cola a 997 Hz, y rechaza estados failed/disconnected no previstos.
+Conserva las aserciones anteriores y los límites de silencio/pausa. Su contraste
+offline con el medio histórico H14 y el nuevo B1 queda separado en
+`h15-audio-continuity-checker/report.json`; no reescribe aquellos informes.

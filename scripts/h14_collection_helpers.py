@@ -92,7 +92,21 @@ def validate_markers(events, manifest, complete=False):
                 and event.get('window_id') == manifest['fixture']['window_id'], 'Marker identity changed')
         require(event.get('phase') == PHASES[index] and event.get('clock') == 'python.time.monotonic',
                 'Markers must be fixture → studio → fixture, using the named host clock')
-        require(event.get('observation') == 'root_observed_focus_after_cua', 'Focus must be observed by root')
+        if event.get('observation') == 'system_frontmost_application':
+            from h15_focus import corroborate
+            expected = manifest['owner']['pid'] if event['phase'] == 'studio_front' else manifest['fixture']['pid']
+            check = corroborate(event['system_probe'], event['fixture_observation'],
+                                fixture_pid=manifest['fixture']['pid'],
+                                window_id=manifest['fixture']['window_id'], expected_pid=expected)
+            require(check['status'] == 'PASS', 'Independent system focus is not corroborated')
+            anchor = event['clock_anchor']
+            require(anchor['fixture_clock'] == 'NSProcessInfo.systemUptime'
+                    and anchor['host_clock'] == 'python.time.monotonic'
+                    and 0 <= anchor['fixture_clock_s']-event['system_probe']['after_s'] <= 1.5
+                    and 0 <= anchor['host_before_s']-event['host_monotonic'] <= 1.5,
+                    'Independent focus marker is stale or uses another clock')
+        else:
+            require(event.get('observation') == 'root_observed_focus_after_cua', 'Focus must be observed by root')
         require(math.isfinite(event['host_monotonic']) and math.isfinite(event['wall_unix']), 'Invalid marker clock')
         if index:
             require(event['host_monotonic'] > events[index-1]['host_monotonic'], 'Markers must advance')

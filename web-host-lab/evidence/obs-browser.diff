@@ -1,0 +1,61 @@
+diff -ru web-host-lab/.cache/obs-browser-d4db73e7e5d5b51d853177c8cddc796715a8ac84/browser-app.cpp web-host-lab/.cache/obs-browser-08a0ada1d77b7003735823ff07cf1be1fb427ac1/browser-app.cpp
+--- web-host-lab/.cache/obs-browser-d4db73e7e5d5b51d853177c8cddc796715a8ac84/browser-app.cpp	2026-10-28 15:20:28
++++ web-host-lab/.cache/obs-browser-08a0ada1d77b7003735823ff07cf1be1fb427ac1/browser-app.cpp	2026-11-17 16:25:03
+@@ -74,7 +74,7 @@
+ 	CefString errorMessage;
+ 	CefRefPtr<CefValue> optionValue = CefValue::Create();
+ 
+-	constexpr std::array<std::string_view, 20> kBrowserFeaturesToDisable{
++	constexpr std::array<std::string_view, 18> kBrowserFeaturesToDisable{
+ 		"autofill.credit_card_enabled",
+ 		"autofill.enabled",
+ 		"autofill.iban_enabled",
+@@ -91,8 +91,6 @@
+ 		"shopping_list_enabled",
+ 		"side_panel.google_search_side_panel_enabled",
+ 		"side_search.enabled",
+-		"signin.allowed",
+-		"signin.allowed_on_next_startup",
+ 		"translate",
+ 		"url_keyed_anonymized_data_collection.enabled"};
+ 
+@@ -163,6 +161,7 @@
+ 	}
+ 
+ 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
++	command_line->AppendSwitchWithValue("allow-browser-signin", "false");
+ 	command_line->AppendSwitch("disable-extensions");
+ 	command_line->AppendSwitchWithValue("disable-features", disableFeatures);
+ 	command_line->AppendSwitch("hide-crash-restore-bubble");
+diff -ru web-host-lab/.cache/obs-browser-d4db73e7e5d5b51d853177c8cddc796715a8ac84/browser-version.h web-host-lab/.cache/obs-browser-08a0ada1d77b7003735823ff07cf1be1fb427ac1/browser-version.h
+--- web-host-lab/.cache/obs-browser-d4db73e7e5d5b51d853177c8cddc796715a8ac84/browser-version.h	2026-10-28 15:20:28
++++ web-host-lab/.cache/obs-browser-08a0ada1d77b7003735823ff07cf1be1fb427ac1/browser-version.h	2026-11-17 16:25:03
+@@ -2,7 +2,7 @@
+ 
+ #define OBS_BROWSER_VERSION_MAJOR 2
+ #define OBS_BROWSER_VERSION_MINOR 27
+-#define OBS_BROWSER_VERSION_PATCH 5
++#define OBS_BROWSER_VERSION_PATCH 6
+ 
+ #ifndef MAKE_SEMANTIC_VERSION
+ #define MAKE_SEMANTIC_VERSION(major, minor, patch) ((major << 24) | (minor << 16) | patch)
+Only in web-host-lab/.cache/obs-browser-08a0ada1d77b7003735823ff07cf1be1fb427ac1/cmake/macos: Helper.plist.in
+diff -ru web-host-lab/.cache/obs-browser-d4db73e7e5d5b51d853177c8cddc796715a8ac84/cmake/os-macos.cmake web-host-lab/.cache/obs-browser-08a0ada1d77b7003735823ff07cf1be1fb427ac1/cmake/os-macos.cmake
+--- web-host-lab/.cache/obs-browser-d4db73e7e5d5b51d853177c8cddc796715a8ac84/cmake/os-macos.cmake	2026-10-28 15:20:28
++++ web-host-lab/.cache/obs-browser-08a0ada1d77b7003735823ff07cf1be1fb427ac1/cmake/os-macos.cmake	2026-11-17 16:25:03
+@@ -51,6 +51,7 @@
+     PROPERTIES
+       OUTPUT_NAME "${target_output_name}"
+       FOLDER plugins/obs-browser/Helpers
++      MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos/Helper.plist.in"
+       XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.obsproject.obs-studio.helper${helper_plist}
+       XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION ${OBS_BUILD_NUMBER}
+       XCODE_ATTRIBUTE_MARKETING_VERSION ${OBS_VERSION_CANONICAL}
+@@ -58,6 +59,7 @@
+       XCODE_ATTRIBUTE_INFOPLIST_KEY_CFBundleDisplayName "${target_output_name}"
+       XCODE_ATTRIBUTE_INFOPLIST_KEY_LSApplicationCategoryType "public.app-category.video"
+       XCODE_ATTRIBUTE_INFOPLIST_KEY_NSHumanReadableCopyright "(c) 2012-${CURRENT_YEAR} Lain Bailey"
++      XCODE_ATTRIBUTE_INFOPLIST_KEY_LSUIElement YES
+       XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos/entitlements-helper${helper_plist}.plist"
+   )
+ endforeach()

@@ -53,19 +53,38 @@ def wrapper_sources(sdk):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobs', type=int, default=3)
+    parser.add_argument('--build-name', default='h18-native-ephemeral')
+    parser.add_argument('--bridge', action='store_true')
+    parser.add_argument('--mock-keychain', action='store_true')
     args = parser.parse_args()
+    if args.bridge and args.build_name not in {'h18-native-bridge','h18-native-bridge-ephemeral'}:
+        raise ValueError('BRIDGE_NEEDS_SEPARATE_BUILD_ROOT')
+    if args.mock_keychain != args.build_name.endswith('-ephemeral'):
+        raise ValueError('EPHEMERAL_PROFILE_AND_KEYCHAIN_BACKEND_MUST_MATCH')
     if not 1 <= args.jobs <= 8:
         raise ValueError('BUILD_JOBS')
     entry = next(e for e in json.loads((ROOT / 'research/sources.lock.json').read_text())['sources'] if e['id'] == 'cef-obs-7871')
     verified = verify_tree(entry, ('include/', 'libcef_dll/', 'Release/'))
     sdk = ROOT / entry['source']
-    build = ROOT / '.cache/h18-native'
+    if args.build_name not in {'h18-native-diagnostic','h18-native-close-once','h18-native-bridge','h18-native-ephemeral','h18-native-bridge-ephemeral'}:
+        raise ValueError('ISOLATED_BUILD_NAME_REQUIRED')
+    build = ROOT / '.cache' / args.build_name
+    report_name = 'H18-native-' + args.build_name.removeprefix('h18-native-') + '-build'
     build.mkdir(parents=True, exist_ok=True)
     compiler = run(['clang++', '--version']).splitlines()[0]
     flags = ['-std=c++20', '-arch', 'arm64', '-mmacosx-version-min=15.0', '-DCEF_API_VERSION=15000', '-DCEF_USE_SANDBOX', '-DNDEBUG', '-O2', '-fno-rtti', '-fno-strict-aliasing', '-fstack-protector-strong', '-I' + str(sdk)]
+    if args.bridge:
+        flags.append('-DMOTIVE_GOAL_BRIDGE')
+    if args.mock_keychain:
+        flags.append('-DMOTIVE_EPHEMERAL_KEYCHAIN')
     fingerprint = hashlib.sha256(json.dumps([entry['sha256'], compiler, flags]).encode()).hexdigest()[:16]
     objects = build / ('wrapper-' + fingerprint)
-    objects.mkdir(exist_ok=True)
+    if not objects.exists():
+        previous = ROOT / '.cache/h18-native-diagnostic' / ('wrapper-' + fingerprint)
+        if previous.is_dir() and previous != objects:
+            shutil.copytree(previous, objects)
+        else:
+            objects.mkdir()
     sources = wrapper_sources(sdk)
 
     def compile_wrapper(path):
@@ -78,21 +97,48 @@ def main():
         object_paths = list(workers.map(compile_wrapper, sources))
     archive = objects / 'libcef_dll_wrapper.a'
     run(['ar', '-rcs', archive, *object_paths])
-    run(['cargo', 'build', '--offline', '--locked', '--release', '--manifest-path', ROOT / 'poc/frame-bridge/Cargo.toml'])
-    # Byte inventory generated from only three reviewed, repository-owned files.
+    run(['cargo', 'build', '--offline', '--locked', '--release', '--manifest-path', ROOT / 'poc/frame-bridge/Cargo.toml', *(['--features','creator-bridge'] if args.bridge else [])])
+    # Fixed owned fixtures only. Goal assets go through the existing H16 broker.
     generated = build / 'fixture_assets.hpp'
-    rows = ['#pragma once', '#include <map>', '#include <string>', '#include <cstddef>', 'struct Asset { const unsigned char* bytes; size_t size; const char* mime; };']
+    rows = ['#pragma once', '#include <map>', '#include <string>', '#include <cstddef>',
+            'struct Asset { const unsigned char* bytes; size_t size; const char* mime;' + (' bool widget;' if args.bridge else '') + ' };']
+    files = []
+    broker_report = None
+    if args.bridge:
+        sys.path.insert(0, str(ROOT / 'poc/browser-host'))
+        from asset_broker import AssetBroker
+        directory = ROOT.parent / 'element-lab/web-elements/goal-celebration'
+        broker = AssetBroker(directory, 1, 1)
+        manifest_bytes = (directory / 'web-element.json').read_bytes()
+        manifest = json.loads(manifest_bytes)
+        for asset in manifest['assets']:
+            resource = broker.request(broker.origin + '/' + asset['path'])
+            if resource is None:
+                raise ValueError('BROKER_INVENTORY_MISSING')
+            files.append(('widget/' + asset['path'], resource.media_type, resource.data, True))
+        host = ROOT.parent / 'creator-runtime-lab/binding/web'
+        for source, target, mime in [('native-bootstrap.html','index.html','text/html'),('native-bootstrap.mjs','native-bootstrap.mjs','text/javascript'),('native-bootstrap.css','native-bootstrap.css','text/css'),('port-adapter.mjs','port-adapter.mjs','text/javascript')]:
+            files.append(('host/' + target, mime, (host / source).read_bytes(), False))
+        rows.append('inline constexpr unsigned char GoalManifestJson[]={' + ','.join(str(v) for v in manifest_bytes) + '};')
+        rows.append('inline constexpr size_t GoalManifestJsonSize=sizeof(GoalManifestJson);')
+        rows.append('inline constexpr char GoalDefinitionHash[]="' + hashlib.sha256(manifest_bytes).hexdigest() + '";')
+        broker_report = dict(broker.report)
+        broker.close()
+    else:
+        for name, mime in [('index.html','text/html'),('fixture.css','text/css'),('fixture.js','text/javascript')]:
+            files.append((name,mime,(ROOT / 'poc/fixtures' / name).read_bytes(),False))
     entries = []
-    for i, (name, mime) in enumerate([('index.html', 'text/html'), ('fixture.css', 'text/css'), ('fixture.js', 'text/javascript')]):
-        data = (ROOT / 'poc/fixtures' / name).read_bytes()
+    for i, (name, mime, data, widget) in enumerate(files):
         rows.append(f'inline constexpr unsigned char asset{i}[]={{' + ','.join(str(v) for v in data) + '};')
-        entries.append(f'{{"motive://i1-g1/{name}",{{asset{i},sizeof(asset{i}),"{mime}"}}}}')
+        extra = (',' + str(widget).lower()) if args.bridge else ''
+        entries.append(f'{{"motive://i1-g1/{name}",{{asset{i},sizeof(asset{i}),"{mime}"{extra}}}}}')
     rows.append('inline const std::map<std::string,Asset> Assets={' + ','.join(entries) + '};')
     generated.write_text('\n'.join(rows) + '\n')
+    inventory = [{'path': name, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(), 'widget': widget} for name,mime,data,widget in files]
     native = ROOT / 'poc/browser-host/native'
     native_flags = [*flags, '-I' + str(build), '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-missing-field-initializers']
     own_objects = []
-    for filename in ['main.mm', 'fixture.mm', 'helper.cc']:
+    for filename in ['main.mm', 'fixture.mm', 'helper.cc', *(['renderer_bridge.cc'] if args.bridge else [])]:
         obj = build / (filename + '.o')
         run(['clang++', *native_flags, '-c', native / filename, '-o', obj])
         own_objects.append(obj)
@@ -111,9 +157,9 @@ def main():
         shutil.copytree(sdk / 'Release/Chromium Embedded Framework.framework', framework, symlinks=True)
     link_flags = ['-arch', 'arm64', '-mmacosx-version-min=15.0', '-Wl,-dead_strip', '-framework', 'AppKit', '-framework', 'Cocoa', '-framework', 'IOSurface', '-framework', 'Security', '-framework', 'SystemConfiguration', '-lresolv', '-lpthread']
     rust_lib = ROOT / 'poc/frame-bridge/target/release/libmotive_frame_bridge.a'
-    run(['clang++', *own_objects[:2], archive, rust_lib, *link_flags, '-o', executable])
+    run(['clang++', *own_objects[:2], *own_objects[3:], archive, rust_lib, *link_flags, '-o', executable])
     helper = build / 'helper'
-    run(['clang++', own_objects[2], archive, *link_flags, '-o', helper])
+    run(['clang++', own_objects[2], *own_objects[3:], archive, *link_flags, '-o', helper])
 
     def plist(path, name, identifier):
         path.write_bytes(plistlib.dumps({'CFBundleName': name, 'CFBundleDisplayName': name, 'CFBundleExecutable': name, 'CFBundleIdentifier': identifier, 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.1.0', 'CFBundleVersion': '18', 'LSMinimumSystemVersion': '15.0', 'LSUIElement': True, 'NSHighResolutionCapable': True, 'NSPrincipalClass': 'NSApplication'}))
@@ -163,8 +209,8 @@ def main():
         assert digest(binary) == digest(inspection_copy)
         inspections.append({'path': str(binary.relative_to(ROOT)), 'sha256': digest(binary), 'file': run(['file', binary]).strip(), 'dependencies': run(['otool', '-L', inspection_copy]), 'dependency_inspection_sha256': digest(inspection_copy), 'code_signature': run(['codesign', '-dvv', binary])})
     # No executable is loaded to inspect its architecture or linkage.
-    report = {'status': 'PASS', 'native_executed': False, 'native_execution_gate': 'BLOCKED', 'sandbox_verified': False, 'bundle_signed_for_distribution': False, 'development_ad_hoc_sealed': True, 'signature_verification': signature_verification, 'pre_sign_framework_sha256': pre_sign_framework_sha256, 'cef': entry, 'verified_upstream_files': verified, 'wrapper_translation_units': len(sources), 'compiler': compiler, 'build_seconds': round(time.monotonic() - started, 3), 'framework_sha256': digest(framework / 'Chromium Embedded Framework'), 'binaries': inspections, 'source_sha256': {str(p.relative_to(ROOT)): digest(p) for p in sorted(native.iterdir()) if p.is_file()}, 'frame_bridge_sha256': digest(ROOT / 'poc/frame-bridge/src/lib.rs')}
-    (ROOT / 'evidence/H18-native-build.json').write_text(json.dumps(report, indent=2) + '\n')
+    report = {'status': 'PASS', 'profile': 'owned-goal-bridge' if args.bridge else 'owned-smoke', 'credential_backend': 'chromium-use-mock-keychain' if args.mock_keychain else 'chromium-default', 'native_executed': False, 'native_execution_gate': 'NOT_EVALUATED_CANDIDATE' if args.bridge else 'AUTHORIZED_OWNED_DIAGNOSTIC_NOT_RUN_BY_BUILD', 'sandbox_verified': False, 'bundle_signed_for_distribution': False, 'development_ad_hoc_sealed': True, 'signature_verification': signature_verification, 'pre_sign_framework_sha256': pre_sign_framework_sha256, 'cef': entry, 'verified_upstream_files': verified, 'wrapper_translation_units': len(sources), 'compiler': compiler, 'build_seconds': round(time.monotonic() - started, 3), 'framework_sha256': digest(framework / 'Chromium Embedded Framework'), 'binaries': inspections, 'fixture_inventory': inventory, 'broker_report': broker_report, 'source_sha256': {str(p.relative_to(ROOT)): digest(p) for p in sorted(native.iterdir()) if p.is_file()}, 'frame_bridge_sha256': digest(ROOT / 'poc/frame-bridge/src/lib.rs')}
+    (ROOT / 'evidence' / (report_name + '.json')).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ['status', 'native_executed', 'native_execution_gate', 'verified_upstream_files', 'wrapper_translation_units', 'build_seconds']}))
     print(bundle)
 

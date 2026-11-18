@@ -15,11 +15,12 @@
 inline uint64_t MonotonicNs() {
   return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
 }
-// Two bounded disk samples, one leased CPU frame; no queue or extra pixel copy.
+// Two bounded disk samples plus an optional fixed visual sample; one lease.
+// No queue or extra pixel copy; optional capture is a fixture observation only.
 // Files live in a fresh 0700 directory owned by this launch. No package paths.
 class FrameConsumer {
  public:
-  FrameConsumer(MotiveFrameBridge* mailbox,const std::string& root):mailbox_(mailbox),root_(root) {
+  FrameConsumer(MotiveFrameBridge* mailbox,const std::string& root,std::atomic<uint64_t>* visual_after=nullptr):mailbox_(mailbox),root_(root),visual_after_(visual_after) {
     dir_=open(root.c_str(),O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);
     if(dir_<0)return;
     first_=openat(dir_,"first.bgra",O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
@@ -28,13 +29,13 @@ class FrameConsumer {
     valid_=true;
     thread_=std::thread([this](){Run();});
   }
-  ~FrameConsumer(){Stop();if(first_>=0)close(first_);if(latest_>=0)close(latest_);if(dir_>=0)close(dir_);}
+  ~FrameConsumer(){Stop();if(first_>=0)close(first_);if(latest_>=0)close(latest_);if(visual_>=0)close(visual_);if(dir_>=0)close(dir_);}
   bool valid()const{return valid_;}
   void Stop(){stop_.store(true);if(thread_.joinable())thread_.join();}
   bool WriteReport(uint64_t callbacks,uint64_t busy,uint64_t invalid,uint64_t max_publish_ns) {
     Stop();
     if(!seen_||failed_)return false;
-    return WriteMetadata("first.json",first_meta_)&&WriteMetadata("latest.json",latest_meta_)&&WriteTelemetry(callbacks,busy,invalid,max_publish_ns);
+    return (!visual_seen_||WriteMetadata("visual.json",visual_meta_))&&WriteMetadata("first.json",first_meta_)&&WriteMetadata("latest.json",latest_meta_)&&WriteTelemetry(callbacks,busy,invalid,max_publish_ns);
   }
  private:
   bool WritePixels(int fd,const uint8_t* bytes,size_t n) {
@@ -69,7 +70,13 @@ class FrameConsumer {
           bool ok=true;
           if(!seen_){ok=WritePixels(first_,pixels,size_t(meta.length));first_meta_=meta;}
           ok=ok&&WritePixels(latest_,pixels,size_t(meta.length));
-          latest_meta_=meta;++seen_;consumed=true;if(!ok)failed_=true;
+          latest_meta_=meta;++seen_;consumed=true;
+          const auto threshold=visual_after_?visual_after_->load():0;
+          if(!visual_seen_&&threshold&&meta.observed_ns>=threshold){
+            visual_=openat(dir_,"visual.bgra",O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
+            ok=ok&&visual_>=0&&WritePixels(visual_,pixels,size_t(meta.length));visual_meta_=meta;visual_seen_=true;
+          }
+          if(!ok)failed_=true;
         }
         motive_frames_release(lease);
         const auto transfer=MonotonicNs()-start;
@@ -81,12 +88,13 @@ class FrameConsumer {
   }
   MotiveFrameBridge* mailbox_;
   std::string root_;
-  int dir_=-1,first_=-1,latest_=-1;
-  bool valid_=false,failed_=false;
+  std::atomic<uint64_t>* visual_after_;
+  int dir_=-1,first_=-1,latest_=-1,visual_=-1;
+  bool valid_=false,failed_=false,visual_seen_=false;
   std::atomic<bool> stop_{false};
   std::thread thread_;
   uint64_t seen_=0,max_disk_consumer_ns_=0;
-  MotiveFrameMetadata first_meta_{},latest_meta_{};
+  MotiveFrameMetadata first_meta_{},latest_meta_{},visual_meta_{};
   struct Sample {uint64_t index,observed,acquired,transfer;};
   std::vector<Sample> samples_;
 };

@@ -1,9 +1,8 @@
-# H18 native host: prepared, not executed
+# H18 native host: real smoke and independent Goal bridge
 
 H18 links the existing H16 fixture into an ARM64 AppKit development app with the
 matching upstream wrapper, framework and five helper roles. There is no Qt,
-Production, libobs, or second audiovisual clock in this process. **CEF execution,
-real OnPaint/alpha, process isolation and Chromium performance remain BLOCKED.**
+Production, libobs, or second audiovisual clock in this process. **The owner authorized local Motive fixture execution. Real OnPaint/BGRA and half-alpha pixels passed; orderly shutdown initially failed in Chromium Keychain work. The subsequent ephemeral test-backend smoke exits cleanly. OS confinement, third-party execution and performance acceptance remain separate unopened gates.**
 
 ## Reproduce only authorized work
 
@@ -28,7 +27,7 @@ no tool is installed globally. The matching pin remains:
 - Archive SHA-256 `0343233fc462384c2f1f58a4222028bc6171f05948a822241f89df2faa7cee8d`.
 - Matching source revision `cf60f42d20a8c68c74bc790cf5ade0de8acbbcd3`.
 
-Output: `.cache/h18-native/MotiveBrowserFixture.app`. Input framework files are
+The original immutable output remains `.cache/h18-native/MotiveBrowserFixture.app`. New diagnostic and ephemeral builds use separate roots. Input framework files are
 verified byte-for-byte before local ad-hoc sealing. Its downloaded signature had
 an incomplete resource seal; that initial failure is retained. The local copy's
 nested dylibs, framework, helpers and outer app are sealed inside-out without
@@ -45,9 +44,7 @@ passes the callback's complete BGRA8 image to a small trusted C ABI. That ABI
 calls **the existing H16 Rust Mailbox**. The Rust contract remains safe Rust; only
 `poc/frame-bridge` contains the documented raw-pointer boundary. The callback
 copies synchronously, and no CEF pointer survives it. Input index/generation,
-epoch, stride and monotonic observation time are carried to the consumer. Alpha
-is explicitly **unverified**, until the existing native pixel checker observes
-real half-alpha fixture pixels. Observation time never becomes audiovisual PTS.
+epoch, stride and monotonic observation time are carried to the consumer. Metadata conservatively keeps alpha unverified. The separate real native pixel report verifies the original fixture’s transparent and half-alpha patches; that observation does not certify arbitrary content or a libobs upload. Observation time never becomes audiovisual PTS.
 
 Logical pixel residency is one leased frame + one pending frame + one transient
 callback copy: at most three complete owned buffers. At 640×360 that is
@@ -70,12 +67,12 @@ hides/closes owned browsers, waits for `OnBeforeClose`, then exits the CEF loop.
 The consumer is joined before state destruction; `CefShutdown` runs after browser
 references are cleared. An early initialization failure also joins the consumer.
 The five-second close task is cooperative; the external supervisor is the hard
-stop. Native crash, resize, final-close and helper cleanup are unexecuted.
+stop. Default-backend real runs reached final browser close and loop return, then stalled at CefShutdown; the subsequent ephemeral test-backend smoke closed cleanly. The supervisor removed every observed owned process after its deadline. Resize, repeated restart and crash acceptance remain untested.
 
 A viewport change/restart currently means a **new process/generation**, with a new
 origin and cache directory. There is no unproved `WasResized` ordering shortcut.
 The executable accepts only the three reviewed dimensions, 30/60 FPS and a short
-bounded duration, always the original three embedded H16 fixture files. It
+bounded duration, with an explicit build profile: original three-file smoke or the fixed owned Goal inventory. It
 accepts no URL, package, script, device or IPC endpoint. It removes inherited
 environment data before loading CEF. The trusted launcher also closes inherited
 file descriptors and passes a minimal environment. This is not OS confinement.
@@ -93,9 +90,7 @@ This supervisor is therefore **not a sandbox for hostile processes**.
 
 The existing broker is reused unchanged and continues denying third-party
 execution. Native fixture bytes are generated from a fixed three-file inventory;
-there is no path resolver or network fallback. The generalized broker-to-native
-inventory bridge and native event dispatcher remain pending. The Creator Runtime
-MessagePort adapter is separately tested; this app does not yet execute it.
+there is no path resolver or network fallback. The separate Goal candidate now generates its immutable inventory through the existing broker, with exact host/widget asset separation. It links the typed native dispatcher described below; its live transport result must be assessed separately.
 
 `src/adapter.rs` supplies tested admission decisions for future libobs upload,
 repeat or blank: exact source generation/epoch, sequence, monotonic age, aggregate
@@ -104,30 +99,24 @@ OBS calls and creates no textures. Actual process-to-Production frame transport,
 graphics-context ownership, uploads and alpha blending still require H17's handoff
 and native tests. Neither this policy nor JavaScript replies establish libobs draw.
 
-## Concrete exception scope for owner review
+## Authorized native observations and shutdown diagnosis
 
-**Not granted and not executed.** The ready artifact is the `.app` above; its
-current exact executable SHA-256 is `38a1f280f8c539b144ea6e0b9e6b28b336efca79e6605011484cd55cf0179d14` (also in the build report).
-The proposed first exception covers only one invocation of that exact local app,
-its bundled helpers, the embedded Motive-owned HTML/CSS/JS, **640×360, 30 FPS,
-5 seconds**, no inputs/devices, no package content, no external URLs and no
-recording/streaming/Production. Run under the external supervisor with a fresh
-0700 root, minimal environment, closed inherited descriptors, a 10-second hard
-deadline and the predeclared 2048 MiB emergency tree-RSS limit. Preserve exit,
-observed process tree, first/latest BGRA, telemetry and cleanup evidence.
+The owner explicitly authorized the original SHA-256 `38a1f280f8c539b144ea6e0b9e6b28b336efca79e6605011484cd55cf0179d14`: 640×360, 30 FPS, 5 seconds under the external 10-second deadline and 2048 MiB emergency RSS limit, fresh 0700 root and minimal environment. The original bundle remains intact. `AGENTS.md` now permits local owned Motive native tests while retaining third-party, production and security boundaries.
 
-Prerequisites left before that invocation: the owner's explicit, narrowly scoped
-repository-policy exception; rechecking the exact sealed bundle hash and static
-signature; and review of the launcher configuration above. Local development
-sealing is complete. Developer ID, hardened-runtime/JIT role entitlements,
-notarization, Apple App Sandbox, real browser-process confinement and third-party
-execution are **not prerequisites that this narrow smoke test claims to satisfy**:
-they remain separate unopened gates. If startup is rejected or sandbox setup
-fails, stop and retain the failure; do not disable the sandbox or alter macOS
-permissions. Real frames/alpha and helper cleanup must pass before expanding to
-960×540, 540×960, 60 FPS or benchmarks.
+[The original run](../evidence/H18-native-smoke-run.json) produced real first/latest BGRA and changing visual counters. [The pixel check](../evidence/H18-native-smoke-pixels.json) observes transparent corners, half-red premultiplied BGRA and the premultiplication bound. The run failed its deadline; cleanup removed all observed owned identities. Neither frames nor cleanup changes the orderly-close failure.
 
-The request is necessarily explicit because `AGENTS.md` says “Para cualquier
-trabajo de navegador usar únicamente proxima-browser MCP” and the H18 task
-specifically requires owner approval before native CEF execution. Building and
-signing this local app did not grant that exception.
+The diagnostic build preserves a bounded `lifecycle.jsonl` and writes frames/telemetry before shutdown. It reached `before_close`, `loop_return`, `consumer_joined`, `frame_report_written`, `shutdown_enter`, but no `shutdown_return`. A second implementation makes close/quit idempotent and removes the post-loop quit; [that run still failed](../evidence/H18-native-close-once-run.json). [Pinned Chromium source and hashes](../../creator-runtime-lab/evidence/binding/native-keychain-research.json) support the diagnosis. The retained owned-process sample shows a worker blocked in `SecItemCopyMatching` → `SecKeychainItemCopyContent` → SecurityServer decrypt. Opaque CEF nearest-export symbols are not treated as exact internal call names.
+
+The isolated ephemeral smoke root is `.cache/h18-native-ephemeral`, compiled with the matching Chromium public `use-mock-keychain` switch via trusted `OnBeforeCommandLineProcessing`. Its profile explicitly reports `credential_backend: chromium-use-mock-keychain`. Chromium uses its test Keychain backend for this ephemeral fixture; this is **not evidence of real Keychain denial or an OS sandbox**. No credential is read by the adapter, no Keychain setting/permission is changed, and no sandbox bypass is enabled. The report [H18-native-ephemeral-build.json](../evidence/H18-native-ephemeral-build.json) records the exact artifact. [The subsequent supervised ephemeral smoke](../evidence/H18-native-ephemeral-smoke/report.json) passed real pixels, orderly exit0, shutdown return and zero observed remaining processes. This confirms the controlled test-backend configuration only; default-backend failures are retained.
+
+## Fixed native Goal bridge
+
+The separate `.cache/h18-native-bridge-ephemeral` profile embeds the unchanged Goal HTML/CSS/modules and the reviewed fixed outer bootstrap. The browser process owns an offline `motive-creator-binding` grant and the existing Show Control simulation ingress; its C ABI emits only admitted H16 visual envelopes. It never exposes Production or gives JavaScript an owner-grant constructor.
+
+`CefProcessMessage` checks actual browser identity, process direction, main frame, exact generation URL, argument count and byte limits. The renderer installs its native status function only in the trusted outer context. It constructs V8 data values and calls fixed functions; there is no payload-built JavaScript, eval or ExecuteJavaScript. The opaque sandboxed iframe receives the unchanged visual message through its private MessagePort. Statuses are finite schema-checked observations and cannot establish libobs draw or native terminal outcome.
+
+A trusted shared monotonic origin lets the renderer recheck expiry at arrival; queued IPC cannot freeze the browser's sent time. Context release invalidates the capability. Rust tests and a linked C++ boundary/FFI test cover stale generation, role/frame/URL mismatch, excess size, delayed expiry, duplicate acknowledgements and the original event projection without loading CEF. The compiled bridge is separately reviewed; static success does not prove delivery.
+
+For a future live Goal run, fixed lifecycle markers retain bootstrap, ready, dispatch, acknowledgements and visual completion, without raw renderer diagnostics. An optional third bounded `visual.bgra` sample is acquired about 300 ms after the validated active observation using the same owned lease, with no extra callback copy. Its pixels must be inspected independently of those observations. No original smoke alpha patch is assumed for the Goal profile.
+
+Developer ID, hardened runtime/JIT release entitlements, notarization, Apple App Sandbox, per-role confinement and third-party execution remain separate gates. No repeated lifecycle, benchmark matrix, Production/libobs integration or recordings are certified here.

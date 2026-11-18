@@ -1,6 +1,6 @@
 {
   "status": "PARTIAL",
-  "native_cef_executed": false,
+  "native_cef_executed": true,
   "sealed_host_sha256": "38a1f280f8c539b144ea6e0b9e6b28b336efca79e6605011484cd55cf0179d14",
   "bundle_regular_file_bytes": 325227969,
   "gates": [
@@ -40,9 +40,13 @@
       "evidence": "H18-node.log"
     },
     {
-      "gate": "CefInitialize/AppKit loop/OnPaint/alpha/real resize/restart/helper cleanup",
-      "status": "BLOCKED",
-      "reason": "explicit native browser exception not granted"
+      "gate": "real native smoke OnPaint and half-alpha",
+      "status": "PASS",
+      "evidence": [
+        "H18-native-smoke-run.json",
+        "H18-native-smoke-pixels.json"
+      ],
+      "scope": "original owned640x36030 fixture; not lifecycle or sandbox acceptance"
     },
     {
       "gate": "third-party OS/process sandbox",
@@ -57,12 +61,38 @@
     {
       "gate": "native Web Element dispatcher/bootstrap",
       "status": "PARTIAL",
-      "reason": "separate typed/JS adapter; not connected to CEF fixture"
+      "reason": "native candidate now compiled and authenticated pure boundary/FFI tested; live delivery pending",
+      "evidence": [
+        "H18-native-bridge-build.json",
+        "H18-native-bridge-policy.log"
+      ]
     },
     {
       "gate": "Production/libobs texture upload + MKV/RTMP",
       "status": "BLOCKED",
-      "reason": "no H17 handoff/authorization; no native execution"
+      "reason": "no H17 handoff/integration; own native smoke does not certify libobs"
+    },
+    {
+      "gate": "default Chromium orderly shutdown",
+      "status": "FAIL",
+      "evidence": [
+        "H18-native-diagnostic-run.json",
+        "H18-native-close-once-run.json"
+      ],
+      "reason": "CefShutdown waits while worker blocked in real Keychain operation; ephemeral test-backend candidate separate"
+    },
+    {
+      "gate": "observed native process cleanup after deadline",
+      "status": "PASS",
+      "evidence": "H18-native-close-once-run.json",
+      "scope": "observed own PID+birth identities only; not confinement"
+    },
+    {
+      "gate": "ephemeral mock-Keychain owned smoke orderly close",
+      "status": "PASS",
+      "evidence": "H18-native-ephemeral-smoke/report.json",
+      "scope": "real CEF one640x36030 run, exit0, shutdown_return, observed tree cleanup; test credential backend only"
     }
-  ]
+  ],
+  "native_authorization": "owner granted local owned Motive fixture testing; original hash scope preserved in authorization evidence"
 }

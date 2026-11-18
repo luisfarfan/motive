@@ -1,8 +1,6 @@
 # Performance protocol — checkpoint J
 
-**BLOCKED: native host was not executed.** CPU, RSS/footprint per tree, GPU, first
-frame, actual FPS, load/resize/shutdown latency, repeated/dropped frames and orphan
-counts are all NOT_EVALUATED. No percentage improvement over OBS is reported.
+**BLOCKED: the required benchmark matrix has not run.** Authorized five-second native diagnostics produced real pixels, raw telemetry and supervisor RSS/CPU observations, but initially failed orderly shutdown. Those diagnostics are not benchmark acceptance. Footprint/GPU, repeated matrix trials and per-scenario latency/FPS statistics remain NOT_EVALUATED. No percentage improvement over OBS is reported.
 `protocol.json` fixes scenarios, order and gates before measurement. A failure at
 60 FPS cannot erase a 30 FPS result. Keep raw failed trials and the same limits.
 
@@ -37,15 +35,13 @@ frame telemetry rows. It separates accepted mailbox paints, coalesces, busy and
 invalid callbacks, observed/acquired timestamps, maximum callback publish time,
 and disk-consumer duration. Publish duration includes gate/lock/copy overhead;
 disk-consumer duration includes file writes and lease release. Neither is an
-isolated memcpy benchmark or libobs upload time. No CEF sample has been collected.
+isolated memcpy benchmark or libobs upload time. Authorized native diagnostic samples are retained in separate run reports; they are not substituted for this matrix.
 
 The supervisor observes public process identity, RSS and `ps %cpu`, and applies
 external deadline/cancel/RSS termination. `ps %cpu` is the platform's reported
 statistic, not the requested CPU-time delta sampler. Footprint, GPU, load/DOM and
-full resize/shutdown timestamps, pixel hashes/counter analysis and repeated native
-texture draws remain unimplemented/unmeasured. The smoke app accepts short runs;
-the full 60-second/soak/scenario harness still needs native authorization and
-implementation. [H18-benchmark-status.json](../evidence/H18-benchmark-status.json)
+full resize observations and repeated native texture draws remain unimplemented/unmeasured. Diagnostic lifecycle timestamps and independent pixel hashes/counter analysis are now retained. The smoke app accepts short runs;
+the full 60-second/soak/scenario harness still needs implementation and prerequisite gates. [H18-benchmark-status.json](../evidence/H18-benchmark-status.json)
 keeps every Chromium metric null and every scenario BLOCKED. Non-browser supervisor
 results and synthetic C ABI cycles are not substituted for Chromium measurements.
 

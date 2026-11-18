@@ -1,8 +1,7 @@
 # H18 security checkpoint
 
 **Third-party execution BLOCKED.** The compiled fixture has no package loader and
-serves only Motive's three original embedded files. Native CEF execution has not
-been authorized or performed. Static checks, typed contracts and process tests
+serves only a fixed Motive-owned inventory (smoke or reviewed Goal profile). The owner authorized local fixture execution; original smoke produced real frames but stalled during shutdown in a Chromium Keychain task. The subsequent explicit test-Keychain-backend smoke passed orderly close and observed cleanup. Static checks, typed contracts and process tests
 have distinct scopes below; none certifies Chromium confinement.
 
 ## Primary evidence
@@ -42,9 +41,9 @@ it does not claim a release configuration or JIT acceptance.
 | Browser process | Separate executable, minimal environment, fixed content inventory | **BLOCKED:** remains a privileged attack surface; no Apple App Sandbox or proved HOME/Keychain/egress boundary |
 | GPU process | Matching role helper and framework; no accelerated paint retained | **BLOCKED:** observe sandbox, GPU resources and teardown; matching JIT entitlement is research only |
 | Network/service processes | Generic/role helpers bundled; page requests deny external inventory misses | **BLOCKED:** actual process roles, DNS/background services and browser-mediated networking need observation |
-| Helpers | Generic, Alerts, GPU, Plugin, Renderer match SDK suffix list; local signatures verify | **PARTIAL:** static packaging passes; role launch, sandbox, JIT, crash and zero remaining helpers unexecuted |
+| Helpers | Generic, Alerts, GPU, Plugin, Renderer match SDK suffix list; local signatures verify | **PARTIAL:** static packaging passes; actual helpers launched and supervisor observed-tree cleanup passed after deadline; effective sandbox/JIT/crash acceptance remains unverified |
 | Filesystem | Broker descriptor-relative validation/no-follow; native fixture has immutable arrays; private output directory | Broker tests **PASS**; **BLOCKED** native direct-file access, browser privilege and process filesystem policy |
-| Keychain | No credentials, Keychain calls, secret payloads or personal profile in adapter | **BLOCKED:** absence of adapter API is not denial of OS access by Chromium/browser process |
+| Keychain | The real default Chromium path reached SecItemCopyMatching and blocked shutdown; no raw credential values were captured. New ephemeral profiles select official use-mock-keychain | **FAIL** default shutdown dependency; **BLOCKED** real Keychain isolation. Test backend avoidance is not OS denial |
 | HTTP/HTTPS/external navigation | Exact inventory membership, initial main-frame URL only, redirect denial, no fallback | **PARTIAL** compiled policy; **BLOCKED** actual request/redirect/background egress observations |
 | Localhost/LAN/link-local | All non-inventory schemes/URLs rejected in broker, including loopback cases | Broker tests **PASS**; **BLOCKED** native requests, DNS resolution and background network paths |
 | WebSocket | CSP connect-src none, no network request resource fallback | **BLOCKED:** CEF network/WebSocket path denial and OS egress cannot be inferred from CSP |
@@ -53,13 +52,13 @@ it does not claim a release configuration or JIT acceptance.
 | Popups / unmanaged windows | Popup callback denies; non-primary clients close immediately | **PARTIAL** compile; **BLOCKED** actual popup/new-window/task cleanup |
 | Devices and permissions | Media callback cancels, permission prompt denies; no device entitlements or usage prompts added | **BLOCKED:** real API denials and absence of TCC prompts must be observed without changing permissions |
 | Clipboard | No host clipboard bridge, CSP/permission policy, permission prompt denies | **BLOCKED:** browser read/write denial and activation paths untested |
-| IPC | Existing typed Rust gate enforces size, sequence, generation, allowlists, rate/deadline | Contract tests **PASS**; native authenticated dispatcher and peer binding **PARTIAL**; no Production/MCP exposed to JS |
+| IPC | Existing typed Rust gate enforces size, sequence, generation, allowlists, rate/deadline | Contract tests **PASS**; native browser/process/frame/generation/URL dispatcher now compiled and pure-boundary tested; live transport **NOT_EVALUATED**; no Production/MCP exposed to JS |
 | Cookies/profiles | Fresh origin per generation, private root cache, new in-memory request context | **BLOCKED:** prove no reuse/persistence/service worker contamination; new context is not a sandbox |
-| JIT | Matching renderer/GPU entitlement references recorded; no broad exceptions added | **NOT_EVALUATED:** no native JS or hardened release test; do not add unsigned-executable-memory/library-validation exceptions speculatively |
+| JIT | Matching renderer/GPU entitlement references recorded; no broad exceptions added | **PARTIAL:** original own JS visibly animated; no hardened release/JIT role acceptance; do not add unsigned-executable-memory/library-validation exceptions speculatively |
 | CPU/RSS/deadline | External supervisor tests terminate owned Python trees; CEF callback mailbox bounded | Non-browser tests **PASS**; Chromium exhaustion/whole-tree cost **BLOCKED**; footprint/GPU null |
-| Process crash/escape | PID+microsecond birth tracking; group isolation; finally cleans observed escaped child after exception | Owned fixture tests **PASS**; malicious unobserved escape and CEF helpers **BLOCKED**; polling is not confinement |
-| Close/restart | Native final-close flow compiled, Rust generations/revocation tested; fresh origin/root required | **PARTIAL:** no live native final-close/100 cycles; no replay, no reuse of revoked admission |
-| Alpha/frame ownership | C++↔Rust copied callback bytes, one lease, bounded coalescing tested without CEF | ABI/ownership **PASS**; actual OnPaint, premultiplication and libobs **BLOCKED** |
+| Process crash/escape | PID+microsecond birth tracking; group isolation; finally cleans observed escaped child after exception | Owned fixture tests **PASS**; observed CEF helper cleanup after deadline **PASS**; malicious unobserved escape **BLOCKED**; polling is not confinement |
+| Close/restart | Native final-close flow compiled, Rust generations/revocation tested; fresh origin/root required | **FAIL** default Chromium Keychain shutdown; **PASS** one ephemeral test-backend close/cleanup; repeated cycles remain separate evidence; no replay/reuse of revoked admission |
+| Alpha/frame ownership | C++↔Rust copied callback bytes, one lease, bounded coalescing tested without CEF | ABI/ownership **PASS**; actual OnPaint and original half-alpha smoke **PASS**; Goal native pixels and libobs remain separate gates |
 
 No `no_sandbox=true`, private sandbox APIs, remote debugging, external browser
 connection or global HTTP server is used. No third-party package was executed.
@@ -69,14 +68,9 @@ processes, including zombies, and retains structured failure state.
 
 ## Required next evidence
 
-First, obtain the narrow owned-fixture exception described in
-[h18-native-host.md](h18-native-host.md). On that exact hash observe one native
-launch, first/latest decoded BGRA and alpha patches, counter changes, orderly
-close and all helper identities disappearing. Any failed startup/policy check
-stays a failure; no sandbox-disabled fallback.
+The owned-fixture exception has been granted and native pixels observed. The explicit ephemeral test-Keychain backend passed shutdown_return/exit0 and observed cleanup. Expansion requires retaining the same bounded supervision and evaluating each result separately. Retain all default-backend failures. Every failed startup/policy check stays a failure; there is no sandbox-disabled fallback. See [the native report](h18-native-host.md).
 
 After this smoke test, actual OS confinement of the browser process and every
 relevant role remains a separate design/verification requirement. Then use
 controlled malicious fixtures for each surface above, quotas and process escape,
-repeated lifecycle and contamination tests. Third-party imports, native Goal
-Celebration and Production integration cannot be inferred from any earlier pass.
+repeated lifecycle and contamination tests. Third-party imports, native Goal transport/draw and Production integration cannot be inferred from any earlier pass.

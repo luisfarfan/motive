@@ -270,3 +270,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(feature = "creator-bridge")]
+pub mod goal_binding;

@@ -25,7 +25,7 @@ They are not vendored, published, executed, or installed into Motive.
 H18 now supplies a linked ARM64 AppKit development bundle with the pinned CEF
 wrapper/framework/helpers, local ad-hoc seals, a C ABI to the existing Rust
 mailbox, a bounded consumer, future libobs admission policy and an external
-supervisor tested with owned non-browser processes. **CEF remains unexecuted.**
+supervisor tested with owned non-browser processes. **Authorized native smoke produced real BGRA/alpha; its initial shutdown failed and is diagnosed separately.** A separate fixed Goal candidate now includes the typed CefProcessMessage bridge. See the current reports before inferring any lifecycle pass.
 
 Run `python3 web-host-lab/tools/verify_h18.py` for build/static checks and
 non-browser tests. Read [the artifact and scoped execution gate](docs/h18-native-host.md),

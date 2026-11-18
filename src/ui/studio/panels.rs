@@ -254,6 +254,10 @@ impl Studio {
                     )))
                     .overflow_y_scroll(),
             )
-            .child(label(self.message.clone(), p.secondary))
+            .child(feedback_label(
+                "panel-feedback",
+                self.message.clone(),
+                p.secondary,
+            ))
     }
 }

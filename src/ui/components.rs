@@ -19,6 +19,17 @@ pub(super) fn label(text: impl Into<SharedString>, color: impl Into<Hsla>) -> Di
         .text_color(color.into())
         .child(text.into())
 }
+/// Feedback text needs a stable, distinct ID to appear and update in native AX.
+pub(super) fn feedback_label(
+    id: impl Into<ElementId>,
+    text: impl Into<SharedString>,
+    color: impl Into<Hsla>,
+) -> Div {
+    div()
+        .text_size(px(metrics::SECONDARY))
+        .text_color(color.into())
+        .child(Text::new(id.into(), text.into()))
+}
 pub(super) fn dot(color: impl Into<Hsla>) -> Div {
     div()
         .flex_none()

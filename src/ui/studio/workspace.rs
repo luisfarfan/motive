@@ -56,6 +56,6 @@ impl Render for Studio {
                         .child(row().h(px(36.)).flex_none().px(px(14.)).border_t_1().border_color(rgba(0xffffff13)).child(label("Ajustar",rgb(0xa2a7b0))).child(div().flex_1()).child(label(encoder,rgb(0xa2a7b0))).when(width>=1200.,|d|d.child(label(if video_fault { "Video no disponible".into() } else { format!("{} FPS configurados",status["video"]["fps"]) },rgb(0xa2a7b0))))))
                     .child(col().id("layers-scroll").overflow_y_scroll().flex_1().min_h_0().child(self.layers(cx))))
                 .child(col().w(px(rail)).h_full().border_l_1().border_color(p.line).px(px(18.)).child(self.scenes(rail,&status,cx)).child(self.audio(&status,cx))))
-            .child(row().h(px(24.)).flex_none().px(px(24.)).border_t_1().border_color(p.line).child(label(self.message.clone(),p.secondary).flex_1().overflow_hidden()).child(label(format!("Rev. {} · MCP local",self.production.revision),p.muted)))
+            .child(row().h(px(24.)).flex_none().px(px(24.)).border_t_1().border_color(p.line).child(feedback_label("studio-feedback",self.message.clone(),p.secondary).flex_1().overflow_hidden()).child(label(format!("Rev. {} · MCP local",self.production.revision),p.muted)))
     }
 }

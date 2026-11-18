@@ -153,7 +153,7 @@ impl Studio {
         };
         let mut body = col().gap(px(10.)).on_key_down(cx.listener(Self::live_deck_key))
             .child(self.matchday_card(cx))
-            .child(label(if armed { "Producción activada" } else { "Producción desactivada" }, if armed { p.ready } else { p.warn }))
+            .child(feedback_label("show-armed-state", if armed { "Producción activada" } else { "Producción desactivada" }, if armed { p.ready } else { p.warn }))
             .child(label("Los botones controlan esta producción. Los atajos funcionan cuando el foco está dentro de Live Deck.", p.secondary))
             .child(row()
                 .child(quiet("save-show-control", "Guardar").disabled(!configured || closing)
@@ -167,7 +167,8 @@ impl Studio {
                         }, cx);
                     }))));
         if let Some(sequence) = snapshot["last_save"]["sequence"].as_u64() {
-            body = body.child(label(
+            body = body.child(feedback_label(
+                "show-save-receipt",
                 format!(
                     "Configuración guardada · recibo {sequence} · revisión {}",
                     snapshot["last_save"]["revision"]
@@ -176,10 +177,15 @@ impl Studio {
             ));
         }
         if let Some(error) = snapshot["last_save_error"].as_str() {
-            body = body.child(label(format!("No se pudo guardar · {error}"), p.warn));
+            body = body.child(feedback_label(
+                "show-save-error",
+                format!("No se pudo guardar · {error}"),
+                p.warn,
+            ));
         }
         if let Some(failure) = snapshot["failure"].as_str() {
-            body = body.child(label(
+            body = body.child(feedback_label(
+                "show-runtime-failure",
                 format!("{failure} · Revisa los trabajos y el registro antes de continuar."),
                 p.warn,
             ));

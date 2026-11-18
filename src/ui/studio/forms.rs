@@ -246,8 +246,44 @@ impl Studio {
             }
             _ => "Finalizar la salida actual de forma controlada.".into(),
         };
-        w.open_dialog(cx,move|d,_,_|{let weak=weak.clone();let command=command.clone();d.title("Confirmar operación")
-                .footer(DialogFooter::new().child(DialogClose::new().trigger(|b|b.label("Cancelar"))).child(DialogAction::new().child(control("confirm-action","Confirmar")))).child(description.clone()).button_props(DialogButtonProps::default().ok_text("Confirmar").cancel_text("Cancelar").show_cancel(true).on_ok(move|_,_,cx|{let _=weak.update(cx,|v,cx|{if v.production.revision!=revision{v.message="La producción cambió; confirma de nuevo sobre el estado actual.".into();cx.notify();}else{v.command(command.clone(),"UI",cx);v.forms.revision=v.production.revision;v.refresh_profiles();}});true}))});
+        w.open_dialog(cx, move |d, _, _| {
+            let weak = weak.clone();
+            let command = command.clone();
+            d.title(Text::new(
+                "confirm-command-title".into(),
+                "Confirmar operación".into(),
+            ))
+            .footer(
+                DialogFooter::new()
+                    .child(DialogClose::new().trigger(|b| b.label("Cancelar")))
+                    .child(DialogAction::new().child(control("confirm-action", "Confirmar"))),
+            )
+            .child(Text::new(
+                "confirm-command-body".into(),
+                description.clone().into(),
+            ))
+            .button_props(
+                DialogButtonProps::default()
+                    .ok_text("Confirmar")
+                    .cancel_text("Cancelar")
+                    .show_cancel(true),
+            )
+            .on_ok(move |_, _, cx| {
+                let _ = weak.update(cx, |v, cx| {
+                    if v.production.revision != revision {
+                        v.message =
+                            "La producción cambió; confirma de nuevo sobre el estado actual."
+                                .into();
+                        cx.notify();
+                    } else {
+                        v.command(command.clone(), "UI", cx);
+                        v.forms.revision = v.production.revision;
+                        v.refresh_profiles();
+                    }
+                });
+                true
+            })
+        });
     }
 }
 #[cfg(test)]

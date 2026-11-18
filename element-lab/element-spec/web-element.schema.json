@@ -1,0 +1,467 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assets": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "maximum": 4194304,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "media_type": {
+            "enum": [
+              "text/html",
+              "text/css",
+              "text/javascript",
+              "image/svg+xml",
+              "image/png"
+            ]
+          },
+          "path": {
+            "maxLength": 240,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "sha256",
+          "bytes",
+          "media_type"
+        ],
+        "type": "object"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "type": "array"
+    },
+    "author": {
+      "maxLength": 128,
+      "type": "string"
+    },
+    "capabilities": {
+      "items": {
+        "enum": [
+          "html",
+          "css",
+          "javascript",
+          "svg",
+          "canvas"
+        ]
+      },
+      "maxItems": 5,
+      "minItems": 1,
+      "type": "array"
+    },
+    "dependencies": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "asset": {
+            "maxLength": 240,
+            "minLength": 1,
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,47}$",
+            "type": "string"
+          },
+          "license": {
+            "enum": [
+              "GPL-3.0-or-later",
+              "CC0-1.0",
+              "MIT",
+              "CC-BY-4.0"
+            ]
+          },
+          "version": {
+            "pattern": "^[0-9]{1,6}\\.[0-9]{1,6}\\.[0-9]{1,6}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "license",
+          "asset"
+        ],
+        "type": "object"
+      },
+      "maxItems": 16,
+      "minItems": 0,
+      "type": "array"
+    },
+    "entry": {
+      "maxLength": 240,
+      "minLength": 1,
+      "type": "string"
+    },
+    "events": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "additionalProperties": false,
+              "properties": {
+                "default": {},
+                "max_length": {
+                  "maximum": 4096,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "maximum": {
+                  "maximum": 1000000.0,
+                  "minimum": -1000000.0,
+                  "type": "number"
+                },
+                "minimum": {
+                  "maximum": 1000000.0,
+                  "minimum": -1000000.0,
+                  "type": "number"
+                },
+                "options": {
+                  "items": {
+                    "maxLength": 80,
+                    "type": "string"
+                  },
+                  "maxItems": 16,
+                  "minItems": 0,
+                  "type": "array"
+                },
+                "type": {
+                  "enum": [
+                    "string",
+                    "color",
+                    "integer",
+                    "number",
+                    "boolean"
+                  ]
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "maxProperties": 16,
+            "type": "object"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "type": "object"
+      },
+      "maxProperties": 16,
+      "type": "object"
+    },
+    "id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,47}$",
+      "type": "string"
+    },
+    "kind": {
+      "const": "web_element"
+    },
+    "license": {
+      "enum": [
+        "GPL-3.0-or-later",
+        "CC0-1.0",
+        "MIT",
+        "CC-BY-4.0"
+      ]
+    },
+    "lifecycle": {
+      "additionalProperties": false,
+      "properties": {
+        "autostart": {
+          "const": false
+        },
+        "on_dispose": {
+          "const": "cleanup"
+        },
+        "on_error": {
+          "const": "stop"
+        },
+        "on_hidden": {
+          "const": "cancel"
+        }
+      },
+      "required": [
+        "autostart",
+        "on_hidden",
+        "on_error",
+        "on_dispose"
+      ],
+      "type": "object"
+    },
+    "limits": {
+      "additionalProperties": false,
+      "properties": {
+        "events_per_second": {
+          "maximum": 60,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_active_ms": {
+          "maximum": 30000,
+          "minimum": 1000,
+          "type": "integer"
+        },
+        "max_asset_bytes": {
+          "maximum": 4194304,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_message_bytes": {
+          "maximum": 16384,
+          "minimum": 256,
+          "type": "integer"
+        },
+        "max_total_bytes": {
+          "maximum": 16777216,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "requested_memory_mib": {
+          "maximum": 256,
+          "minimum": 16,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_message_bytes",
+        "events_per_second",
+        "max_asset_bytes",
+        "max_total_bytes",
+        "max_active_ms",
+        "requested_memory_mib"
+      ],
+      "type": "object"
+    },
+    "metadata": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 1024,
+          "type": "string"
+        },
+        "integration": {
+          "const": "authoring_prototype_only"
+        },
+        "preview": {
+          "maxLength": 240,
+          "minLength": 1,
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "maxLength": 32,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 0,
+          "type": "array"
+        }
+      },
+      "required": [
+        "description",
+        "category",
+        "tags",
+        "preview",
+        "integration"
+      ],
+      "type": "object"
+    },
+    "name": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "permissions": {
+      "additionalProperties": false,
+      "properties": {
+        "clipboard": {
+          "const": false
+        },
+        "devices": {
+          "const": false
+        },
+        "mcp": {
+          "const": false
+        },
+        "network": {
+          "const": false
+        },
+        "production": {
+          "const": false
+        },
+        "shell": {
+          "const": false
+        },
+        "storage": {
+          "const": false
+        }
+      },
+      "required": [
+        "network",
+        "storage",
+        "devices",
+        "clipboard",
+        "production",
+        "mcp",
+        "shell"
+      ],
+      "type": "object"
+    },
+    "properties": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {},
+          "max_length": {
+            "maximum": 4096,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maximum": {
+            "maximum": 1000000.0,
+            "minimum": -1000000.0,
+            "type": "number"
+          },
+          "minimum": {
+            "maximum": 1000000.0,
+            "minimum": -1000000.0,
+            "type": "number"
+          },
+          "options": {
+            "items": {
+              "maxLength": 80,
+              "type": "string"
+            },
+            "maxItems": 16,
+            "minItems": 0,
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "string",
+              "color",
+              "integer",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "maxProperties": 32,
+      "type": "object"
+    },
+    "requested_fps": {
+      "enum": [
+        30,
+        60
+      ]
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "states": {
+      "items": {
+        "enum": [
+          "ready",
+          "active",
+          "cancelled",
+          "error",
+          "disposed"
+        ]
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "type": "array"
+    },
+    "version": {
+      "pattern": "^[0-9]{1,6}\\.[0-9]{1,6}\\.[0-9]{1,6}$",
+      "type": "string"
+    },
+    "viewport": {
+      "additionalProperties": false,
+      "properties": {
+        "horizontal": {
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "const": 540
+            },
+            "width": {
+              "const": 960
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "type": "object"
+        },
+        "vertical": {
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "const": 960
+            },
+            "width": {
+              "const": 540
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "horizontal",
+        "vertical"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "id",
+    "version",
+    "name",
+    "author",
+    "license",
+    "entry",
+    "assets",
+    "viewport",
+    "requested_fps",
+    "properties",
+    "events",
+    "states",
+    "capabilities",
+    "permissions",
+    "limits",
+    "lifecycle",
+    "dependencies",
+    "metadata"
+  ],
+  "type": "object"
+}

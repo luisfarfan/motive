@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "maxLength": 64,
+                "type": "string"
+              },
+              "identity": {
+                "const": "unverified"
+              },
+              "name": {
+                "maxLength": 128,
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "identity"
+            ],
+            "type": "object"
+          },
+          "category": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "compatibility": {
+            "additionalProperties": false,
+            "properties": {
+              "baseline_source_commit": {
+                "pattern": "^[0-9a-f]{40}$",
+                "type": "string"
+              },
+              "creatorpack_schema": {
+                "enum": [
+                  0,
+                  1
+                ]
+              },
+              "element_schema": {
+                "const": 1
+              },
+              "official_installation": {
+                "const": "pending"
+              },
+              "web_element_schema": {
+                "enum": [
+                  0,
+                  1
+                ]
+              }
+            },
+            "required": [
+              "baseline_source_commit",
+              "element_schema",
+              "creatorpack_schema",
+              "web_element_schema",
+              "official_installation"
+            ],
+            "type": "object"
+          },
+          "description": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "element",
+              "pack"
+            ]
+          },
+          "license": {
+            "enum": [
+              "GPL-3.0-or-later",
+              "CC0-1.0",
+              "MIT",
+              "CC-BY-4.0"
+            ]
+          },
+          "mode": {
+            "enum": [
+              "native",
+              "web"
+            ]
+          },
+          "name": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "package": {
+            "additionalProperties": false,
+            "properties": {
+              "bytes": {
+                "maximum": 134217728,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "content_kind": {
+                "enum": [
+                  "declarative_pack",
+                  "web_element"
+                ]
+              },
+              "path": {
+                "maxLength": 240,
+                "minLength": 1,
+                "type": "string"
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "sha256",
+              "bytes",
+              "content_kind"
+            ],
+            "type": "object"
+          },
+          "preview": {
+            "additionalProperties": false,
+            "properties": {
+              "media_type": {
+                "const": "image/svg+xml"
+              },
+              "package_path": {
+                "maxLength": 240,
+                "minLength": 1,
+                "type": "string"
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "package_path",
+              "sha256",
+              "media_type"
+            ],
+            "type": "object"
+          },
+          "required_capabilities": {
+            "items": {
+              "maxLength": 64,
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 0,
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "maxLength": 32,
+              "type": "string"
+            },
+            "maxItems": 16,
+            "minItems": 0,
+            "type": "array"
+          },
+          "update": {
+            "additionalProperties": false,
+            "properties": {
+              "channel": {
+                "const": "local_files"
+              },
+              "replaces_versions": {
+                "items": {
+                  "pattern": "^[0-9]{1,6}\\.[0-9]{1,6}\\.[0-9]{1,6}$",
+                  "type": "string"
+                },
+                "maxItems": 16,
+                "minItems": 0,
+                "type": "array"
+              },
+              "review_required": {
+                "const": true
+              }
+            },
+            "required": [
+              "channel",
+              "replaces_versions",
+              "review_required"
+            ],
+            "type": "object"
+          },
+          "version": {
+            "pattern": "^[0-9]{1,6}\\.[0-9]{1,6}\\.[0-9]{1,6}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "kind",
+          "mode",
+          "name",
+          "description",
+          "author",
+          "category",
+          "tags",
+          "license",
+          "required_capabilities",
+          "compatibility",
+          "package",
+          "preview",
+          "update"
+        ],
+        "type": "object"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "type": "array"
+    },
+    "kind": {
+      "const": "motive_local_catalog"
+    },
+    "schema_version": {
+      "const": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "entries"
+  ],
+  "type": "object"
+}

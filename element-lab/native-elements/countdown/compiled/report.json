@@ -1,0 +1,193 @@
+{
+  "authoring_document_sha256": "2b21b4f04c468690d5f7b9914151dc84e57d3a2c3649dda558bf3e5e3a868539",
+  "budget": {
+    "counts": {
+      "layers": 2,
+      "scenes": 1,
+      "sources": 2,
+      "texture_bytes": 17467648,
+      "video_sources": 0
+    },
+    "native_texture_estimate_bytes": 17467648,
+    "occupied": {
+      "layers": 0,
+      "scenes": 0,
+      "sources": 0,
+      "texture_bytes": 0,
+      "video_sources": 0
+    },
+    "pack_texture_bytes": 18121216,
+    "remaining": {
+      "layers": 30,
+      "scenes": 7,
+      "sources": 14,
+      "texture_bytes": 250967808,
+      "video_sources": 4
+    },
+    "rss_measured": false,
+    "total": {
+      "layers": 2,
+      "scenes": 1,
+      "sources": 2,
+      "texture_bytes": 17467648,
+      "video_sources": 0
+    }
+  },
+  "dependency_order": [
+    "content",
+    "motif",
+    "root"
+  ],
+  "mode": "real_show_control_contract_offline",
+  "native_render_verified": false,
+  "pack_id": "countdown",
+  "plan": {
+    "estimated_texture_bytes": 18121216,
+    "executable": false,
+    "limitations": [
+      "Offline proposal only; no Production importer or live acceptance has been implemented.",
+      "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+      "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+      "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+      "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+    ],
+    "pack_id": "countdown",
+    "pack_version": "1.0.0",
+    "requires_idle": true,
+    "schema_version": 1,
+    "steps": [
+      {
+        "file_name": "countdown-motif.png",
+        "operation": "import_asset_after_local_authorization",
+        "resource_ref": "countdown-motif-asset"
+      },
+      {
+        "name": "Countdown Card",
+        "operation": "create_scene",
+        "scene_ref": "countdown-scene"
+      },
+      {
+        "definition": {
+          "kind": "widget",
+          "widget": {
+            "accent": 16106108,
+            "background": 2237481,
+            "color": 15856372,
+            "duration_ms": 90000,
+            "height": 140,
+            "kind": "countdown",
+            "opacity": 1.0,
+            "subtitle": "Un momento para preparar lo siguiente",
+            "title": "Volvemos en",
+            "width": 600
+          }
+        },
+        "first_layer_ref": "countdown-content-layer",
+        "name": "Countdown Card",
+        "operation": "create_overlay",
+        "scene_ref": "countdown-scene",
+        "source_ref": "countdown-content"
+      },
+      {
+        "layer_ref": "countdown-content-layer",
+        "operation": "set_transform",
+        "scene_ref": "countdown-scene",
+        "transform": {
+          "height": 140.0,
+          "order": 0,
+          "visible": true,
+          "width": 600.0,
+          "x": 40.0,
+          "y": 170.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "countdown-content-layer",
+        "operation": "set_transform",
+        "scene_ref": "countdown-scene",
+        "transform": {
+          "height": 108.0,
+          "order": 0,
+          "visible": true,
+          "width": 460.0,
+          "x": 40.0,
+          "y": 340.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "kind": "image",
+          "opacity": 0.800000011920929,
+          "resource_id": "countdown-motif-asset"
+        },
+        "first_layer_ref": "countdown-motif-layer",
+        "name": "Original stripe motif",
+        "operation": "create_overlay",
+        "scene_ref": "countdown-scene",
+        "source_ref": "countdown-motif"
+      },
+      {
+        "layer_ref": "countdown-motif-layer",
+        "operation": "set_transform",
+        "scene_ref": "countdown-scene",
+        "transform": {
+          "height": 48.0,
+          "order": 1,
+          "visible": true,
+          "width": 48.0,
+          "x": 660.0,
+          "y": 220.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "countdown-motif-layer",
+        "operation": "set_transform",
+        "scene_ref": "countdown-scene",
+        "transform": {
+          "height": 48.0,
+          "order": 1,
+          "visible": true,
+          "width": 48.0,
+          "x": 246.0,
+          "y": 470.0
+        },
+        "variant": "vertical"
+      }
+    ],
+    "unavailable": []
+  },
+  "prepared_actions": 2,
+  "production_connected": false,
+  "properties": {
+    "accent": 16106108,
+    "background": 2237481,
+    "description": "Un momento para preparar lo siguiente",
+    "duration": 90000,
+    "horizontal-x": 40,
+    "opacity": 1,
+    "title": "Volvemos en",
+    "vertical-y": 340
+  },
+  "states": [
+    {
+      "backend": "native_widget",
+      "description": "Estado informativo del countdown; su reloj pertenece al motor nativo",
+      "id": "ready"
+    },
+    {
+      "backend": "native_widget",
+      "description": "Estado informativo del countdown; su reloj pertenece al motor nativo",
+      "id": "running"
+    },
+    {
+      "backend": "native_widget",
+      "description": "Estado informativo del countdown; su reloj pertenece al motor nativo",
+      "id": "completed"
+    }
+  ],
+  "status": "PASS",
+  "unsupported": []
+}

@@ -1,0 +1,357 @@
+{
+  "animations": [
+    {
+      "distance": 96,
+      "duration_ms": 450,
+      "easing": "ease_out",
+      "id": "entry",
+      "kind": "slide_in",
+      "layer_id": "content-layer",
+      "scale_from": 0.9
+    },
+    {
+      "distance": 96,
+      "duration_ms": 450,
+      "easing": "ease_in",
+      "id": "exit",
+      "kind": "slide_out",
+      "layer_id": "content-layer",
+      "scale_from": 0.9
+    }
+  ],
+  "author": "Motive contributors",
+  "budget": {
+    "max_layers": 8,
+    "max_resource_bytes": 1048576,
+    "max_sources": 4,
+    "max_texture_bytes": 100663296
+  },
+  "capabilities": {
+    "future": [],
+    "required": [
+      "widget",
+      "image_asset",
+      "layer_animation"
+    ]
+  },
+  "dependencies": [],
+  "events": [
+    {
+      "actions": [
+        {
+          "animation_ref": "entry",
+          "layer_id": "content-layer",
+          "scene_id": "$scene",
+          "source_id": "content",
+          "type": "trigger_animated_widget"
+        }
+      ],
+      "description": "Intención visual declarativa; instalar y armar después mediante Motive",
+      "event_kind": "manual.button_pressed",
+      "id": "trigger",
+      "match": "trigger"
+    },
+    {
+      "actions": [
+        {
+          "animation_ref": "exit",
+          "layer_id": "content-layer",
+          "scene_id": "$scene",
+          "type": "animate"
+        },
+        {
+          "source_id": "content",
+          "type": "hide_overlay"
+        }
+      ],
+      "description": "Intención visual declarativa; instalar y armar después mediante Motive",
+      "event_kind": "manual.button_pressed",
+      "id": "exit",
+      "match": "exit"
+    }
+  ],
+  "id": "lower-third",
+  "kind": "native_element",
+  "layers": [
+    {
+      "horizontal": {
+        "height": 140,
+        "order": 0,
+        "visible": true,
+        "width": 600,
+        "x": 40,
+        "y": 360
+      },
+      "id": "content-layer",
+      "node": "content",
+      "vertical": {
+        "height": 108,
+        "order": 0,
+        "visible": true,
+        "width": 460,
+        "x": 40,
+        "y": 730
+      }
+    },
+    {
+      "horizontal": {
+        "height": 48,
+        "order": 1,
+        "visible": true,
+        "width": 48,
+        "x": 660,
+        "y": 420
+      },
+      "id": "motif-layer",
+      "node": "motif",
+      "vertical": {
+        "height": 48,
+        "order": 1,
+        "visible": true,
+        "width": 48,
+        "x": 246,
+        "y": 858
+      }
+    }
+  ],
+  "license": "GPL-3.0-or-later",
+  "metadata": {
+    "category": "overlay",
+    "description": "Minimal Lower Third · original native composition",
+    "limitations": [
+      "Preview esquemático, no equivalencia de píxeles con libobs.",
+      "El motivo decorativo es una capa independiente y permanece visible.",
+      "Las propiedades compile_time generan otra definición; no amplían las cuatro properties de CreatorPack v1."
+    ],
+    "tags": [
+      "native",
+      "original",
+      "lower-third"
+    ]
+  },
+  "name": "Minimal Lower Third",
+  "nodes": [
+    {
+      "children": [
+        "content",
+        "motif"
+      ],
+      "id": "root",
+      "name": "Minimal Lower Third",
+      "type": "composed"
+    },
+    {
+      "id": "content",
+      "name": "Minimal Lower Third",
+      "native": {
+        "kind": "widget",
+        "widget": {
+          "accent": 16106108,
+          "background": 2237481,
+          "color": 15856372,
+          "duration_ms": 0,
+          "height": 140,
+          "kind": "lower_third",
+          "opacity": 1,
+          "subtitle": "Ideas que merecen una conversación",
+          "title": "Alex Rivera",
+          "width": 600
+        }
+      },
+      "type": "primitive"
+    },
+    {
+      "id": "motif",
+      "name": "Original stripe motif",
+      "native": {
+        "kind": "image",
+        "opacity": 0.8,
+        "resource_id": "motif-asset"
+      },
+      "type": "primitive"
+    }
+  ],
+  "properties": [
+    {
+      "bindings": [
+        {
+          "field": "widget.title",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "creatorpack_property",
+      "id": "title",
+      "label": "Nombre",
+      "value": {
+        "default": "Alex Rivera",
+        "max_length": 100,
+        "type": "string"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "widget.subtitle",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "creatorpack_property",
+      "id": "description",
+      "label": "Descripción",
+      "value": {
+        "default": "Ideas que merecen una conversación",
+        "max_length": 160,
+        "type": "string"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "widget.background",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "compile_time",
+      "id": "background",
+      "label": "Fondo",
+      "value": {
+        "default": 2237481,
+        "type": "color"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "widget.accent",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "compile_time",
+      "id": "accent",
+      "label": "Acento",
+      "value": {
+        "default": 16106108,
+        "type": "color"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "widget.opacity",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "compile_time",
+      "id": "opacity",
+      "label": "Opacidad",
+      "value": {
+        "default": 1,
+        "maximum": 1,
+        "minimum": 0,
+        "type": "number"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "horizontal.x",
+          "ref": "content-layer",
+          "scope": "layout"
+        }
+      ],
+      "export": "compile_time",
+      "id": "horizontal-x",
+      "label": "Posición X horizontal",
+      "value": {
+        "default": 40,
+        "maximum": 320,
+        "minimum": 0,
+        "type": "number"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "vertical.y",
+          "ref": "content-layer",
+          "scope": "layout"
+        }
+      ],
+      "export": "compile_time",
+      "id": "vertical-y",
+      "label": "Posición Y vertical",
+      "value": {
+        "default": 730,
+        "maximum": 800,
+        "minimum": 0,
+        "type": "number"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "duration_ms",
+          "ref": "entry",
+          "scope": "animation"
+        }
+      ],
+      "export": "compile_time",
+      "id": "entry-duration",
+      "label": "Duración de entrada (ms)",
+      "value": {
+        "default": 450,
+        "maximum": 10000,
+        "minimum": 100,
+        "type": "integer"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "bytes": 217,
+      "duration_ms": null,
+      "height": 48,
+      "id": "motif-asset",
+      "kind": "image",
+      "license": "GPL-3.0-or-later",
+      "path": "assets/motif.png",
+      "sha256": "bfbeb727c2284939caaaec05495f3d59f3808888ae233808c98b0ff352c401a7",
+      "width": 48
+    }
+  ],
+  "root": "root",
+  "schema_version": 1,
+  "states": [
+    {
+      "backend": "native_widget",
+      "description": "Visibilidad del widget nativo; sin máquina de estados adicional",
+      "id": "hidden"
+    },
+    {
+      "backend": "native_widget",
+      "description": "Visibilidad del widget nativo; sin máquina de estados adicional",
+      "id": "visible"
+    }
+  ],
+  "variants": [
+    {
+      "id": "warm",
+      "properties": {
+        "accent": 16106108
+      }
+    },
+    {
+      "id": "cool",
+      "properties": {
+        "accent": 10398197,
+        "background": 1514286
+      }
+    }
+  ],
+  "version": "1.0.0"
+}

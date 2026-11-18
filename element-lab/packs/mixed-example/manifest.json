@@ -1,0 +1,219 @@
+{
+  "animations": [
+    {
+      "distance": 32,
+      "duration_ms": 320,
+      "easing": "ease_out",
+      "id": "i1-creator-tech-tech-lower-in",
+      "kind": "slide_in",
+      "layer_id": "i1-creator-tech-tech-camera-presenter",
+      "scale_from": 0.9,
+      "scene_id": "mixed-example-scene"
+    },
+    {
+      "distance": 32,
+      "duration_ms": 220,
+      "easing": "ease_in",
+      "id": "i1-creator-tech-tech-lower-out",
+      "kind": "slide_out",
+      "layer_id": "i1-creator-tech-tech-camera-presenter",
+      "scale_from": 0.9,
+      "scene_id": "mixed-example-scene"
+    }
+  ],
+  "author": "Motive contributors",
+  "budget": {
+    "max_estimated_texture_bytes": 268435456,
+    "max_resource_bytes": 45248,
+    "max_simultaneous_animations": 1
+  },
+  "events": [
+    "manual.button_pressed",
+    "viewer.follow"
+  ],
+  "id": "mixed-example",
+  "license": "GPL-3.0-or-later",
+  "name": "Motive · mixed-example",
+  "overlays": [
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 12379853,
+          "background": 1847337,
+          "color": 16052711,
+          "duration_ms": 0,
+          "height": 120,
+          "kind": "lower_third",
+          "opacity": 1.0,
+          "subtitle": "Software, explained simply.",
+          "title": "Alex Rivera",
+          "width": 560
+        }
+      },
+      "id": "i1-creator-tech-tech-lower-third",
+      "name": "Creator identification"
+    },
+    {
+      "definition": {
+        "kind": "image",
+        "opacity": 1.0,
+        "resource_id": "i2-neon-arena-arena-motif-asset"
+      },
+      "id": "i2-neon-arena-arena-motif",
+      "name": "Original geometric signature"
+    },
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 13628778,
+          "background": 3153984,
+          "color": 16051967,
+          "duration_ms": 4500,
+          "height": 120,
+          "kind": "alert",
+          "opacity": 1.0,
+          "subtitle": "WELCOME TO THE ARENA",
+          "title": "PLAYER TWO JOINED",
+          "width": 560
+        }
+      },
+      "id": "i2-neon-arena-arena-alert",
+      "name": "Community alert"
+    }
+  ],
+  "properties": [
+    {
+      "id": "i1-creator-tech-presenter",
+      "label": "Creator name",
+      "overlay_id": "i1-creator-tech-tech-lower-third",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "Alex Rivera"
+      }
+    },
+    {
+      "id": "i1-creator-tech-presenter-detail",
+      "label": "Creator description",
+      "overlay_id": "i1-creator-tech-tech-lower-third",
+      "target": "widget_subtitle",
+      "value": {
+        "type": "text",
+        "value": "Software, explained simply."
+      }
+    },
+    {
+      "id": "i2-neon-arena-alert-title",
+      "label": "Alert title",
+      "overlay_id": "i2-neon-arena-arena-alert",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "PLAYER TWO JOINED"
+      }
+    },
+    {
+      "id": "i2-neon-arena-alert-detail",
+      "label": "Alert detail",
+      "overlay_id": "i2-neon-arena-arena-alert",
+      "target": "widget_subtitle",
+      "value": {
+        "type": "text",
+        "value": "WELCOME TO THE ARENA"
+      }
+    }
+  ],
+  "requires": [
+    "image_asset",
+    "layer_animation",
+    "widget"
+  ],
+  "resources": [
+    {
+      "bytes": 45248,
+      "duration_ms": null,
+      "file_name": "i2-neon-arena-arena-motif-asset.png",
+      "height": 720,
+      "id": "i2-neon-arena-arena-motif-asset",
+      "kind": "image",
+      "sha256": "38017b671214a7bb8e3d05027bebfe67bfd55d5d8a09b21a3b6be70d47d476f6",
+      "width": 720
+    }
+  ],
+  "rule_ids": [
+    "i2-neon-arena-arena-deck-alert",
+    "i2-neon-arena-arena-provider-follow"
+  ],
+  "scenes": [
+    {
+      "id": "mixed-example-scene",
+      "layers": [
+        {
+          "horizontal": {
+            "height": 96,
+            "order": 0,
+            "visible": true,
+            "width": 448,
+            "x": 88,
+            "y": 374
+          },
+          "id": "i1-creator-tech-tech-camera-presenter",
+          "overlay_id": "i1-creator-tech-tech-lower-third",
+          "vertical": {
+            "height": 102,
+            "order": 0,
+            "visible": true,
+            "width": 476,
+            "x": 32,
+            "y": 540
+          }
+        },
+        {
+          "horizontal": {
+            "height": 400,
+            "order": 1,
+            "visible": true,
+            "width": 400,
+            "x": 540,
+            "y": 70
+          },
+          "id": "i2-neon-arena-arena-community-motif",
+          "overlay_id": "i2-neon-arena-arena-motif",
+          "vertical": {
+            "height": 390,
+            "order": 1,
+            "visible": true,
+            "width": 390,
+            "x": 75,
+            "y": 350
+          }
+        },
+        {
+          "horizontal": {
+            "height": 120,
+            "order": 2,
+            "visible": true,
+            "width": 560,
+            "x": 48,
+            "y": 170
+          },
+          "id": "i2-neon-arena-arena-community-alert",
+          "overlay_id": "i2-neon-arena-arena-alert",
+          "vertical": {
+            "height": 102,
+            "order": 2,
+            "visible": true,
+            "width": 476,
+            "x": 32,
+            "y": 185
+          }
+        }
+      ],
+      "name": "Composed elements"
+    }
+  ],
+  "schema_version": 1,
+  "version": "1.0.0"
+}

@@ -1,0 +1,159 @@
+{
+  "animations": [
+    {
+      "distance": 96,
+      "duration_ms": 450,
+      "easing": "ease_out",
+      "id": "community-alert-entry",
+      "kind": "slide_in",
+      "layer_id": "community-alert-content-layer",
+      "scale_from": 0.9,
+      "scene_id": "community-alert-scene"
+    },
+    {
+      "distance": 96,
+      "duration_ms": 450,
+      "easing": "ease_in",
+      "id": "community-alert-exit",
+      "kind": "slide_out",
+      "layer_id": "community-alert-content-layer",
+      "scale_from": 0.9,
+      "scene_id": "community-alert-scene"
+    }
+  ],
+  "author": "Motive contributors",
+  "budget": {
+    "max_estimated_texture_bytes": 100663296,
+    "max_resource_bytes": 1048576,
+    "max_simultaneous_animations": 1
+  },
+  "events": [
+    "manual.button_pressed"
+  ],
+  "id": "community-alert",
+  "license": "GPL-3.0-or-later",
+  "name": "Community Alert",
+  "overlays": [
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 16106108,
+          "background": 2237481,
+          "color": 15856372,
+          "duration_ms": 4500,
+          "height": 140,
+          "kind": "alert",
+          "opacity": 1,
+          "subtitle": "Gracias por ser parte de la comunidad",
+          "title": "Una nueva voz",
+          "width": 600
+        }
+      },
+      "id": "community-alert-content",
+      "name": "Community Alert"
+    },
+    {
+      "definition": {
+        "kind": "image",
+        "opacity": 0.8,
+        "resource_id": "community-alert-motif-asset"
+      },
+      "id": "community-alert-motif",
+      "name": "Original stripe motif"
+    }
+  ],
+  "properties": [
+    {
+      "id": "community-alert-title",
+      "label": "Título",
+      "overlay_id": "community-alert-content",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "Una nueva voz"
+      }
+    },
+    {
+      "id": "community-alert-description",
+      "label": "Mensaje",
+      "overlay_id": "community-alert-content",
+      "target": "widget_subtitle",
+      "value": {
+        "type": "text",
+        "value": "Gracias por ser parte de la comunidad"
+      }
+    }
+  ],
+  "requires": [
+    "image_asset",
+    "layer_animation",
+    "widget"
+  ],
+  "resources": [
+    {
+      "bytes": 216,
+      "duration_ms": null,
+      "file_name": "community-alert-motif.png",
+      "height": 48,
+      "id": "community-alert-motif-asset",
+      "kind": "image",
+      "sha256": "af54683199e28bd4c6b8cc1a9bc07def1ce72f72bcf9dafc530d74b51f4ad37f",
+      "width": 48
+    }
+  ],
+  "rule_ids": [
+    "community-alert-trigger",
+    "community-alert-exit"
+  ],
+  "scenes": [
+    {
+      "id": "community-alert-scene",
+      "layers": [
+        {
+          "horizontal": {
+            "height": 140,
+            "order": 0,
+            "visible": true,
+            "width": 600,
+            "x": 40,
+            "y": 170
+          },
+          "id": "community-alert-content-layer",
+          "overlay_id": "community-alert-content",
+          "vertical": {
+            "height": 108,
+            "order": 0,
+            "visible": true,
+            "width": 460,
+            "x": 40,
+            "y": 340
+          }
+        },
+        {
+          "horizontal": {
+            "height": 48,
+            "order": 1,
+            "visible": true,
+            "width": 48,
+            "x": 660,
+            "y": 220
+          },
+          "id": "community-alert-motif-layer",
+          "overlay_id": "community-alert-motif",
+          "vertical": {
+            "height": 48,
+            "order": 1,
+            "visible": true,
+            "width": 48,
+            "x": 246,
+            "y": 470
+          }
+        }
+      ],
+      "name": "Community Alert"
+    }
+  ],
+  "schema_version": 1,
+  "version": "1.0.0"
+}

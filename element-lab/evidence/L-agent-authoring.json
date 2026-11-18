@@ -1,0 +1,227 @@
+{
+  "capabilities_baseline": "6019ad0acac4b52dcf1ebc44f2006406fde533f8",
+  "composed_budget": {
+    "counts": {
+      "layers": 4,
+      "scenes": 1,
+      "sources": 4,
+      "texture_bytes": 34935296,
+      "video_sources": 0
+    },
+    "native_texture_estimate_bytes": 34935296,
+    "occupied": {
+      "layers": 0,
+      "scenes": 0,
+      "sources": 0,
+      "texture_bytes": 0,
+      "video_sources": 0
+    },
+    "pack_texture_bytes": 36242432,
+    "remaining": {
+      "layers": 28,
+      "scenes": 7,
+      "sources": 12,
+      "texture_bytes": 233500160,
+      "video_sources": 4
+    },
+    "rss_measured": false,
+    "total": {
+      "layers": 4,
+      "scenes": 1,
+      "sources": 4,
+      "texture_bytes": 34935296,
+      "video_sources": 0
+    }
+  },
+  "element_id": "donation-alert",
+  "installed": false,
+  "mode": "ordinary_cli_authoring",
+  "native_render_verified": false,
+  "output": "element-lab/.scratch/donation-delivery-verified",
+  "package": {
+    "bytes": 46038,
+    "content_kind": "declarative_pack",
+    "contract": {
+      "budget": {
+        "counts": {
+          "layers": 2,
+          "scenes": 1,
+          "sources": 2,
+          "texture_bytes": 17467648,
+          "video_sources": 0
+        },
+        "native_texture_estimate_bytes": 17467648,
+        "occupied": {
+          "layers": 0,
+          "scenes": 0,
+          "sources": 0,
+          "texture_bytes": 0,
+          "video_sources": 0
+        },
+        "pack_texture_bytes": 18121216,
+        "remaining": {
+          "layers": 30,
+          "scenes": 7,
+          "sources": 14,
+          "texture_bytes": 250967808,
+          "video_sources": 4
+        },
+        "rss_measured": false,
+        "total": {
+          "layers": 2,
+          "scenes": 1,
+          "sources": 2,
+          "texture_bytes": 17467648,
+          "video_sources": 0
+        }
+      },
+      "mode": "real_show_control_contract_offline",
+      "native_render_verified": false,
+      "pack_id": "donation-alert",
+      "plan": {
+        "estimated_texture_bytes": 18121216,
+        "executable": false,
+        "limitations": [
+          "Offline proposal only; no Production importer or live acceptance has been implemented.",
+          "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+          "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+          "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+          "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+        ],
+        "pack_id": "donation-alert",
+        "pack_version": "1.0.0",
+        "requires_idle": true,
+        "schema_version": 1,
+        "steps": [
+          {
+            "file_name": "donation-alert-motif.png",
+            "operation": "import_asset_after_local_authorization",
+            "resource_ref": "donation-alert-motif-asset"
+          },
+          {
+            "name": "Gracias por apoyar",
+            "operation": "create_scene",
+            "scene_ref": "donation-alert-scene"
+          },
+          {
+            "definition": {
+              "kind": "widget",
+              "widget": {
+                "accent": 16106108,
+                "background": 1645087,
+                "color": 15856372,
+                "duration_ms": 6000,
+                "height": 140,
+                "kind": "alert",
+                "opacity": 0.9599999785423279,
+                "subtitle": "Tu apoyo hace posible este espacio",
+                "title": "Gracias, Lucía",
+                "width": 600
+              }
+            },
+            "first_layer_ref": "donation-alert-content-layer",
+            "name": "Community Alert",
+            "operation": "create_overlay",
+            "scene_ref": "donation-alert-scene",
+            "source_ref": "donation-alert-content"
+          },
+          {
+            "layer_ref": "donation-alert-content-layer",
+            "operation": "set_transform",
+            "scene_ref": "donation-alert-scene",
+            "transform": {
+              "height": 140.0,
+              "order": 0,
+              "visible": true,
+              "width": 600.0,
+              "x": 40.0,
+              "y": 170.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "donation-alert-content-layer",
+            "operation": "set_transform",
+            "scene_ref": "donation-alert-scene",
+            "transform": {
+              "height": 108.0,
+              "order": 0,
+              "visible": true,
+              "width": 460.0,
+              "x": 40.0,
+              "y": 340.0
+            },
+            "variant": "vertical"
+          },
+          {
+            "definition": {
+              "kind": "image",
+              "opacity": 0.800000011920929,
+              "resource_id": "donation-alert-motif-asset"
+            },
+            "first_layer_ref": "donation-alert-motif-layer",
+            "name": "Original stripe motif",
+            "operation": "create_overlay",
+            "scene_ref": "donation-alert-scene",
+            "source_ref": "donation-alert-motif"
+          },
+          {
+            "layer_ref": "donation-alert-motif-layer",
+            "operation": "set_transform",
+            "scene_ref": "donation-alert-scene",
+            "transform": {
+              "height": 48.0,
+              "order": 1,
+              "visible": true,
+              "width": 48.0,
+              "x": 660.0,
+              "y": 220.0
+            },
+            "variant": "horizontal"
+          },
+          {
+            "layer_ref": "donation-alert-motif-layer",
+            "operation": "set_transform",
+            "scene_ref": "donation-alert-scene",
+            "transform": {
+              "height": 48.0,
+              "order": 1,
+              "visible": true,
+              "width": 48.0,
+              "x": 246.0,
+              "y": 470.0
+            },
+            "variant": "vertical"
+          }
+        ],
+        "unavailable": []
+      },
+      "prepared_actions": 3,
+      "production_connected": false,
+      "rehearsal": null,
+      "status": "PASS"
+    },
+    "creator_identity_verified": false,
+    "files": 8,
+    "format": "experimental_review_package",
+    "id": "donation-alert",
+    "installed": false,
+    "integrity_verified": true,
+    "sha256": "56d39c57465833cbc4284c6b323fb2a28793cf05e171f9b41f088d4d4d0d7217",
+    "status": "PASS"
+  },
+  "properties": {
+    "accent": 16106108,
+    "background": 1645087,
+    "description": "Tu apoyo hace posible este espacio",
+    "duration": 6000,
+    "entry-duration": 650,
+    "horizontal-x": 40,
+    "opacity": 0.96,
+    "title": "Gracias, Lucía",
+    "vertical-y": 340
+  },
+  "provider_connected": false,
+  "status": "PASS",
+  "template": "community-alert"
+}

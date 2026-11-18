@@ -1,0 +1,410 @@
+{
+  "budget": {
+    "counts": {
+      "layers": 5,
+      "scenes": 1,
+      "sources": 5,
+      "texture_bytes": 43013152,
+      "video_sources": 0
+    },
+    "native_texture_estimate_bytes": 43013152,
+    "occupied": {
+      "layers": 0,
+      "scenes": 0,
+      "sources": 0,
+      "texture_bytes": 0,
+      "video_sources": 0
+    },
+    "pack_texture_bytes": 20731696,
+    "remaining": {
+      "layers": 27,
+      "scenes": 7,
+      "sources": 11,
+      "texture_bytes": 225422304,
+      "video_sources": 4
+    },
+    "rss_measured": false,
+    "total": {
+      "layers": 5,
+      "scenes": 1,
+      "sources": 5,
+      "texture_bytes": 43013152,
+      "video_sources": 0
+    }
+  },
+  "mode": "real_show_control_contract_offline",
+  "native_render_verified": false,
+  "pack_id": "neon-arena",
+  "plan": {
+    "estimated_texture_bytes": 20731696,
+    "executable": false,
+    "limitations": [
+      "Offline proposal only; no Production importer or live acceptance has been implemented.",
+      "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+      "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+      "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+      "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+    ],
+    "pack_id": "neon-arena",
+    "pack_version": "0.2.0",
+    "requires_idle": true,
+    "schema_version": 1,
+    "steps": [
+      {
+        "file_name": "arena-motif.png",
+        "operation": "import_asset_after_local_authorization",
+        "resource_ref": "arena-motif-asset"
+      },
+      {
+        "name": "Starting Soon",
+        "operation": "create_scene",
+        "scene_ref": "arena-starting"
+      },
+      {
+        "definition": {
+          "border_color": null,
+          "border_width": 0,
+          "color": 1314082,
+          "height": 540,
+          "kind": "shape",
+          "opacity": 1.0,
+          "shape": "rectangle",
+          "width": 960
+        },
+        "first_layer_ref": "arena-starting-bg",
+        "name": "Ink background",
+        "operation": "create_overlay",
+        "scene_ref": "arena-starting",
+        "source_ref": "arena-background"
+      },
+      {
+        "layer_ref": "arena-starting-bg",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 540.0,
+          "order": 0,
+          "visible": true,
+          "width": 960.0,
+          "x": 0.0,
+          "y": 0.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "arena-starting-bg",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 960.0,
+          "order": 0,
+          "visible": true,
+          "width": 540.0,
+          "x": 0.0,
+          "y": 0.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "kind": "image",
+          "opacity": 1.0,
+          "resource_id": "arena-motif-asset"
+        },
+        "first_layer_ref": "arena-starting-motif",
+        "name": "Original geometric signature",
+        "operation": "create_overlay",
+        "scene_ref": "arena-starting",
+        "source_ref": "arena-motif"
+      },
+      {
+        "layer_ref": "arena-starting-motif",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 400.0,
+          "order": 2,
+          "visible": true,
+          "width": 400.0,
+          "x": 540.0,
+          "y": 70.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "arena-starting-motif",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 390.0,
+          "order": 2,
+          "visible": true,
+          "width": 390.0,
+          "x": 75.0,
+          "y": 350.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "align": "left",
+          "background": null,
+          "background_opacity": 0.0,
+          "color": 16051967,
+          "font": "Helvetica",
+          "height": 190,
+          "kind": "text",
+          "opacity": 1.0,
+          "outline": false,
+          "size": 72,
+          "text": "Your squad.\nYour arena.",
+          "width": 510
+        },
+        "first_layer_ref": "arena-starting-title",
+        "name": "Starting title",
+        "operation": "create_overlay",
+        "scene_ref": "arena-starting",
+        "source_ref": "arena-title"
+      },
+      {
+        "layer_ref": "arena-starting-title",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 190.0,
+          "order": 3,
+          "visible": true,
+          "width": 510.0,
+          "x": 48.0,
+          "y": 146.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "arena-starting-title",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 172.0,
+          "order": 3,
+          "visible": true,
+          "width": 460.0,
+          "x": 40.0,
+          "y": 170.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "kind": "widget",
+          "widget": {
+            "accent": 13628778,
+            "background": 3153984,
+            "color": 16051967,
+            "duration_ms": 300000,
+            "height": 120,
+            "kind": "countdown",
+            "opacity": 1.0,
+            "subtitle": "",
+            "title": "NEXT ROUND IN",
+            "width": 280
+          }
+        },
+        "first_layer_ref": "arena-starting-timer",
+        "name": "Session countdown",
+        "operation": "create_overlay",
+        "scene_ref": "arena-starting",
+        "source_ref": "arena-timer"
+      },
+      {
+        "layer_ref": "arena-starting-timer",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 120.0,
+          "order": 4,
+          "visible": true,
+          "width": 280.0,
+          "x": 48.0,
+          "y": 380.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "arena-starting-timer",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 120.0,
+          "order": 4,
+          "visible": true,
+          "width": 280.0,
+          "x": 40.0,
+          "y": 770.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "align": "left",
+          "background": null,
+          "background_opacity": 0.0,
+          "color": 13628778,
+          "font": "Menlo",
+          "height": 32,
+          "kind": "text",
+          "opacity": 1.0,
+          "outline": false,
+          "size": 14,
+          "text": "NEON ARENA / PLAY TOGETHER",
+          "width": 470
+        },
+        "first_layer_ref": "arena-starting-identifier",
+        "name": "Collection identifier",
+        "operation": "create_overlay",
+        "scene_ref": "arena-starting",
+        "source_ref": "arena-identity"
+      },
+      {
+        "layer_ref": "arena-starting-identifier",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 32.0,
+          "order": 5,
+          "visible": true,
+          "width": 470.0,
+          "x": 48.0,
+          "y": 40.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "arena-starting-identifier",
+        "operation": "set_transform",
+        "scene_ref": "arena-starting",
+        "transform": {
+          "height": 32.0,
+          "order": 5,
+          "visible": true,
+          "width": 460.0,
+          "x": 40.0,
+          "y": 48.0
+        },
+        "variant": "vertical"
+      }
+    ],
+    "unavailable": []
+  },
+  "prepared_actions": 0,
+  "production_connected": false,
+  "rules_start_disarmed": true,
+  "selection": {
+    "removed": {
+      "animations": [
+        "arena-alert-in",
+        "arena-alert-out",
+        "arena-label-in",
+        "arena-label-out",
+        "arena-lower-in",
+        "arena-lower-out",
+        "arena-pause-in",
+        "arena-title-out",
+        "reward-in",
+        "reward-out"
+      ],
+      "overlays": [
+        "arena-alert",
+        "arena-end-title",
+        "arena-frame",
+        "arena-label",
+        "arena-lower-third",
+        "arena-pause-title",
+        "arena-reward"
+      ],
+      "properties": [
+        "alert-detail",
+        "alert-title",
+        "chapter",
+        "ending-title",
+        "pause-title",
+        "presenter",
+        "presenter-detail",
+        "reward-text"
+      ],
+      "resources": [
+        "arena-frame-asset"
+      ],
+      "scenes": [
+        "arena-brb",
+        "arena-camera",
+        "arena-community",
+        "arena-ending",
+        "arena-live"
+      ]
+    },
+    "removed_rules": [
+      {
+        "id": "arena-deck-alert",
+        "reason": "references_outside_selection",
+        "references": [
+          [
+            "source_id",
+            "arena-alert"
+          ]
+        ]
+      },
+      {
+        "id": "arena-deck-chapter",
+        "reason": "references_outside_selection",
+        "references": [
+          [
+            "source_id",
+            "arena-label"
+          ]
+        ]
+      },
+      {
+        "id": "arena-provider-follow",
+        "reason": "references_outside_selection",
+        "references": [
+          [
+            "source_id",
+            "arena-alert"
+          ]
+        ]
+      },
+      {
+        "id": "arena-deck-celebrate",
+        "reason": "references_outside_selection",
+        "references": [
+          [
+            "source_id",
+            "arena-reward"
+          ]
+        ]
+      },
+      {
+        "id": "arena-provider-reward",
+        "reason": "references_outside_selection",
+        "references": [
+          [
+            "source_id",
+            "arena-reward"
+          ]
+        ]
+      }
+    ],
+    "selected_scenes": [
+      "arena-starting"
+    ],
+    "selected_sources": [
+      "arena-background",
+      "arena-identity",
+      "arena-motif",
+      "arena-timer",
+      "arena-title"
+    ]
+  },
+  "status": "PASS"
+}

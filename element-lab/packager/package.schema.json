@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "author": {
+      "maxLength": 128,
+      "type": "string"
+    },
+    "compatibility": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "creatorpack_schema": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "required_capabilities": {
+          "items": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "maxItems": 32,
+          "minItems": 0,
+          "type": "array"
+        },
+        "web_element_schema": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "baseline",
+        "creatorpack_schema",
+        "web_element_schema",
+        "required_capabilities"
+      ],
+      "type": "object"
+    },
+    "content_kind": {
+      "enum": [
+        "declarative_pack",
+        "web_element"
+      ]
+    },
+    "format": {
+      "const": "motive-element-lab-review"
+    },
+    "id": {
+      "maxLength": 64,
+      "type": "string"
+    },
+    "license": {
+      "enum": [
+        "GPL-3.0-or-later",
+        "CC0-1.0",
+        "MIT",
+        "CC-BY-4.0"
+      ]
+    },
+    "manifest": {
+      "enum": [
+        "manifest.json",
+        "web-element.json"
+      ]
+    },
+    "name": {
+      "maxLength": 128,
+      "type": "string"
+    },
+    "package_version": {
+      "const": 1
+    },
+    "payload_bytes": {
+      "maximum": 134217728,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "payload_files": {
+      "maximum": 254,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "preview_paths": {
+      "items": {
+        "maxLength": 240,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "type": "array"
+    },
+    "review": {
+      "const": "required_before_official_installation"
+    },
+    "trusted_author": {
+      "const": false
+    },
+    "version": {
+      "pattern": "^[0-9]{1,6}\\.[0-9]{1,6}\\.[0-9]{1,6}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "package_version",
+    "format",
+    "content_kind",
+    "id",
+    "version",
+    "name",
+    "author",
+    "license",
+    "manifest",
+    "preview_paths",
+    "payload_files",
+    "payload_bytes",
+    "compatibility",
+    "review",
+    "trusted_author"
+  ],
+  "type": "object"
+}

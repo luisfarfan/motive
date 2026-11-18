@@ -1,0 +1,85 @@
+{
+  "max_actions_per_event": 32,
+  "queue_capacity": 8,
+  "rate_limit": 20,
+  "rate_window_ms": 1000,
+  "rules": [
+    {
+      "actions": [
+        {
+          "animation": {
+            "distance": 96,
+            "duration_ms": 450,
+            "easing": "ease_out",
+            "kind": "slide_in",
+            "scale_from": 0.9
+          },
+          "layer_id": "community-alert-content-layer",
+          "scene_id": "community-alert-scene",
+          "source_id": "community-alert-content",
+          "type": "trigger_animated_widget"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "button_id",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "trigger"
+          }
+        }
+      ],
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "enabled": false,
+      "event_kind": "manual.button_pressed",
+      "failure_policy": "stop",
+      "id": "community-alert-trigger",
+      "priority": 5,
+      "timeout_ms": 15000
+    },
+    {
+      "actions": [
+        {
+          "animation": {
+            "distance": 96,
+            "duration_ms": 450,
+            "easing": "ease_in",
+            "kind": "slide_out",
+            "scale_from": 0.9
+          },
+          "layer_id": "community-alert-content-layer",
+          "scene_id": "community-alert-scene",
+          "type": "animate"
+        },
+        {
+          "source_id": "community-alert-content",
+          "type": "hide_overlay"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "button_id",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "exit"
+          }
+        }
+      ],
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "enabled": false,
+      "event_kind": "manual.button_pressed",
+      "failure_policy": "stop",
+      "id": "community-alert-exit",
+      "priority": 5,
+      "timeout_ms": 15000
+    }
+  ],
+  "schema_version": 1,
+  "variables": {}
+}

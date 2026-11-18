@@ -1,0 +1,388 @@
+{
+  "budget": {
+    "counts": {
+      "layers": 5,
+      "scenes": 1,
+      "sources": 5,
+      "texture_bytes": 43013152,
+      "video_sources": 0
+    },
+    "native_texture_estimate_bytes": 43013152,
+    "occupied": {
+      "layers": 0,
+      "scenes": 0,
+      "sources": 0,
+      "texture_bytes": 0,
+      "video_sources": 0
+    },
+    "pack_texture_bytes": 20731696,
+    "remaining": {
+      "layers": 27,
+      "scenes": 7,
+      "sources": 11,
+      "texture_bytes": 225422304,
+      "video_sources": 4
+    },
+    "rss_measured": false,
+    "total": {
+      "layers": 5,
+      "scenes": 1,
+      "sources": 5,
+      "texture_bytes": 43013152,
+      "video_sources": 0
+    }
+  },
+  "mode": "real_show_control_contract_offline",
+  "native_render_verified": false,
+  "pack_id": "creator-tech",
+  "plan": {
+    "estimated_texture_bytes": 20731696,
+    "executable": false,
+    "limitations": [
+      "Offline proposal only; no Production importer or live acceptance has been implemented.",
+      "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+      "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+      "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+      "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+    ],
+    "pack_id": "creator-tech",
+    "pack_version": "0.2.0",
+    "requires_idle": true,
+    "schema_version": 1,
+    "steps": [
+      {
+        "file_name": "tech-motif.png",
+        "operation": "import_asset_after_local_authorization",
+        "resource_ref": "tech-motif-asset"
+      },
+      {
+        "name": "Starting Soon",
+        "operation": "create_scene",
+        "scene_ref": "tech-starting"
+      },
+      {
+        "definition": {
+          "border_color": null,
+          "border_width": 0,
+          "color": 1055513,
+          "height": 540,
+          "kind": "shape",
+          "opacity": 1.0,
+          "shape": "rectangle",
+          "width": 960
+        },
+        "first_layer_ref": "tech-starting-bg",
+        "name": "Ink background",
+        "operation": "create_overlay",
+        "scene_ref": "tech-starting",
+        "source_ref": "tech-background"
+      },
+      {
+        "layer_ref": "tech-starting-bg",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 540.0,
+          "order": 0,
+          "visible": true,
+          "width": 960.0,
+          "x": 0.0,
+          "y": 0.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "tech-starting-bg",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 960.0,
+          "order": 0,
+          "visible": true,
+          "width": 540.0,
+          "x": 0.0,
+          "y": 0.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "kind": "image",
+          "opacity": 1.0,
+          "resource_id": "tech-motif-asset"
+        },
+        "first_layer_ref": "tech-starting-motif",
+        "name": "Original geometric signature",
+        "operation": "create_overlay",
+        "scene_ref": "tech-starting",
+        "source_ref": "tech-motif"
+      },
+      {
+        "layer_ref": "tech-starting-motif",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 400.0,
+          "order": 2,
+          "visible": true,
+          "width": 400.0,
+          "x": 540.0,
+          "y": 70.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "tech-starting-motif",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 390.0,
+          "order": 2,
+          "visible": true,
+          "width": 390.0,
+          "x": 75.0,
+          "y": 350.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "align": "left",
+          "background": null,
+          "background_opacity": 0.0,
+          "color": 16052711,
+          "font": "Helvetica",
+          "height": 190,
+          "kind": "text",
+          "opacity": 1.0,
+          "outline": false,
+          "size": 72,
+          "text": "Make room\nfor ideas.",
+          "width": 510
+        },
+        "first_layer_ref": "tech-starting-title",
+        "name": "Starting title",
+        "operation": "create_overlay",
+        "scene_ref": "tech-starting",
+        "source_ref": "tech-title"
+      },
+      {
+        "layer_ref": "tech-starting-title",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 190.0,
+          "order": 3,
+          "visible": true,
+          "width": 510.0,
+          "x": 48.0,
+          "y": 146.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "tech-starting-title",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 172.0,
+          "order": 3,
+          "visible": true,
+          "width": 460.0,
+          "x": 40.0,
+          "y": 170.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "kind": "widget",
+          "widget": {
+            "accent": 12379853,
+            "background": 1847337,
+            "color": 16052711,
+            "duration_ms": 300000,
+            "height": 120,
+            "kind": "countdown",
+            "opacity": 1.0,
+            "subtitle": "",
+            "title": "NEXT CHAPTER IN",
+            "width": 280
+          }
+        },
+        "first_layer_ref": "tech-starting-timer",
+        "name": "Session countdown",
+        "operation": "create_overlay",
+        "scene_ref": "tech-starting",
+        "source_ref": "tech-timer"
+      },
+      {
+        "layer_ref": "tech-starting-timer",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 120.0,
+          "order": 4,
+          "visible": true,
+          "width": 280.0,
+          "x": 48.0,
+          "y": 380.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "tech-starting-timer",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 120.0,
+          "order": 4,
+          "visible": true,
+          "width": 280.0,
+          "x": 40.0,
+          "y": 770.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "align": "left",
+          "background": null,
+          "background_opacity": 0.0,
+          "color": 12379853,
+          "font": "Menlo",
+          "height": 32,
+          "kind": "text",
+          "opacity": 1.0,
+          "outline": false,
+          "size": 14,
+          "text": "CREATOR TECH / BUILD IN PUBLIC",
+          "width": 470
+        },
+        "first_layer_ref": "tech-starting-identifier",
+        "name": "Collection identifier",
+        "operation": "create_overlay",
+        "scene_ref": "tech-starting",
+        "source_ref": "tech-identity"
+      },
+      {
+        "layer_ref": "tech-starting-identifier",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 32.0,
+          "order": 5,
+          "visible": true,
+          "width": 470.0,
+          "x": 48.0,
+          "y": 40.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "tech-starting-identifier",
+        "operation": "set_transform",
+        "scene_ref": "tech-starting",
+        "transform": {
+          "height": 32.0,
+          "order": 5,
+          "visible": true,
+          "width": 460.0,
+          "x": 40.0,
+          "y": 48.0
+        },
+        "variant": "vertical"
+      }
+    ],
+    "unavailable": []
+  },
+  "prepared_actions": 0,
+  "production_connected": false,
+  "rules_start_disarmed": true,
+  "selection": {
+    "removed": {
+      "animations": [
+        "tech-alert-in",
+        "tech-alert-out",
+        "tech-label-in",
+        "tech-label-out",
+        "tech-lower-in",
+        "tech-lower-out",
+        "tech-pause-in",
+        "tech-title-out"
+      ],
+      "overlays": [
+        "tech-alert",
+        "tech-chapter",
+        "tech-end-title",
+        "tech-frame",
+        "tech-info",
+        "tech-lower-third",
+        "tech-pause-title"
+      ],
+      "properties": [
+        "alert-detail",
+        "alert-title",
+        "chapter",
+        "ending-title",
+        "note",
+        "pause-title",
+        "presenter",
+        "presenter-detail"
+      ],
+      "resources": [
+        "tech-frame-asset"
+      ],
+      "scenes": [
+        "tech-brb",
+        "tech-camera",
+        "tech-ending",
+        "tech-live",
+        "tech-presentation"
+      ]
+    },
+    "removed_rules": [
+      {
+        "id": "tech-deck-alert",
+        "reason": "references_outside_selection",
+        "references": [
+          [
+            "source_id",
+            "tech-alert"
+          ]
+        ]
+      },
+      {
+        "id": "tech-deck-chapter",
+        "reason": "references_outside_selection",
+        "references": [
+          [
+            "source_id",
+            "tech-chapter"
+          ]
+        ]
+      },
+      {
+        "id": "tech-provider-follow",
+        "reason": "references_outside_selection",
+        "references": [
+          [
+            "source_id",
+            "tech-alert"
+          ]
+        ]
+      }
+    ],
+    "selected_scenes": [
+      "tech-starting"
+    ],
+    "selected_sources": [
+      "tech-background",
+      "tech-identity",
+      "tech-motif",
+      "tech-timer",
+      "tech-title"
+    ]
+  },
+  "status": "PASS"
+}

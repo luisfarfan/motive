@@ -1,9 +1,14 @@
 # H14 — Beta Candidate: ejecución y gates
 
-Estado: **EN EJECUCIÓN; beta no aceptada**. Rama `codex/h14-beta`, worktree
+Estado de entrega local: **PARTIAL; beta no aceptada**. Rama `codex/h14-beta`, worktree
 independiente `motive-h14`, desde `main`/`origin/main`
 `57de1c55150aceb42c574b0308e1a9a2752eb70a`. No se autoriza push, merge,
 release, publicación ni emisión pública de H14.
+
+El [índice final de evidencia local](../var/evidence/h14-final-evidence-index-01/index.json)
+reúne 15 áreas y 80 artefactos existentes, con hashes y 35 correspondencias
+verificadas. Conserva `beta_acceptance=NOT_ACCEPTED`, sin aprobado agregado.
+SHA-256: `081acd5025fb12f07ca4bb9c24f1c107e01b02559c26f4898a1fec50343f143c`.
 
 ## Baseline
 
@@ -65,10 +70,10 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 | Bundle autocontenido | PARTIAL | B1/B2/B3 ejecutados fuera del checkout, firma/closure/tools PASS; segunda Mac, notarización y reconstrucción pendientes |
 | RTMPS externo seguro | PARTIAL | B2 emitió 104,837 s a YouTube privado; usuario confirmó video/audio; MKV decodificado; copia remota y contabilidad completa siguen pendientes |
 | Show Control real | PARTIAL | B3 demuestra entradas completas, cancelación posterior y continuidad sin MCP; concurrencia GPUI custom3000 PASS, stock450 NOT_OBSERVED; cancelación anterior no observada y FAIL geométrico estricto custom conservado |
-| Live Deck y MATCHDAY | PARTIAL | B3 instalado por GPUI 73/73, celebración real y restauración exacta del proyecto/reglas desactivadas; recorrido de producción restante pendiente |
+| Live Deck y MATCHDAY | PARTIAL | B3 instalado por GPUI 73/73; dos celebraciones finales visibles en MKV/RTMP. La restauración exacta previa conserva su PASS; en la última toma el clic de guardar reglas no actualizó el archivo y volvió la configuración anterior desactivada |
 | Voz opcional | PARTIAL | Benchmark offline ejecutado, recall 50% falla fiabilidad; voz en vivo NOT IMPLEMENTED |
-| UX y biblioteca de grabaciones | PARTIAL | Biblioteca y controles integrados; recorrido nativo final **EN CURSO**, sin resultado anticipado |
-| Suite unificada sobre binario final | PARTIAL | 116+129 tests, Clippy/formato y 23/23 suites H1–H12 PASS sobre B3; [nueve invocaciones H13 adicionales](h14-b3-h13-additional-verification.md): 6 PASS, 1 FAIL, 2 INCONCLUSIVE. Producción nativa final EN CURSO |
+| UX y biblioteca de grabaciones | PARTIAL | [Producción nativa final ejecutada](h14-native-b3-verification.md): recuperación independiente, Cmd+Q, reapertura, proyecto/mixer exactos y archivo revelado en Finder; VoiceOver, Dock Quit y revisión visual completa de la UI no observados |
+| Suite unificada sobre binario final | PARTIAL | 116+129 tests, Clippy/formato y 23/23 suites H1–H12 PASS sobre B3; [nueve invocaciones H13 adicionales](h14-b3-h13-additional-verification.md): 6 PASS, 1 FAIL, 2 INCONCLUSIVE. Toma nativa final analizada: tres medios decodificables y cadencia estricta PASS; aceptación global no concedida |
 
 Primer checkpoint de instrumentación: **75 tests Rust**, Clippy all-targets
 con warnings como errores y formato pasan. Logs en
@@ -97,7 +102,7 @@ El [informe de captura](h14-capture-investigation.md) conserva la comparación d
 productores y recuperación fallida. El benchmark opcional de
 [voz offline](h14-voice-offline.md) no habilita voz en vivo. Los controles nuevos
 de [Live Deck](h14-live-deck-ui.md) tienen la evidencia GPUI y multimedia B3
-descrita abajo; el recorrido completo sigue pendiente. Ninguna prueba de
+descrita abajo y el [recorrido nativo final](h14-native-b3-verification.md). Ninguna prueba de
 fuente sustituye esa aceptación final.
 
 Pruebas físicas exclusivamente bajo `motive/var/run/physical-test.lock`, owner
@@ -282,8 +287,8 @@ completa de la aplicación: 70 muestras posteriores están `failed` y falta
 El A/V separado conserva siete pares, mediana audio−video −2,75 ms y rango
 33 ms; mide alineación en esa toma, no deriva prolongada ni ausencia de latencia.
 La autoexclusión pasa su contraste espectral controlado; el owner emisor se
-cerró y el owner nativo siguiente se abrió sin emisor. **El recorrido GPUI
-final está EN CURSO**. Ninguno de estos resultados cierra los gates de captura,
+cerró y el owner nativo siguiente se abrió sin emisor. El [recorrido GPUI
+final](h14-native-b3-verification.md) ya se ejecutó y analizó. Ninguno de estos resultados cierra los gates de captura,
 entrega completa, memoria ni distribución, y **la beta sigue no aceptada**.
 
 El [derivado posterior del soak](h14-memory-b3-soak-verification.md#derivado-posterior-framing-y-paquetes-finales)
@@ -295,3 +300,49 @@ ausencias trazadas anteriores o dentro de su bracket. La diferencia previa
 al observer sigue sin localizarse. Se conservan los conteos originales,
 el análisis inconcluso y la entrega global parcial; no se afirma identidad
 criptográfica de payload ni entrega completa. **La beta sigue no aceptada.**
+
+## Entrega local y última producción nativa
+
+El [informe nativo final](h14-native-b3-verification.md) conserva una grabación
+de 221,104 s de duración activa y dos intentos RTMP locales. La pérdida del
+primer receptor solo falló streaming; la misma grabación continuó mientras
+GPUI recuperó e inició el segundo intento. Las paradas fueron independientes.
+Los tres medios decodifican completamente: 6629, 2002 y 3253 frames, con gaps
+de video de hasta 34 ms y AAC de hasta 22 ms. REC1 y RTMP2 pasan estructura y
+cadencia; RTMP1 mantiene finalización INCONCLUSIVE por desconexión intencional.
+El agregado estructural conserva INCONCLUSIVE, no un aprobado global.
+
+Dos celebraciones generan cuatro observaciones completas MKV/RTMP, todas
+PASS con el criterio geométrico estricto. Cut/Fade con contraste suficiente
+pasan; el probe entre fondos iguales conserva INCONCLUSIVE. El contador de
+la ventana avanza en dieciséis imágenes revisadas, sin inferir frescura entre
+muestras. El PCM estéreo completo conserva cero muestras saturadas y cero
+ventanas interiores silenciosas de 100 ms; no prueba aislamiento de cada
+canal ni A/V en esta toma. El owner conserva cero render lag, encoder skips
+y master clipped blocks durante el intervalo observado; los 139 preview
+busy drops siguen registrados.
+
+Cmd+Q cerró dos owners normalmente, con recibos nativos y ausencia de sus
+PIDs. El collector conserva su error: el cierre idle fue más rápido que su
+sondeo de `shutdown_pending`; la evidencia separada no reescribe ese resultado.
+La reapertura restauró proyecto y mixer exactamente y sin outputs automáticos.
+El clic de guardar reglas no cambió el store anterior: al cargarlo, sus
+bindings distintos mantuvieron Show Control desactivado. La biblioteca reveló
+el MKV correcto en Finder. Dock Quit, VoiceOver y revisión visual completa del
+estudio permanecen sin observar; no se certifican desde accesibilidad parcial.
+
+El [vínculo final de fuentes y binario](../var/evidence/h14-final-source-binding-01/source-binding.json)
+confirma que el código de producto sigue siendo el compilado en B3 y que su
+firma estricta sigue válida. Los commits posteriores conservan verificadores
+y documentación. Los [datos de cleanup](../var/evidence/h14-native-b3-setup-01/cleanup.json)
+prueban restauración de stores únicamente tras comprobar los hashes escritos
+por esta prueba y cierre de todos los procesos propios. Se liberó el
+[lock físico canónico](../var/evidence/h14-native-b3-setup-01/physical-lock-release.json).
+Los medios, journals e informes permanecen como evidencia local.
+
+**Entrega PARTIAL, sin merge, push, release ni publicación de H14.** Los
+próximos trabajos requieren resolver los gates de captura, identidad de audio
+y finalización con los fallos originales intactos; completar accesibilidad,
+notarización/segunda Mac y verificar RTMPS sobre el binario que se distribuya.
+La voz en vivo permanece NOT IMPLEMENTED. Ningún resultado verde de otra
+prueba elimina esos límites.

@@ -12,8 +12,8 @@ custom se conserva. La prueba RTMPS privada corresponde al bundle B2. El
 [índice H14](h14-beta-verification.md) separa resultados por binario y mantiene
 abiertos captura, audio de aplicación, entrega, memoria y distribución. Las
 [nueve invocaciones H13 adicionales sobre B3](h14-b3-h13-additional-verification.md)
-conservan **6 PASS, 1 FAIL y 2 INCONCLUSIVE**; el recorrido nativo final está
-**EN CURSO**. Las verificaciones del bundle H13 histórico siguientes no
+conservan **6 PASS, 1 FAIL y 2 INCONCLUSIVE**; el [recorrido nativo final](h14-native-b3-verification.md)
+ya se ejecutó y analizó, con aceptación parcial. Las verificaciones del bundle H13 histórico siguientes no
 certifican automáticamente B3.
 
 **H13 implementado; aceptación PARCIAL.** Canvas configurable, audio del
@@ -47,7 +47,7 @@ ampliaciones posteriores se registran en su propio hito.
 | 11 — Overlay Engine y widgets | Texto, imagen alpha, formas, video visual, seis animaciones por capa, widgets y tres presets en dos layouts; CLI/MCP, grabación/RTMP y persistencia reales | [H11](h11-overlay-verification.md): 13 clips y 49 tests; aceptación condicionada a regresiones H1–H10 abiertas. Browser bloqueado; GPUI integra el [contrato](h11-overlay-ui-contract.md) por separado |
 | 12 — Creative Studio integrado | Biblioteca, picker, inspectores tipados, eventos, animaciones y persistencia desde GPUI; grabación VT/RTMP decodificada; 22 suites en sus últimas ejecuciones | [H12](h12-creative-studio-verification.md): 55 tests y Clippy; se conserva el fallo previo de render lag sin causa resuelta, sin certificar bundles posteriores |
 | 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12; producción GPUI y sesión dual de más de 30 min ejecutadas | [H13](h13-production-verification.md): aceptación **PARCIAL, EN CURSO**. Toma principal y compacto pasan sus gates de decode/cadencia; alerta corregida y última exclusión G PASS. Ventana congelada FAIL, contabilidad terminal y memoria sin cerrar; fallos anteriores conservados |
-| 14 — Beta Candidate | Portable B3: 23/23 suites H1–H12; nueve invocaciones H13 adicionales: 6 PASS, 1 FAIL, 2 INCONCLUSIVE; Show Control/MATCHDAY y persistencia GPUI, lifecycle 30/60 FPS y soak dual 1800.07 s. RTMPS privado corresponde a B2 | [H14](h14-beta-verification.md): **BETA NO ACEPTADA**. Prueba nativa final EN CURSO; audio de aplicación FAIL, cola de cierre INCONCLUSIVE, stock450 NOT_OBSERVED y FAIL geométrico custom conservados; captura/entrega/memoria/distribución abiertas |
+| 14 — Beta Candidate | Portable B3: 23/23 suites H1–H12; nueve invocaciones H13 adicionales: 6 PASS, 1 FAIL, 2 INCONCLUSIVE; Show Control/MATCHDAY y persistencia GPUI, lifecycle 30/60 FPS y soak dual 1800.07 s. RTMPS privado corresponde a B2 | [H14](h14-beta-verification.md): **BETA NO ACEPTADA**. Prueba nativa final ejecutada y analizada; audio de aplicación FAIL, cola de cierre INCONCLUSIVE, stock450 NOT_OBSERVED y FAIL geométrico custom conservados; captura/entrega/memoria/distribución abiertas |
 
 Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
 bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión
@@ -353,8 +353,11 @@ observada. Sus seis subtrials `ok=true` cubren ventanas parciales, no continuida
 completa: 70 muestras posteriores quedan failed y desaparece 997 Hz al final.
 Los seis wrappers verifican limpieza y restauración de stores; sus owners se
 cerraron normalmente entre casos. El A/V separado tiene siete pares, mediana
-−2,75 ms y rango 33 ms, sin acreditar deriva prolongada. **La prueba nativa
-final GPUI está EN CURSO**; no se anticipa su resultado ni se acepta la beta.
+−2,75 ms y rango 33 ms, sin acreditar deriva prolongada. La [prueba nativa final GPUI](h14-native-b3-verification.md) registra dos celebraciones,
+recuperación independiente y tres medios decodificables con cadencia estricta
+PASS. Proyecto y mixer restauran exactamente; el clic de guardar reglas no
+actualizó su store, el collector no observó el breve cierre idle y VoiceOver/Dock
+Quit permanecen sin verificar. La aceptación es parcial; no se acepta la beta.
 
 El [lifecycle 1080p60 y soak dual B3](h14-memory-b3-soak-verification.md)
 completó tres ciclos y 1800.07 s de grabación/RTMP local. Los dos archivos

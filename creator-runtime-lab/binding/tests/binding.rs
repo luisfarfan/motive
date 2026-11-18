@@ -267,3 +267,40 @@ fn internal_metadata_and_extra_fields_never_reach_visual_payload() {
     assert!(!dispatch.envelope().to_string().contains("private"));
     assert_eq!(dispatch.message()["payload"].as_object().unwrap().len(), 3);
 }
+
+#[test]
+fn owner_never_reissues_a_generation_and_new_approval_invalidates_old_handles() {
+    let (owner, mut old) = fixture();
+    let review = |generation, properties| FixtureReview {
+        binding_id: "replacement".into(),
+        definition_sha256: "a".repeat(64),
+        identity: Identity::new(5, generation).unwrap(),
+        origin: "simulation.goal".into(),
+        manifest: manifest(),
+        properties,
+    };
+    assert_eq!(
+        owner.review_goal_fixture(review(7, json!({}))).err(),
+        Some("GENERATION_REUSE")
+    );
+    assert_eq!(
+        owner.review_goal_fixture(review(6, json!({}))).err(),
+        Some("GENERATION_REUSE")
+    );
+    assert!(
+        owner
+            .review_goal_fixture(review(8, json!({"home":100})))
+            .is_err()
+    );
+    let mut current = owner.review_goal_fixture(review(8, json!({}))).unwrap();
+    assert_eq!(
+        old.ready(&owner, old.identity(), 0),
+        Err("STALE_GENERATION")
+    );
+    current.revoke();
+    assert_eq!(
+        owner.review_goal_fixture(review(8, json!({}))).err(),
+        Some("GENERATION_REUSE")
+    );
+    assert!(owner.review_goal_fixture(review(9, json!({}))).is_ok());
+}

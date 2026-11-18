@@ -19,7 +19,9 @@ no instala contenido de terceros y no ejecuta CEF. El dispatcher CEF queda pendi
 `OfflineOwner::review_goal_fixture(FixtureReview)` crea una aprobación en memoria,
 ligada a identidad del owner, sesión, revisión, binding, definición/hash e
 instancia/generación. Ni el owner ni su aprobación implementan Deserialize.
-Una revisión concurrente invalida la aprobación. El único constructor es de QA
+Una revisión concurrente invalida la aprobación. El owner conserva un registro
+acotado de generaciones por instancia: nunca reemite una generación usada y una
+aprobación nueva invalida los handles anteriores. El único constructor es de QA
 en el namespace `simulation.`; un identificador o `simulated:true` recibido de un
 paquete nunca crea autoridad. El caller debe entregar un manifiesto previamente
 validado por el broker; Gate valida el subcontrato que consume, no reemplaza el
@@ -91,7 +93,7 @@ Ver [checks](../evidence/binding/checks.json), [recorrido](../evidence/binding/b
 [trace](../evidence/binding/browser-trace.json), [consola](../evidence/binding/browser-console.json)
 y [red](../evidence/binding/browser-network.json).
 
-- **PASS:** 11 Rust, 5 Node, 5 Python; Clippy y formato. Son contratos/transportes offline.
+- **PASS:** 12 Rust, 5 Node, 5 Python; Clippy y formato. Son contratos/transportes offline.
 - **PASS:** 11 comprobaciones DOM reales; H/V, evento proyectado, propiedades,
   cancel/resume, finalización visual, dispose y restart. Check adicional de
   movimiento reducido observado; capturas [H](../evidence/binding/goal-horizontal.png)

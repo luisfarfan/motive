@@ -9,7 +9,11 @@ use motive_browser_contracts::{
 };
 use motive_show_control::{model::validate_id, providers::AcceptedEvent};
 use serde_json::{Value, json};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    cell::RefCell,
+    collections::BTreeMap,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 static NEXT_OWNER: AtomicU64 = AtomicU64::new(1);
 
@@ -20,6 +24,7 @@ pub struct OfflineOwner {
     nonce: u64,
     session: String,
     revision: u64,
+    generations: RefCell<BTreeMap<u64, u64>>,
 }
 impl OfflineOwner {
     pub fn new(session: &str, revision: u64) -> Result<Self> {
@@ -31,6 +36,7 @@ impl OfflineOwner {
             nonce: NEXT_OWNER.fetch_add(1, Ordering::Relaxed),
             session: session.into(),
             revision,
+            generations: RefCell::new(BTreeMap::new()),
         })
     }
     pub fn advance_revision(&mut self) -> Result<()> {
@@ -61,6 +67,18 @@ impl OfflineOwner {
         {
             return Err("BINDING_REVIEW");
         }
+        {
+            let generations = self.generations.borrow();
+            if generations
+                .get(&review.identity.instance)
+                .is_some_and(|g| review.identity.generation <= *g)
+            {
+                return Err("GENERATION_REUSE");
+            }
+            if !generations.contains_key(&review.identity.instance) && generations.len() >= 16 {
+                return Err("INSTANCE_LIMIT");
+            }
+        }
         let active_ms = review.manifest["limits"]["max_active_ms"]
             .as_u64()
             .filter(|n| (1000..=30_000).contains(n))
@@ -80,6 +98,9 @@ impl OfflineOwner {
         let properties = Value::Object(gate.properties().clone());
         let mut lifecycle = Lifecycle::new(review.identity);
         lifecycle.start(0)?;
+        self.generations
+            .borrow_mut()
+            .insert(review.identity.instance, review.identity.generation);
         Ok(Binding {
             approval: Approval {
                 owner_nonce: self.nonce,
@@ -181,6 +202,11 @@ impl Binding {
         }
         if self.approval.owner_nonce != owner.nonce || self.approval.session != owner.session {
             return Err("OWNER_SESSION");
+        }
+        if owner.generations.borrow().get(&self.identity().instance)
+            != Some(&self.identity().generation)
+        {
+            return Err("STALE_GENERATION");
         }
         if self.approval.revision != owner.revision {
             return Err("OWNER_REVISION");

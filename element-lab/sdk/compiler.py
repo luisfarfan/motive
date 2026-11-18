@@ -4,7 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 import hashlib
 from pathlib import Path
-from common import LabError, encode, read_bytes, read_json, require, validate, write_json
+from common import LAB, LabError, encode, read_bytes, read_json, require, validate, write_json
 from schemas import ELEMENT
 from contracts import check_asset, config, contract, estimate
 
@@ -207,5 +207,7 @@ def emit(bundle: Bundle, directory: Path) -> None:
     directory.mkdir(parents=True)
     write_json(directory/'manifest.json',bundle.pack); write_json(directory/'rules.json',bundle.rules)
     write_json(directory/'report.json',bundle.report)
+    if bundle.pack['license']=='GPL-3.0-or-later':
+        (directory/'LICENSE').write_bytes(read_bytes(LAB.parent,'LICENSE'))
     (directory/'assets').mkdir()
     for name,data in bundle.assets.items(): (directory/'assets'/name).write_bytes(data)

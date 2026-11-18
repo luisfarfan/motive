@@ -93,7 +93,6 @@ def combine(bundles: list[Bundle],id_: str='composition',single_scene: bool=Fals
                 oldname=r['file_name'];newid=symbol(prefix,r['id']);newname=newid+Path(oldname).suffix
                 r.update(id=newid,file_name=newname);out['resources'].append(r);assets[newname]=bundle.assets[oldname]
                 dedup[identity]=newid
-            resource[next(x['id'] for x in bundle.pack['resources'] if tuple(x[k] for k in ('sha256','bytes','kind','width','height','duration_ms'))==identity)]=dedup[identity]
         # Map every alias, including identical resources with different source IDs.
         for r in bundle.pack['resources']:
             resource[r['id']]=dedup[tuple(r[k] for k in ('sha256','bytes','kind','width','height','duration_ms'))]

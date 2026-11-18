@@ -1,0 +1,286 @@
+{
+  "animations": [
+    {
+      "distance": 24,
+      "duration_ms": 280,
+      "easing": "linear",
+      "id": "tech-title-in",
+      "kind": "fade_in",
+      "layer_id": "tech-starting-title",
+      "scale_from": 0.9,
+      "scene_id": "tech-starting"
+    },
+    {
+      "distance": 24,
+      "duration_ms": 180,
+      "easing": "linear",
+      "id": "tech-indicator-in",
+      "kind": "fade_in",
+      "layer_id": "tech-starting-identifier",
+      "scale_from": 0.9,
+      "scene_id": "tech-starting"
+    }
+  ],
+  "author": "Motive contributors",
+  "budget": {
+    "max_estimated_texture_bytes": 268435456,
+    "max_resource_bytes": 82602,
+    "max_simultaneous_animations": 1
+  },
+  "events": [],
+  "id": "creator-tech",
+  "license": "GPL-3.0-or-later",
+  "name": "CREATOR TECH — Build in Public",
+  "overlays": [
+    {
+      "definition": {
+        "border_color": null,
+        "border_width": 0,
+        "color": 1055513,
+        "height": 540,
+        "kind": "shape",
+        "opacity": 1.0,
+        "shape": "rectangle",
+        "width": 960
+      },
+      "id": "tech-background",
+      "name": "Ink background"
+    },
+    {
+      "definition": {
+        "kind": "image",
+        "opacity": 1.0,
+        "resource_id": "tech-motif-asset"
+      },
+      "id": "tech-motif",
+      "name": "Original geometric signature"
+    },
+    {
+      "definition": {
+        "align": "left",
+        "background": null,
+        "background_opacity": 0.0,
+        "color": 16052711,
+        "font": "Helvetica",
+        "height": 190,
+        "kind": "text",
+        "opacity": 1.0,
+        "outline": false,
+        "size": 72,
+        "text": "Make room\nfor ideas.",
+        "width": 510
+      },
+      "id": "tech-title",
+      "name": "Starting title"
+    },
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 12379853,
+          "background": 1847337,
+          "color": 16052711,
+          "duration_ms": 300000,
+          "height": 120,
+          "kind": "countdown",
+          "opacity": 1.0,
+          "subtitle": "",
+          "title": "NEXT CHAPTER IN",
+          "width": 280
+        }
+      },
+      "id": "tech-timer",
+      "name": "Session countdown"
+    },
+    {
+      "definition": {
+        "align": "left",
+        "background": null,
+        "background_opacity": 0.0,
+        "color": 12379853,
+        "font": "Menlo",
+        "height": 32,
+        "kind": "text",
+        "opacity": 1.0,
+        "outline": false,
+        "size": 14,
+        "text": "CREATOR TECH / BUILD IN PUBLIC",
+        "width": 470
+      },
+      "id": "tech-identity",
+      "name": "Collection identifier"
+    }
+  ],
+  "properties": [
+    {
+      "id": "starting-title",
+      "label": "Starting title",
+      "overlay_id": "tech-title",
+      "target": "text_content",
+      "value": {
+        "type": "text",
+        "value": "Make room\nfor ideas."
+      }
+    },
+    {
+      "id": "identifier",
+      "label": "Identifier",
+      "overlay_id": "tech-identity",
+      "target": "text_content",
+      "value": {
+        "type": "text",
+        "value": "CREATOR TECH / BUILD IN PUBLIC"
+      }
+    },
+    {
+      "id": "countdown-title",
+      "label": "Countdown title",
+      "overlay_id": "tech-timer",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "NEXT CHAPTER IN"
+      }
+    },
+    {
+      "id": "background",
+      "label": "Background color",
+      "overlay_id": "tech-background",
+      "target": "shape_color",
+      "value": {
+        "type": "color",
+        "value": 1055513
+      }
+    }
+  ],
+  "requires": [
+    "image_asset",
+    "layer_animation",
+    "shape",
+    "text",
+    "widget"
+  ],
+  "resources": [
+    {
+      "bytes": 82602,
+      "duration_ms": null,
+      "file_name": "tech-motif.png",
+      "height": 720,
+      "id": "tech-motif-asset",
+      "kind": "image",
+      "sha256": "0429ec1764dcdd03fcd17b126472c99c3d6a0b5803233d7b0a584e1d0f9fef18",
+      "width": 720
+    }
+  ],
+  "rule_ids": [],
+  "scenes": [
+    {
+      "id": "tech-starting",
+      "layers": [
+        {
+          "horizontal": {
+            "height": 540,
+            "order": 0,
+            "visible": true,
+            "width": 960,
+            "x": 0,
+            "y": 0
+          },
+          "id": "tech-starting-bg",
+          "overlay_id": "tech-background",
+          "vertical": {
+            "height": 960,
+            "order": 0,
+            "visible": true,
+            "width": 540,
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "horizontal": {
+            "height": 400,
+            "order": 2,
+            "visible": true,
+            "width": 400,
+            "x": 540,
+            "y": 70
+          },
+          "id": "tech-starting-motif",
+          "overlay_id": "tech-motif",
+          "vertical": {
+            "height": 390,
+            "order": 2,
+            "visible": true,
+            "width": 390,
+            "x": 75,
+            "y": 350
+          }
+        },
+        {
+          "horizontal": {
+            "height": 190,
+            "order": 3,
+            "visible": true,
+            "width": 510,
+            "x": 48,
+            "y": 146
+          },
+          "id": "tech-starting-title",
+          "overlay_id": "tech-title",
+          "vertical": {
+            "height": 172,
+            "order": 3,
+            "visible": true,
+            "width": 460,
+            "x": 40,
+            "y": 170
+          }
+        },
+        {
+          "horizontal": {
+            "height": 120,
+            "order": 4,
+            "visible": true,
+            "width": 280,
+            "x": 48,
+            "y": 380
+          },
+          "id": "tech-starting-timer",
+          "overlay_id": "tech-timer",
+          "vertical": {
+            "height": 120,
+            "order": 4,
+            "visible": true,
+            "width": 280,
+            "x": 40,
+            "y": 770
+          }
+        },
+        {
+          "horizontal": {
+            "height": 32,
+            "order": 5,
+            "visible": true,
+            "width": 470,
+            "x": 48,
+            "y": 40
+          },
+          "id": "tech-starting-identifier",
+          "overlay_id": "tech-identity",
+          "vertical": {
+            "height": 32,
+            "order": 5,
+            "visible": true,
+            "width": 460,
+            "x": 40,
+            "y": 48
+          }
+        }
+      ],
+      "name": "Starting Soon"
+    }
+  ],
+  "schema_version": 1,
+  "version": "0.2.0"
+}

@@ -1,0 +1,286 @@
+{
+  "animations": [
+    {
+      "distance": 24,
+      "duration_ms": 350,
+      "easing": "linear",
+      "id": "arena-title-in",
+      "kind": "fade_in",
+      "layer_id": "arena-starting-title",
+      "scale_from": 0.9,
+      "scene_id": "arena-starting"
+    },
+    {
+      "distance": 24,
+      "duration_ms": 180,
+      "easing": "linear",
+      "id": "arena-indicator-in",
+      "kind": "fade_in",
+      "layer_id": "arena-starting-identifier",
+      "scale_from": 0.9,
+      "scene_id": "arena-starting"
+    }
+  ],
+  "author": "Motive contributors",
+  "budget": {
+    "max_estimated_texture_bytes": 268435456,
+    "max_resource_bytes": 45248,
+    "max_simultaneous_animations": 1
+  },
+  "events": [],
+  "id": "neon-arena",
+  "license": "GPL-3.0-or-later",
+  "name": "NEON ARENA — Play Together",
+  "overlays": [
+    {
+      "definition": {
+        "border_color": null,
+        "border_width": 0,
+        "color": 1314082,
+        "height": 540,
+        "kind": "shape",
+        "opacity": 1.0,
+        "shape": "rectangle",
+        "width": 960
+      },
+      "id": "arena-background",
+      "name": "Ink background"
+    },
+    {
+      "definition": {
+        "kind": "image",
+        "opacity": 1.0,
+        "resource_id": "arena-motif-asset"
+      },
+      "id": "arena-motif",
+      "name": "Original geometric signature"
+    },
+    {
+      "definition": {
+        "align": "left",
+        "background": null,
+        "background_opacity": 0.0,
+        "color": 16051967,
+        "font": "Helvetica",
+        "height": 190,
+        "kind": "text",
+        "opacity": 1.0,
+        "outline": false,
+        "size": 72,
+        "text": "Your squad.\nYour arena.",
+        "width": 510
+      },
+      "id": "arena-title",
+      "name": "Starting title"
+    },
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 13628778,
+          "background": 3153984,
+          "color": 16051967,
+          "duration_ms": 300000,
+          "height": 120,
+          "kind": "countdown",
+          "opacity": 1.0,
+          "subtitle": "",
+          "title": "NEXT ROUND IN",
+          "width": 280
+        }
+      },
+      "id": "arena-timer",
+      "name": "Session countdown"
+    },
+    {
+      "definition": {
+        "align": "left",
+        "background": null,
+        "background_opacity": 0.0,
+        "color": 13628778,
+        "font": "Menlo",
+        "height": 32,
+        "kind": "text",
+        "opacity": 1.0,
+        "outline": false,
+        "size": 14,
+        "text": "NEON ARENA / PLAY TOGETHER",
+        "width": 470
+      },
+      "id": "arena-identity",
+      "name": "Collection identifier"
+    }
+  ],
+  "properties": [
+    {
+      "id": "starting-title",
+      "label": "Starting title",
+      "overlay_id": "arena-title",
+      "target": "text_content",
+      "value": {
+        "type": "text",
+        "value": "Your squad.\nYour arena."
+      }
+    },
+    {
+      "id": "identifier",
+      "label": "Identifier",
+      "overlay_id": "arena-identity",
+      "target": "text_content",
+      "value": {
+        "type": "text",
+        "value": "NEON ARENA / PLAY TOGETHER"
+      }
+    },
+    {
+      "id": "countdown-title",
+      "label": "Countdown title",
+      "overlay_id": "arena-timer",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "NEXT ROUND IN"
+      }
+    },
+    {
+      "id": "background",
+      "label": "Background color",
+      "overlay_id": "arena-background",
+      "target": "shape_color",
+      "value": {
+        "type": "color",
+        "value": 1314082
+      }
+    }
+  ],
+  "requires": [
+    "image_asset",
+    "layer_animation",
+    "shape",
+    "text",
+    "widget"
+  ],
+  "resources": [
+    {
+      "bytes": 45248,
+      "duration_ms": null,
+      "file_name": "arena-motif.png",
+      "height": 720,
+      "id": "arena-motif-asset",
+      "kind": "image",
+      "sha256": "38017b671214a7bb8e3d05027bebfe67bfd55d5d8a09b21a3b6be70d47d476f6",
+      "width": 720
+    }
+  ],
+  "rule_ids": [],
+  "scenes": [
+    {
+      "id": "arena-starting",
+      "layers": [
+        {
+          "horizontal": {
+            "height": 540,
+            "order": 0,
+            "visible": true,
+            "width": 960,
+            "x": 0,
+            "y": 0
+          },
+          "id": "arena-starting-bg",
+          "overlay_id": "arena-background",
+          "vertical": {
+            "height": 960,
+            "order": 0,
+            "visible": true,
+            "width": 540,
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "horizontal": {
+            "height": 400,
+            "order": 2,
+            "visible": true,
+            "width": 400,
+            "x": 540,
+            "y": 70
+          },
+          "id": "arena-starting-motif",
+          "overlay_id": "arena-motif",
+          "vertical": {
+            "height": 390,
+            "order": 2,
+            "visible": true,
+            "width": 390,
+            "x": 75,
+            "y": 350
+          }
+        },
+        {
+          "horizontal": {
+            "height": 190,
+            "order": 3,
+            "visible": true,
+            "width": 510,
+            "x": 48,
+            "y": 146
+          },
+          "id": "arena-starting-title",
+          "overlay_id": "arena-title",
+          "vertical": {
+            "height": 172,
+            "order": 3,
+            "visible": true,
+            "width": 460,
+            "x": 40,
+            "y": 170
+          }
+        },
+        {
+          "horizontal": {
+            "height": 120,
+            "order": 4,
+            "visible": true,
+            "width": 280,
+            "x": 48,
+            "y": 380
+          },
+          "id": "arena-starting-timer",
+          "overlay_id": "arena-timer",
+          "vertical": {
+            "height": 120,
+            "order": 4,
+            "visible": true,
+            "width": 280,
+            "x": 40,
+            "y": 770
+          }
+        },
+        {
+          "horizontal": {
+            "height": 32,
+            "order": 5,
+            "visible": true,
+            "width": 470,
+            "x": 48,
+            "y": 40
+          },
+          "id": "arena-starting-identifier",
+          "overlay_id": "arena-identity",
+          "vertical": {
+            "height": 32,
+            "order": 5,
+            "visible": true,
+            "width": 460,
+            "x": 40,
+            "y": 48
+          }
+        }
+      ],
+      "name": "Starting Soon"
+    }
+  ],
+  "schema_version": 1,
+  "version": "0.2.0"
+}

@@ -108,6 +108,22 @@ class VerificationPathTests(unittest.TestCase):
             self.assertFalse(paths.lock_matches(json.dumps(value)))
         self.assertFalse(paths.lock_matches('H14 ' + str(self.root)))
 
+    def test_h17_canonical_owner_requires_exact_identity_and_worktree(self):
+        paths = self.resolve()
+        self.assertTrue(paths.lock_matches(json.dumps({
+            'owner': 'h17-root', 'worktree': str(self.root)})))
+        for value in (
+            {'owner': 'h17-root', 'worktree': str(self.root) + '-other'},
+            {'owner': 'h17-root', 'worktree': str(self.root) + '/'},
+            {'owner': 'h17-root-other', 'worktree': str(self.root)},
+            {'owner': 'other h17-root', 'worktree': str(self.root)},
+            {'owner': 'h17-root ', 'worktree': str(self.root)},
+            {'owner': None, 'worktree': str(self.root)},
+            {'owner': 'h17-root'},
+        ):
+            with self.subTest(lock=value):
+                self.assertFalse(paths.lock_matches(json.dumps(value)))
+
 
 if __name__ == '__main__':
     unittest.main()

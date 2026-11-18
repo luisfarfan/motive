@@ -67,6 +67,49 @@ JSON conserva cada paquete ausente y los deltas originales encoder/output/
 decoded. No se restaron las ausencias para producir igualdad ni se confundió
 un archivo del receptor interrumpido con una parada normal.
 
+## Matriz real B7
+
+El propietario del lock ejecutó `var/evidence/h17-output-matrix-b7/` con B7,
+SHA-256 `d5b702d8b245a143575a6dd77cc80dc047425139f0ebc16db8c1f8451eb0ad31`.
+La revisión `metadata-review.json` lee y fija hashes de sus nueve informes
+primarios; no vuelve a decodificar ni modifica los medios. Los nueve casos
+funcionales pasan y sus 14 medios tienen decode, cadencia, AAC y clipping
+PASS. La entrega completa permanece **PARTIAL** en todos los casos.
+
+En la tabla, cada flecha conserva **observado antes del plugin → presente en
+medio**; para video se muestra el número de frames decodificados. Cada celda
+separa MKV / RTMP. `packet-count-review.json` conserva también los brackets.
+
+| Caso | Video MKV / RTMP | AAC MKV / RTMP | Paquetes trazados ausentes |
+|---|---|---|---|
+| VT MKV, stop | 251→251 / — | 394→393 / — | Un AAC post-stop. |
+| VT RTMP, stop | — / 249→249 | — / 390→389 | Un AAC post-stop. |
+| VT dual, stop independiente | 262→262 / 264→263 | 411→410 / 412→412 | AAC MKV y video RTMP post-stop. |
+| x264 MKV, stop | 286→285 / — | 447→447 / — | Un video post-stop. |
+| x264 RTMP, stop | — / 285→285 | — / 447→446 | Un AAC post-stop. |
+| x264 dual, stop independiente | 326→326 / 329→329 | 511→510 / 515→514 | Un AAC post-stop en cada destino. |
+| VT dual, cancel | 262→262 / 253→253 | 411→410 / 397→396 | Un AAC post-stop en cada destino. |
+| VT dual, receiver-loss | 266→266 / 247→246 | 417→416 / 387→385 | AAC MKV post-stop; video y dos AAC RTMP sin bracket normal. |
+| VT dual, shutdown | 258→258 / 249→249 | 404→403 / 390→389 | Un AAC post-stop en cada destino. |
+
+Son **13 ausencias trazadas normales: 11 AAC y dos video**, todas posteriores
+al bracket de stop. El RTMP deliberadamente interrumpido conserva otras tres
+ausencias sin bracket y su clasificación separada. No hay ausencia trazada
+pre-stop en B7; los FAIL pre-stop H14 permanecen intactos. Todos los casos
+conservan `cleanup_errors=[]`.
+
+Las diferencias encoder→decoded son cinco o seis en VT, y una o dos en x264.
+Output OBS→decoded es uno en VT dual RTMP, x264 MKV y el receptor interrumpido,
+y cero en los demás medios. La igualdad de ese último contador no acredita
+entrega de AAC ni vaciado del backlog anterior al observador. No se cambia
+OBS, H8, bitrate, reordering ni el bracket para mejorar la clasificación.
+
+El defecto del verificador de metadata tiene **PASS** en su scope offline;
+la entrega final es **PARTIAL** por semántica de cutoff observada y backlog
+sin identidad. La desconexión deliberada es cobertura de fallo/recuperación,
+no un medio completo fallido presentado como stop normal. Son problemas y
+gates distintos.
+
 ## Causalidad y ownership en OBS 33.0.1
 
 Los archivos exactos inspeccionados y sus SHA-256 se conservan en

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "frozen_on": "2026-11-18",
+  "execution_status": "BLOCKED",
+  "reason": "Native CEF execution requires specific repository-policy exception and reviewed process supervisor/bundle",
+  "runtime_matrix": ["cef-obs-7871", "cef-obs-7871-v2"],
+  "viewport_fps_order": [[640,360,30], [960,540,30], [540,960,30], [640,360,60], [960,540,60], [540,960,60]],
+  "repetitions": 3,
+  "warmup_seconds": 10,
+  "sample_seconds": 60,
+  "soak_seconds": 600,
+  "process_sample_interval_ms": 250,
+  "scenarios": [
+    {"id":"static-1","instances":1,"animated":false},
+    {"id":"animated-1","instances":1,"animated":true},
+    {"id":"animated-3","instances":3,"animated":true},
+    {"id":"animated-5","instances":5,"animated":true},
+    {"id":"hidden","instances":1,"policy":"cancel + WasHidden; observe JS separately"},
+    {"id":"suspended","instances":1,"policy":"close browser + final close acknowledgment"},
+    {"id":"enter-exit","instances":1,"cycles":100},
+    {"id":"slow-js","instances":1,"controlled_js_block_ms":500},
+    {"id":"message-flood","instances":1,"attempts_per_second":10000,"accepted_per_second":8},
+    {"id":"renderer-crash","instances":1,"policy":"only owned PID; explicit restart; no event replay"}
+  ],
+  "predeclared_gates": {
+    "alpha": "transparent corner all zero; red patch premultiplied BGRA 0,0,128,128 +/- 2",
+    "animated_delivered_fps_min_fraction": 0.95,
+    "first_frame_max_ms": 3000,
+    "animated_frame_age_p95_max_ms": 100,
+    "resize_first_new_epoch_frame_max_ms": 1000,
+    "shutdown_tree_max_ms": 5000,
+    "orphan_processes": 0,
+    "max_outstanding_consumer_frames": 1,
+    "max_pending_frames": 1,
+    "overall_emergency_tree_rss_mib": 2048,
+    "safety_timeout_seconds": 720,
+    "security_denials": "all applicable attempts denied; any allowed access is FAIL"
+  },
+  "notes": [
+    "Budgets are experimental gates, not product SLAs; retain failures without tuning thresholds",
+    "2048 MiB is a lab emergency stop for total tree RSS, not acceptance of the 128 MiB package request",
+    "Static pages may emit only invalidations: no constant FPS requirement; repeat while healthy according to explicit static hold policy",
+    "Compare one code path at a time using identical content, size, cadence, machine and thermal/power conditions",
+    "ABBA ordering for paired comparisons; no global power or macOS changes",
+    "No host process is launched by this protocol file"
+  ]
+}

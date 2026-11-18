@@ -173,6 +173,8 @@ def sign(contents, identity, hardened):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--profile', choices=['debug', 'release'], default='release')
+    parser.add_argument('--bundle-version', default='15',
+                        help='Numeric local build identity; use a new value for each candidate.')
     parser.add_argument('--skip-build', action='store_true', help='Use existing executable/modules/tools.')
     parser.add_argument('--output', type=pathlib.Path, default=ROOT / 'target/portable/Motive.app')
     parser.add_argument('--sign-identity', default='-')
@@ -181,6 +183,9 @@ def main():
     parser.add_argument('--require-complete-notices', action='store_true',
                         help='Reject unresolved notices even for local staging; source distribution is a separate gate.')
     args = parser.parse_args()
+    if not args.bundle_version or any(not part.isascii() or not part.isdigit()
+                                     for part in args.bundle_version.split('.')):
+        parser.error('--bundle-version must contain numeric components separated by periods')
     output = args.output.expanduser().absolute()
     if output.exists() or output.is_symlink():
         parser.error('output exists; choose a new output path (no implicit replacement)')
@@ -247,7 +252,7 @@ def main():
                 'CFBundleIdentifier': 'local.motive.studio', 'CFBundleName': 'Motive',
                 'CFBundleDisplayName': 'Motive', 'CFBundleExecutable': 'motive',
                 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.1.0',
-                'CFBundleVersion': '15', 'LSMinimumSystemVersion': '15.0',
+                'CFBundleVersion': args.bundle_version, 'LSMinimumSystemVersion': '15.0',
                 'NSHighResolutionCapable': True, 'LSAppNapIsDisabled': True,
                 'NSMicrophoneUsageDescription': 'Motive usa la entrada de audio que eliges para tu producción.',
                 'NSCameraUsageDescription': 'Motive usa únicamente la cámara que eliges para tu producción.',

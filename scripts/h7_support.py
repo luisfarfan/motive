@@ -1,8 +1,10 @@
 """Shared real MCP/media helpers for H7 verification (no mocked media)."""
 import hashlib,json,math,pathlib,statistics,struct,subprocess,time
 ROOT=pathlib.Path(__file__).resolve().parents[1]
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 EVIDENCE=ROOT/'var/evidence'
-EXE=ROOT/'target/debug/motive'
+EXE=VERIFY.client_executable
 
 def assert_project_format(project, legacy_version, expected_video):
     """The same legacy graph round-trips inside H13's explicit video envelope.

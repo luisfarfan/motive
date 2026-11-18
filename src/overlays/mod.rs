@@ -343,6 +343,12 @@ pub enum OverlayCommand {
         layer_id: String,
         animation: Animation,
     },
+    TriggerAnimatedWidget {
+        source_id: String,
+        scene_id: String,
+        layer_id: String,
+        animation: Animation,
+    },
     CancelOverlayAnimation {
         operation_id: u64,
     },

@@ -7,6 +7,8 @@ The app must be freshly opened, idle, with only default pattern/legacy sources.
 """
 import ctypes, hashlib, json, os, pathlib, statistics, subprocess, threading, time
 from h7_support import Client, ROOT, EVIDENCE, process_sample
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 from verify_h11_visuals import import_asset
 
 class TaskInfo(ctypes.Structure):
@@ -42,16 +44,16 @@ def main():
     run=EVIDENCE/f'h12-performance-{time.time_ns()}';run.mkdir(parents=True)
     report={'ok':False,'run':str(run),'phases':[],'operations':[],'sampling':'macOS proc_pidinfo PROC_PIDTASKINFO at 20 Hz; CPU 100%=one core; includes GPUI/native preview','limits':'RSS sampling can miss peaks shorter than 50 ms. Native child counts are source counts, not a decoder allocator trace.'}
     c=None;sampler=None;original=None;disk=None;asset=None;owned_asset=False;fixture=None
-    project=ROOT/'var/project.json';inbox=None
+    project=VERIFY.data_root / 'project.json';inbox=None
     try:
         c=Client();original=c.state();assert original['output']=='idle' and not original['audio_mixer']['store']['inputs'];assert all(s.get('overlay') is None and s['spec']['kind'] in ('pattern','overlay') for s in original['project']['graph']['sources'])
-        report['initial']=original;report['app_sha256']=hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+        report['initial']=original;report['app_sha256']=hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
         disk=(project.read_bytes() if project.exists() else None,project.stat().st_mode&0o777 if project.exists() else 0o600)
         fixture=run/'owned-1080p.mp4'
         # Generate before taking any performance samples.
         subprocess.run(['ffmpeg','-nostdin','-v','error','-f','lavfi','-i','testsrc2=size=1920x1080:rate=30','-t','6','-c:v','libx264','-preset','ultrafast','-crf','24','-pix_fmt','yuv420p',str(fixture)],check=True)
         assets={a['id'] for a in c.call('list_assets')['result']['assets']}
-        asset=import_asset(c,fixture)['asset'];owned_asset=asset['id'] not in assets;inbox=ROOT/'var/imports'/fixture.name
+        asset=import_asset(c,fixture)['asset'];owned_asset=asset['id'] not in assets;inbox=VERIFY.data_root/'imports'/fixture.name
         sampler=Sampler(original['pid'])
         def operation(label,fn):
             lo=time.monotonic();value=fn();hi=time.monotonic();time.sleep(.1)
@@ -118,7 +120,7 @@ def main():
             phase(f'released_cycle_{cycle+1}',8)
         phase('released_settling',20)
         assert c.state()['project']==original['project']
-        report['temporary_assets']=[p.name for p in (ROOT/'var/assets').glob('.import-*')];assert not report['temporary_assets']
+        report['temporary_assets']=[p.name for p in (VERIFY.data_root / 'assets').glob('.import-*')];assert not report['temporary_assets']
         report['ok']=True
     except BaseException as error:report['error']=repr(error);raise
     finally:

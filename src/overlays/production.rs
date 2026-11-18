@@ -23,6 +23,7 @@ struct AnimationTarget {
     layer_id: String,
     source_id: String,
     visible: bool,
+    trigger_widget: bool,
 }
 #[derive(Default)]
 struct AnimationTracker {
@@ -50,8 +51,23 @@ impl AnimationTracker {
                     kind,
                     AnimationKind::FadeIn | AnimationKind::SlideIn | AnimationKind::ScaleIn
                 ),
+                trigger_widget: false,
             },
         );
+    }
+    fn record_widget(
+        &mut self,
+        id: u64,
+        variant: Variant,
+        scene_id: String,
+        layer: &Layer,
+        kind: AnimationKind,
+    ) {
+        self.record(id, variant, scene_id, layer, kind);
+        self.pending
+            .get_mut(&id)
+            .expect("recorded animation")
+            .trigger_widget = true;
     }
     fn graph_replaced(&mut self) {
         self.generation = self
@@ -72,6 +88,10 @@ impl AnimationTracker {
                 && job["layer_id"] == target.layer_id
                 && job["target_visible"] == target.visible
                 && job["pending_ack"] == true
+                && (!target.trigger_widget
+                    || (job["trigger_source_id"] == target.source_id
+                        && job["widget_triggered"].is_boolean()
+                        && (job["phase"] != "completed" || job["widget_triggered"] == true)))
                 && matches!(
                     job["phase"].as_str(),
                     Some("completed" | "cancelled" | "failed")
@@ -202,7 +222,7 @@ impl Drop for State {
 impl Production {
     pub(in crate::core) fn poll_overlays(&mut self) {
         if self.overlays.poll() {
-            self.revision += 1;
+            self.bump_external_revision();
         }
         self.engine.poll_overlays();
         let runtime = self.engine.overlay_state();
@@ -236,10 +256,55 @@ impl Production {
                 }
             }
         }
-        let lifecycle = json!({"animations":runtime["animations"]["jobs"].as_array().map(|a|a.iter().map(|v|json!([v["operation_id"],v["phase"]])).collect::<Vec<_>>()),"sources":runtime["sources"].as_array().map(|a|a.iter().map(|v|json!([v["id"],v["phase"],v["visible"]])).collect::<Vec<_>>())});
-        if lifecycle != self.overlays.observed {
-            self.overlays.observed = lifecycle;
-            self.revision += 1;
+        let lifecycle = json!({"animations":runtime["animations"]["jobs"].as_array().map(|a|a.iter().map(|v|json!([v["operation_id"],v["phase"]])).collect::<Vec<_>>()),"sources":runtime["sources"].as_array().map(|a|a.iter().map(|v|json!([v["id"],v["phase"],v["visible"],v["lifecycle"]])).collect::<Vec<_>>())});
+        // Never attribute the aggregate source+job delta to whichever Show
+        // Control operation happens to be pending. Every ID gets its own bump.
+        let previous = std::mem::replace(&mut self.overlays.observed, lifecycle.clone());
+        for category in ["animations", "sources"] {
+            let entries = |value: &Value| -> BTreeMap<String, Value> {
+                value[category]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|entry| {
+                        let id = if category == "animations" {
+                            entry[0].as_u64().map(|n| n.to_string())
+                        } else {
+                            entry[0].as_str().map(str::to_owned)
+                        }?;
+                        Some((id, entry.clone()))
+                    })
+                    .collect()
+            };
+            let before = entries(&previous);
+            let after = entries(&lifecycle);
+            let ids: BTreeSet<_> = before.keys().chain(after.keys()).cloned().collect();
+            for id in ids {
+                if before.get(&id) != after.get(&id) {
+                    let cause = if category == "animations" {
+                        crate::core::show_control::ledger::Cause::Animation(
+                            id.parse().expect("native operation integer"),
+                        )
+                    } else if let Some(operation_id) =
+                        before
+                            .get(&id)
+                            .zip(after.get(&id))
+                            .and_then(|(before, after)| {
+                                crate::core::show_control::ledger::source_lifecycle_operation(
+                                    &before[3], &after[3],
+                                )
+                            })
+                    {
+                        crate::core::show_control::ledger::Cause::AnimatedWidget {
+                            source_id: &id,
+                            operation_id,
+                        }
+                    } else {
+                        crate::core::show_control::ledger::Cause::OverlaySource(&id)
+                    };
+                    self.bump_revision(cause);
+                }
+            }
         }
     }
     pub fn overlay_status(&self) -> Value {
@@ -461,6 +526,7 @@ impl Production {
                     let operation_id = self
                         .engine
                         .animate_overlay(&scene_id, &layer_id, &animation)?;
+                    self.show_control_ledger.bind_animation(operation_id);
                     self.overlays.animations.record(
                         operation_id,
                         self.project.variant,
@@ -473,6 +539,47 @@ impl Production {
                 OverlayCommand::CancelOverlayAnimation { operation_id } => {
                     self.engine.cancel_overlay_animation(operation_id)?;
                     Ok(Value::Null)
+                }
+                OverlayCommand::TriggerAnimatedWidget {
+                    source_id,
+                    scene_id,
+                    layer_id,
+                    animation,
+                } => {
+                    // CLI/MCP and the scheduler use the identical typed guards.
+                    let action = motive_show_control::actions::Action::TriggerAnimatedWidget {
+                        source_id: source_id.clone(),
+                        scene_id: scene_id.clone(),
+                        layer_id: layer_id.clone(),
+                        animation: serde_json::from_value(serde_json::to_value(&animation)?)?,
+                    };
+                    motive_show_control::actions::prepare(
+                        &action,
+                        &self.show_control_production_snapshot(),
+                        None,
+                    )
+                    .map_err(|e| anyhow::anyhow!("{}: {}", e.code, e.message))?;
+                    let layer = self
+                        .graph()
+                        .scene(&scene_id)?
+                        .layers
+                        .iter()
+                        .find(|l| l.id == layer_id)
+                        .expect("validated layer")
+                        .clone();
+                    let operation_id = self
+                        .engine
+                        .trigger_animated_widget(&source_id, &scene_id, &layer_id, &animation)?;
+                    self.show_control_ledger
+                        .bind_animated_widget(operation_id, &source_id);
+                    self.overlays.animations.record_widget(
+                        operation_id,
+                        self.project.variant,
+                        scene_id,
+                        &layer,
+                        animation.kind,
+                    );
+                    Ok(json!({"operation_id":operation_id}))
                 }
                 OverlayCommand::InstantiateOverlayPreset {
                     scene_id,
@@ -496,7 +603,7 @@ impl Production {
             Ok(result) => {
                 if !query {
                     self.poll_health();
-                    self.revision += 1;
+                    self.bump_revision(crate::core::show_control::ledger::Cause::Command);
                     self.last_action = format!("{origin} · {label} · revisión {}", self.revision);
                 }
                 let mut value = json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"result":result});
@@ -522,6 +629,38 @@ mod tests {
     fn receipt(id: u64, layer: &Layer, phase: &str) -> Value {
         json!({"operation_id":id,"scene_id":"scene-1","layer_id":layer.id,
             "phase":phase,"target_visible":false,"pending_ack":true})
+    }
+
+    #[test]
+    fn animated_widget_completion_requires_trigger_and_cancellation_preserves_baseline() {
+        for triggered in [false, true] {
+            let mut graph = Graph::default();
+            graph.scenes[0].layers[0].layouts.horizontal.visible = false;
+            let layer = graph.scenes[0].layers[0].clone();
+            let mut tracker = AnimationTracker::default();
+            tracker.record_widget(
+                8,
+                Variant::Horizontal,
+                "scene-1".into(),
+                &layer,
+                AnimationKind::ScaleIn,
+            );
+            let mut job = receipt(8, &layer, "cancelled");
+            job["target_visible"] = json!(true);
+            job["trigger_source_id"] = json!(layer.source_id);
+            job["widget_triggered"] = json!(triggered);
+            assert!(!tracker.reconcile(8, &job, &mut graph).unwrap());
+            assert!(!graph.scenes[0].layers[0].layouts.horizontal.visible);
+            job["phase"] = json!("completed");
+            if triggered {
+                assert!(tracker.reconcile(8, &job, &mut graph).unwrap());
+                assert!(graph.scenes[0].layers[0].layouts.horizontal.visible);
+            } else {
+                assert!(tracker.reconcile(8, &job, &mut graph).is_err());
+            }
+            job["trigger_source_id"] = json!("other-source");
+            assert!(tracker.reconcile(8, &job, &mut graph).is_err());
+        }
     }
 
     #[test]

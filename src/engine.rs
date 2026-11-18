@@ -5,10 +5,15 @@ use std::{
 };
 
 unsafe extern "C" {
-    fn motive_create(base: *const c_char) -> *mut c_void;
+    fn motive_create(
+        base: *const c_char,
+        output_module: *const c_char,
+        capture_module: *const c_char,
+    ) -> *mut c_void;
     fn motive_destroy(engine: *mut c_void);
     fn motive_error(engine: *mut c_void) -> *const c_char;
     fn motive_version() -> *const c_char;
+    fn motive_memory_diagnostics() -> *mut c_char;
     fn motive_frame(engine: *mut c_void, dest: *mut u8, len: usize, timestamp: *mut u64) -> u64;
     fn motive_frame_sequence(engine: *mut c_void) -> u64;
     fn motive_preview_copies(engine: *mut c_void) -> u64;
@@ -34,6 +39,14 @@ unsafe extern "C" {
         animation: *const c_char,
         operation: *mut u64,
     ) -> bool;
+    fn motive_trigger_animated_widget(
+        engine: *mut c_void,
+        source: *const c_char,
+        scene: *const c_char,
+        layer: *const c_char,
+        animation: *const c_char,
+        operation: *mut u64,
+    ) -> bool;
     fn motive_cancel_overlay_animation(engine: *mut c_void, operation: u64) -> bool;
     fn motive_ack_overlay_animation(engine: *mut c_void, operation: u64) -> bool;
     fn motive_graph_health(engine: *mut c_void) -> *mut c_char;
@@ -49,6 +62,7 @@ unsafe extern "C" {
     fn motive_reset_output(engine: *mut c_void) -> bool;
     fn motive_reset_output_target(engine: *mut c_void, target: u32) -> bool;
     fn motive_output_info(engine: *mut c_void, target: u32) -> *mut c_char;
+    fn motive_output_packet_trace(engine: *mut c_void, target: u32) -> *mut c_char;
     fn motive_stop_output_target(engine: *mut c_void, target: u32);
     fn motive_total_frames() -> u32;
     fn motive_lagged_frames() -> u32;
@@ -70,6 +84,29 @@ unsafe extern "C" {
         credential: *const c_char,
     ) -> bool;
     fn motive_credential_status(reference: *const c_char, port: i32) -> i32;
+    fn motive_start_approved_stream(
+        engine: *mut c_void,
+        url: *const c_char,
+        profile: *const c_char,
+        credential: *const c_char,
+        binding: *const c_char,
+    ) -> bool;
+    fn motive_destination_credential_status(
+        reference: *const c_char,
+        binding: *const c_char,
+    ) -> i32;
+    fn motive_destination_credential_begin_for_view(
+        view: *mut c_void,
+        metadata: *const c_char,
+        request_id: u64,
+    ) -> i32;
+    fn motive_destination_credential_poll(
+        request_id: u64,
+        result: *mut NativeCredentialResult,
+        consume: bool,
+    ) -> bool;
+    fn motive_destination_credential_cancel(request_id: u64) -> bool;
+    fn motive_destination_credential_busy() -> bool;
     fn motive_encoding_info(engine: *mut c_void) -> *mut c_char;
     fn motive_encoded_frames(engine: *mut c_void) -> u32;
     fn motive_video_skipped_frames() -> u32;
@@ -116,6 +153,39 @@ unsafe extern "C" {
     fn motive_audio_legacy(engine: *mut c_void, device: *const c_char);
 }
 
+#[repr(C)]
+struct NativeCredentialResult {
+    request_id: u64,
+    phase: u32,
+    code: i32,
+    cancel_requested: u8,
+    reserved: [u8; 7],
+    credential_ref: [c_char; 40],
+}
+impl Default for NativeCredentialResult {
+    fn default() -> Self {
+        Self {
+            request_id: 0,
+            phase: 0,
+            code: 0,
+            cancel_requested: 0,
+            reserved: [0; 7],
+            credential_ref: [0; 40],
+        }
+    }
+}
+const _: () = assert!(std::mem::size_of::<NativeCredentialResult>() == 64);
+
+#[derive(serde::Serialize)]
+pub struct CredentialEnrollmentResult {
+    pub request_id: u64,
+    pub phase: &'static str,
+    pub code: i32,
+    pub terminal: bool,
+    pub cancel_requested: bool,
+    pub credential_ref: Option<String>,
+}
+
 /// Main-thread owner. Rc marker intentionally prevents Send/Sync.
 pub struct Engine {
     raw: *mut c_void,
@@ -126,11 +196,27 @@ pub struct Engine {
 }
 impl Engine {
     pub fn new() -> anyhow::Result<Self> {
-        let path = CString::new(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/.deps/OBS.app/Contents"
-        ))?;
-        let raw = unsafe { motive_create(path.as_ptr()) };
+        let path = CString::new(crate::paths::obs_contents().as_os_str().as_encoded_bytes())?;
+        let output_module =
+            CString::new(crate::paths::output_module().as_os_str().as_encoded_bytes())?;
+        let capture_module = CString::new(
+            crate::paths::mac_capture_module()
+                .as_os_str()
+                .as_encoded_bytes(),
+        )?;
+        anyhow::ensure!(
+            [&path, &output_module, &capture_module]
+                .iter()
+                .all(|p| p.as_bytes().len() < 4096),
+            "RUNTIME_PATH_TOO_LONG"
+        );
+        let raw = unsafe {
+            motive_create(
+                path.as_ptr(),
+                output_module.as_ptr(),
+                capture_module.as_ptr(),
+            )
+        };
         anyhow::ensure!(!raw.is_null(), "No se pudo crear libobs");
         let engine = Self {
             raw,
@@ -220,6 +306,30 @@ impl Engine {
         })?;
         Ok(operation)
     }
+    pub fn trigger_animated_widget(
+        &mut self,
+        source: &str,
+        scene: &str,
+        layer: &str,
+        animation: &crate::core::overlays::Animation,
+    ) -> anyhow::Result<u64> {
+        let source = CString::new(source)?;
+        let scene = CString::new(scene)?;
+        let layer = CString::new(layer)?;
+        let animation = CString::new(serde_json::to_string(animation)?)?;
+        let mut operation = 0;
+        self.checked(unsafe {
+            motive_trigger_animated_widget(
+                self.raw,
+                source.as_ptr(),
+                scene.as_ptr(),
+                layer.as_ptr(),
+                animation.as_ptr(),
+                &mut operation,
+            )
+        })?;
+        Ok(operation)
+    }
     pub fn ack_overlay_animation(&mut self, operation: u64) -> anyhow::Result<()> {
         self.checked(unsafe { motive_ack_overlay_animation(self.raw, operation) })
     }
@@ -289,6 +399,12 @@ impl Engine {
     }
     pub fn stop_output_target(&mut self, target: crate::core::output::OutputTarget) {
         unsafe { motive_stop_output_target(self.raw, target.index()) };
+    }
+    pub fn output_packet_trace(
+        &self,
+        target: crate::core::output::OutputTarget,
+    ) -> serde_json::Value {
+        self.overlay_json(unsafe { motive_output_packet_trace(self.raw, target.index()) })
     }
     fn checked(&self, ok: bool) -> anyhow::Result<()> {
         anyhow::ensure!(
@@ -445,6 +561,112 @@ impl Engine {
             return 4;
         };
         unsafe { motive_credential_status(reference.as_ptr(), i32::from(port)) }
+    }
+    pub fn memory_diagnostics(&self) -> serde_json::Value {
+        let raw = unsafe { motive_memory_diagnostics() };
+        if raw.is_null() {
+            return serde_json::json!({"version":1,"status":"unavailable"});
+        }
+        let result = serde_json::from_slice(unsafe { CStr::from_ptr(raw) }.to_bytes())
+            .unwrap_or_else(
+                |_| serde_json::json!({"version":1,"status":"invalid_native_contract"}),
+            );
+        unsafe {
+            motive_free(raw);
+        }
+        result
+    }
+    pub fn destination_credential_status(&self, reference: &str, binding: &str) -> i32 {
+        let (Ok(reference), Ok(binding)) = (CString::new(reference), CString::new(binding)) else {
+            return 4;
+        };
+        unsafe { motive_destination_credential_status(reference.as_ptr(), binding.as_ptr()) }
+    }
+    pub fn destination_credential_busy(&self) -> bool {
+        unsafe { motive_destination_credential_busy() }
+    }
+    /// # Safety
+    /// `view` must come from the live owner GPUI window's AppKit raw handle.
+    pub unsafe fn begin_destination_credential(
+        &mut self,
+        view: *mut c_void,
+        metadata: &str,
+        request_id: u64,
+    ) -> anyhow::Result<()> {
+        let metadata = CString::new(metadata)?;
+        let code = unsafe {
+            motive_destination_credential_begin_for_view(view, metadata.as_ptr(), request_id)
+        };
+        anyhow::ensure!(
+            code == 0,
+            "{}",
+            match code {
+                6 => "CREDENTIAL_SIGNED_IDENTITY_REQUIRED",
+                7 | 8 => "CREDENTIAL_ENROLLMENT_BUSY",
+                9 => "CREDENTIAL_WINDOW_UNAVAILABLE",
+                _ => "INVALID_CREDENTIAL_ENROLLMENT",
+            }
+        );
+        Ok(())
+    }
+    pub fn poll_destination_credential(
+        &mut self,
+        request_id: u64,
+    ) -> Option<CredentialEnrollmentResult> {
+        let mut raw = NativeCredentialResult::default();
+        if !unsafe { motive_destination_credential_poll(request_id, &mut raw, true) } {
+            return None;
+        }
+        let phase = match raw.phase {
+            1 => "awaiting_user",
+            2 => "writing",
+            3 => "stored",
+            4 => "cancelled",
+            5 => "failed",
+            6 => "stored_after_cancel",
+            _ => "unknown",
+        };
+        let reference = unsafe { CStr::from_ptr(raw.credential_ref.as_ptr()) }
+            .to_str()
+            .ok()
+            .filter(|r| crate::core::output::valid_credential_ref(r))
+            .map(str::to_owned);
+        Some(CredentialEnrollmentResult {
+            request_id: raw.request_id,
+            phase,
+            code: raw.code,
+            terminal: raw.phase >= 3,
+            cancel_requested: raw.cancel_requested != 0,
+            credential_ref: reference,
+        })
+    }
+    pub fn cancel_destination_credential(&mut self, request_id: u64) {
+        unsafe {
+            motive_destination_credential_cancel(request_id);
+        }
+    }
+    pub(super) fn start_approved_stream(
+        &mut self,
+        url: &str,
+        profile: &str,
+        credential: &str,
+        binding: &str,
+    ) -> anyhow::Result<()> {
+        let (url, profile, credential, binding) = (
+            CString::new(url)?,
+            CString::new(profile)?,
+            CString::new(credential)?,
+            CString::new(binding)?,
+        );
+        self.checked(unsafe {
+            motive_start_approved_stream(
+                self.raw,
+                url.as_ptr(),
+                profile.as_ptr(),
+                credential.as_ptr(),
+                binding.as_ptr(),
+            )
+        })
     }
     pub fn start_stream(
         &mut self,

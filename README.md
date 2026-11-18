@@ -27,7 +27,7 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 
 > **Experimental developer preview.** Recording and local loopback streaming work. This is not yet a packaged release or a full replacement for OBS Studio. The current interface is in Spanish; this README is in English.
 
-**Status — November 17, 2026:** H13 implements configurable production video, application/desktop audio and simultaneous MKV recording + local RTMP, with independent controls in the shared core and GPUI. The current bundle passes the latest runs of all 23 H1–H12 regression suites, the four dual-output scenarios and visible A/V alignment. **H13 acceptance remains partial:** the native GPUI production and a dual-output session exceeding 30 minutes have run. The compact follow-up confirms the corrected alert and safe deferred shutdown; the latest controlled self-audio exclusion test also passes. Captured-window freezes, terminal frame accounting and measured memory limits keep acceptance partial. Earlier failures remain preserved. See the [H13 evidence index](docs/h13-evidence-index.md) and [measured limits](docs/h13-production-verification.md); the [H12 results](docs/h12-creative-studio-verification.md) remain historical evidence for their own bundles.
+**Status — November 17, 2026:** H14 has a partial verified local delivery; **the beta is not accepted**. The signed portable B3 app has [23/23 verified H1–H12 regression passes](docs/h14-b3-regressions-verification.md), real GPUI/MCP Show Control recordings and a complete 30-minute dual-output soak. [Nine additional H13 invocations](docs/h14-b3-h13-additional-verification.md) retain **6 PASS, 1 FAIL and 2 INCONCLUSIVE** results; the [final native workflow](docs/h14-native-b3-verification.md) has been executed and analyzed, with limits retained. GPUI concurrency passes in a separate 3000 ms animation test; the stock 450 ms case remains unobserved. A separate B2 build completed an authorized private YouTube RTMPS test with user-observed video and audio. Capture and application-audio failures, output accounting, memory limits and distribution gates keep acceptance open. See the [H14 results and gates](docs/h14-beta-verification.md); [historical H13 results](docs/h13-evidence-index.md) retain their own bundle identity and limits.
 
 ## ✨ What is taking shape
 
@@ -60,7 +60,7 @@ open target/Motive.app
 
 The bootstrap fetches pinned, checksum-verified **OBS Studio 33.0.1** and its full source tree, plus **SIMDe 0.8.2**, into `.deps/`. It does not install global packages. Cargo.lock pins **GPUI Kit 0.10.0** and its **GPUI 0.3.12** dependency.
 
-**Keep the app in this checkout.** This ad-hoc-signed development bundle links to `.deps/` using local paths. A self-contained, signed and notarized release is still future work. Launch the bundle rather than `cargo run` so the official muxing helper is in the expected location.
+**Keep this development app in the checkout.** The command above creates an ad-hoc-signed bundle that links to `.deps/` using local paths. H14 also provides a separate [self-contained app builder](docs/h14-portable-app.md), with dependencies and import tools inside the bundle. Local signed builds have run outside the checkout; notarization and testing on another Mac remain open. No installer or release is published. Launch the bundle rather than `cargo run` so the official muxing helper is in the expected location.
 
 Ad-hoc rebuilds change the code identity and can require macOS permissions again. If you already have a local Apple Development identity, use `python3 scripts/bundle.py --sign-identity "YOUR_EXISTING_IDENTITY"` for a stable development identity. The script never creates certificates or changes the keychain. Close Motive before rebuilding.
 
@@ -163,7 +163,7 @@ or the selectable primary desktop with
 `source: {"kind":"system_desktop","display_uuid":"UUID_FROM_INVENTORY"}`.
 The same identity reuses its channel. Desktop and application captures cannot
 coexist because their audio overlaps. The OBS module requests exclusion of
-Motive's own audio; [final measured acceptance remains open](docs/h13-system-audio-exclusion-final.md).
+Motive's own audio; the [controlled B3 exclusion test passes](docs/h14-b3-h13-additional-verification.md), within its recorded display and permission conditions.
 Silence with packets is healthy, while `awaiting_audio` reports missing samples. Application
 loss remains latched until explicit recovery. See [H13 audio semantics and
 limits](docs/h13-video-audio-contract.md).
@@ -185,6 +185,8 @@ H11 exposes typed overlay definitions and runtime state through that same owner:
 ```
 
 Use the returned IDs and the [overlay integration contract](docs/h11-overlay-ui-contract.md) for complete create/update/event/animation schemas. Import only files explicitly placed in `var/imports`, then pass their basename to `import_asset`; use the returned managed asset ID in definitions. Imports and animations return operation IDs whose terminal state must be observed. GPUI must dispatch these same typed commands; it must not create a second renderer, timer, asset broker or mixer. The [architecture review](docs/h11-architecture-review.md) documents persistence, memory and the same-user security boundary.
+
+H14 connects [Show Control](docs/h14-show-control-contract.md) to the same owner with durable intent, revision receipts, cooldowns and explicit reconciliation. Open **Live Deck** to review and install the original MATCHDAY pack, trigger celebrations/countdowns and change scenes. Save the project and rules separately; restored rules remain disarmed. The [native acceptance report](docs/h14-native-b3-verification.md) separates real rendered results from unconfirmed UI gestures. Optional voice remains an [offline benchmark](docs/h14-voice-offline.md), without live recognition.
 
 Agents control production through CLI/MCP, never by editing project files or automating clicks. Project restoration is explicit after launch with `load_project`.
 
@@ -222,13 +224,17 @@ For an MCP client, use an absolute path to your checkout:
 
 `overlay_capabilities` · `overlay_state` · `asset_inventory` · `list_assets` · `import_asset` · `remove_asset` · `create_overlay` · `update_overlay` · `overlay_event` · `animate_overlay` · `cancel_overlay_animation` · `overlay_presets` · `instantiate_overlay_preset`
 
+`show_control_status` · `press_show_control` · `cancel_show_control` · `reconcile_show_control` · `save_show_control` · `load_show_control` · `arm_show_control`
+
+`destinations` · `creator_packs` · `memory_diagnostics` · `output_diagnostics`
+
 Responses include the shared PID/revision, source issues and real engine counters. Inputs reject unknown fields. Disconnecting the MCP client leaves the production engine running.
 
 </details>
 
 The API accepts no arbitrary output paths, public stream URLs, shell commands or stream-key values. `configure_stream` accepts only RTMP/RTMPS and an unprivileged port at **127.0.0.1**. `cancel_output` queues safe deferred cancellation (`cancel_pending`) while a handshake finishes; `stop_output` retains its immediate-cancellation guard. Native worker completion is checked through a pinned lifecycle patch to the official OBS output module.
 
-Credentials can be enrolled locally in **macOS Keychain** using the signed terminal helper; CLI/MCP see only opaque references, bound to an RTMPS port. Trusted RTMPS delivery remains pending: OBS 33.0.1 does not expose an isolated development-CA setting on macOS. See [H8 verification and security limits](docs/h8-streaming-verification.md). No public destination is enabled. The legacy CLI-only `start_local_stream` still sends MPEG-TS to **127.0.0.1:19350** using its original libx264 settings.
+H14 adds a separate [locally approved RTMPS destination registry](docs/h14-destination-contract.md). Host, port and application path are reviewed in GPUI; stream keys enter an AppKit secure sheet and remain in **macOS Keychain**, bound to that destination. Each external start requires a fresh local confirmation; CLI/MCP cannot grant that authority. A private YouTube trial passed connection and user-observed audio/video on B2, with [remote delivery limits retained](docs/h14-rtmps-b2-verification.md); B3 has no external repeat. The [H8 trust limitation](docs/h8-streaming-verification.md) remains historical evidence. The legacy CLI-only `start_local_stream` still sends MPEG-TS to **127.0.0.1:19350**.
 
 Native window close, **Motive → Salir de Motive** and Cmd+Q use the shared shutdown lifecycle. Active production requires confirmation; finalization waits for both output workers and any existing import. The core rejects new work once shutdown is pending or committed while allowing queries. Native tests observed Cmd+Q cancellation, rejection of a stale confirmation and deferred shutdown during an incomplete RTMP handshake. Motive stayed open behind the worker barrier and exited 0.835 seconds after the controlled peer was released. Other native close paths retain their individual coverage in the [acceptance report](docs/h13-native-acceptance.md).
 
@@ -257,9 +263,17 @@ python3 scripts/verify_profiles_restart.py
 
 The integration scripts require the app to be open and idle. `verify.py` also requires the owned test window and normal screen-capture permission. It validates decoded video/audio, source pixels outside the overlay, overlay motion, portrait layout and a loopback receiver. It records for at least 65 seconds.
 
+On portable B3 (`797b9722…04549dc`), **23/23 selected H1–H12 suites pass** with fresh primary reports, zero child exit status, confirmed cleanup and restored stores. The [consolidated audit](docs/h14-b3-regressions-verification.md) verifies hashes and compiled-source identity across three selected runs. It retains the initial scenes path failure and excludes the first H1 take, whose intended tone playback was not established. Neither correction changed B3 or relaxed media checks. These passes do not cover every GPUI workflow or a memory budget; H12's final settling RSS median remains 858.45 MiB. Additional H13 tests have their own results below.
+
+The [additional H13 audit on B3](docs/h14-b3-h13-additional-verification.md) verifies 32 retained original/copy pairs across **nine invocations: 6 PASS, 1 FAIL and 2 INCONCLUSIVE**. Import during shutdown, seven video configurations, four output scenarios, standalone microphone/system mixing, A/V and self-audio exclusion pass. Both shutdown-queue attempts remain inconclusive after TIMEOUT; their owners exited without new recordings. The seven-stage audio sequence remains **FAIL** despite six partial subtrial `ok=true` values. Its [failure audit](var/evidence/h14-system-audio-b3-failure-audit-01/findings.md) locates `APPLICATION_UNAVAILABLE` during tone resumption while the fixture continued producing audio for at least another 16.73 seconds. The exact identity-check condition is unknown; the subtrial checks do not establish continuous application audio. The standalone microphone pass does not replace this failure. The [final native GPUI take](docs/h14-native-b3-verification.md) independently verifies destination recovery, two recorded celebrations, project/mixer restoration and Finder reveal; it retains the unconfirmed rules-save gesture and collector shutdown race.
+
+The [B3 1080p60 lifecycle and 1800.07-second dual-output soak](docs/h14-memory-b3-soak-verification.md) completed with 108057 decoded MKV frames and 108028 locally received RTMP frames. Both full files pass their format, cadence, pixel-freshness and PCM checks. Median CPU was 52.72% of one core; maximum sampled footprint was 1277.03 MiB. The report retains 39 video skips, one lagged render, a visual pause up to 0.601 s and an over-budget memory RPC p95 of 50.88 ms. A later framing analysis locates one missing retained tail video packet per output after stop; it does not establish complete delivery or resolve the encoder-to-observer difference. The original inconclusive analysis is preserved. A/V alignment, allocation ownership and absence of leaks are not established.
+
+[Real GPUI concurrency on B3](docs/h14-ui-concurrency-b3-verification.md) is **PASS for custom3000**: a gain edit during the native animation leaves the job awaiting reconciliation, with no counter increment or replay observed. **Stock450 remains NOT_OBSERVED** because its edit arrived after the animation. All four files decode completely and measure a 12.009–12.014 dB gain step without clipping or interior 100 ms silence. The strict custom geometry check remains **FAIL** for four one-pixel mask-height decreases; its threshold-sensitivity analysis does not turn that result into a pass. Historical failures and these separate scopes remain visible; H14 is not accepted.
+
 H12 has 55 passing Rust tests, clean Clippy and real native workflows decoded from recording and RTMP. The five open H11 regression groups pass on the exact integrated baseline; all 22 suites also pass on their latest H12 runs. Original failures remain preserved, including an intermittent two-frame render-lag failure before the passing final ABBA run. Follow [H12 reproduction and evidence](docs/h12-creative-studio-verification.md) for hashes, CPU/RSS, media and limits. Historical [H11 evidence](docs/h11-overlay-verification.md) is unchanged. Never run physical suites simultaneously in different worktrees.
 
-The current H13 bundle G (`d9b8d702…e0e2d93`) has 71 passing Rust tests, clean Clippy/format and **23/23 distinct H1–H12 suites passing in their latest runs**. H10 uses [isolated measurement references](docs/h13-h10-metrology.md) and new real recordings; earlier failures and failed manifests remain preserved. The [evidence index](docs/h13-evidence-index.md) maps each result to its bundle and report.
+The historical H13 bundle G (`d9b8d702…e0e2d93`) has 71 passing Rust tests, clean Clippy/format and **23/23 distinct H1–H12 suites passing in their latest runs**. H10 uses [isolated measurement references](docs/h13-h10-metrology.md) and new real recordings; earlier failures and failed manifests remain preserved. The [evidence index](docs/h13-evidence-index.md) maps each result to its bundle and report.
 
 On G, all seven canvas cases and seven system-audio stages pass. Dual outputs pass **4/4 scenarios and 12/12 media**, including independent recovery; two intentionally partial files are distinguished from the ten complete files. Visible A/V passes with seven pulse pairs, median audio−video **+24.27 ms** and a **33 ms range**. This measures end-to-end alignment, not zero latency. H8 shutdown gates and closure during an active import also pass. See [H13 verification](docs/h13-production-verification.md).
 
@@ -273,9 +287,9 @@ See [H1 verification](docs/h1-verification.md) and [scene-graph verification](do
 
 ## 🗺️ Direction and boundaries
 
-- **Now:** H13 has completed a native GPUI production and a dual-output run exceeding 30 minutes. Acceptance remains partial because captured-window continuity fails and terminal frame accounting and memory limits remain unresolved. All 23 regression suites pass in their latest runs on the current bundle.
-- **Next:** close those acceptance gates, investigate retained capture/cadence failures, improve accessibility and inactive-scene previews, define recording-library and agent-proposal contracts, and add secure native credential entry and removable-device recovery tests.
-- **Later:** isolated browser overlays, richer typography/effects, a distributable bundle, simultaneous variants and authorized platform streaming.
+- **Now:** portable B3 has 23/23 H1–H12 regression passes, nine additional H13 invocations (6 PASS, 1 FAIL, 2 INCONCLUSIVE), a complete 30-minute dual-output soak and real Show Control/GPUI evidence. The final native workflow and its three media files have been analyzed. Custom3000 concurrency passes; stock450 remains unobserved and the strict custom geometry failure is retained. The beta is not accepted.
+- **Next:** investigate application-audio and capture/cadence failures, resolve shutdown-queue coverage, output accounting and memory limits, and complete portability, accessibility and removable-device recovery checks. Private RTMPS evidence belongs to B2; remote decoded delivery and a B3 external repeat remain unverified.
+- **Later:** isolated browser overlays, richer typography/effects, a notarized distributable release and simultaneous variants. No release or public broadcast is authorized by these local tests.
 
 The preview copies new BGRA frames through CPU memory into GPUI; it is not zero-copy. The core supports up to 8 scenes, 16 visual sources, 32 layers and 4 video sources, with one active canvas, one MKV destination and one RTMP destination. It does not provide multiple streaming destinations or simultaneous canvas variants. The 256 MiB visual allocation estimate is not an RSS cap: hidden decoders and resource-replacement peaks still consume memory. There are no cloud services, payments or marketplace features.
 

@@ -6,6 +6,8 @@ Plays an owned 997 Hz speaker fixture into the explicitly selected microphone.
 import argparse
 import socket
 from h7_support import Client, ROOT, EVIDENCE, EXE, process_sample
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 import hashlib, json, math, statistics, struct, subprocess, time
 from verify_h10_audio import stimulus, power, tonal_amplitude, tonal_amplitudes, isolated_tone_continuity
 
@@ -297,7 +299,7 @@ def restart(c):
         if subprocess.run(['kill','-0',str(pid)],capture_output=True).returncode:break
         time.sleep(.1)
     else:raise AssertionError('app did not close')
-    subprocess.run(['open','-n','--stdout',str(EVIDENCE/'h10-restart.log'),'--stderr',str(EVIDENCE/'h10-restart-stderr.log'),str(ROOT/'target/Motive.app')],check=True)
+    subprocess.run(['open','-n','--stdout',str(EVIDENCE/'h10-restart.log'),'--stderr',str(EVIDENCE/'h10-restart-stderr.log'),str(VERIFY.app_bundle)],check=True)
     for _ in range(80):
         p=subprocess.run([str(EXE),'ctl','{"op":"status"}'],capture_output=True,text=True)
         v=json.loads(p.stdout)
@@ -355,7 +357,7 @@ def main():
         c.call('set_audio_mute',input_id=mic,muted=True)
         project=c.call('save_project')['state']['project'];profiles=c.call('output_profiles')['store'];c.call('save_output_profiles')
         saved=c.call('save_audio_mixer')['state']['audio_mixer']['store']
-        scene_bytes=(ROOT/'var/project.json').read_bytes();profile_bytes=(ROOT/'var/output-profiles.json').read_bytes()
+        scene_bytes=(VERIFY.data_root / 'project.json').read_bytes();profile_bytes=(VERIFY.data_root / 'output-profiles.json').read_bytes()
         instances=c.state()['audio_mixer']['runtime']['instances_created']
         c.call('set_audio_gain',input_id=tone,gain_db=-30);c.call('load_audio_mixer')
         assert c.state()['audio_mixer']['store']==saved and c.state()['audio_mixer']['runtime']['instances_created']==instances
@@ -371,7 +373,7 @@ def main():
         c.call('load_project');c.call('load_output_profiles');c.call('load_audio_mixer')
         restored=c.wait(lambda s:all(i['phase']=='ready' for i in s['audio_mixer']['runtime']['inputs']))
         assert restored['audio_mixer']['store']==saved and restored['project']==project and c.call('output_profiles')['store']==profiles
-        assert (ROOT/'var/project.json').read_bytes()==scene_bytes and (ROOT/'var/output-profiles.json').read_bytes()==profile_bytes
+        assert (VERIFY.data_root / 'project.json').read_bytes()==scene_bytes and (VERIFY.data_root / 'output-profiles.json').read_bytes()==profile_bytes
         restored_path=c.call('start_recording')['state']['output_path'];time.sleep(3);c.stop()
         restored_samples=decoded(restored_path)[48000:96000]
         restored_audio={'path':restored_path,'tone_amplitude':tonal_amplitude(restored_samples,440),
@@ -394,7 +396,7 @@ def main():
             for i in c.state()['audio_mixer']['store']['inputs']:c.call('remove_audio_input',input_id=i['id'])
         except Exception as failure:report['cleanup_error']=repr(failure)
         report['operations']=c.ops;c.close()
-        report['app_sha256']=hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+        report['app_sha256']=hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
         (EVIDENCE/'h10-mixer.json').write_text(json.dumps(report,indent=2))
     print(json.dumps({k:v for k,v in report.items() if k in ('ok','error','app_sha256')},indent=2))
 

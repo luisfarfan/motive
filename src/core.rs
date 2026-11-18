@@ -1,11 +1,19 @@
 #[path = "audio.rs"]
 pub mod audio;
+#[path = "creator_packs.rs"]
+pub mod creator_packs;
+#[path = "destination_runtime.rs"]
+mod destination_runtime;
+#[path = "destinations.rs"]
+pub mod destinations;
 #[path = "output.rs"]
 pub mod output;
 #[path = "output_runtime.rs"]
 mod output_runtime;
 #[path = "overlays/mod.rs"]
 pub mod overlays;
+#[path = "show_control.rs"]
+pub mod show_control;
 #[path = "video.rs"]
 pub mod video;
 use crate::{
@@ -26,7 +34,7 @@ use std::{
 };
 use video::VideoConfig;
 pub fn data_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("var")
+    crate::paths::data_dir()
 }
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -57,6 +65,15 @@ impl RecordingEncoder {
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Command {
     Status,
+    Destinations,
+    MemoryDiagnostics,
+    CreatorPacks,
+    SelectApprovedDestination {
+        id: Option<String>,
+    },
+    PreflightDestination {
+        id: String,
+    },
     AudioMixer,
     SystemAudioSources,
     DisconnectAudioInput {
@@ -93,6 +110,11 @@ pub enum Command {
     Encoders,
     OutputCapabilities,
     Outputs,
+    Recordings,
+    RefreshRecordings,
+    OutputDiagnostics {
+        target: OutputTarget,
+    },
     VideoCapabilities,
     ConfigureVideo {
         video: VideoConfig,
@@ -212,6 +234,8 @@ pub enum Command {
     },
     #[serde(untagged)]
     Overlay(overlays::OverlayCommand),
+    #[serde(untagged)]
+    ShowControl(show_control::ShowControlCommand),
 }
 // Applied after read-only queries: once either shutdown phase is reached, no
 // queued mutation may reopen an output before the owner dispatches native Quit.
@@ -301,6 +325,10 @@ struct WindowBinding {
     pid: i32,
 }
 pub struct Production {
+    creator_packs: Value,
+    destinations: destination_runtime::State,
+    show_control: Option<show_control::State>,
+    show_control_ledger: show_control::ledger::RevisionLedger,
     overlays: overlays::production::State,
     pub engine: Engine,
     audio_mixer: AudioStore,
@@ -314,6 +342,7 @@ pub struct Production {
     pub revision: u64,
     pub last_action: String,
     outputs: OutputRegistry,
+    recordings: crate::recordings::Library,
     pub window_id: Option<u32>,
     pub issues: Vec<String>,
     pub recovery: Recovery,
@@ -332,10 +361,14 @@ pub fn error(code: &str, message: impl ToString) -> Value {
 }
 impl Production {
     pub fn new() -> anyhow::Result<Self> {
-        fs::create_dir_all(data_dir().join("recordings"))?;
-        fs::create_dir_all(data_dir().join("evidence"))?;
+        fs::create_dir_all(crate::paths::recordings_dir())?;
+        fs::create_dir_all(crate::paths::diagnostic_dir())?;
         create_tone()?;
         let mut p = Self {
+            creator_packs: json!({"phase":"not_installed"}),
+            destinations: destination_runtime::State::new(),
+            show_control: None,
+            show_control_ledger: show_control::ledger::RevisionLedger::default(),
             engine: Engine::new()?,
             overlays: overlays::production::State::new(data_dir())?,
             audio_mixer: AudioStore::default(),
@@ -349,6 +382,7 @@ impl Production {
             revision: 0,
             last_action: "Estudio iniciado".into(),
             outputs: OutputRegistry::default(),
+            recordings: crate::recordings::Library::new(),
             window_id: None,
             issues: vec![],
             recovery: Recovery::default(),
@@ -367,6 +401,9 @@ impl Production {
     }
     pub fn graph(&self) -> &Graph {
         self.project.graph.as_ref().expect("validated graph")
+    }
+    pub fn recordings_snapshot(&self) -> crate::recordings::Snapshot {
+        self.recordings.snapshot(&self.output_snapshot().recording)
     }
     pub fn status(&self) -> Value {
         let outputs = self.output_snapshot();
@@ -391,12 +428,12 @@ impl Production {
         if outputs.recovery_required() {
             recovery_sources.insert("output".into());
         }
-        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"overlays":self.overlay_status(),"encoding":if legacy.is_some(){self.encoding_status(&outputs)}else{Value::Null},"output_configuration":self.output_configuration(),"issues":self.issues,
+        json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"overlays":self.overlay_status(),"destinations":self.destinations_status(),"show_control":self.show_control_status(),"creator_packs":self.creator_packs_status(),"encoding":if legacy.is_some(){self.encoding_status(&outputs)}else{Value::Null},"output_configuration":self.output_configuration(),"issues":self.issues,
             "recovery_required":self.recovery.required() || outputs.recovery_required(),"recovery_sources":recovery_sources,"last_fault":self.last_fault,
             "sources":self.source_health,"window_id":self.window_id,"output":legacy.map_or("multiple", |slot|slot.legacy_state()),
             "output_code":legacy.map(|slot|slot.failure.as_ref().and_then(|f|f.native_code).unwrap_or(0)),
             "transition_configuration":self.transition,"transition":self.engine.scene_state(),
-            "output_lifecycle":{"native_busy":outputs.busy(),"cancel_requested":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_requested && outputs.get(*t).native_busy),"cancel_deferred":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_deferred),"shutdown_pending":self.shutdown_pending},
+            "output_lifecycle":{"native_busy":outputs.busy(),"cancel_requested":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_requested && outputs.get(*t).native_busy),"cancel_deferred":OutputTarget::ALL.iter().any(|t|outputs.get(*t).cancel_deferred),"shutdown_pending":self.shutdown_pending,"shutdown_requested":self.shutdown_requested,"recordings_busy":self.recordings.busy()},
             "output_failure":legacy.and_then(|slot|slot.failure.as_ref()),"output_path":legacy.and_then(|slot|slot.path.as_ref()),
             "output_contract_version":1,"outputs":outputs,
             "last_action":self.last_action,"libobs":self.engine.version(),"width":self.engine.width,"height":self.engine.height,"fps":self.engine.fps,"video":self.video_status(),"stats":stats})
@@ -466,6 +503,9 @@ impl Production {
         };
         self.profiles.get(id).expect("validated active profile")
     }
+    pub fn output_warnings(&self, target: OutputTarget) -> Vec<output::OutputWarning> {
+        self.profile(target).warnings()
+    }
     fn output_configuration(&self) -> Value {
         json!({"recording_profile":self.recording_profile,"streaming_profile":self.streaming_profile,
             "recording":self.profile(OutputTarget::Recording),"streaming":self.profile(OutputTarget::Streaming),
@@ -509,18 +549,22 @@ impl Production {
             );
         }
         if target == OutputTarget::Streaming {
-            self.stream_endpoint
-                .as_ref()
-                .ok_or_else(|| anyhow::anyhow!("ENDPOINT_REQUIRED"))?
-                .validate()?;
-            if let Some(reference) = &self.stream_credential {
-                let endpoint = self.stream_endpoint.as_ref().unwrap();
-                anyhow::ensure!(
-                    endpoint.transport == output::Transport::Rtmps,
-                    "CREDENTIAL_REQUIRES_TLS"
-                );
-                let code = self.engine.credential_status(reference, endpoint.port);
-                anyhow::ensure!(code == 0, "{}", output::credential_code(code));
+            if self.external_destination_selected() {
+                self.check_selected_destination()?;
+            } else {
+                self.stream_endpoint
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("ENDPOINT_REQUIRED"))?
+                    .validate()?;
+                if let Some(reference) = &self.stream_credential {
+                    let endpoint = self.stream_endpoint.as_ref().unwrap();
+                    anyhow::ensure!(
+                        endpoint.transport == output::Transport::Rtmps,
+                        "CREDENTIAL_REQUIRES_TLS"
+                    );
+                    let code = self.engine.credential_status(reference, endpoint.port);
+                    anyhow::ensure!(code == 0, "{}", output::credential_code(code));
+                }
             }
             anyhow::ensure!(
                 self.engine.encoding_info()["rtmp_available"] == true,
@@ -562,14 +606,38 @@ impl Production {
         }
         result
     }
+    pub fn persist_shutdown_diagnostics(&self) -> anyhow::Result<()> {
+        let outputs = self.output_snapshot();
+        anyhow::ensure!(
+            self.shutdown_requested
+                && !outputs.busy()
+                && self.engine.output_state() == 0
+                && !self.recordings.busy()
+                && !self.destination_credential_busy(),
+            "OUTPUT_STILL_FINALIZING"
+        );
+        crate::diagnostics::write_shutdown(
+            &crate::paths::diagnostic_dir(),
+            &json!({
+                "version":1,"pid":std::process::id(),"revision":self.revision,"outputs":outputs,
+                "packet_traces":{
+                    "recording":self.engine.output_packet_trace(OutputTarget::Recording),
+                    "streaming":self.engine.output_packet_trace(OutputTarget::Streaming)
+                },
+                "delivery_verified":false
+            }),
+        )
+    }
     pub fn poll_health(&mut self) {
+        self.poll_destination_credential();
+        self.recordings.poll();
         self.poll_overlays();
         self.engine.poll_audio();
         let audio = self.engine.audio_state();
         let lifecycle = audio.lifecycle();
         if self.observed_audio.as_ref() != Some(&lifecycle) {
             self.observed_audio = Some(lifecycle);
-            self.revision += 1;
+            self.bump_external_revision();
         }
         self.engine.poll_scene();
         let transition = self.engine.scene_state();
@@ -581,7 +649,9 @@ impl Production {
                 self.update_legacy();
                 self.retain_active_recovery();
             }
-            self.revision += 1;
+            self.bump_revision(show_control::ledger::Cause::Transition(
+                transition.operation_id,
+            ));
             if let Some(error) = transition.error {
                 self.last_action = format!("{error}: se conserva la escena anterior");
             }
@@ -601,7 +671,7 @@ impl Production {
                 .pending
                 .extend(faults.iter().map(|(id, _)| id.clone()));
             self.last_fault = self.issues.clone();
-            self.revision += 1;
+            self.bump_external_revision();
             self.last_action = format!(
                 "Fuente perdida: {}. Salidas finalizando.",
                 self.issues.join(", ")
@@ -611,6 +681,8 @@ impl Production {
             && !self.outputs.busy()
             && self.engine.output_state() == 0
             && !self.overlays.busy()
+            && !self.recordings.busy()
+            && !self.destination_credential_busy()
         {
             self.shutdown_requested = true;
         }
@@ -1061,7 +1133,13 @@ impl Production {
             // Select existing native scenes; do not reconcile capture resources,
             // reset video or touch the running output/encoders.
             anyhow::ensure!(!self.engine.overlay_animation_busy(), "ANIMATION_BUSY");
-            return self.engine.switch_scene(scene_id, self.transition);
+            let previous = self.engine.scene_state().operation_id;
+            self.engine.switch_scene(scene_id, self.transition)?;
+            let accepted = self.engine.scene_state().operation_id;
+            if accepted != previous {
+                self.show_control_ledger.bind_transition(accepted);
+            }
+            return Ok(());
         }
         self.scene_quiescent()?;
         let mut graph = self.graph().clone();
@@ -1217,7 +1295,15 @@ impl Production {
             .retain(|id| id == "audio" || id == "video" || relevant.contains(id));
     }
     pub fn apply(&mut self, command: Command, origin: &str) -> Value {
-        self.poll_health();
+        // A scoped Show Control dispatch already performed its final owner
+        // freshness check and durable intent. Do not poll between that check
+        // and this command; post-dispatch lifecycle bumps retain provenance.
+        if !self.show_control_ledger.in_dispatch() {
+            self.poll_health();
+        }
+        if let Command::ShowControl(command) = command {
+            return self.apply_show_control(command);
+        }
         if matches!(&command, Command::Overlay(overlay) if !overlay.query())
             && let Err(e) =
                 admit_shutdown_mutation(&command, self.shutdown_pending, self.shutdown_requested)
@@ -1229,6 +1315,21 @@ impl Production {
         }
         if matches!(command, Command::Status) {
             return json!({"ok":true,"state":self.status()});
+        }
+        if matches!(command, Command::Destinations) {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"destinations":self.destinations_status()});
+        }
+        if matches!(command, Command::MemoryDiagnostics) {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"memory":self.engine.memory_diagnostics()});
+        }
+        if matches!(command, Command::CreatorPacks) {
+            return json!({"ok":true,"creator_packs":self.creator_packs_status()});
+        }
+        if let Command::PreflightDestination { id } = &command {
+            return match self.preflight_destination(id) {
+                Ok(preflight) => json!({"ok":true,"preflight":preflight}),
+                Err(e) => command_error(e),
+            };
         }
         if matches!(command, Command::SystemAudioSources) {
             return match self.engine.system_audio_sources() {
@@ -1257,6 +1358,13 @@ impl Production {
         if matches!(command, Command::Outputs) {
             return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"output_contract_version":1,"outputs":self.output_snapshot()});
         }
+        if matches!(command, Command::Recordings) {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,"recordings":self.recordings_snapshot()});
+        }
+        if let Command::OutputDiagnostics { target } = &command {
+            return json!({"ok":true,"pid":std::process::id(),"revision":self.revision,
+                "output":self.output_snapshot().get(*target),"packet_trace":self.engine.output_packet_trace(*target)});
+        }
         if matches!(command, Command::OutputCapabilities) {
             return json!({"ok":true,"capabilities":self.output_capabilities()});
         }
@@ -1276,7 +1384,7 @@ impl Production {
             return match self.preflight(target) {
                 Ok(()) => {
                     json!({"ok":true,"preflight":{"ready":true,"target":target,"profile":self.profile(target),
-                    "configuration":self.output_configuration(),"network_tested":false,"encoder_initialized":false}})
+                    "configuration":self.output_configuration(),"warnings":self.output_warnings(target),"network_tested":false,"encoder_initialized":false}})
                 }
                 Err(e) => command_error(e),
             };
@@ -1288,6 +1396,12 @@ impl Production {
         let result = (|| -> anyhow::Result<()> {
             admit_shutdown_mutation(&command, self.shutdown_pending, self.shutdown_requested)?;
             match command {
+                Command::SelectApprovedDestination { id } => {
+                    self.select_approved_destination(id.as_deref())?
+                }
+                Command::RefreshRecordings => {
+                    self.recordings.refresh()?;
+                }
                 Command::ConfigureVideo { video } => {
                     self.configure_video(Some(video), self.project.variant)?;
                 }
@@ -1538,12 +1652,17 @@ impl Production {
                 }
                 Command::RequestShutdown => {
                     self.shutdown_pending = true;
+                    self.cancel_destination_credential();
                     self.engine
                         .cancel_scene(self.engine.scene_state().operation_id)?;
                     self.cancel_all_outputs();
                     // Let the owner keep polling an import before dropping its
                     // worker; State::drop must not join a live job on the UI thread.
-                    if !self.output_snapshot().busy() && !self.overlays.busy() {
+                    if !self.output_snapshot().busy()
+                        && !self.overlays.busy()
+                        && !self.recordings.busy()
+                        && !self.destination_credential_busy()
+                    {
                         self.shutdown_requested = true;
                     }
                 }
@@ -1573,7 +1692,7 @@ impl Production {
                         p.swap(0, 2);
                     }
                     image::save_buffer(
-                        data_dir().join("evidence/preview.png"),
+                        crate::paths::diagnostic_dir().join("preview.png"),
                         &pixels,
                         self.engine.width,
                         self.engine.height,
@@ -1583,12 +1702,18 @@ impl Production {
                 Command::Shutdown => {
                     self.idle()?;
                     self.shutdown_pending = true;
-                    self.shutdown_requested = true;
+                    self.cancel_destination_credential();
+                    self.shutdown_requested =
+                        !self.recordings.busy() && !self.destination_credential_busy();
                 }
                 Command::SetTestWindow { open } => {
                     self.test_window_request = Some(open);
                 }
                 Command::Status
+                | Command::Destinations
+                | Command::MemoryDiagnostics
+                | Command::CreatorPacks
+                | Command::PreflightDestination { .. }
                 | Command::AudioMixer
                 | Command::SystemAudioSources
                 | Command::Scenes
@@ -1596,10 +1721,13 @@ impl Production {
                 | Command::Encoders
                 | Command::OutputCapabilities
                 | Command::Outputs
+                | Command::Recordings
+                | Command::OutputDiagnostics { .. }
                 | Command::VideoCapabilities
                 | Command::OutputProfiles
                 | Command::CredentialStatus { .. }
-                | Command::PreflightOutput { .. } => unreachable!(),
+                | Command::PreflightOutput { .. }
+                | Command::ShowControl(_) => unreachable!(),
                 graph_command => self.graph_command(graph_command)?,
             }
             Ok(())
@@ -1607,7 +1735,7 @@ impl Production {
         match result {
             Ok(()) => {
                 self.poll_health();
-                self.revision += 1;
+                self.bump_revision(show_control::ledger::Cause::Command);
                 self.last_action = format!("{origin} · {label} · revisión {}", self.revision);
                 json!({"ok":true,"state":self.status()})
             }
@@ -1790,6 +1918,17 @@ fn create_tone() -> anyhow::Result<()> {
 mod tests {
     use super::*;
     #[test]
+    fn recordings_commands_accept_no_paths_or_extra_fields() {
+        for op in ["recordings", "refresh_recordings"] {
+            assert!(parse_command(json!({"op":op})).is_ok());
+            for field in ["path", "directory", "id", "limit"] {
+                let mut value = json!({"op":op});
+                value[field] = json!("/tmp/arbitrary");
+                assert!(parse_command(value).is_err(), "{op} {field}");
+            }
+        }
+    }
+    #[test]
     fn shutdown_admission_blocks_queued_starts_in_both_terminal_phases() {
         let commands = [
             json!({"op":"start_recording"}),
@@ -1801,6 +1940,7 @@ mod tests {
             json!({"op":"set_test_window","open":true}),
             json!({"op":"import_asset","file_name":"queued.png"}),
             json!({"op":"save_project"}),
+            json!({"op":"refresh_recordings"}),
         ];
         for value in commands {
             let command = parse_command(value.clone()).unwrap();
@@ -2116,6 +2256,7 @@ mod tests {
             active_duration_ms: 1000,
             encoding,
             stats: OutputStats::default(),
+            diagnostics: None,
         };
         outputs.streaming.begin(
             OutputKind::Streaming,

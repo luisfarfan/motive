@@ -2,6 +2,8 @@
 """Explicit profile-v1 and scene-v3 save/restart/load, via the shared core only."""
 import os
 from h7_support import *
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 c=Client();report={'ok':False}
 try:
     original=c.state();assert original['output']=='idle'
@@ -16,9 +18,9 @@ try:
         except ProcessLookupError:break
         assert time.monotonic()<until
         time.sleep(.2)
-    subprocess.run(['open','--stdout',str(EVIDENCE/'h7-restart-runtime.log'),'--stderr',str(EVIDENCE/'h7-restart-stderr.log'),str(ROOT/'target/Motive.app')],check=True)
+    subprocess.run(['open','--stdout',str(EVIDENCE/'h7-restart-runtime.log'),'--stderr',str(EVIDENCE/'h7-restart-stderr.log'),str(VERIFY.app_bundle)],check=True)
     until=time.monotonic()+15
-    while not (ROOT/'var/run/motive.sock').exists():
+    while not (VERIFY.socket).exists():
         assert time.monotonic()<until
         time.sleep(.2)
     boot=c.state();assert boot['pid']!=old_pid

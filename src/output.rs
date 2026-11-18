@@ -83,6 +83,30 @@ pub struct OutputStats {
     pub output_dropped_frames: i32,
     pub encoded_frames: Option<u32>,
 }
+/// Dispatch observations from official libobs callbacks, not delivery receipts.
+/// Missing disk/network/decode counts remain unavailable until independently
+/// measured; a successful native stop does not verify the resulting file.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct OutputDiagnostics {
+    pub version: u8,
+    pub packet_observer_available: bool,
+    pub observed_video_packets: Option<u64>,
+    pub observed_audio_packets: Option<u64>,
+    pub trace_capacity: u32,
+    pub trace_retained_records: u32,
+    pub trace_overwritten_records: u64,
+    pub trace_missed_records: u64,
+    pub stop_requested_ns: Option<u64>,
+    pub stop_call_returned_ns: Option<u64>,
+    pub stop_signal_ns: Option<u64>,
+    pub quiescent_observed_ns: Option<u64>,
+    pub stop_to_quiescence_ms: Option<u64>,
+    pub frames_written: Option<u64>,
+    pub frames_received: Option<u64>,
+    pub frames_decoded: Option<u64>,
+    pub delivery_verified: bool,
+}
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct OutputEncoding {
@@ -102,6 +126,8 @@ pub struct NativeOutput {
     pub active_duration_ms: u64,
     pub encoding: OutputEncoding,
     pub stats: OutputStats,
+    #[serde(default)]
+    pub diagnostics: Option<OutputDiagnostics>,
 }
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct OutputFailure {
@@ -150,6 +176,7 @@ pub struct OutputRuntime {
     pub encoding: OutputEncoding,
     pub path: Option<String>,
     pub stats: OutputStats,
+    pub diagnostics: Option<OutputDiagnostics>,
     pub active_duration_ms: u64,
     #[serde(skip)]
     pub native_state: u8,
@@ -171,6 +198,7 @@ impl OutputRuntime {
             encoding: OutputEncoding::default(),
             path: None,
             stats: OutputStats::default(),
+            diagnostics: None,
             active_duration_ms: 0,
             native_state: 0,
         }
@@ -215,6 +243,7 @@ impl OutputRuntime {
         self.native_busy = observation.state != 0;
         self.active_duration_ms = observation.active_duration_ms;
         self.stats = observation.stats;
+        self.diagnostics = observation.diagnostics;
         self.encoding = observation.encoding;
         self.encoding.preference = self.profile.as_ref().map(|p| p.encoder);
         if let Some(failure) = native_failure(observation.code) {
@@ -370,6 +399,17 @@ impl OutputRegistry {
 pub enum RateControl {
     Cbr,
 }
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum OutputWarningCode {
+    FrameReorderingTailRisk,
+}
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct OutputWarning {
+    pub code: OutputWarningCode,
+    pub message: &'static str,
+    pub recommendation: &'static str,
+}
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct OutputProfile {
@@ -388,11 +428,24 @@ impl Default for OutputProfile {
             bitrate_kbps: 2500,
             rate_control: RateControl::Cbr,
             keyframe_seconds: 2,
-            frame_reordering: true,
+            frame_reordering: false,
         }
     }
 }
 impl OutputProfile {
+    /// A measured risk advisory, not an acceptance gate or delivery receipt.
+    /// Saved profiles retain their explicit setting and receive the same warning.
+    pub fn warnings(&self) -> Vec<OutputWarning> {
+        if self.frame_reordering {
+            vec![OutputWarning {
+                code: OutputWarningCode::FrameReorderingTailRisk,
+                message: "El reordenamiento puede dejar saltos de video al finalizar la salida.",
+                recommendation: "Desactiva el reordenamiento en el perfil para reducir este riesgo. La integridad de la salida todavía requiere verificación.",
+            }]
+        } else {
+            Vec::new()
+        }
+    }
     pub fn validate(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
             !self.id.is_empty()
@@ -495,6 +548,7 @@ mod tests {
             code,
             active_duration_ms: u64::from(frames) * 33,
             encoding: OutputEncoding::default(),
+            diagnostics: None,
             stats: OutputStats {
                 output_frames: frames,
                 encoded_frames: Some(frames),
@@ -647,6 +701,36 @@ mod tests {
         assert!(store.validate().is_err());
         store.version = 2;
         assert!(store.validate().is_err());
+    }
+    #[test]
+    fn default_avoids_reordering_without_migrating_saved_v1_profiles() {
+        assert!(!OutputProfile::default().frame_reordering);
+        assert!(OutputProfile::default().warnings().is_empty());
+        let saved = serde_json::json!({"version":1,"profiles":[{
+            "id":"saved","encoder":"auto","bitrate_kbps":4000,
+            "rate_control":"cbr","keyframe_seconds":2,"frame_reordering":true
+        }]});
+        let restored: ProfileStore = serde_json::from_value(saved.clone()).unwrap();
+        restored.validate().unwrap();
+        assert_eq!(serde_json::to_value(&restored).unwrap(), saved);
+        let warnings = restored.profiles[0].warnings();
+        assert_eq!(warnings.len(), 1);
+        assert_eq!(warnings[0].code, OutputWarningCode::FrameReorderingTailRisk);
+        assert_eq!(
+            serde_json::to_value(warnings).unwrap()[0]["code"],
+            "FRAME_REORDERING_TAIL_RISK"
+        );
+        for encoder in [
+            RecordingEncoder::Auto,
+            RecordingEncoder::Videotoolbox,
+            RecordingEncoder::X264,
+        ] {
+            let mut p = restored.profiles[0].clone();
+            p.encoder = encoder;
+            assert!(!p.warnings().is_empty());
+            p.frame_reordering = false;
+            assert!(p.warnings().is_empty());
+        }
     }
     #[test]
     fn endpoints_never_accept_urls_credentials_or_public_hosts() {

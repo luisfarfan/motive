@@ -18,7 +18,9 @@ import time
 from h7_support import assert_project_format
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXE = ROOT/'target/debug/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+EXE = VERIFY.client_executable
 OUT = ROOT/'var/evidence'
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--seconds', type=int, default=60, choices=range(15, 301), metavar='15..300')
@@ -176,7 +178,7 @@ try:
     original=idle()
     assert all(s['spec']['kind'] in ('pattern','overlay') for s in original['project']['graph']['sources']), 'Use a disposable project without physical captures'
     report['inventory']=command('encoders')['encoders'];assert report['inventory']['videotoolbox_id']
-    report['app_sha256']=hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+    report['app_sha256']=hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
     report['ui_sha256']=hashlib.sha256((ROOT/'src/main.rs').read_bytes()).hexdigest()
     command('set_variant',variant='horizontal');command('select_audio',id='tone')
     scene=command('create_scene',name='Encoder comparison')['state']['project']['graph']['active_scene']

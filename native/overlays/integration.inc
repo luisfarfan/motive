@@ -9,7 +9,7 @@ static visual_source *overlay_find(motive_engine *e,const char *id) {
 }
 char *motive_overlay_capabilities(motive_engine *e) {
     (void)e;NSMutableDictionary *sources=[NSMutableDictionary dictionary];
-    for(NSString *base in @[@"text_ft2_source",@"image_source",@"ffmpeg_source",@"color_source",@"fade_transition"]) {
+    for(NSString *base in @[@"motive_visual",@"text_ft2_source",@"image_source",@"ffmpeg_source",@"color_source",@"fade_transition"]) {
         const char *latest=obs_get_latest_input_type_id(base.UTF8String);
         if([base isEqualToString:@"fade_transition"])latest="fade_transition";
         sources[base]=@{@"available":latest && obs_get_source_output_flags(latest)!=0?@YES:@NO,@"registered_id":latest?@(latest):[NSNull null]};
@@ -33,12 +33,16 @@ void motive_poll_overlays(motive_engine *e) {
     }
 }
 char *motive_overlay_state(motive_engine *e) {
+    // Terminal publication follows scene restoration and source lease release.
+    // Reading jobs first makes every source snapshot at least as new as any
+    // terminal we acknowledge; the reverse order can lose its final own delta.
+    NSDictionary *animations=overlay_animation_state(e->animations);
     NSMutableArray *sources=[NSMutableArray array];
     for(size_t i=0;i<e->visual_count;i++)if(e->visuals[i]->extended){visual_source *s=e->visuals[i];
         NSMutableDictionary *state=[overlay_source_state(s->source) mutableCopy];
         state[@"id"]=@(s->id);state[@"instance_id"]=@(s->instance_id);[sources addObject:state];
     }
-    return overlay_json_result(@{@"sources":sources,@"animations":overlay_animation_state(e->animations)});
+    return overlay_json_result(@{@"sources":sources,@"animations":animations});
 }
 bool motive_update_overlay(motive_engine *e,const char *id,const char *definition) {
     e->error[0]=0;visual_source *s=overlay_find(e,id);if(!s)return false;
@@ -51,16 +55,35 @@ bool motive_overlay_event(motive_engine *e,const char *id,const char *event) {
     if(!overlay_source_event(s->source,event)){snprintf(e->error,sizeof(e->error),"INVALID_OVERLAY_ACTION");return false;}return true;
 }
 bool motive_overlay_animation_busy(motive_engine *e){return e->animations && overlay_animation_busy(e->animations);}
-bool motive_animate_overlay(motive_engine *e,const char *scene,const char *layer,const char *json,uint64_t *operation_id) {
+static bool motive_animate_overlay_inner(motive_engine *e,const char *source_id,const char *scene,const char *layer,const char *json,uint64_t *operation_id) {
     e->error[0]=0;if(scene_busy(e)){snprintf(e->error,sizeof(e->error),"TRANSITION_BUSY");return false;}
     if(!operation_id){snprintf(e->error,sizeof(e->error),"INVALID_ANIMATION");return false;}
     NSDictionary *a=[NSJSONSerialization JSONObjectWithData:[@(json) dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil];
     obs_sceneitem_t *item=NULL;
     for(size_t i=0;i<e->scene_count;i++)if(!strcmp(e->scenes[i]->id,scene))for(size_t j=0;j<e->scenes[i]->layer_count;j++)if(!strcmp(e->scenes[i]->layer_ids[j],layer))item=e->scenes[i]->items[j];
     if(!item){snprintf(e->error,sizeof(e->error),"LAYER_UNAVAILABLE");return false;}
+    obs_source_t *trigger_source=NULL;
+    if(source_id) {
+        visual_source *source=overlay_find(e,source_id);if(!source)return false;
+        trigger_source=source->source;
+        if(strcmp(e->scene_current,scene) || obs_sceneitem_get_source(item)!=trigger_source) {
+            snprintf(e->error,sizeof(e->error),"LAYER_MISMATCH");return false;
+        }
+        size_t references=0;
+        for(size_t i=0;i<e->scene_count;i++)if(!strcmp(e->scenes[i]->id,scene))
+            for(size_t j=0;j<e->scenes[i]->layer_count;j++)references+=obs_sceneitem_get_source(e->scenes[i]->items[j])==trigger_source;
+        if(references!=1){snprintf(e->error,sizeof(e->error),"SHARED_WIDGET_SOURCE");return false;}
+    }
     uint64_t operation=0;
-    bool result=overlay_animation_start(e->animations,item,scene,layer,[a[@"kind"] UTF8String],[a[@"easing"] UTF8String],[a[@"duration_ms"] unsignedIntValue],[a[@"distance"] floatValue],[a[@"scale_from"] floatValue],motive_design_scale(e),&operation);
+    bool result=overlay_animation_start(e->animations,item,scene,layer,[a[@"kind"] UTF8String],[a[@"easing"] UTF8String],[a[@"duration_ms"] unsignedIntValue],[a[@"distance"] floatValue],[a[@"scale_from"] floatValue],motive_design_scale(e),&operation,trigger_source,source_id);
     if(!result)snprintf(e->error,sizeof(e->error),"ANIMATION_BUSY_OR_INVALID");else *operation_id=operation;return result;
+}
+bool motive_animate_overlay(motive_engine *e,const char *scene,const char *layer,const char *json,uint64_t *operation_id) {
+    return motive_animate_overlay_inner(e,NULL,scene,layer,json,operation_id);
+}
+bool motive_trigger_animated_widget(motive_engine *e,const char *source,const char *scene,const char *layer,const char *json,uint64_t *operation_id) {
+    if(!source || !*source){snprintf(e->error,sizeof(e->error),"INVALID_ANIMATED_WIDGET");return false;}
+    return motive_animate_overlay_inner(e,source,scene,layer,json,operation_id);
 }
 bool motive_ack_overlay_animation(motive_engine *e,uint64_t id) {
     e->error[0]=0;bool result=overlay_animation_ack(e->animations,id);

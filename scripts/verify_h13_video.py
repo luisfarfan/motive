@@ -17,6 +17,8 @@ import subprocess
 import time
 
 from h7_support import Client, EVIDENCE, EXE, ROOT, process_sample
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 from verify_h11_visuals import fixture_png, import_asset, shape_definition, text_definition
 
 
@@ -126,7 +128,7 @@ def main():
         assert initial['output'] == 'idle' and not initial['audio_mixer']['store']['inputs']
         assert len(initial['project']['graph']['scenes']) == 1
         assert all(s['spec']['kind'] in ('pattern','overlay') and s.get('overlay') is None for s in initial['project']['graph']['sources'])
-        report['binary_sha256'] = hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+        report['binary_sha256'] = hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
         report['capabilities'] = c.call('video_capabilities')
         c.call('select_audio', id='tone')
         c.call('configure_transition', transition=dict(kind='cut', duration_ms=0))

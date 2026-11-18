@@ -37,7 +37,9 @@ import traceback
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-APP = ROOT/'target/Motive.app/Contents/MacOS/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+APP = VERIFY.app_executable
 STORES = ('project.json', 'audio-mixer.json', 'output-profiles.json')
 
 
@@ -165,7 +167,7 @@ def main():
         common = common if common.is_absolute() else ROOT/common
         lock = common.resolve().parent/'var/run/physical-test.lock/OWNER'
         lock_owner = lock.read_text()
-        check('H13' in lock_owner and str(ROOT) in lock_owner, 'canonical lock belongs to this H13 worktree')
+        check(VERIFY.lock_matches(lock_owner), 'canonical lock belongs to this verification worktree')
         report['lock'] = {'path': str(lock), 'owner': lock_owner}
         report['app_sha256'] = sha(APP)
         signed = subprocess.run(['codesign', '--verify', str(APP.parents[2])], capture_output=True, text=True, timeout=30)
@@ -196,9 +198,9 @@ def main():
         check(all(s.get('overlay') is None and s['spec']['kind'] in ('pattern', 'overlay')
                   for s in initial['project']['graph']['sources']), 'controlled pattern and legacy overlay only')
         check(initial['output_configuration']['credential_ref'] is None, 'no credential in test production')
-        report['stores_before'] = {name: file_metadata(ROOT/'var'/name) for name in STORES}
-        report['catalog_before'] = file_metadata(ROOT/'var/assets/index.json')
-        inbox = ROOT/'var/imports'
+        report['stores_before'] = {name: file_metadata(VERIFY.data_root/name) for name in STORES}
+        report['catalog_before'] = file_metadata(VERIFY.data_root / 'assets/index.json')
+        inbox = VERIFY.data_root / 'imports'
         check(inbox.is_dir() and not inbox.is_symlink() and inbox.stat().st_mode & 0o077 == 0,
               'normal private app-created inbox')
         inbox_copy = inbox/f'h13-shutdown-{time.time_ns()}{clip.suffix.lower()}'
@@ -276,7 +278,7 @@ def main():
             write_report(directory/'report.json', report)
             time.sleep(.05)
         report.update(owner_exited=True, shutdown_to_exit_seconds=time.monotonic()-requested_at,
-                      catalog_after=file_metadata(ROOT/'var/assets/index.json'))
+                      catalog_after=file_metadata(VERIFY.data_root / 'assets/index.json'))
         if not overlap:
             report.update(outcome='INCONCLUSIVE', reason='Import ended between the pre-shutdown query and the shutdown response.')
         elif report['post_shutdown_running_queries'] == 0:
@@ -311,7 +313,7 @@ def main():
                 report['retained_inbox'] = str(inbox_copy)
         try:
             if 'stores_before' in report:
-                report['stores_after'] = {name: file_metadata(ROOT/'var'/name) for name in STORES}
+                report['stores_after'] = {name: file_metadata(VERIFY.data_root/name) for name in STORES}
                 check(report['stores_before'] == report['stores_after'], 'project, mixer and output stores unchanged')
             if 'app_sha256' in report:
                 report['final_app_sha256'] = sha(APP)

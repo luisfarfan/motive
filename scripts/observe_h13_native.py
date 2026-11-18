@@ -14,6 +14,8 @@ import subprocess
 import time
 
 from h7_support import Client, EXE, ROOT, process_sample
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 
 
 def main():
@@ -26,15 +28,16 @@ def main():
         ['git', 'rev-parse', '--git-common-dir'], cwd=ROOT, text=True).strip())
     if not common.is_absolute():
         common = ROOT/common
-    owner = (common.resolve().parent/'var/run/physical-test.lock/OWNER').read_text()
-    assert 'H13' in owner and str(ROOT) in owner
+    lock = common.resolve().parent/'var/run/physical-test.lock/OWNER'
+    owner = lock.read_text()
+    assert VERIFY.lock_matches(owner), 'Canonical lock does not match this verification context'
     directory = ROOT/'var/evidence'/f'h13-native-{time.time_ns()}'
     directory.mkdir()
     print(directory, flush=True)
     report = dict(collector_ok=False, acceptance='not evaluated by collector',
                   directory=str(directory), actions=[], attempts={}, samples=0,
                   shared_lock_owner=owner)
-    binary = ROOT/'target/Motive.app/Contents/MacOS/motive'
+    binary = VERIFY.app_executable
     report['binary_sha256'] = hashlib.sha256(binary.read_bytes()).hexdigest()
     signature = subprocess.run(['codesign', '--verify', str(binary.parents[2])],
                                capture_output=True, text=True)
@@ -49,16 +52,30 @@ def main():
         previous_time = None
         with (directory/'observations.jsonl').open('w') as stream:
             while time.monotonic()-start < args.seconds and not (directory/'STOP').exists():
+                assert lock.read_text() == owner, 'Canonical lock changed during observation'
                 try:
                     current = client.state()
                 except BaseException:
                     if (args.allow_shutdown and state and
                             state['output_lifecycle']['shutdown_pending']):
+                        # A transport failure alone does not prove shutdown.
+                        # Observe only this owner; never terminate or signal it.
+                        exited = subprocess.run(
+                            ['ps', '-p', str(report['pid']), '-o', 'comm='],
+                            capture_output=True, text=True, timeout=10)
+                        assert exited.returncode == 1 and not exited.stdout.strip(), \
+                            'Owner exit was not observed after shutdown request'
                         report['observed_shutdown'] = True
                         break
                     raise
                 now = time.monotonic()
                 if state is None:
+                    assert type(current['pid']) is int and current['pid'] > 0, 'Invalid owner PID'
+                    actual = pathlib.Path(subprocess.check_output(
+                        ['ps', '-p', str(current['pid']), '-o', 'comm='],
+                        text=True, timeout=10).strip())
+                    assert actual.is_absolute() and actual.resolve() == binary.resolve(), \
+                        'Production PID does not belong to the selected bundle'
                     report['initial'] = current
                     report['pid'] = current['pid']
                 assert current['pid'] == report['pid'], 'Production process changed'

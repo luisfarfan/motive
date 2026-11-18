@@ -84,10 +84,13 @@ impl Studio {
     ) -> Button {
         let slot = &status["outputs"][target.name()];
         let recording = target == OutputTarget::Recording;
+        let external = !recording && self.production.external_destination_selected();
         let short = if recording {
             "REC"
         } else if slot["kind"] == "local_stream" && slot["native_busy"] == true {
             "UDP"
+        } else if external {
+            "RTMPS"
         } else {
             "RTMP"
         };
@@ -161,6 +164,8 @@ impl Studio {
                 Command::StartOutput { target },
                 if recording {
                     "Iniciar grabación MKV"
+                } else if external {
+                    "Revisar e iniciar transmisión al destino RTMPS aprobado"
                 } else {
                     "Iniciar transmisión al receptor local configurado"
                 },
@@ -183,10 +188,15 @@ impl Studio {
                 || status["output_lifecycle"]["shutdown_pending"] == true,
         )
         .on_click(cx.listener(move |v, _, w, cx| {
+            if matches!(command, Command::StartOutput { target: OutputTarget::Streaming })
+                && v.production.external_destination_selected() {
+                v.request_destination_start(w, cx);
+                return;
+            }
             if matches!(
                 command,
                 Command::StopOutputTarget { .. } | Command::CancelOutputTarget { .. }
-            ) {
+            ) || matches!(command, Command::StartOutput { target } if !v.production.output_warnings(target).is_empty()) {
                 v.confirm_command(command.clone(), w, cx);
             } else {
                 v.command(command.clone(), "UI", cx);
@@ -274,6 +284,8 @@ impl Studio {
                             "Grabación MKV"
                         } else if slot["kind"] == "local_stream" {
                             "Transmisión UDP heredada"
+                        } else if self.production.external_destination_selected() {
+                            "Transmisión RTMPS aprobada"
                         } else {
                             "Transmisión RTMP local"
                         },
@@ -303,6 +315,12 @@ impl Studio {
                 format!("Perfil seleccionado: {selected}"),
                 p.secondary,
             ));
+        for warning in self.production.output_warnings(target) {
+            card = card.child(label(
+                format!("{} {}", warning.message, warning.recommendation),
+                p.warn,
+            ));
+        }
         if slot["attempt_id"].is_number() {
             let profile = slot["profile"]["id"].as_str().unwrap_or("—");
             let encoder = slot["encoding"]["selected_id"]
@@ -383,6 +401,8 @@ impl Studio {
                 .on_click(cx.listener(|v, _, w, cx| v.confirm_command(Command::CancelAllOutputs, w, cx))))
             .children(OutputTarget::ALL.map(|target| self.output_card(&status, target, cx)))
             .child(label("Comprobar valida la configuración sin abrir la conexión. Cada salida se detiene y recupera por separado.", p.muted))
-            .child(self.output_settings(cx))
+            .child(self.destinations_action(cx))
+            .when(!self.production.external_destination_selected(), |body| body.child(self.output_settings(cx)))
+            .when(self.production.external_destination_selected(), |body| body.child(label("Modo destino aprobado: la emisión requiere una confirmación local en Transmitir. Cambia al receptor local de prueba desde Destinos RTMPS.", p.secondary)))
     }
 }

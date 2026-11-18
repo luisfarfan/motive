@@ -4,7 +4,9 @@ Writes only under var; sends streaming traffic only to loopback UDP 19350.
 """
 import json, math, pathlib, statistics, struct, subprocess, time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXE = ROOT / 'target/debug/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+EXE = VERIFY.client_executable
 EVIDENCE = ROOT / 'var/evidence'
 report = {'checks': [], 'samples': []}
 
@@ -99,13 +101,13 @@ try:
     ctl('stop_output'); report['horizontal_end'] = idle()
     report['horizontal'] = verify_file(path,960,540,60)
     print('Horizontal recording and audio verified', flush=True)
-    ctl('snapshot'); (EVIDENCE/'horizontal.png').write_bytes((EVIDENCE/'preview.png').read_bytes())
+    ctl('snapshot'); (EVIDENCE/'horizontal.png').write_bytes((VERIFY.diagnostics_root/'preview.png').read_bytes())
     ctl('set_variant', variant='vertical')
     vertical = ctl('start_recording')['state']['output_path']
     time.sleep(4)
     ctl('stop_output');idle()
     report['vertical'] = verify_file(vertical,540,960,3)
-    ctl('snapshot'); (EVIDENCE/'vertical.png').write_bytes((EVIDENCE/'preview.png').read_bytes())
+    ctl('snapshot'); (EVIDENCE/'vertical.png').write_bytes((VERIFY.diagnostics_root/'preview.png').read_bytes())
     ctl('load_project')
     ready_deadline=time.monotonic()+8
     while ctl('status')['state']['stats']['capture_width']==0:

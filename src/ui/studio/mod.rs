@@ -37,6 +37,9 @@ pub struct Studio {
     mixer_ui: audio::MixerUi,
     creative: creative::Creative,
     lifecycle: lifecycle::Lifecycle,
+    recordings: recordings::RecordingsUi,
+    destinations_ui: destinations::DestinationsUi,
+    deck_ui: show_control::DeckUi,
 }
 impl Studio {
     pub fn new(
@@ -51,6 +54,7 @@ impl Studio {
         Palette::apply(prefs.dark, Some(window), cx);
         let editor = editor::Editor::new(window, cx);
         let forms = forms::Forms::new(window, cx);
+        let destinations_ui = destinations::DestinationsUi::new(window, cx);
         cx.spawn(async move |this, cx| {
             loop {
                 cx.background_executor()
@@ -68,6 +72,9 @@ impl Studio {
                             }
                             view.last_device_refresh = Instant::now();
                         }
+                        // The scheduler runs once per owner heartbeat, never
+                        // recursively from apply() or health polling.
+                        view.production.poll_show_control();
                         if view.poll_lifecycle(cx) {
                             return;
                         }
@@ -140,6 +147,9 @@ impl Studio {
             mixer_ui: audio::MixerUi::default(),
             creative: creative::Creative::default(),
             lifecycle: lifecycle::Lifecycle::new(window.window_handle()),
+            recordings: recordings::RecordingsUi::default(),
+            destinations_ui,
+            deck_ui: show_control::DeckUi::default(),
         }
     }
     fn command(&mut self, cmd: Command, origin: &str, cx: &mut Context<Self>) -> Value {
@@ -163,7 +173,21 @@ impl Studio {
                     .unwrap_or("Operación rechazada")
             );
         } else if preflight {
-            self.message = "Configuración válida. La comprobación no abre una conexión.".into();
+            let warnings = result["preflight"]["warnings"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|warning| warning["message"].as_str())
+                .collect::<Vec<_>>();
+            self.message = if warnings.is_empty() {
+                "Configuración válida. La comprobación no abre una conexión ni verifica el medio."
+                    .into()
+            } else {
+                format!(
+                    "Configuración válida con advertencia: {}",
+                    warnings.join(" ")
+                )
+            };
         } else if self.production.revision != revision {
             self.message = self.production.last_action.clone();
         }
@@ -191,9 +215,13 @@ mod sources;
 mod workspace;
 
 mod configuration;
+mod creator_packs;
+mod destinations;
 mod forms;
 mod lifecycle;
 mod outputs;
+mod recordings;
+mod show_control;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Panel {
@@ -207,6 +235,9 @@ enum Panel {
     Settings,
     Scenes,
     Creative,
+    Recordings,
+    Destinations,
+    LiveDeck,
 }
 impl Panel {
     fn id(self) -> &'static str {
@@ -221,6 +252,9 @@ impl Panel {
             Self::Settings => "settings",
             Self::Scenes => "scenes",
             Self::Creative => "creative",
+            Self::Recordings => "recordings",
+            Self::Destinations => "destinations",
+            Self::LiveDeck => "live-deck",
         }
     }
 }

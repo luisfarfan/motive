@@ -1,5 +1,77 @@
 /* Two independent encoder/output owners on the same OBS production. */
-static bool start_profile(motive_engine *,output_slot *,const char *,const char *,bool,const char *);
+static bool start_profile(motive_engine *,output_slot *,const char *,const char *,bool,const char *,const char *);
+
+/* Official OBS packet callback: synchronous before the output plugin sees the
+ * packet. Counts dispatch, never successful disk/network delivery. The try-lock
+ * drops trace metadata rather than ever waiting for an owner/UI snapshot. */
+static void output_packet_observed(obs_output_t *output,struct encoder_packet *packet,
+                                   struct encoder_packet_time *timing,void *data) {
+    (void)output;(void)timing;
+    output_slot *s=data;output_packet_trace *trace=&s->packet_trace;
+    if(!packet)return;
+    uint64_t sequence=atomic_fetch_add(&trace->sequence,1)+1;
+    bool video=packet->type==OBS_ENCODER_VIDEO;
+    atomic_fetch_add(video ? &trace->video_packets:&trace->audio_packets,1);
+    if(atomic_flag_test_and_set_explicit(&trace->guard,memory_order_acquire)) {
+        atomic_fetch_add(&trace->missed,1);return;
+    }
+    output_packet_record record={.sequence=sequence,.observed_ns=os_gettime_ns(),
+        .size=packet->size,.pts=packet->pts,.dts=packet->dts,
+        .dts_usec=packet->dts_usec,.sys_dts_usec=packet->sys_dts_usec,
+        .timebase_num=packet->timebase_num,.timebase_den=packet->timebase_den,
+        .track=(uint32_t)packet->track_idx,.video=video,.keyframe=packet->keyframe};
+    trace->records[trace->next]=record;
+    trace->next=(trace->next+1)%MOTIVE_OUTPUT_TRACE_CAPACITY;
+    unsigned retained=atomic_load(&trace->retained);
+    if(retained<MOTIVE_OUTPUT_TRACE_CAPACITY)atomic_store(&trace->retained,retained+1);
+    else atomic_fetch_add(&trace->overwritten,1);
+    atomic_flag_clear_explicit(&trace->guard,memory_order_release);
+}
+static id output_optional_ns(uint64_t value) {return value ? @(value):[NSNull null];}
+static NSDictionary *output_diagnostic_summary(output_slot *s) {
+    output_packet_trace *trace=&s->packet_trace;
+    uint64_t stop=atomic_load(&s->stopped_ns);
+    return @{@"version":@1,@"packet_observer_available":s->legacy_udp ? @NO : @YES,
+        @"observed_video_packets":s->legacy_udp ? [NSNull null]:@(atomic_load(&trace->video_packets)),
+        @"observed_audio_packets":s->legacy_udp ? [NSNull null]:@(atomic_load(&trace->audio_packets)),
+        @"trace_capacity":@(MOTIVE_OUTPUT_TRACE_CAPACITY),
+        @"trace_retained_records":@(atomic_load(&trace->retained)),
+        @"trace_overwritten_records":@(atomic_load(&trace->overwritten)),
+        @"trace_missed_records":@(atomic_load(&trace->missed)),
+        @"stop_requested_ns":output_optional_ns(s->stop_requested_ns),
+        @"stop_call_returned_ns":output_optional_ns(s->stop_returned_ns),
+        @"stop_signal_ns":output_optional_ns(stop),
+        @"quiescent_observed_ns":output_optional_ns(s->quiescent_ns),
+        @"stop_to_quiescence_ms":s->stop_requested_ns && s->quiescent_ns>=s->stop_requested_ns ?
+            @((s->quiescent_ns-s->stop_requested_ns)/1000000):[NSNull null],
+        @"frames_written":[NSNull null],@"frames_received":[NSNull null],@"frames_decoded":[NSNull null],
+        @"delivery_verified":@NO};
+}
+char *motive_output_packet_trace(motive_engine *e,unsigned target) {
+    if(target>1)return NULL;
+    output_slot *s=&e->outputs[target];output_packet_trace *trace=&s->packet_trace;
+    output_packet_record records[MOTIVE_OUTPUT_TRACE_CAPACITY];unsigned retained=0;
+    bool busy=atomic_flag_test_and_set_explicit(&trace->guard,memory_order_acquire);
+    if(!busy) {
+        retained=atomic_load(&trace->retained);
+        unsigned first=(trace->next+MOTIVE_OUTPUT_TRACE_CAPACITY-retained)%MOTIVE_OUTPUT_TRACE_CAPACITY;
+        for(unsigned i=0;i<retained;i++)records[i]=trace->records[(first+i)%MOTIVE_OUTPUT_TRACE_CAPACITY];
+        atomic_flag_clear_explicit(&trace->guard,memory_order_release);
+    }
+    NSMutableArray *packets=[NSMutableArray arrayWithCapacity:retained];
+    for(unsigned i=0;i<retained;i++) {
+        output_packet_record p=records[i];
+        [packets addObject:@{@"sequence":@(p.sequence),@"observed_ns":@(p.observed_ns),
+            @"media_type":p.video ? @"video":@"audio",@"track":@(p.track),@"size":@(p.size),
+            @"pts":@(p.pts),@"dts":@(p.dts),@"dts_usec":@(p.dts_usec),@"sys_dts_usec":@(p.sys_dts_usec),
+            @"timebase_num":@(p.timebase_num),@"timebase_den":@(p.timebase_den),@"keyframe":@(p.keyframe)}];
+    }
+    NSDictionary *info=@{@"version":@1,@"scope":@"before_output_plugin",
+        @"capacity":@(MOTIVE_OUTPUT_TRACE_CAPACITY),@"snapshot_busy":@(busy),
+        @"summary":output_diagnostic_summary(s),@"packets":packets};
+    NSData *json=[NSJSONSerialization dataWithJSONObject:info options:0 error:nil];
+    return strdup([[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding].UTF8String);
+}
 
 static void output_started(void *data,calldata_t *cd) {
     (void)cd;output_slot *s=data;
@@ -53,6 +125,7 @@ static int output_slot_state(output_slot *s) {
     }
     if(atomic_load(&s->output_stopped)) {
         if(obs_output_active(s->output))return 2;
+        if(!s->quiescent_ns)s->quiescent_ns=os_gettime_ns();
         end_output_activity(s);return 0;
     }
     if(!atomic_load(&s->output_started))return s->network_output ? 3:4;
@@ -82,6 +155,10 @@ static output_slot *legacy_output_slot(motive_engine *e) {
 static void release_output_slot(output_slot *s) {
     capture_output_metrics(s);
     if(s->output) {
+        if(s->packet_observer_registered) {
+            obs_output_remove_packet_callback(s->output,output_packet_observed,s);
+            s->packet_observer_registered=false;
+        }
         signal_handler_disconnect(obs_output_get_signal_handler(s->output),"start",output_started,s);
         signal_handler_disconnect(obs_output_get_signal_handler(s->output),"stop",output_stopped,s);
         obs_output_release(s->output);s->output=NULL;
@@ -103,6 +180,8 @@ static bool prepare_output_slot(motive_engine *e,unsigned target,bool legacy) {
     }
     release_output_slot(s);e->last_output=target;
     s->bytes=0;s->frames=0;s->encoded_frames=0;s->drops=0;
+    output_trace_reset(&s->packet_trace);
+    s->stop_requested_ns=0;s->stop_returned_ns=0;s->quiescent_ns=0;
     s->network_output=target==1 && !legacy;s->legacy_udp=legacy;
     s->selected_encoder[0]=0;s->fallback_reason[0]=0;s->selected_hardware=false;
     atomic_store(&s->output_started,false);atomic_store(&s->output_stopped,true);
@@ -114,8 +193,12 @@ void motive_stop_output_target(motive_engine *e,unsigned target) {
     output_slot *s=&e->outputs[target];
     // Deferred cancellation remains the owner's policy. Never force/join a
     // handshake, and never prevent stopping the other independent output.
-    if(s->output && !atomic_load(&s->output_stopped) && output_slot_state(s)!=3)
+    if(s->output && !atomic_load(&s->output_stopped) && output_slot_state(s)!=3) {
+        bool first=!s->stop_requested_ns;
+        if(first)s->stop_requested_ns=os_gettime_ns();
         obs_output_stop(s->output);
+        if(first)s->stop_returned_ns=os_gettime_ns();
+    }
 }
 void motive_stop_output(motive_engine *e) {
     for(unsigned i=0;i<2;i++)motive_stop_output_target(e,i);
@@ -144,6 +227,7 @@ char *motive_output_info(motive_engine *e,unsigned target) {
     uint64_t end=stop ? stop:os_gettime_ns();
     NSDictionary *info=@{@"state":@(state),@"code":@(atomic_load(&s->output_code)),
         @"active_duration_ms":@(start && end>=start ? (end-start)/1000000:0),
+        @"diagnostics":output_diagnostic_summary(s),
         @"stats":@{@"output_bytes":@(s->bytes),@"output_frames":@(s->frames),
             @"output_dropped_frames":@(s->drops),@"encoded_frames":s->legacy_udp ? [NSNull null]:@(s->encoded_frames)},
         @"encoding":@{@"selected_id":s->selected_encoder[0] ? @(s->selected_encoder):[NSNull null],
@@ -156,13 +240,23 @@ char *motive_output_info(motive_engine *e,unsigned target) {
 bool motive_start_stream(motive_engine *e,const char *url,const char *profile,const char *credential) {
     if(!e->rtmp_loaded){snprintf(e->error,sizeof(e->error),"SERVICE_UNAVAILABLE");return false;}
     if(!prepare_output_slot(e,1,false))return false;
-    return start_profile(e,&e->outputs[1],url,profile,true,credential);
+    return start_profile(e,&e->outputs[1],url,profile,true,credential,NULL);
+}
+/* Only the local owner grant path calls this separate boundary. The service
+ * verifies the full URL against the exact Keychain binding before connecting. */
+bool motive_start_approved_stream(motive_engine *e,const char *url,const char *profile,const char *credential,const char *binding) {
+    if(!e->rtmp_loaded){snprintf(e->error,sizeof(e->error),"SERVICE_UNAVAILABLE");return false;}
+    if(!credential || !*credential || !approved_service_url_matches(url,binding)) {
+        snprintf(e->error,sizeof(e->error),"INVALID_DESTINATION_BINDING");return false;
+    }
+    if(!prepare_output_slot(e,1,false))return false;
+    return start_profile(e,&e->outputs[1],url,profile,true,credential,binding);
 }
 bool motive_start_output(motive_engine *e,const char *path,bool local_stream,const char *profile) {
     unsigned target=local_stream ? 1:0;
     if(!prepare_output_slot(e,target,local_stream))return false;
     output_slot *s=&e->outputs[target];
-    if(!local_stream)return start_profile(e,s,path,profile,false,NULL);
+    if(!local_stream)return start_profile(e,s,path,profile,false,NULL,NULL);
     obs_data_t *settings=obs_data_create();
     obs_data_set_string(settings,"url","udp://127.0.0.1:19350?pkt_size=1316");
     obs_data_set_string(settings,"format_name","mpegts");

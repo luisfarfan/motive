@@ -14,6 +14,8 @@ import subprocess
 import time
 
 from verify_h10_regressions import ROOT, prepare
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 
 
 def digest(path):
@@ -28,7 +30,7 @@ def main():
     args = parser.parse_args()
     run = ROOT/'var/evidence'/f'h12-regressions-{time.time_ns()}'
     run.mkdir(parents=True)
-    app = ROOT/'target/Motive.app/Contents/MacOS/motive'
+    app = VERIFY.app_executable
     report = {'ok': False, 'app_sha256': digest(app), 'suites': [],
               'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'script_hashes': {p.name: digest(p) for p in (ROOT/'scripts').glob('verify*.py')}}

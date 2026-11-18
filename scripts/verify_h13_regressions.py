@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Serial, unchanged-media-gate H1–H12 regression manifest on the H13 bundle.
 
-Requires the caller's existing canonical H13 physical/bundle lock and an idle,
+Requires the caller's existing canonical H13 (portable: H14) physical/bundle lock and an idle,
 disposable pattern/legacy-overlay studio with an empty mixer. This runner does
 not build/sign Motive, change macOS permissions, or take/release another lock.
 The original suites may create their documented owned fixtures and restart the
@@ -34,8 +34,12 @@ import time
 import traceback
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-APP = ROOT/'target/Motive.app/Contents/MacOS/motive'
-CLIENT = ROOT/'target/debug/motive'
+from verification_paths import verification_paths
+from regression_reports import primary_acceptance, primary_report_path
+from verification_python import verification_python
+VERIFY = verification_paths(ROOT)
+APP = VERIFY.app_executable
+CLIENT = VERIFY.client_executable
 EVIDENCE = ROOT/'var/evidence'
 STORES = ('project.json', 'audio-mixer.json', 'output-profiles.json')
 LEGACY = ('verify_control.py', 'verify_control_delivery.py', 'verify_h1.py',
@@ -66,6 +70,23 @@ def write_json(path, value):
     temporary = path.with_suffix('.tmp')
     temporary.write_text(json.dumps(value, indent=2, allow_nan=False)+'\n')
     temporary.replace(path)
+
+
+def assess_retained_primary(suite, entry, directory, expected_app_sha256):
+    """Read only this invocation's immutable copy, never a historical alias."""
+    assessment = {'status': 'FAIL', 'issues': [], 'path': None, 'sha256': None}
+    try:
+        relative = primary_report_path(suite, entry['reports'])
+        retained = directory/'reports'/suite/relative
+        content = retained.read_bytes()
+        observed_hash = hashlib.sha256(content).hexdigest()
+        assessment.update(path=str(retained), evidence_relative=relative, sha256=observed_hash)
+        check(observed_hash == entry['reports'][relative], 'retained primary hash unchanged')
+        assessment.update(primary_acceptance(json.loads(content), expected_app_sha256))
+    except Exception as error:
+        assessment.update(status='FAIL', issues=[{'code': 'PRIMARY_UNAVAILABLE_OR_INVALID',
+                                                  'error': repr(error)}])
+    return assessment
 
 
 def ctl(op, *, expect=True, **args):
@@ -167,7 +188,7 @@ def store_snapshot(directory):
     result = {}
     directory.mkdir()
     for name in STORES:
-        path = ROOT/'var'/name
+        path = VERIFY.data_root/name
         check(not path.is_symlink(), 'store must not be a symlink', name=name)
         if not path.exists():
             result[name] = None
@@ -183,7 +204,7 @@ def store_snapshot(directory):
 
 
 def replace_store(name, content, mode=0o600):
-    path = ROOT/'var'/name
+    path = VERIFY.data_root/name
     check(not path.is_symlink(), 'store must not become a symlink', name=name)
     if content is None:
         path.unlink(missing_ok=True)
@@ -209,7 +230,7 @@ def restore_stores(saved):
         if snapshot is not None:
             check(hashlib.sha256(content).hexdigest() == snapshot['sha256'], 'backup bytes unchanged', name=name)
         replace_store(name, content, 0o600 if snapshot is None else snapshot['mode'])
-        path = ROOT/'var'/name
+        path = VERIFY.data_root/name
         check(not path.exists() if snapshot is None else
               digest(path) == snapshot['sha256'] and stat.S_IMODE(path.stat().st_mode) == snapshot['mode'],
               'store bytes/mode restored', name=name)
@@ -235,6 +256,7 @@ def main():
     parser.add_argument('--camera-id')
     parser.add_argument('--camera-prepared', action='store_true')
     parser.add_argument('--microphone-id')
+    parser.add_argument('--verification-python', help='Existing H11/H12 venv interpreter; default: ROOT/var/verify-python/bin/python. Installs nothing.')
     parser.add_argument('--stage', choices=('all', 'legacy', 'overlays', 'performance'), default='all')
     parser.add_argument('--suite', choices=ALL, action='append')
     args = parser.parse_args()
@@ -249,6 +271,7 @@ def main():
     directory = EVIDENCE/('h13-regressions-'+str(time.time_ns()))
     directory.mkdir(parents=True)
     report = {'ok': False, 'run': str(directory), 'arguments': vars(args), 'suites': [],
+              'verification_paths': VERIFY.manifest(),
               'planned_suites': suites, 'cleanup_errors': [],
               'limits': ['Native GPUI gestures and H12 walkthrough are separate manual gates.',
                          'No physical hot-unplug or simulated permission denial.',
@@ -262,8 +285,9 @@ def main():
         common = common if common.is_absolute() else ROOT/common
         lock = common.resolve().parent/'var/run/physical-test.lock/OWNER'
         lock_owner = lock.read_text()
-        check('H13' in lock_owner and str(ROOT) in lock_owner, 'canonical lock belongs to this H13 worktree')
+        check(VERIFY.lock_matches(lock_owner), 'canonical lock belongs to this verification worktree')
         report['shared_lock'] = {'path': str(lock), 'owner': lock_owner}
+        report['verification_python'] = verification_python(ROOT, suites, args.verification_python)
         verified = subprocess.run(['codesign', '--verify', '--verbose=2', str(APP.parents[2])],
                                   capture_output=True, text=True, timeout=60)
         report['codesign'] = vars(verified)
@@ -285,6 +309,13 @@ def main():
         check(all(source['spec']['kind'] in ('pattern', 'overlay') and source.get('overlay') is None
                   for source in initial['project']['graph']['sources']), 'disposable controlled sources only')
         check(initial['output_configuration']['credential_ref'] is None, 'no existing credential reference')
+        if VERIFY.portable:
+            check(initial['destinations']['selected'] is None
+                  and not initial['destinations']['credential_busy']
+                  and not initial['destinations']['reconciliation_pending'],
+                  'portable regression owner has no selected destination or pending credentials')
+            check(not initial['show_control']['configured'],
+                  'portable regression owner has no configured Show Control session')
         report['initial'], report['devices'] = initial, device_requirements(args, suites)
         profiles = ctl('output_profiles')['store']
         report['initial_profiles'] = profiles
@@ -321,7 +352,7 @@ def main():
                 options += ['--transport', 'both']
             if name == 'verify_h11_visuals.py':
                 options += ['--with-video']
-            python = str(ROOT/'var/verify-python/bin/python') if name in OVERLAYS+PERFORMANCE else 'python3'
+            python = report['verification_python']['requested'] if name in OVERLAYS+PERFORMANCE else 'python3'
             timeout = 900 if name in OVERLAYS+PERFORMANCE else 420
             before = {p: p.stat().st_mtime_ns for p in EVIDENCE.rglob('*.json')}
             started = time.monotonic()
@@ -359,12 +390,17 @@ def main():
                     retained.write_bytes(path.read_bytes())
                     entry['reports'][str(relative)] = digest(retained)
                 write_json(directory/'manifest.json', report)
+            entry['primary_acceptance'] = assess_retained_primary(name, entry, directory, report['app_sha256'])
+            write_json(directory/'manifest.json', report)
             entry['after'] = state()
             owner(entry['after'])
             check(quiescent(entry['after']), 'suite leaves both native slots quiescent', suite=name)
             restore_stores(saved)
             print(name, entry['exit_code'], round(entry['seconds'], 1), flush=True)
             check(entry['exit_code'] == 0, 'original suite passed', suite=name)
+            check(entry['primary_acceptance']['status'] == 'PASS',
+                  'fresh primary acknowledges success without reported cleanup failure',
+                  suite=name, primary_acceptance=entry['primary_acceptance'])
         report['suites_passed'] = True
     except BaseException as error:
         report.update(error=repr(error), traceback=traceback.format_exc())

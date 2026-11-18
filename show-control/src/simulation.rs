@@ -118,6 +118,7 @@ pub fn validate_pack_rules(pack: &CreatorPack, config: &Config) -> Result<(), Er
                     Action::ShowOverlay { source_id }
                     | Action::HideOverlay { source_id }
                     | Action::Widget { source_id, .. }
+                    | Action::TriggerAnimatedWidget { source_id, .. }
                     | Action::CountdownStart { source_id }
                     | Action::CountdownReset { source_id }
                     | Action::UpdateText { source_id, .. }
@@ -134,6 +135,20 @@ pub fn validate_pack_rules(pack: &CreatorPack, config: &Config) -> Result<(), Er
                         return Err(Error::new(
                             "PACK_SCENE_MISSING",
                             "rule target scene is absent from the pack",
+                        ));
+                    }
+                    Action::TriggerAnimatedWidget {
+                        source_id,
+                        scene_id,
+                        layer_id,
+                        ..
+                    } if snapshot.layers.get(&layer_id).is_none_or(|layer| {
+                        layer.scene_id != scene_id || layer.source_id != source_id
+                    }) =>
+                    {
+                        return Err(Error::new(
+                            "PACK_LAYER_MISSING",
+                            "animated widget source and layer are not bound in the pack scene",
                         ));
                     }
                     Action::Animate {

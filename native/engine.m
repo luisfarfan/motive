@@ -9,6 +9,7 @@
 #import <AppKit/AppKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <VideoToolbox/VideoToolbox.h>
+#include "output-diagnostics.h"
 
 /* Control entry points run on the main/GPUI owner. OBS owns rendering, mixing
  * and output threads; source/media callbacks only publish bounded observations.
@@ -35,6 +36,9 @@ typedef struct {
     uint64_t bytes;
     uint32_t frames,encoded_frames;
     int drops;
+    output_packet_trace packet_trace;
+    bool packet_observer_registered;
+    uint64_t stop_requested_ns,stop_returned_ns,quiescent_ns;
     char selected_encoder[512],fallback_reason[128];
 } output_slot;
 typedef struct {
@@ -64,7 +68,7 @@ typedef struct {
     bool rtmp_loaded,vt_loaded;
     char vt_h264_id[512],vt_unavailable_reason[128];
     char *encoder_inventory;
-    char base[4096], error[512];
+    char base[4096], output_module[4096], capture_module[4096], error[512];
 } motive_engine;
 
 typedef struct { double elapsed; bool overlay; atomic_uint color; } pattern_state;
@@ -134,7 +138,8 @@ static void connect_preview(motive_engine *e) {
 static bool load_module(motive_engine *e, const char *name) {
     char binary[8192], data[8192]; obs_module_t *module = NULL;
     snprintf(binary,sizeof(binary),"%s/PlugIns/%s.plugin/Contents/MacOS/%s",e->base,name,name);
-    if (!strcmp(name,"obs-outputs")) snprintf(binary,sizeof(binary),"%s",MOTIVE_RTMP_MODULE);
+    if (!strcmp(name,"obs-outputs")) snprintf(binary,sizeof(binary),"%s",e->output_module);
+    if (!strcmp(name,"mac-capture")) snprintf(binary,sizeof(binary),"%s",e->capture_module);
     snprintf(data,sizeof(data),"%s/PlugIns/%s.plugin/Contents/Resources",e->base,name);
     int code=obs_open_module(&module,binary,data);
     if (code || !obs_init_module(module)) {
@@ -170,12 +175,13 @@ static void private_log(int level,const char *format,va_list args,void *unused) 
         previous_log_handler(level,format,args,previous_log_context);
 }
 #include "local-service.inc"
+#include "approved-service.inc"
 static void discover_encoders(motive_engine *e);
 static void audio_mix_start(motive_engine *e);
 static void audio_mix_stop(motive_engine *e);
 #include "self-audio-fixture.inc"
 void motive_destroy(motive_engine *e);
-motive_engine *motive_create(const char *base) {
+motive_engine *motive_create(const char *base,const char *output_module,const char *capture_module) {
     motive_engine *e=calloc(1,sizeof(*e));
     for (unsigned i=0;i<2;i++) {
         atomic_init(&e->outputs[i].output_started,false);
@@ -183,9 +189,12 @@ motive_engine *motive_create(const char *base) {
         atomic_init(&e->outputs[i].output_code,0);
         atomic_init(&e->outputs[i].started_ns,0);
         atomic_init(&e->outputs[i].stopped_ns,0);
+        output_trace_init(&e->outputs[i].packet_trace);
     }
     pthread_mutex_init(&e->lock,NULL); e->width=960; e->height=540; e->fps=30;
     snprintf(e->base,sizeof(e->base),"%s",base);
+    snprintf(e->output_module,sizeof(e->output_module),"%s",output_module);
+    snprintf(e->capture_module,sizeof(e->capture_module),"%s",capture_module);
     [NSApplication sharedApplication];
     base_get_log_handler(&previous_log_handler,&previous_log_context);
     base_set_log_handler(private_log,NULL);
@@ -213,6 +222,7 @@ motive_engine *motive_create(const char *base) {
     }
     obs_post_load_modules();
     obs_register_service(&local_service_info);
+    obs_register_service(&approved_service_info);
     e->rtmp_loaded=obs_get_output_flags("rtmp_output")!=0;
     discover_encoders(e);
     obs_register_source(&pattern_info);

@@ -16,6 +16,9 @@ impl Studio {
             "settings" => "Preferencias y diagnóstico",
             "scenes" => "Escenas y transiciones",
             "creative" => "Biblioteca creativa",
+            "recordings" => "Grabaciones",
+            "destinations" => "Destinos RTMPS",
+            "live-deck" => "Live Deck",
             _ => "Estudio",
         };
         let mut content = col().gap(px(8.));
@@ -64,6 +67,15 @@ impl Studio {
             }
             "creative" => {
                 content = content.child(self.creative_library(cx));
+            }
+            "recordings" => {
+                content = content.child(self.recordings_panel(cx));
+            }
+            "destinations" => {
+                content = content.child(self.destinations_panel(cx));
+            }
+            "live-deck" => {
+                content = content.child(self.live_deck_panel(cx));
             }
             "add-source" => {
                 content = content.child(self.device_picker(cx));
@@ -218,7 +230,11 @@ impl Studio {
                     ),
             )
             .when(
-                panel != "creative" && self.forms.revision != self.production.revision,
+                panel != "creative"
+                    && panel != "recordings"
+                    && panel != "destinations"
+                    && panel != "live-deck"
+                    && self.forms.revision != self.production.revision,
                 |d| {
                     d.child(label(
                         "El estado cambió. Reabre para actualizar los formularios.",

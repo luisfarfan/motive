@@ -18,8 +18,10 @@ import time
 import traceback
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-APP = ROOT / 'target/Motive.app'
-SOCKET = ROOT / 'var/run/motive.sock'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+APP = VERIFY.app_bundle
+SOCKET = VERIFY.socket
 
 
 def connect(command):
@@ -75,7 +77,7 @@ def main():
         common = common if common.is_absolute() else ROOT / common
         lock = common.resolve().parent / 'var/run/physical-test.lock/OWNER'
         lock_owner = lock.read_text()
-        assert 'H13' in lock_owner and str(ROOT) in lock_owner, 'Wrong canonical lock owner'
+        assert VERIFY.lock_matches(lock_owner), 'Wrong canonical lock owner'
         report['shared_lock'] = {'path': str(lock), 'owner': lock_owner}
         signed = subprocess.run(['codesign', '--verify', '--verbose=2', str(APP)],
                                 capture_output=True, text=True, timeout=30)
@@ -97,7 +99,7 @@ def main():
         assert not state['issues'] and not state['recovery_required'], 'Healthy production required'
         preflight = report['preflight'] = call({'op': 'preflight_output', 'target': 'recording'})
         assert preflight.get('ok') is True, preflight
-        recordings = ROOT / 'var/recordings'
+        recordings = VERIFY.recordings_root
         files_before = set(recordings.glob('*.mkv'))
         assert lock.read_text() == lock_owner, 'Canonical lock changed before shutdown'
         shutdown = connect({'op': 'shutdown'})

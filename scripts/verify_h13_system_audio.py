@@ -24,6 +24,8 @@ import subprocess
 import time
 
 from h7_support import Client, EVIDENCE, EXE, ROOT, process_sample
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 from verify_h10_audio import power, tonal_amplitude
 
 BUNDLE = 'local.motive.audiofixture'
@@ -159,12 +161,12 @@ class Run:
         lock = self.args.lock_dir or common.resolve().parent / 'var/run/physical-test.lock'
         owner = (lock / 'OWNER').read_text()
         self.report['shared_lock'] = dict(path=str(lock.resolve()), owner=owner)
-        assert 'H13' in owner and str(ROOT) in owner, 'Caller must hold the canonical H13 physical lock for this worktree'
+        assert VERIFY.lock_matches(owner), 'Caller must hold the canonical physical lock for this worktree'
         self.client = Client()
         self.initial = self.client.state()
         self.report['initial'] = self.initial
         assert self.initial['output'] == 'idle' and not self.initial['audio_mixer']['store']['inputs'], 'An idle studio with an empty mixer is required'
-        self.report['binary_sha256'] = hashlib.sha256((ROOT / 'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+        self.report['binary_sha256'] = hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
         self.report['fixture_sha256'] = hashlib.sha256(FIXTURE.read_bytes()).hexdigest()
         self.report['script_sha256'] = hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()
         self.report['ffmpeg'] = subprocess.check_output(['ffmpeg', '-version'], text=True).splitlines()[0]
@@ -425,8 +427,8 @@ class Run:
     def persistence(self):
         project = self.client.state()['project']
         profiles = self.client.call('output_profiles')['store']
-        immutable = {name: (ROOT/'var'/name).read_bytes() if (ROOT/'var'/name).exists() else None for name in ('project.json', 'output-profiles.json')}
-        path = ROOT/'var/audio-mixer.json'
+        immutable = {name: (VERIFY.data_root/name).read_bytes() if (VERIFY.data_root/name).exists() else None for name in ('project.json', 'output-profiles.json')}
+        path = VERIFY.data_root / 'audio-mixer.json'
         self.audio_saved_before = path.read_bytes() if path.exists() else None
         saved = self.client.call('save_audio_mixer')['state']['audio_mixer']['store']
         self.audio_save_changed = True
@@ -447,7 +449,7 @@ class Run:
         assert restored['audio_mixer']['store'] == saved and restored['audio_mixer']['runtime']['instances_created'] == instances
         assert restored['project'] == project and self.client.call('output_profiles')['store'] == profiles
         for name, data in immutable.items():
-            candidate = ROOT/'var'/name
+            candidate = VERIFY.data_root/name
             assert (candidate.read_bytes() if candidate.exists() else None) == data
         self.wait(lambda s: all(input_state(s, i)['phase'] == 'ready' for i in (self.system, self.tone)))
         trial = self.start_trial('persistence')
@@ -506,7 +508,7 @@ class Run:
                     if self.initial:
                         self.client.call('configure_transition', transition=self.initial['transition_configuration'])
                 if self.audio_save_changed:
-                    path = ROOT/'var/audio-mixer.json'
+                    path = VERIFY.data_root / 'audio-mixer.json'
                     if self.audio_saved_before is None:
                         path.unlink(missing_ok=True)
                     else:

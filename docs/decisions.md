@@ -593,3 +593,58 @@ RTMPS positivo confiable y bundle portable siguen pendientes; la sesión dual
 prolongada ejecutada no acredita esos escenarios.
 No se habilitan destinos públicos, multistream, dos canvases simultáneos,
 Browser/CEF ni nuevas dependencias globales.
+
+## D12 — Autoridad local, Show Control y bundle portable (H14)
+
+Implementación integrada; **aceptación de beta abierta**. El
+[índice H14](h14-beta-verification.md) identifica cada binario y sus medios.
+Los resultados anteriores de D11 siguen describiendo H13.
+
+El adaptador de [Show Control](h14-show-control-contract.md) toma prestada la
+misma `Production` en el turno del owner. El crate conserva reglas, cooldowns,
+contadores y deduplicación; el owner conserva grafo, reloj nativo y autoridad
+de revisión. Antes de aplicar una acción se sincroniza su intención duradera.
+Los recibos solo admiten rangos contiguos de revisiones propias de esa acción
+y su operación nativa. Una edición ajena no puede convertirse en revisión
+propia por observar una operación completada. La incertidumbre exige
+reconciliación; no reejecuta triggers ni continúa la secuencia automáticamente.
+
+El [trigger animado B3](h14-animated-trigger.md) aplica el evento del widget y
+su transformación inicial en el mismo tick nativo, con un único operation ID.
+Corrige el salto inicial observado en B1 sin un reloj adicional de GPUI/MCP.
+Las tres celebraciones completas B3 se verificaron en MKV y RTMP; los límites
+de cancelación y concurrencia permanecen separados en su
+[informe](h14-show-control-b3-verification.md). La instalación MATCHDAY presenta
+un plan local y bindings reales; conserva progreso parcial y no promete rollback
+atómico. Guardar/restaurar su configuración es explícito y siempre restaura
+desactivada, sin trabajos ni salidas automáticas.
+
+Los [destinos externos](h14-destination-contract.md) se registran localmente por
+identidad, host, puerto, ruta y referencia opaca. La credencial se vincula a esa
+tupla completa en Keychain y se introduce mediante AppKit. Cada arranque externo
+consume una autorización local ligada al owner, revisión, perfil y destino;
+un mensaje MCP, un origen `UI` o un booleano no pueden crear esa autoridad.
+La prueba privada B2 verificó conexión real y observación del usuario; no prueba
+entrega remota por decodificación independiente ni certifica B3 por herencia.
+
+El [bundle portable](h14-portable-app.md) incorpora el cierre de dependencias
+ARM64 y herramientas de importación. Un marcador versionado selecciona rutas
+macOS fuera del checkout y falla si es inválido. No migra stores de desarrollo.
+Licencias, fuentes correspondientes, firma, ejecución fuera del checkout,
+notarización y prueba en otra Mac son gates distintos. Un build firmado local
+no se anuncia como release notarizada.
+
+Los diagnósticos de SCK distinguen callbacks, superficies, consumo OBS y edad
+de buffer; ninguno demuestra por sí solo píxeles frescos. La ausencia reciente
+de buffer es un aviso compatible con contenido estático. Error de sesión o
+pérdida del recurso conserva la recuperación explícita existente. Los paquetes
+observados antes del plugin tampoco equivalen a frames escritos o recibidos;
+la [contabilidad](h14-output-accounting.md) conserva PTS, cortes de parada y
+diferencias sin restarlas para producir un aprobado.
+
+Las mediciones separan RSS, footprint y asignaciones malloc vivas. Pausar un
+video oculto es una operación explícita; no cambia automáticamente el reloj
+según visibilidad. Retirar la fuente y pausar su decoder tienen costes y
+retenciones diferentes. La voz opcional sigue como benchmark offline, con
+fiabilidad insuficiente y sin ruta de reconocimiento en vivo. Ninguna de estas
+ampliaciones añade DSP paralelo, audio por escena, nube, CEF ni otro owner.

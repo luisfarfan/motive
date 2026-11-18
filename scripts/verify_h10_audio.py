@@ -14,7 +14,9 @@ import time
 import wave
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXE = ROOT / 'target/debug/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+EXE = VERIFY.client_executable
 OUT = ROOT / 'var/evidence'
 
 
@@ -236,7 +238,7 @@ def main():
                 ctl('remove_audio_input', input_id=entry['id'])
         except Exception as failure:
             report['cleanup_error'] = repr(failure)
-        app = ROOT / 'target/Motive.app/Contents/MacOS/motive'
+        app = VERIFY.app_executable
         report['app_sha256'] = hashlib.sha256(app.read_bytes()).hexdigest()
         OUT.mkdir(parents=True, exist_ok=True)
         (OUT / 'h10-pilot.json').write_text(json.dumps(report, indent=2))

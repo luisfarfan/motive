@@ -6,7 +6,9 @@ capture test. Artifacts remain in ignored var/. No simulated device removal.
 import argparse, hashlib, json, math, os, pathlib, signal, struct, subprocess, time
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXE = ROOT / 'target/debug/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+EXE = VERIFY.client_executable
 OUT = ROOT / 'var/evidence'
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--camera-id')
@@ -14,6 +16,7 @@ parser.add_argument('--microphone-id')
 args = parser.parse_args()
 report = {'ok': False, 'checks': [], 'physical_hot_unplug': 'not tested; requires removable hardware'}
 fixture_pid = None
+tone_players = []
 
 def ctl(op, expect=True, **fields):
     proc = subprocess.run([str(EXE), 'ctl', json.dumps({'op': op, **fields})], capture_output=True, text=True, timeout=12)
@@ -120,12 +123,19 @@ try:
         ctl('select_source', window_id=None); ctl('select_audio', id='none')
         ctl('load_project'); ready()
         ctl('reconnect_sources'); first = ready()
+        tone = VERIFY.data_root/'tone.wav'
+        assert tone.is_file() and not tone.is_symlink()
+        tone_hash = hashlib.sha256(tone.read_bytes()).hexdigest()
+        assert tone.stat().st_size == 192044 and tone_hash == '92b74b61559478db14a4254488910b2aff1228bbf7c91646c57bab6117505b6c', 'Expected owned 1-second 440 Hz fixture'
+        report['physical_playback_fixture'] = {'path':str(tone), 'sha256':tone_hash, 'bytes':tone.stat().st_size}
         path = ctl('start_recording')['state']['output_path']
         samples = []
         for i in range(8):
             if i in (2,4):
-                subprocess.Popen(['afplay', '-v', '0.5', str(ROOT/'var/tone.wav')], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                tone_players.append(subprocess.Popen(['afplay', '-v', '0.5', str(tone)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
             time.sleep(1); samples.append(state())
+        report['physical_playback_exit_codes'] = [player.wait(timeout=5) for player in tone_players]
+        assert report['physical_playback_exit_codes'] == [0,0], 'Owned acoustic stimulus playback failed'
         ctl('stop_output'); idle()
         assert all(not s['issues'] and s['output']=='recording' for s in samples)
         assert samples[-1]['stats']['audio_frames'] > samples[0]['stats']['audio_frames']
@@ -136,6 +146,13 @@ except BaseException as failure:
     report['error'] = repr(failure)
     raise
 finally:
+    for player in tone_players:
+        try:
+            if player.poll() is None:
+                player.terminate()
+                player.wait(timeout=5)
+        except Exception as cleanup_error:
+            report.setdefault('cleanup_errors', []).append({'scope':'owned afplay', 'error':repr(cleanup_error)})
     try:
         ctl('stop_output'); idle(); ctl('select_source', window_id=None); ctl('select_audio', id='none')
     except Exception as cleanup_error:
@@ -143,7 +160,7 @@ finally:
     if fixture_pid:
         try: os.kill(fixture_pid, signal.SIGTERM)
         except ProcessLookupError: pass
-    app = ROOT/'target/Motive.app/Contents/MacOS/motive'
+    app = VERIFY.app_executable
     report['app_sha256'] = hashlib.sha256(app.read_bytes()).hexdigest()
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT/'h1-acceptance.json').write_text(json.dumps(report, indent=2))

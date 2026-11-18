@@ -27,6 +27,8 @@ import subprocess
 import time
 
 from h7_support import Client, EVIDENCE, ROOT
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 from verify_h10_audio import tonal_amplitude
 from verify_h13_system_audio import analyse_media, db, input_state
 
@@ -124,24 +126,27 @@ def main():
         if not common.is_absolute(): common = ROOT/common
         lock = args.lock_dir or common.resolve().parent/'var/run/physical-test.lock'
         owner = (lock/'OWNER').read_text()
-        assert 'H13' in owner and str(ROOT) in owner
+        assert VERIFY.lock_matches(owner)
         report['shared_lock'] = dict(path=str(lock.resolve()), owner=owner)
         client = Client()
         initial = client.state()
         report['initial'] = initial
         assert initial['output'] == 'idle' and not initial['audio_mixer']['store']['inputs'], 'Idle studio and empty mixer required'
         report['emitter_before'] = observed_emitter(args.motive_log, initial['pid'])
-        binary = ROOT/'target/Motive.app/Contents/MacOS/motive'
+        binary = VERIFY.app_executable
         report['binary_sha256'] = hashlib.sha256(binary.read_bytes()).hexdigest()
         report['fixture_sha256'] = hashlib.sha256(FIXTURE.read_bytes()).hexdigest()
-        # bundle.py intentionally links its pinned local OBS Frameworks. Verify
-        # the signature; strict portability rejects that documented dev layout.
-        signature = subprocess.run(['codesign', '--verify', str(ROOT/'target/Motive.app')], capture_output=True, text=True)
+        # Preserve the signature checks for both layouts. The development
+        # bundle links local frameworks; portable closure/notarization have
+        # separate gates and cannot be inferred from this signature result.
+        signature = subprocess.run(['codesign', '--verify', str(VERIFY.app_bundle)], capture_output=True, text=True)
         assert signature.returncode == 0, signature.stderr
         report['signature_verified'] = True
-        strict = subprocess.run(['codesign', '--verify', '--strict', str(ROOT/'target/Motive.app')], capture_output=True, text=True)
+        strict = subprocess.run(['codesign', '--verify', '--strict', str(VERIFY.app_bundle)], capture_output=True, text=True)
         report['strict_bundle_validation'] = dict(returncode=strict.returncode, stderr=strict.stderr,
-            limitation='Local development bundle uses external pinned OBS Frameworks symlink; not portable/notarized')
+            limitation=('Portable signature result only; dependency closure, notarization and second-Mac validation are separate gates'
+                        if VERIFY.portable else
+                        'Local development bundle uses external pinned OBS Frameworks symlink; not portable/notarized'))
         inventory = client.call('system_audio_sources')['system_audio_sources']
         assert inventory['available'] and inventory['permission'] == 'authorized', inventory
         assert any(d['display_uuid'] == args.display_uuid and d['is_main'] and d['selectable'] for d in inventory['displays']), inventory['displays']

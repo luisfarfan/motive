@@ -42,7 +42,9 @@ from verify_h11_visuals import png, shape_definition
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-APP = ROOT / 'target/Motive.app/Contents/MacOS/motive'
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
+APP = VERIFY.app_executable
 VIDEO = {'version': 1, 'resolution': 'full_hd1080', 'fps': 30,
          'coordinate_space': 'design960'}
 DEFAULT_VIDEO = {**VIDEO, 'resolution': 'legacy540'}
@@ -434,7 +436,8 @@ class Suite:
         response = self.c.call('start_output', target=target, transport=transport)
         item = slots(response['state'])[target]
         path = receiver.path if receiver else pathlib.Path(item['path'])
-        check(path.is_absolute() and path.resolve().is_relative_to(ROOT / 'var'),
+        owned_root = (self.directory if receiver else VERIFY.recordings_root) if VERIFY.portable else ROOT / 'var'
+        check(path.is_absolute() and path.resolve().is_relative_to(owned_root.resolve()),
               'owned output path', path=str(path))
         record = {'label': label, 'case': self.case['name'], 'target': target,
                   'attempt_id': item['attempt_id'], 'path': str(path),

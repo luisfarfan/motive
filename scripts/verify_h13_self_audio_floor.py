@@ -33,6 +33,8 @@ import traceback
 from verify_h10_audio import tonal_amplitudes
 from verify_h12_performance import write_project
 from verify_h13_outputs import APP, ROOT, Client, check, sha, slots, write_json
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 from verify_h13_self_audio_exclusion import emitter_events
 from verify_h13_system_audio import BUNDLE, FIXTURE, analyse_media, db, input_state
 
@@ -170,7 +172,7 @@ def main():
         common = common if common.is_absolute() else ROOT/common
         lock = common.resolve().parent/'var/run/physical-test.lock/OWNER'
         owner_text = lock.read_text()
-        check('H13' in owner_text and str(ROOT) in owner_text, 'canonical H13 lock')
+        check(VERIFY.lock_matches(owner_text), 'canonical verification lock')
         report['shared_lock'] = {'path': str(lock), 'owner': owner_text}
         check(APP.is_file() and FIXTURE.is_file() and args.motive_log.is_file(), 'existing bundle, fixture and explicit log required')
         signature = subprocess.run(['codesign', '--verify', str(APP.parents[2])], capture_output=True, text=True, timeout=30)
@@ -197,7 +199,7 @@ def main():
         report['initial_profiles'] = client.call('output_profiles')['store']
         report['inventory'] = inventory
         for name in ('project.json', 'audio-mixer.json', 'output-profiles.json'):
-            backups.append(backup_store(ROOT/'var'/name, directory))
+            backups.append(backup_store(VERIFY.data_root/name, directory))
         report['stores_before'] = [{k: v for k, v in item.items() if k != 'bytes'} for item in backups]
         save()
 
@@ -297,8 +299,8 @@ def main():
                     client.call('recover_output_target', target='recording')
                 safe = idle(client.state())
                 check(safe, 'safe idle restore barrier')
-                write_project(ROOT/'var/project.json', initial['project']); client.call('load_project')
-                write_project(ROOT/'var/audio-mixer.json', initial['audio_mixer']['store']); client.call('load_audio_mixer')
+                write_project(VERIFY.data_root / 'project.json', initial['project']); client.call('load_project')
+                write_project(VERIFY.data_root / 'audio-mixer.json', initial['audio_mixer']['store']); client.call('load_audio_mixer')
                 client.call('configure_transition', transition=initial['transition_configuration'])
                 final = guard_owner(client, args, lock, owner_text)
                 check(final['project'] == initial['project'] and final['audio_mixer']['store'] == initial['audio_mixer']['store'], 'exact runtime stores restored')

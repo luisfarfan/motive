@@ -20,6 +20,8 @@ import time
 import zlib
 
 from h7_support import Client, ROOT, EVIDENCE, EXE, process_sample, assert_project_format
+from verification_paths import verification_paths
+VERIFY = verification_paths(ROOT)
 from verify_h10_audio import tonal_amplitude
 
 WIDTH, HEIGHT = 960, 540
@@ -62,7 +64,7 @@ def sources(state):
 def import_asset(c, path, expected=True):
     # AssetCatalog created this private inbox when the app started. A verifier
     # must not create a permissive directory or send an arbitrary host path.
-    inbox = ROOT / 'var/imports'
+    inbox = VERIFY.data_root / 'imports'
     assert inbox.is_dir() and not inbox.is_symlink() and inbox.stat().st_mode & 0o077 == 0
     shutil.copyfile(path, inbox / path.name)
     response = c.call('import_asset', file_name=path.name)
@@ -479,7 +481,7 @@ def main():
             report['operations'] = c.ops
             cleanup(c.close)
         try:
-            report['app_sha256'] = hashlib.sha256((ROOT/'target/Motive.app/Contents/MacOS/motive').read_bytes()).hexdigest()
+            report['app_sha256'] = hashlib.sha256((VERIFY.app_executable).read_bytes()).hexdigest()
         except OSError as failure:
             report['app_sha256_error'] = repr(failure)
         if errors:

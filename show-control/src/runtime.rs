@@ -318,6 +318,9 @@ pub struct ActionRecord {
     pub operation_id: Option<String>,
     pub code: Option<String>,
     pub plan: Option<PreparedAction>,
+    /// Owner-attributed revision changes, never inferred from a later snapshot.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub revision_receipts: Vec<MutationReceipt>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -346,7 +349,8 @@ pub struct Decision {
     pub rule_id: Option<String>,
     pub code: String,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DispatchOutcome {
     Simulated,
     Accepted { operation_id: String },
@@ -354,13 +358,80 @@ pub enum DispatchOutcome {
     Rejected(Error),
     Uncertain,
 }
-#[derive(Clone, Debug)]
+/// Evidence created by the Production owner after an attributable mutation.
+/// These values are not authorization supplied by an external event or socket.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MutationReceipt {
+    pub action_key: String,
+    pub operation_id: Option<String>,
+    pub before: Revision,
+    pub after: Revision,
+}
+impl MutationReceipt {
+    pub fn validate(
+        &self,
+        action_key: &str,
+        before: Revision,
+        operation_id: Option<&str>,
+    ) -> Result<(), Error> {
+        if self.action_key != action_key
+            || self.action_key.is_empty()
+            || self.action_key.len() > 300
+            || self.operation_id.as_deref() != operation_id
+            || self
+                .operation_id
+                .as_ref()
+                .is_some_and(|id| id.is_empty() || id.len() > 256)
+            || self.before != before
+            || self.after.pid != before.pid
+            || before.pid == 0
+            || self.after.revision < before.revision
+        {
+            return Err(Error::new(
+                "INVALID_MUTATION_RECEIPT",
+                "owner receipt does not match the action, operation and exact revision chain",
+            ));
+        }
+        Ok(())
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DispatchReport {
+    pub outcome: DispatchOutcome,
+    pub receipt: Option<MutationReceipt>,
+}
+impl DispatchReport {
+    pub fn legacy(outcome: DispatchOutcome) -> Self {
+        Self {
+            outcome,
+            receipt: None,
+        }
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Completion {
     Pending,
     Completed,
     Failed(Error),
     Cancelled,
     Unknown,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PollReport {
+    pub completion: Completion,
+    pub receipt: Option<MutationReceipt>,
+}
+impl PollReport {
+    pub fn legacy(completion: Completion) -> Self {
+        Self {
+            completion,
+            receipt: None,
+        }
+    }
 }
 /// An eventual live adapter must write a durable dispatch intent before mutation.
 /// No live adapter ships in this crate. Dispatch is called once per action.
@@ -370,6 +441,89 @@ pub trait Backend {
     fn dispatch(&mut self, action: &PreparedAction, idempotency_key: &str) -> DispatchOutcome;
     fn poll(&mut self, operation_id: &str) -> Completion;
     fn request_cancel(&mut self, operation_id: &str) -> Result<(), Error>;
+    /// A live implementation checks this exact revision again on the owner,
+    /// persists intent, and dispatches without yielding to another command.
+    /// The default retains legacy behavior and grants no revision advancement.
+    fn dispatch_checked(
+        &mut self,
+        action: &PreparedAction,
+        action_key: &str,
+        _expected: Revision,
+    ) -> DispatchReport {
+        DispatchReport::legacy(self.dispatch(action, action_key))
+    }
+    /// A terminal receipt may advance only revisions proven to belong to this
+    /// operation. Concurrent UI/MCP changes must never enter that receipt.
+    fn poll_checked(
+        &mut self,
+        operation_id: &str,
+        _action_key: &str,
+        _expected: Revision,
+    ) -> PollReport {
+        PollReport::legacy(self.poll(operation_id))
+    }
+}
+
+fn action_key(job: &Job, index: usize) -> String {
+    format!("{}:{}:{}", job.correlation_id, job.id, index)
+}
+
+fn accept_revision_receipt(
+    job: &mut Job,
+    receipt: MutationReceipt,
+    operation_id: Option<&str>,
+) -> Result<(), Error> {
+    let record = job.records.last().ok_or_else(|| {
+        Error::new(
+            "INVALID_MUTATION_RECEIPT",
+            "no action record for owner receipt",
+        )
+    })?;
+    receipt.validate(&action_key(job, record.index), job.expected, operation_id)?;
+    if record.revision_receipts.len() >= 2 {
+        return Err(Error::new(
+            "INVALID_MUTATION_RECEIPT",
+            "receipt chain limit exceeded",
+        ));
+    }
+    job.expected = receipt.after;
+    job.records
+        .last_mut()
+        .unwrap()
+        .revision_receipts
+        .push(receipt);
+    Ok(())
+}
+
+fn accept_poll_report(job: &mut Job, report: PollReport, simulated: bool) -> Completion {
+    if !simulated
+        && report.receipt.is_none()
+        && matches!(report.completion, Completion::Completed)
+        && job
+            .records
+            .last()
+            .and_then(|record| record.plan.as_ref())
+            .is_some_and(|plan| matches!(&plan.action, Action::TriggerAnimatedWidget { .. }))
+    {
+        job.state = JobState::NeedsReconciliation;
+        let record = job.records.last_mut().unwrap();
+        record.stage = Stage::Uncertain;
+        record.code = Some("MISSING_MUTATION_RECEIPT".into());
+        return Completion::Unknown;
+    }
+    if let Some(receipt) = report.receipt {
+        let operation_id = job.records.last().and_then(|r| r.operation_id.clone());
+        if simulated
+            || !matches!(report.completion, Completion::Completed)
+            || accept_revision_receipt(job, receipt, operation_id.as_deref()).is_err()
+        {
+            let record = job.records.last_mut().unwrap();
+            record.stage = Stage::Uncertain;
+            record.code = Some("INVALID_MUTATION_RECEIPT".into());
+            return Completion::Unknown;
+        }
+    }
+    report.completion
 }
 
 pub struct Runtime<C: Clock> {
@@ -716,7 +870,7 @@ impl<C: Clock> Runtime<C> {
         }
         let record = j
             .records
-            .last_mut()
+            .last()
             .ok_or_else(|| Error::new("MISSING_OPERATION", "no dispatch evidence"))?;
         let operation = record.operation_id.as_ref().ok_or_else(|| {
             Error::new(
@@ -724,7 +878,10 @@ impl<C: Clock> Runtime<C> {
                 "uncertain transport requires manual owner-side reconciliation",
             )
         })?;
-        match backend.poll(operation) {
+        let report = backend.poll_checked(operation, &action_key(j, record.index), j.expected);
+        let completion = accept_poll_report(j, report, backend.simulated());
+        let record = j.records.last_mut().unwrap();
+        match completion {
             Completion::Completed => {
                 record.stage = Stage::Completed;
                 j.state = if j.cursor + 1 == j.actions.len() {
@@ -786,7 +943,14 @@ impl<C: Clock> Runtime<C> {
                 .operation_id
                 .clone()
                 .unwrap();
-            match backend.poll(&op) {
+            let job = &self.jobs[index];
+            let report = backend.poll_checked(
+                &op,
+                &action_key(job, job.records.last().unwrap().index),
+                job.expected,
+            );
+            let completion = accept_poll_report(&mut self.jobs[index], report, backend.simulated());
+            match completion {
                 Completion::Pending => return,
                 Completion::Completed => {
                     let j = &mut self.jobs[index];
@@ -842,6 +1006,7 @@ impl<C: Clock> Runtime<C> {
                     operation_id: None,
                     code: Some(e.code.clone()),
                     plan: None,
+                    revision_receipts: Vec::new(),
                 });
                 if e.code == "CAPABILITY_UNAVAILABLE"
                     && j.failure_policy == FailurePolicy::ContinueUnavailable
@@ -861,6 +1026,7 @@ impl<C: Clock> Runtime<C> {
             operation_id: None,
             code: None,
             plan: Some(prepared.clone()),
+            revision_receipts: Vec::new(),
         });
         j.records.last_mut().unwrap().stage = Stage::Prepared;
         if !backend.simulated() && j.simulated {
@@ -918,8 +1084,46 @@ impl<C: Clock> Runtime<C> {
             _ => {
                 let j = &mut self.jobs[index];
                 j.records.last_mut().unwrap().stage = Stage::Sent;
-                let key = format!("{}:{}:{}", j.correlation_id, j.id, j.cursor);
-                match backend.dispatch(&prepared, &key) {
+                let key = action_key(j, j.cursor);
+                let report = backend.dispatch_checked(&prepared, &key, j.expected);
+                if !backend.simulated()
+                    && matches!(&prepared.action, Action::TriggerAnimatedWidget { .. })
+                    && report.receipt.is_none()
+                    && matches!(
+                        report.outcome,
+                        DispatchOutcome::Accepted { .. } | DispatchOutcome::Completed
+                    )
+                {
+                    j.state = JobState::NeedsReconciliation;
+                    let record = j.records.last_mut().unwrap();
+                    record.stage = Stage::Uncertain;
+                    record.code = Some("MISSING_MUTATION_RECEIPT".into());
+                    if let DispatchOutcome::Accepted { operation_id } = report.outcome {
+                        record.operation_id = Some(operation_id);
+                    }
+                    return;
+                }
+                if let Some(receipt) = report.receipt {
+                    let operation = match &report.outcome {
+                        DispatchOutcome::Accepted { operation_id } => Some(operation_id.as_str()),
+                        _ => None,
+                    };
+                    if backend.simulated()
+                        || !matches!(
+                            report.outcome,
+                            DispatchOutcome::Accepted { .. } | DispatchOutcome::Completed
+                        )
+                        || accept_revision_receipt(j, receipt, operation).is_err()
+                    {
+                        j.state = JobState::NeedsReconciliation;
+                        let record = j.records.last_mut().unwrap();
+                        record.stage = Stage::Uncertain;
+                        record.code = Some("INVALID_MUTATION_RECEIPT".into());
+                        record.operation_id = operation.map(str::to_owned);
+                        return;
+                    }
+                }
+                match report.outcome {
                     DispatchOutcome::Simulated => self.complete_local(index, true),
                     DispatchOutcome::Completed => self.complete_local(index, false),
                     DispatchOutcome::Accepted { operation_id } => {

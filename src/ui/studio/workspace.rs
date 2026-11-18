@@ -1,6 +1,10 @@
 use super::*;
 impl Render for Studio {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        #[cfg(feature = "ui-profiler")]
+        if let Some(profile) = &mut self.ui_profile {
+            profile.sample(window);
+        }
         self.sync_fields(window, cx);
         let p = Palette::new(self.dark);
         let status = self.production.status();

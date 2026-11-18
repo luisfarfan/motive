@@ -39,6 +39,8 @@ pub struct Studio {
     recordings: recordings::RecordingsUi,
     destinations_ui: destinations::DestinationsUi,
     deck_ui: show_control::DeckUi,
+    #[cfg(feature = "ui-profiler")]
+    ui_profile: Option<profiling::Profile>,
 }
 impl Studio {
     pub fn new(
@@ -79,6 +81,10 @@ impl Studio {
                     .await;
                 if this
                     .update(cx, |view, cx| {
+                        #[cfg(feature = "ui-profiler")]
+                        let profile_start = view.ui_profile.as_ref().map(|_| Instant::now());
+                        #[cfg(feature = "ui-profiler")]
+                        let profile_sequence = view.sequence;
                         if view.last_device_refresh.elapsed() >= Duration::from_secs(1) {
                             view.production.poll_health();
                             view.poll_creative_import(cx);
@@ -129,6 +135,12 @@ impl Studio {
                                 cx.drop_image(old, None);
                             }
                         }
+                        #[cfg(feature = "ui-profiler")]
+                        if let (Some(profile), Some(start)) =
+                            (view.ui_profile.as_mut(), profile_start)
+                        {
+                            profile.heartbeat(start.elapsed(), view.sequence != profile_sequence);
+                        }
                         cx.notify();
                     })
                     .is_err()
@@ -159,6 +171,8 @@ impl Studio {
             recordings: recordings::RecordingsUi::default(),
             destinations_ui,
             deck_ui: show_control::DeckUi::default(),
+            #[cfg(feature = "ui-profiler")]
+            ui_profile: profiling::Profile::new(window),
         }
     }
     fn command(&mut self, cmd: Command, origin: &str, cx: &mut Context<Self>) -> Value {
@@ -232,6 +246,8 @@ mod destinations;
 mod forms;
 mod lifecycle;
 mod outputs;
+#[cfg(feature = "ui-profiler")]
+mod profiling;
 mod recordings;
 mod show_control;
 

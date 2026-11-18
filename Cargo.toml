@@ -5,6 +5,11 @@ edition = "2024"
 license = "GPL-3.0-or-later"
 publish = false
 
+[features]
+# H17 experiments: keep the production backend and profiler unchanged by default.
+gpui-fast = ["gpui-kit/gpui-fast"]
+ui-profiler = ["gpui-kit/profiler"]
+
 [dependencies]
 gpui-kit = "=0.10.0"
 anyhow = "1"

@@ -119,3 +119,40 @@ Configurar/guardar/activar rechazan referencias de fuente/escena/capa inexistent
 restaurar permanece desarmado. 118 tests raíz y Clippy PASS, incluidos rechazo
 stale/sesión, IDs rotos, hash de bytes durables y preservación ante error.
 Recorrido nativo/reapertura aún pendiente de comprobar sobre el candidato.
+
+### B — causa acotada con foco y píxeles, no resuelta globalmente
+
+B3 default (`h15-focus-capture-b3-01/analysis/analysis.json`) **FAIL**: foco
+independiente corroborado; MKV/RTMP decodifican 1344 frames, pero repiten el
+contador durante ~15,4 s. La fase Motive al frente tiene cero ticks de avance.
+La fixture sigue dibujando; SCK emite suspended, deja de entregar superficies y
+OBS sigue renderizando su última textura. Al volver el foco, el contador avanza.
+El primer paquete VT se correlaciona por conversión exacta AnnexB→AVCC con
+SPS/PPS del CodecPrivate y fuente OBS fijada, sin tolerancia ni desplazar origen.
+
+B3 `join-all` (`h15-focus-capture-b3-join-all/analysis/analysis.json`) **PASS de
+frescura** en ambos medios y las tres fases. Solo cambia collectionBehavior de
+la fixture; no cambia Stage Manager/TCC/Spaces. Apple documenta
+[canJoinAllApplications](https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior-swift.struct/canjoinallapplications)
+para ventanas que pueden unirse a otras apps. Este contraste acota la condición
+de suspensión; no demuestra una reparación general de ventanas ajenas.
+[suspended](https://developer.apple.com/documentation/screencapturekit/scframestatus/suspended)
+expresa ausencia de nuevas actualizaciones. La UI ahora muestra suspensión en
+Capas/diagnóstico y preflight rechaza suspended/stopped; idle o un buffer antiguo
+no se convierten en fallo. No destruye/reconecta fuentes ni detiene outputs
+activos ante suspensión. El retorno de frames borra el aviso por observación.
+
+### C — corrección del reloj del instrumento
+
+La referencia anterior era la respuesta de start, posterior al inicio multimedia;
+además hold puede sobrepasar un cambio de fase. Se conserva ese resultado como
+`application_continuity_control_clock`. La comparación nueva ancla el primer AAC
+a una consulta nativa con reloj nombrado y bracket <=50 ms; verifica primer tamaño,
+prefijo completo, PTS y todos los conteos de muestras decodificadas. Usa cambios
+reales de modo de la fixture. No ajusta el reloj al tono ni cambia el umbral/guard
+de continuidad. Los archivos históricos sin ese bracket no obtienen un PASS
+retroactivo. El fallo intermitente de identidad continúa abierto.
+
+El helper de regresiones adopta reordering=false por defecto como perfil H15
+permitido. Los ensayos que soliciten true explícitamente deben comprobar rechazo;
+la matriz H14 original y sus resultados permanecen intactos.

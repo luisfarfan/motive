@@ -193,7 +193,7 @@ def focus_conditions(events, anchors, markers, trial_end):
     subtraction involving CLOCK_MONOTONIC_RAW or an assumed shared epoch.
     """
     result = {'status': 'NOT_OBSERVED', 'phases': {},
-              'basis': 'Root CUA observations plus contemporaneous exact fixture metadata.',
+              'basis': 'Validated focus markers plus contemporaneous exact fixture metadata; marker observation identifies CUA or independent system PID.',
               'limits': ['app_active/occlusion are metadata, not proof of visible or captured pixels.',
                          'Fixture inactivity corroborates the studio marker; it alone does not identify the frontmost app.']}
     try:

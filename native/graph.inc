@@ -251,6 +251,8 @@ char *motive_graph_health(motive_engine *e) {
         uint64_t now=os_gettime_ns();
         NSString *notice=@"";
         if(capture && captured && now>captured && now-captured>3000000000ULL)notice=@"NO_RECENT_CAPTURE_BUFFER";
+        if([capture[@"sample_status"] isEqual:@"suspended"])notice=@"CAPTURE_SUSPENDED";
+        else if([capture[@"sample_status"] isEqual:@"stopped"])notice=@"CAPTURE_STOPPED";
         [states addObject:@{@"id":@(s->id),@"active":@(active),@"issue":@(issue),
             @"warming":@(s->warming),@"instance_id":@(s->instance_id),@"kind":@(s->kind),
             @"width":@(s->source ? obs_source_get_width(s->source):0),@"height":@(s->source ? obs_source_get_height(s->source):0),

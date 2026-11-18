@@ -39,11 +39,25 @@ impl Studio {
                         ),
                         SourceKind::Pattern => (IconName::Monitor, "Patrón libobs"),
                     };
-                    let fault = health
+                    let observed = health
                         .as_array()
-                        .and_then(|a| a.iter().find(|x| x["id"] == source.id))
+                        .and_then(|a| a.iter().find(|x| x["id"] == source.id));
+                    let fault = observed
                         .and_then(|x| x["issue"].as_str())
                         .is_some_and(|x| !x.is_empty());
+                    let notice = observed
+                        .and_then(|x| x["freshness_notice"].as_str())
+                        .unwrap_or("");
+                    let caption = if fault {
+                        "Sin señal"
+                    } else {
+                        match notice {
+                            "CAPTURE_SUSPENDED" => "Captura suspendida",
+                            "CAPTURE_STOPPED" => "Captura detenida",
+                            "NO_RECENT_CAPTURE_BUFFER" => "Sin buffers recientes",
+                            _ => detail,
+                        }
+                    };
                     let mut toggle = t.clone();
                     toggle.visible = !toggle.visible;
                     row()
@@ -93,7 +107,7 @@ impl Studio {
                                 .child(
                                     row()
                                         .gap(px(5.))
-                                        .child(dot(if fault {
+                                        .child(dot(if fault || !notice.is_empty() {
                                             p.warn
                                         } else if !t.visible {
                                             p.muted
@@ -102,8 +116,12 @@ impl Studio {
                                         }))
                                         .child(
                                             label(
-                                                if fault { "Sin señal" } else { detail },
-                                                if fault { p.warn } else { p.muted },
+                                                caption,
+                                                if fault || !notice.is_empty() {
+                                                    p.warn
+                                                } else {
+                                                    p.muted
+                                                },
                                             )
                                             .text_size(px(11.)),
                                         ),

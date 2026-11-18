@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--lock-held', action='store_true', required=True)
     parser.add_argument('--app', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--arm', choices=('default', 'join-all'), default='default')
     args = parser.parse_args()
     lock()
     out = args.output.absolute()
@@ -69,7 +70,7 @@ def main():
         else:
             raise ValueError('Owner startup timeout')
         report['owner'] = process_identity(owner.pid, owner_binary)
-        fixture = launch(fixture_binary, ['--collection-arm', 'default'], 'fixture')
+        fixture = launch(fixture_binary, ['--collection-arm', args.arm], 'fixture')
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
             events = lines(out / 'fixture.jsonl')
@@ -82,7 +83,7 @@ def main():
         require(ready is not None, 'Fixture ready timeout')
         window = ready['window_id']
         report['fixture'] = process_identity(fixture.pid, fixture_binary)
-        manifest = {'version': 1, 'trial_id': 'h15-focus', 'arm': 'default', 'seconds': 45,
+        manifest = {'version': 1, 'trial_id': 'h15-focus', 'arm': args.arm, 'seconds': 45,
                     'owner': {'bundle': str(app), 'pid': owner.pid},
                     'fixture': {'bundle': str(fixture_app), 'pid': fixture.pid, 'window_id': window,
                                 'log': str(out / 'fixture.jsonl'),

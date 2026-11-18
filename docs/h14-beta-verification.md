@@ -67,7 +67,7 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 | Live Deck y MATCHDAY | PARTIAL | B3 instalado por GPUI 73/73, celebración real y restauración exacta del proyecto/reglas desactivadas; recorrido de producción restante pendiente |
 | Voz opcional | PARTIAL | Benchmark offline ejecutado, recall 50% falla fiabilidad; voz en vivo NOT IMPLEMENTED |
 | UX y biblioteca de grabaciones | PARTIAL | Biblioteca y controles integrados; recorrido nativo final pendiente |
-| Suite unificada sobre binario final | PARTIAL | Coordinador ejecutado; 116+129 tests, Clippy y formato PASS; CLI/MCP y H1 PASS; demás regresiones en curso |
+| Suite unificada sobre binario final | PARTIAL | 116+129 tests, Clippy/formato y 23/23 suites H1–H12 PASS sobre B3; H13 adicionales y producción nativa completa pendientes |
 
 Primer checkpoint de instrumentación: **75 tests Rust**, Clippy all-targets
 con warnings como errores y formato pasan. Logs en
@@ -226,3 +226,13 @@ y cleanup confirmado. `h14-beta-b3-regressions-01` pasa H1 físico, pero conserv
 un fallo del harness de escenas al buscar `preview.png` bajo el checkout en
 vez del diagnóstico portable. Se corrigieron sus tres lectores y se repite
 la suite completa; aquel informe no se convierte retrospectivamente en PASS.
+
+La [consolidación de 23 regresiones B3](h14-b3-regressions-verification.md)
+selecciona las repeticiones completas de escenas y H1, más las demás suites.
+Todas tienen primario fresco PASS, exit cero y cleanup confirmado; se
+verificaron hashes, fuente compilada, cliente y restauración. El resultado
+no cubre automáticamente las pruebas adicionales H13 ni los gestos GPUI.
+El [derivado posterior del soak](h14-memory-b3-soak-verification.md#derivado-posterior-framing-y-paquetes-finales)
+explica el framing inicial y localiza un video final ausente por destino
+después del bracket de stop. Mantiene la entrega global parcial y el análisis
+original inconcluso intacto.

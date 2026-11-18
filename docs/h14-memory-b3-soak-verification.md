@@ -325,3 +325,35 @@ footprint. La aceptación global H14 sigue separada de estos checks de medios.
 Véase la [metodología de memoria](h14-memory-methodology.md) para cobertura
 del instrumento y la [verificación 1080p30](h14-memory-b3-verification.md)
 para la corrida independiente anterior.
+
+## Derivado posterior: framing y paquetes finales
+
+El análisis original conserva su `INCONCLUSIVE` y su hash. Una
+[inspección posterior acotada de los payloads](../var/evidence/h14-soak-origin-payload-01/findings.md)
+leyó menos de 30 KiB por archivo, sin decodificar ni modificar los medios.
+Sus tres primeros paquetes de video contienen NALs `[7,8,6,5]`, `[1]`, `[1]`.
+Los SPS/PPS coinciden con CodecPrivate. El código fijado de VideoToolbox usa
+prefijos Annex B de `[4,4,3,3]`, `[3]`, `[3]` bytes; AVCC usa cuatro bytes por
+NAL. Las longitudes reales explican exactamente las diferencias `+2,+1,+1`,
+sin tolerancia general de tamaño ni desplazamiento del primer paquete.
+
+El [nuevo derivado de cola](../var/evidence/h14-soak-framing-tail-01/findings.md)
+verifica hashes de payload inspection, fuentes, trazas y JSONL completo antes
+de aplicar el mismo correlator y su umbral de 1.1 ms. Resultado separado:
+**PARTIAL_TAIL_CLASSIFIED / STOP_BOUNDARY_PACKETS_NOT_DELIVERED** en ambos
+outputs. De los 144 paquetes de video finales retenidos, 143 aparecen y uno
+falta por destino; los 112 AAC retenidos aparecen. No hay ausencia trazada
+anterior o dentro del bracket de stop. Los DTS del video ausente quedan
+**1.267 ms** y **5.433 ms** después del retorno de stop, respectivamente.
+
+Los conteos originales `108060/108058/108057` y `108030/108029/108028`
+(encoder/output/video real) no cambian. La correspondencia de metadata no
+prueba identidad criptográfica del payload nativo, ni localiza los paquetes
+anteriores al observador, ni garantiza entrega completa. El nuevo JSON tiene
+SHA-256 `d8d3b2ec613717941bd12dfe549c8c613a96f54b9b875b25b10eb5f0ec96a499`.
+
+Distinción de herramientas: el receptor de la toma usó el FFmpeg de PATH
+(`Lavf63.1.102`); el muxer de grabación informa `Lavf62.12.102`. El análisis
+completo sí usó exclusivamente las herramientas del bundle B3. No se atribuye
+el binario del receptor al pin FFmpeg del bundle; su framing se observa en
+los bytes reales recibidos.

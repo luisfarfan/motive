@@ -180,3 +180,21 @@ Por tanto, la identidad temporal de las unidades anteriores al observador
 sigue sin medirse. La [prueba B3](h14-show-control-b3-verification.md) sí
 correlaciona los paquetes finales que alcanzaron el observador con los medios:
 su resultado conserva por separado los AAC posteriores a parada no escritos.
+
+## B3: cola del soak 1080p60
+
+El [soak B3](h14-memory-b3-soak-verification.md#derivado-posterior-framing-y-paquetes-finales)
+conserva dos medios de más de 1800 s. Su primer análisis deja origen
+`INCONCLUSIVE` por diferencias de tamaño de paquetes. La inspección posterior
+de NALs y el código fijado explican exactamente `+2,+1,+1` bytes mediante
+Annex B→AVCC, sin cambiar PTS, keyframes ni el origen elegido. Un derivado
+separado conserva el reporte inicial intacto y correlaciona la cola con el
+mismo umbral de 1.1 ms y los hashes completos de los paquetes decodificados.
+
+Cada destino retiene un paquete de video observado pero ausente del archivo,
+posterior al bracket de stop; los AAC retenidos están presentes. No hay una
+ausencia trazada pre-stop ni dentro del bracket. Se clasifica como
+`STOP_BOUNDARY_PACKETS_NOT_DELIVERED`, no como entrega completa. Los deltas
+encoder→observador siguen sin identidad temporal demostrada. Esta evidencia
+acota el cutoff de estos dos intentos; no autoriza restar un frame de otros
+experimentos ni asumir que cualquier diferencia terminal sea normal.

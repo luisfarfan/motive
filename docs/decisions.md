@@ -668,3 +668,30 @@ stopped observados por SCK se muestran y bloquean nuevos starts; no convierten
 idle en fallo, no fuerzan reconexión y no detienen outputs activos por sí solos.
 Los nuevos diagnósticos de identidad/reloj son observacionales; no cambian la
 aplicación autorizada ni hacen de MCP un transporte audiovisual.
+
+### H15 B6 — margen de mezcla acotado y observación de recuperación
+
+El núcleo configura `obs_reset_audio2` con 48 kHz estéreo y buffering fijo de
+128 ms: seis bloques de 1024 muestras. La evidencia B4 relaciona un bloque de
+mezcla incompleto con callbacks SCK hasta 48,24 ms después de PTS y solo 42 ms
+de margen dinámico. B6 pasa continuidad estricta sin cambiar ventanas, guards,
+umbrales, timestamps de origen ni ownership del mixer. Se reserva al iniciar;
+no se reconstruye el mixer, no se añade otra captura y no se simula un drain.
+Ese margen no garantiza latencia cero: la medición A/V de siete pulsos conserva
+−36,875 ms audio−video. No se declara reparada una pérdida de identidad por
+haber corregido el jitter observado. Evidencia: [reanudación H15](h15-resume-verification.md).
+
+Crear una fuente OBS puede devolver un objeto cuyo callback create falló.
+La captura comprueba `obs_obj_invalid` y rechaza SOURCE_CREATE_FAILED. El parche
+SCK añadido solo registra código/dominio tipado de error, ventana y PID propio;
+no filtra ventanas ni reconecta, ni imprime userInfo o descripciones privadas.
+Recibir buffers tras recrear una ventana tampoco acredita recuperación final:
+el nuevo start puede observar suspensión y debe rechazarla. La prueba B6
+conserva ese FAIL en lugar de aceptar el snapshot listo anterior.
+
+El mixer no mantiene el borrador Forms y lee el estado compartido en vivo;
+se excluye de ese aviso stale, conservando los guards de formularios reales.
+Guardar reglas sigue produciendo un recibo durable y no incrementa revisiones
+de producción. Reconciliar no elimina silenciosamente jobs ni habilita replay;
+si la sesión aún rechaza cargar por BUSY, se conserva el límite y se exige una
+reapertura/restauración explícita desarmada en lugar de modificar el journal.

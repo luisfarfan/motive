@@ -412,3 +412,24 @@ conservadores son utilizables con colas PARTIAL. Memoria/RPC bajo carga siguen
 PARTIAL. Guardado GPUI se coteja con bytes durables y reapertura del núcleo pasa;
 el [recorrido nativo](h15-native-ux-verification.md) queda parcial por CUA.
 Hardware/permisos supervisados, segunda Mac y distribución mantienen gates propios.
+
+### Reanudación H15 — B6 con audio corregido y recorrido nativo recuperado
+
+La [candidata B6 y su matriz final](h15-resume-verification.md) sustituyen a B4
+como referencia actual, sin borrar su evidencia. El búfer OBS fijo de 128 ms
+corrige la caída reproducida de mezcla: continuidad estricta, seis etapas de
+audio y A/V controlada pasan. Se rechazan objetos de captura inválidos y se
+corrige el aviso stale del mixer. Guardado GPUI con recibo/hash, restauración
+desarmada, cierre grabando y 9762 frames finales decodificados quedan observados.
+
+119 tests raíz, 129 Show Control, 123 Python y Clippy/rustfmt pasan. La matriz
+de nueve casos de outputs produce 14 medios utilizables; las colas conservan
+PARTIAL. En 120 s dual 1080p60, RPC p95 17,51 ms y footprint 1117,95 MiB cumplen
+los presupuestos medidos, sin probar ausencia de fuga ni estabilidad prolongada.
+
+**Beta privada sigue NOT_ACCEPTED:** recuperación de ventana falla por suspensión;
+los protocolos finales de foco B6 quedan BLOCKED y no eliminan el FAIL B4.
+APPLICATION_UNAVAILABLE histórico no se reproduce ni se declara reparado.
+Stock450/pre-tick, VoiceOver, hardware supervisado, segunda Mac y distribución
+siguen abiertos. Stores originales restaurados por hash, journals conservados,
+owners cerrados normalmente y lock liberado. Bundle y fuentes locales, sin push.

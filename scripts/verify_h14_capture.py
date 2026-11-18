@@ -23,6 +23,8 @@ def main():
     parser.add_argument('--lock-held', action='store_true', required=True)
     parser.add_argument('--output', type=pathlib.Path, required=True)
     parser.add_argument('--seconds', type=int, default=30)
+    parser.add_argument('--record-recovery', action='store_true',
+                        help='Record a second bounded dual trial after explicit replacement; retain both media pairs.')
     parser.add_argument('--app', type=pathlib.Path, default=support.APP)
     args = parser.parse_args()
     check(10 <= args.seconds <= 120, 'bounded observation interval')
@@ -120,6 +122,28 @@ def main():
         ready = wait('explicit_recovery', lambda s: not s['issues'])
         report['recovered_state'] = ready
         report['recovery'] = 'BUFFER_READY_MEDIA_NOT_RETESTED'
+        if args.record_recovery:
+            with socket.socket() as listener:
+                listener.bind(('127.0.0.1', 0))
+                port = listener.getsockname()[1]
+            client.call('configure_stream', endpoint={'transport': 'rtmp', 'port': port})
+            receiver = Receiver(directory, 'recovered-received', port)
+            for target in ('recording', 'streaming'):
+                state = client.call('start_output', target=target)['state']
+                report['media'].append({'target': target, 'phase': 'after_recovery',
+                    'path': str(receiver.path) if target == 'streaming' else slots(state)[target]['path']})
+            wait('recovered_both_active', lambda s: all(v['phase'] == 'active' for v in slots(s).values()))
+            end = time.monotonic() + args.seconds
+            while time.monotonic() < end:
+                state = sample('recovered_capture')
+                check(not state['issues'] and all(v['phase'] == 'active' for v in slots(state).values()),
+                      'recovered dual output remains healthy')
+                time.sleep(.5)
+            for target in ('streaming', 'recording'):
+                client.call('stop_output_target', target=target)
+                wait('recovered_stop_' + target, lambda s: not slots(s)[target]['native_busy'], 45)
+            report['recovery_receiver_exit'] = receiver.wait()
+            report['recovery'] = 'DUAL_RECORDED_PIXELS_NOT_EVALUATED'
         report['status'] = 'PARTIAL'
     except BaseException as error:
         report['error'] = repr(error)

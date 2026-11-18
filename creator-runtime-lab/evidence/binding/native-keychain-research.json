@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "status": "RESEARCH_ONLY_NATIVE_RUNTIME_PARTIAL",
+  "recorded_date": "2026-11-18",
+  "reviewer": "web_binding",
+  "git_head_at_research": "6d34b00a40f0c112143f508e5da58e2837ed1493",
+  "scope": "Read-only investigation of already-recorded owned CEF sample and pinned official sources; reviewer did not execute CEF, inspect Keychain contents, or change global settings.",
+  "sample": {
+    "path": "web-host-lab/.cache/h18-close-once-468b3142c233417fa333f0caaab51a8d/owned-process-sample.txt",
+    "sha256": "80d46782a8f6deea1456de32d68038e6c2c84b8c845a87fa01fea745a737e3a2",
+    "owned_pid": 47822,
+    "sample_count": 863,
+    "observed": [
+      "Main thread is waiting within stripped CEF framework in all 863 samples (lines 24-39). Export-nearest symbol labels do not identify internal function names.",
+      "ThreadPoolForegroundWorker 11547382 is within SecItemCopyMatching -> SecKeychainItemCopyContent -> SecurityServer::ClientSession::decrypt -> mach_msg in all 863 samples (lines 234-267). This is real OS Keychain access, not merely a timing assertion.",
+      "Chrome_IO thread is absent and Shutdown watchdog thread is present (line 514).",
+      "Parent/host lifecycle diagnostics report OnBeforeClose, message loop return, consumer join/report and shutdown_enter; no shutdown_return. The close-once variant still timed out."
+    ]
+  },
+  "inference": {
+    "confidence": "strong hypothesis, not symbolicated causal proof",
+    "hypothesis": "A running OSCrypt Keychain provider task waits on macOS Keychain IPC and prevents ThreadPool shutdown. Its waiting semantics and the absence of Chrome_IO match the pinned shutdown ordering.",
+    "not_established": [
+      "Exact encrypted item or password queried by the observed process.",
+      "Whether Keychain data were returned, changed, exposed or exported.",
+      "Whether a user prompt existed or how it was answered.",
+      "Successful native closure or sandbox behavior."
+    ]
+  },
+  "security_finding": "The owned fixture reached the real OS Keychain despite using a private Chromium profile/root_cache_path. Profile isolation alone does not isolate native OS services. Preserve this observed boundary finding independently of eventual closure success.",
+  "mitigation_candidate": {
+    "switch": "use-mock-keychain",
+    "application": "Compile fixture-only switch in trusted CefApp::OnBeforeCommandLineProcessing before initialization, using existing command-line policy; no user-provided flags, credentials, Keychain inspection, global preferences or security policy changes.",
+    "mechanism": "Pinned provider selects a per-task in-memory FakeKeychainV2.",
+    "limits": [
+      "This is a fixture/test backend, not a sandbox or production credential policy.",
+      "The switch applies to this OSCrypt provider path; it does not prove all potential native Keychain accesses are suppressed.",
+      "No sandbox disabling flag is needed or proposed.",
+      "Runtime result must be recorded by the authorized host run separately.",
+      "Do not promote this evidence to Production/native acceptance PASS."
+    ]
+  },
+  "provenance": {
+    "cef_revision": "cf60f42d20a8c68c74bc790cf5ade0de8acbbcd3",
+    "cef_version": "150.0.19+gcf60f42+chromium-150.0.7871.252",
+    "chromium_tag": "150.0.7871.252",
+    "chromium_commit": "17daf28c361f82916ecd9df505a7a656be1e77e0",
+    "tag_ref_api": "https://api.github.com/repos/chromium/chromium/git/ref/tags/150.0.7871.252",
+    "all_chromium_hashes_reverified_at_immutable_commit": 8,
+    "cef_sources": [
+      {
+        "path": "libcef/browser/context.cc",
+        "sha256": "ffa17d1d1d2524a492c49fdff3e5703d0d3f480337b5e153d0ed955aa5e36c99",
+        "line_ranges": [
+          [
+            249,
+            263
+          ],
+          [
+            430,
+            438
+          ],
+          [
+            558,
+            586
+          ]
+        ],
+        "claim": "CefShutdown calls context shutdown on the initialization thread; UI shutdown destroys browsers and finalization releases CEF app references.",
+        "url": "https://github.com/chromiumembedded/cef/blob/cf60f42d20a8c68c74bc790cf5ade0de8acbbcd3/libcef/browser/context.cc"
+      },
+      {
+        "path": "libcef/browser/main_runner.cc",
+        "sha256": "ae8fdbcb4950d052b74f79ba275ab00825c86271490baf7dd39ebb222ac42fea",
+        "line_ranges": [
+          [
+            86,
+            128
+          ],
+          [
+            132,
+            164
+          ],
+          [
+            420,
+            438
+          ]
+        ],
+        "claim": "Single-thread shutdown invokes browser_runner shutdown then content shutdown. Quit closure is consumed once; repeat-quit hypothesis is not supported by the new failed close-once run.",
+        "url": "https://github.com/chromiumembedded/cef/blob/cf60f42d20a8c68c74bc790cf5ade0de8acbbcd3/libcef/browser/main_runner.cc"
+      },
+      {
+        "path": "tests/cefsimple/cefsimple_mac.mm",
+        "sha256": "e4c18d6d002ef30d14e448147bf6fb4e5079c9e110c85129a47b68dede88e781",
+        "line_ranges": [
+          [
+            169,
+            202
+          ]
+        ],
+        "claim": "Official example keeps an application CefRefPtr and Objective-C delegate alive across CefShutdown, so their presence alone is not evidence of a leak/deadlock.",
+        "url": "https://github.com/chromiumembedded/cef/blob/cf60f42d20a8c68c74bc790cf5ade0de8acbbcd3/tests/cefsimple/cefsimple_mac.mm"
+      }
+    ],
+    "chromium_sources": [
+      {
+        "path": "components/os_crypt/common/os_crypt_switches.h",
+        "sha256": "6c178de827d2ff9eccaa49f1f947b4271c53da6745d3c4add17d1f43e4135a36",
+        "line_ranges": [
+          [
+            14,
+            18
+          ]
+        ],
+        "claim": "Defines use-mock-keychain for tests to prevent blocking dialogs/timeouts.",
+        "url": "https://raw.githubusercontent.com/chromium/chromium/17daf28c361f82916ecd9df505a7a656be1e77e0/components/os_crypt/common/os_crypt_switches.h"
+      },
+      {
+        "path": "components/os_crypt/async/browser/keychain_key_provider.mm",
+        "sha256": "1d5fb009afd291508867cead65125601562a38d00fc6993cb4c3dc515da464f9",
+        "line_ranges": [
+          [
+            34,
+            52
+          ],
+          [
+            78,
+            86
+          ]
+        ],
+        "claim": "The worker chooses per-task FakeKeychainV2 when the flag is present; otherwise real KeychainV2. It is posted USER_BLOCKING and MayBlock with default shutdown behavior.",
+        "url": "https://raw.githubusercontent.com/chromium/chromium/17daf28c361f82916ecd9df505a7a656be1e77e0/components/os_crypt/async/browser/keychain_key_provider.mm"
+      },
+      {
+        "path": "components/os_crypt/common/keychain_password_mac.mm",
+        "sha256": "a41705c2fb8188800d01bdfeb9218ca75150cebdaedcb3df96831b03d7e9cef3",
+        "line_ranges": [
+          [
+            34,
+            42
+          ],
+          [
+            80,
+            104
+          ]
+        ],
+        "claim": "Unbranded default service is Chromium Safe Storage, account Chromium. GetPassword calls FindGenericPassword; missing item can lead to an add. These defaults do not establish which item the sampled process accessed.",
+        "url": "https://raw.githubusercontent.com/chromium/chromium/17daf28c361f82916ecd9df505a7a656be1e77e0/components/os_crypt/common/keychain_password_mac.mm"
+      },
+      {
+        "path": "crypto/apple/fake_keychain_v2.mm",
+        "sha256": "03eef1ab34018077f539898c37d8e1cc142e68026a96afc1f7a093227c624b08",
+        "line_ranges": [
+          [
+            365,
+            376
+          ]
+        ],
+        "claim": "FakeKeychainV2 FindGenericPassword returns its in-memory mock password/result.",
+        "url": "https://raw.githubusercontent.com/chromium/chromium/17daf28c361f82916ecd9df505a7a656be1e77e0/crypto/apple/fake_keychain_v2.mm"
+      },
+      {
+        "path": "base/task/task_traits.h",
+        "sha256": "513ced6e06beeaead27d9435b2cd9ebc978866c6068c69045906022e50525226",
+        "line_ranges": [
+          [
+            89,
+            103
+          ],
+          [
+            274,
+            278
+          ]
+        ],
+        "claim": "Default TaskTraits shutdown behavior is SKIP_ON_SHUTDOWN; already-running tasks can block shutdown.",
+        "url": "https://raw.githubusercontent.com/chromium/chromium/17daf28c361f82916ecd9df505a7a656be1e77e0/base/task/task_traits.h"
+      },
+      {
+        "path": "base/task/thread_pool/task_tracker.cc",
+        "sha256": "598781e62f3d6237c98b98641cab9efd15636937fd72bcf7793895f9e21eee24",
+        "line_ranges": [
+          [
+            107,
+            110
+          ],
+          [
+            235,
+            247
+          ],
+          [
+            560,
+            572
+          ]
+        ],
+        "claim": "Running SKIP_ON_SHUTDOWN tasks count as shutdown blockers. CompleteShutdown waits for the shutdown event.",
+        "url": "https://raw.githubusercontent.com/chromium/chromium/17daf28c361f82916ecd9df505a7a656be1e77e0/base/task/thread_pool/task_tracker.cc"
+      },
+      {
+        "path": "content/browser/browser_main_loop.cc",
+        "sha256": "0201b3682f4408c3aa1e9d0f6df10ab9c3e1976fb7b48c0e365b6830e798939a",
+        "line_ranges": [
+          [
+            1253,
+            1268
+          ]
+        ],
+        "claim": "Browser shutdown stops IO before waiting on ThreadPoolInstance::Shutdown.",
+        "url": "https://raw.githubusercontent.com/chromium/chromium/17daf28c361f82916ecd9df505a7a656be1e77e0/content/browser/browser_main_loop.cc"
+      },
+      {
+        "path": "chrome/browser/browser_process_impl.cc",
+        "sha256": "e102638100ce1d731a816fff9ec950886a5d69ad4413fe7d889553e576b31a30",
+        "line_ranges": [
+          [
+            1587,
+            1602
+          ]
+        ],
+        "claim": "macOS installs KeychainKeyProvider when the feature is enabled and starts async provider initialization.",
+        "url": "https://raw.githubusercontent.com/chromium/chromium/17daf28c361f82916ecd9df505a7a656be1e77e0/chrome/browser/browser_process_impl.cc"
+      }
+    ]
+  },
+  "independent_bridge_review": {
+    "status": "READ_ONLY_FOUND_CORRECTNESS_GAP_FIX_PENDING_IN_HOST_SCOPE",
+    "paths": [
+      "web-host-lab/poc/browser-host/native/renderer_bridge.cc",
+      "web-host-lab/poc/browser-host/native/bridge_policy.hpp",
+      "web-host-lab/poc/frame-bridge/src/goal_binding.rs"
+    ],
+    "finding": "The initial native dispatcher checked expires_ms against sender-provided admission time and passed that old timestamp to JS. IPC delayed past TTL could therefore still be delivered.",
+    "host_proposed_fix": "Pass trusted common steady-clock origin in immutable CreateBrowser extra_info. Renderer computes its own arrival time relative to that origin, checks sender time <= arrival and deadline against arrival, then passes arrival to JS. Add delayed-IPC pure test. Binding starts lifecycle at 0, so simply supplying absolute time would be incorrect.",
+    "verification_limit": "Correction and native execution require separate host evidence; this research file records no native PASS. Existing port-adapter/runtime and final DOM provenance were not modified."
+  }
+}

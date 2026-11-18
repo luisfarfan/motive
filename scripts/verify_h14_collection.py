@@ -18,7 +18,7 @@ import subprocess
 import time
 import traceback
 
-from h14_collection_helpers import (PHASES, counter_patches, counter_summary, decode_counter, focus_conditions, owned_stop_command,
+from h14_collection_helpers import (PHASES, collection_profile_id, counter_patches, counter_summary, decode_counter, focus_conditions, owned_stop_command,
     require, unique_owned_tone, validate_fixture, validate_manifest, validate_markers)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -192,7 +192,7 @@ def run_trial(args):
                         'SCStreamFrameInfoDisplayTime is NOT_EXPOSED by the current diagnostic contract.',
                         'No cross-clock subtraction without an explicit bracket; fixture metadata is not decoded content.',
                         'No external destination, physical audio/camera, app launch, GUI control or automatic restart.']}
-    client = receiver = initial = None; changed = False; tone = None; profile_id = 'h14-collection-'+manifest['trial_id']
+    client = receiver = initial = None; changed = False; tone = None; profile_id = collection_profile_id(manifest['trial_id'])
     attempted = {}; owned = {}; profiles_created = False; start = end = None; prior_fixture_rows = 0
     tone_name = 'H14 collection internal tone '+manifest['trial_id']; prior_audio_ids = set(); tone_attempted = False
     def flush(): save(out/'report.json', report)
@@ -471,13 +471,15 @@ def plan():
                     'mark --lock-held --manifest TRIAL.json --phase studio_front --note "Root CUA focus observation"',
                     'mark --lock-held --manifest TRIAL.json --phase fixture_return --note "Root CUA focus observation"',
                     'analyze --lock-held --report REPORT.json --ffmpeg /absolute/ffmpeg --ffprobe /absolute/ffprobe --output NEW_ANALYSIS_DIRECTORY'],
-        'manifest':{'version':1,'trial_id':'A1','arm':'default','seconds':60,
+        'manifest':{'version':1,'trial_id':'a1','arm':'default','seconds':180,
             'owner':{'bundle':'/absolute/Motive.app','pid':111},
             'fixture':{'bundle':str(ROOT/'target/H14CollectionFixture.app'),'pid':222,'window_id':333,
-                'log':str(ROOT/'var/evidence/fixture-A1.jsonl'),'build_manifest':str(ROOT/'target/h14-collection-build.json')},
-            'markers':str(ROOT/'var/evidence/collection-A1-markers.jsonl'),'receiver_ffmpeg':'/opt/homebrew/bin/ffmpeg'},
-        'workflow':'Root launches fresh owner/fixture, records exact PID/window ID, starts run, then marks observed fixture focus when awaiting_fixture_front_marker appears. Root changes focus around the printed +20/+40s deadlines. If focus cannot be observed (e.g. only a thumbnail and fixture app_active false), do not create a front marker; retain the timeout/blocker. No GUI or launch automation.',
-        'observation_seconds':[45,60],'bounded_extra_waits':'30s initial marker, 5s preflight, up to 20s quiescence; errors retained.',
+                'log':str(ROOT/'var/evidence/fixture-a1.jsonl'),'build_manifest':str(ROOT/'target/h14-collection-build.json')},
+            'markers':str(ROOT/'var/evidence/collection-a1-markers.jsonl'),'receiver_ffmpeg':'/opt/homebrew/bin/ffmpeg'},
+        'workflow':'Root launches fresh owner/fixture, records exact PID/window ID, starts run, then marks observed fixture focus when awaiting_fixture_front_marker appears. Recommended duration is 180s, with three 60s phases and focus changes around the printed +60/+120s deadlines. Other accepted durations divide equally into three phases. If focus cannot be observed (e.g. only a thumbnail and fixture app_active false), do not create a front marker; retain the timeout/blocker. No GUI or launch automation.',
+        'observation_seconds':[45,180],'recommended_seconds':180,'recommended_phase_seconds':60,
+        'trial_id_policy':'1–33 lowercase ASCII letters/digits/hyphens/underscores, including at least one letter/digit; h14-collection- plus trial_id must fit the 48-byte output profile ID.',
+        'bounded_extra_waits':'30s initial marker, 5s preflight, up to 20s quiescence; errors retained.',
         'analysis':'Separate serialized CPU window only. Focus conditions are corroborated per phase from fixture metadata through measured clocks, separately from decoded pixel freshness. Missing focus evidence prevents a trial PASS. A→B→A requires fresh fixture PID/window ID each time and unchanged bundle/module/profile/size. Do not infer a general Stage Manager cause.'}
 
 

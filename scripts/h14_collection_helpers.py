@@ -3,6 +3,8 @@ import math
 import pathlib
 
 PHASES = ('fixture_front', 'studio_front', 'fixture_return')
+PROFILE_ID_PREFIX = 'h14-collection-'
+PROFILE_ID_MAX_LENGTH = 48  # src/output.rs::OutputProfile::validate, ASCII bytes.
 
 
 def require(condition, message):
@@ -10,14 +12,23 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def collection_profile_id(trial_id):
+    require(isinstance(trial_id, str) and trial_id.isascii()
+            and 1 <= len(trial_id) <= PROFILE_ID_MAX_LENGTH-len(PROFILE_ID_PREFIX),
+            'Trial ID must fit the 48-byte composed output profile ID')
+    require(all(c in 'abcdefghijklmnopqrstuvwxyz0123456789-_' for c in trial_id)
+            and any(c in 'abcdefghijklmnopqrstuvwxyz0123456789' for c in trial_id),
+            'Trial ID requires lowercase ASCII letters/digits with optional hyphens/underscores')
+    return PROFILE_ID_PREFIX + trial_id
+
+
 def validate_manifest(value):
     require(isinstance(value, dict) and set(value) == {'version', 'trial_id', 'arm', 'seconds', 'owner', 'fixture',
                           'markers', 'receiver_ffmpeg'}, 'Unexpected manifest fields')
     require(type(value['version']) is int and value['version'] == 1
             and value['arm'] in ('default', 'join-all'), 'Unsupported arm/version')
-    require(isinstance(value['trial_id'], str) and value['trial_id'].isascii() and 1 <= len(value['trial_id']) <= 32
-            and value['trial_id'].replace('-', '').replace('_', '').isalnum(), 'Invalid trial ID')
-    require(type(value['seconds']) is int and 45 <= value['seconds'] <= 60, 'Trial must last 45–60 seconds')
+    collection_profile_id(value['trial_id'])
+    require(type(value['seconds']) is int and 45 <= value['seconds'] <= 180, 'Trial must last 45–180 seconds')
     require(set(value['owner']) == {'bundle', 'pid'}, 'Unexpected owner fields')
     require(set(value['fixture']) == {'bundle', 'pid', 'window_id', 'log', 'build_manifest'},
             'Unexpected fixture fields')

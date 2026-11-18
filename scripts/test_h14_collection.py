@@ -4,7 +4,7 @@ import copy
 import unittest
 from unittest.mock import MagicMock, patch
 
-from h14_collection_helpers import (PHASES, counter_patches, counter_summary, decode_counter, focus_conditions, owned_stop_command,
+from h14_collection_helpers import (PHASES, collection_profile_id, counter_patches, counter_summary, decode_counter, focus_conditions, owned_stop_command,
     unique_owned_tone, validate_fixture, validate_manifest, validate_markers)
 from verify_h14_collection import Client, plan
 
@@ -30,7 +30,7 @@ class CollectionTests(unittest.TestCase):
                     'initial_collection_behavior':0,'collection_behavior':0}
 
     def markers(self):
-        return [{'phase':phase,'trial_id':'A1','owner_pid':111,'fixture_pid':222,'window_id':333,
+        return [{'phase':phase,'trial_id':self.manifest['trial_id'],'owner_pid':111,'fixture_pid':222,'window_id':333,
                  'clock':'python.time.monotonic','host_monotonic':70000+i*20,'wall_unix':1700000000+i*20,
                  'observation':'root_observed_focus_after_cua'} for i,phase in enumerate(PHASES)]
 
@@ -43,10 +43,40 @@ class CollectionTests(unittest.TestCase):
         with self.assertRaises(ValueError):validate_fixture([self.ready,{**self.state,'collection_behavior':1<<18}],self.manifest)
         bad=copy.deepcopy(self.manifest);bad['fixture']['pid']=True
         with self.assertRaises(ValueError):validate_manifest(bad)
-        bad=copy.deepcopy(self.manifest);bad['seconds']=120
-        with self.assertRaises(ValueError):validate_manifest(bad)
         bad=copy.deepcopy(self.manifest);bad['version']=True
         with self.assertRaises(ValueError):validate_manifest(bad)
+
+    def test_duration_bounds_allow_cua_phases_without_relaxing_focus(self):
+        for seconds in (45,60,120,180):
+            with self.subTest(seconds=seconds):
+                validate_manifest({**self.manifest,'seconds':seconds})
+        for seconds in (44,181,0,-1,True,False,180.0,'180',None):
+            with self.subTest(seconds=seconds):
+                with self.assertRaises(ValueError):validate_manifest({**self.manifest,'seconds':seconds})
+        proposed=plan()
+        self.assertEqual(proposed['manifest']['seconds'],180)
+        self.assertEqual(proposed['recommended_phase_seconds'],60)
+        # A longer permitted trial does not credit a late, too-short final phase.
+        anchor={'fixture_clock':'NSProcessInfo.systemUptime','host_clock':'python.time.monotonic',
+                'fixture_clock_s':88000,'host_before_s':70000,'host_after_s':70000}
+        markers=self.markers();markers[1]['host_monotonic']=70060;markers[2]['host_monotonic']=70177.9
+        events=[{'event':'window_state','uptime_seconds':88000+i,'app_active':not 60<=i<178,
+                 'key_window':True,'window_visible':True,'window_occlusion_visible':True,
+                 'on_active_space':True,'app_hidden':False,'miniaturized':False} for i in range(180)]
+        result=focus_conditions(events,[anchor],markers,70180)
+        self.assertEqual(result['status'],'NOT_OBSERVED')
+        self.assertEqual(result['phases']['fixture_return']['reason'],'insufficient_contemporaneous_metadata')
+
+    def test_trial_id_fits_actual_output_profile_contract_before_mutation(self):
+        for ident in ('a1','grupo-a1','b3_a1','a'*33):
+            with self.subTest(trial_id=ident):
+                validate_manifest({**self.manifest,'trial_id':ident})
+                profile=collection_profile_id(ident)
+                self.assertLessEqual(len(profile.encode('ascii')),48)
+        self.assertEqual(len(collection_profile_id('a'*33)),48)
+        for ident in ('grupo-A1','A1','a'*34,'','-_','mañana','a/b','a.b',' a1','a\n','a\0',True,None):
+            with self.subTest(trial_id=ident):
+                with self.assertRaises(ValueError):validate_manifest({**self.manifest,'trial_id':ident})
 
     def test_markers_reject_raw_clock_wrong_phase_and_other_process(self):
         markers=self.markers();validate_markers(markers,self.manifest,True)

@@ -1,0 +1,71 @@
+{
+  "native_cef_executed": true,
+  "scope": "actual OnPaint samples with native frame metadata; shutdown failed",
+  "inspection_note": "First counter decoding attempt asserted visible bars; raw first paint may precede fixture drawing. Missing bars now recorded rather than inferred.",
+  "checks": {
+    "first": {
+      "status": "FAIL",
+      "checks": {
+        "transparent_corner": true,
+        "half_alpha_red": false,
+        "premultiplied_bound": true
+      },
+      "samples": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "red": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "scope": "single native fixture buffer; not FPS, color calibration, libobs integration, sandbox or helper cleanup",
+      "counter_bars_visible": false,
+      "counter_mod256": null
+    },
+    "latest": {
+      "status": "PASS",
+      "checks": {
+        "transparent_corner": true,
+        "half_alpha_red": true,
+        "premultiplied_bound": true
+      },
+      "samples": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "red": [
+          0,
+          0,
+          128,
+          128
+        ]
+      },
+      "scope": "single native fixture buffer; not FPS, color calibration, libobs integration, sandbox or helper cleanup",
+      "counter_bars_visible": true,
+      "counter_mod256": 138
+    }
+  },
+  "artifacts": {
+    "H18-native-diagnostic-first.json": "b93950ce6572162fdb78d77fdeaa8271769ba23162d5d0b888ccfb582d22c2b8",
+    "H18-native-diagnostic-latest.json": "d25081579dec93c1486d52539f1cf14df23b056669d17048701f828d088f73dc",
+    "H18-native-diagnostic-frames.json": "b783331499575da152ef06337ee2c42477dc274d3cf7461e0a1bbb0e159e04ce",
+    "H18-native-diagnostic-lifecycle.jsonl": "f382011d45278a65d979d4e2b00def6b769ae764561befd79ed908aa32ddc72d",
+    "H18-native-diagnostic-first.bgra.gz": {
+      "compressed_sha256": "b3dee39209a560a76614ca8d8d2d36db6a6ab886cad1f3065c08ad30e28f8578",
+      "raw_sha256": "0b150fd32588b1daca5569992ebe559c0102c837306b1af4c44d35128ec58366"
+    },
+    "H18-native-diagnostic-latest.bgra.gz": {
+      "compressed_sha256": "2fc1c37b9b35296c58d25f22823c7709a945201d92125e16faaf3e2f18de8a79",
+      "raw_sha256": "d5560cf87d3aca5e3112455a68188cb425cba22b7d96cacd64e242df98d8c157"
+    }
+  }
+}

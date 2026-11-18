@@ -187,6 +187,21 @@ impl State {
     fn now(&self) -> u64 {
         self.started.elapsed().as_millis().min(u64::MAX as u128) as u64
     }
+    fn blocks_reconfiguration(&self) -> bool {
+        self.failure.is_some()
+            || self.active_key.is_some()
+            || self
+                .operations
+                .values()
+                .any(|operation| operation.terminal.is_none())
+            || self
+                .runtime
+                .as_ref()
+                .unwrap()
+                .jobs
+                .iter()
+                .any(|job| job.state.blocks_reconfiguration())
+    }
     fn settle_deck(&mut self) {
         let runtime = self.runtime.as_ref().unwrap();
         let finished: Vec<_> = self
@@ -484,7 +499,7 @@ impl Production {
         let runtime = state.runtime.as_ref().unwrap();
         json!({"available":true,"configured":true,"live":true,"armed":state.armed,"project_fingerprint":state.project_fingerprint,"bindings_current":state.project_fingerprint==self.show_control_binding_fingerprint(),"session":state.session,"failure":state.failure,
             "rules":runtime.config.rules.iter().map(|r|json!({"id":r.id,"enabled":r.enabled,"event_kind":r.event_kind,"cooldown_ms":r.cooldown_ms,"actions":r.actions.len()})).collect::<Vec<_>>(),"deck":state.deck.deck(),"buttons":state.deck.deck().buttons.iter().map(|b|json!({"id":b.id,"state":state.deck.state(&b.id,state.now()).ok()})).collect::<Vec<_>>(),
-            "jobs":runtime.jobs.iter().rev().take(16).map(|j|json!({"id":j.id,"rule_id":j.rule_id,"event_id":j.event_id,"state":j.state,"expected":j.expected,"cursor":j.cursor,"records":j.records.iter().rev().take(4).map(|r|json!({"index":r.index,"stage":r.stage,"operation_id":r.operation_id,"code":r.code,"revision_receipts":r.revision_receipts})).collect::<Vec<_>>()})).collect::<Vec<_>>(),
+            "jobs":runtime.jobs.iter().rev().take(16).map(|j|json!({"id":j.id,"rule_id":j.rule_id,"event_id":j.event_id,"state":j.state,"expected":j.expected,"cursor":j.cursor,"records":j.records.iter().rev().take(4).map(|r|json!({"index":r.index,"stage":r.stage,"operation_id":r.operation_id,"code":r.code,"revision_receipts":r.revision_receipts,"terminal_receipt":r.terminal_receipt})).collect::<Vec<_>>()})).collect::<Vec<_>>(),
             "decisions":runtime.decisions.iter().rev().take(64).collect::<Vec<_>>(),"counters":runtime.variables.iter().filter(|(_,v)|matches!(v,Scalar::Int(_))).collect::<BTreeMap<_,_>>(),"history":state.deck.history(),
             "operations":state.operations.iter().rev().take(32).map(|(id,op)|json!({"id":id,"action_key":op.action_key,"cancel_requested":op.cancelled,"terminal":op.terminal})).collect::<Vec<_>>(),
             "status_limits":{"jobs":16,"records_per_job":4,"decisions":64,"operations":32},"jobs_total":runtime.jobs.len(),"operations_total":state.operations.len(),
@@ -497,14 +512,11 @@ impl Production {
                 "Cannot configure during shutdown",
             ));
         }
-        if self.show_control.as_ref().is_some_and(|s| {
-            s.runtime
-                .as_ref()
-                .unwrap()
-                .jobs
-                .iter()
-                .any(|j| !j.state.terminal() || j.state == JobState::NeedsReconciliation)
-        }) {
+        if self
+            .show_control
+            .as_ref()
+            .is_some_and(State::blocks_reconfiguration)
+        {
             return Err(Error::new(
                 "SHOW_CONTROL_BUSY",
                 "Complete or reconcile the current session before reconfiguration",
@@ -568,14 +580,11 @@ impl Production {
                 "Cannot load during shutdown",
             ));
         }
-        if self.show_control.as_ref().is_some_and(|s| {
-            s.runtime
-                .as_ref()
-                .unwrap()
-                .jobs
-                .iter()
-                .any(|j| !j.state.terminal() || j.state == JobState::NeedsReconciliation)
-        }) {
+        if self
+            .show_control
+            .as_ref()
+            .is_some_and(State::blocks_reconfiguration)
+        {
             return Err(Error::new(
                 "SHOW_CONTROL_BUSY",
                 "Reconcile the current session before loading",
@@ -1149,5 +1158,81 @@ mod tests {
                 .code,
             "SHOW_CONTROL_BINDING_MISSING"
         );
+    }
+
+    #[test]
+    fn reconfiguration_keeps_native_operations_and_storage_failures_blocked() {
+        use motive_show_control::runtime::{Completion, PollReport, TerminalReceipt};
+        let (config, deck) = inputs();
+        let directory = std::env::temp_dir().join(format!(
+            "motive-show-admission-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::DirBuilder::new()
+            .mode(0o700)
+            .create(&directory)
+            .unwrap();
+        let mut state = State {
+            runtime: Some(
+                Runtime::new(
+                    bind_deck(config.clone(), &deck).unwrap(),
+                    MonotonicClock::default(),
+                )
+                .unwrap(),
+            ),
+            original_config: config,
+            armed: false,
+            project_fingerprint: "a".repeat(64),
+            deck: DeckRuntime::new(deck).unwrap(),
+            session: "test-session".into(),
+            journal: IntentJournal::create(
+                &directory.join("journal.jsonl"),
+                "test-session",
+                std::process::id(),
+            )
+            .unwrap(),
+            operations: BTreeMap::new(),
+            requests: BTreeMap::new(),
+            active_key: None,
+            next_operation_token: 0,
+            failure: None,
+            started: Instant::now(),
+            last_save: None,
+            last_save_error: None,
+        };
+        assert!(!state.blocks_reconfiguration());
+        state.operations.insert(
+            "test-session:animation:7:1".into(),
+            Operation {
+                action_key: "event:1:0".into(),
+                native: ledger::NativeOperation::Animation(7),
+                terminal: None,
+                cancelled: true,
+            },
+        );
+        // A cancelled/requested job is insufficient without the native barrier.
+        assert!(state.blocks_reconfiguration());
+        state.operations.values_mut().next().unwrap().terminal = Some(PollReport {
+            completion: Completion::Completed,
+            receipt: None,
+            terminal_receipt: Some(TerminalReceipt {
+                action_key: "event:1:0".into(),
+                operation_id: "test-session:animation:7:1".into(),
+                pid: std::process::id(),
+            }),
+        });
+        assert!(!state.blocks_reconfiguration());
+        assert_eq!(state.operations.len(), 1); // Admission never deletes evidence.
+        state.failure = Some("JOURNAL_IO".into());
+        assert!(state.blocks_reconfiguration());
+        state.failure = None;
+        state.active_key = Some("event:2:0".into());
+        assert!(state.blocks_reconfiguration());
+        drop(state);
+        fs::remove_dir_all(directory).unwrap();
     }
 }

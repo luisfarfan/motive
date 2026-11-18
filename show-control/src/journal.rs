@@ -184,6 +184,15 @@ fn apply_entry(
             {
                 return Err(invalid("completion does not match the accepted operation"));
             }
+            if let Some(receipt) = &report.terminal_receipt {
+                if !matches!(
+                    report.completion,
+                    Completion::Completed | Completion::Cancelled | Completion::Failed(_)
+                ) {
+                    return Err(invalid("terminal receipt on a non-terminal observation"));
+                }
+                receipt.validate(action_key, operation_id, pid)?;
+            }
             if let Some(receipt) = &report.receipt {
                 if !matches!(report.completion, Completion::Completed) {
                     return Err(invalid("receipt on non-completed operation"));

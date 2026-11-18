@@ -6,7 +6,7 @@ use motive_show_control::{
     actions::{self, Action, CoreCommand, PreparedAction, ProductionSnapshot, Revision},
     journal::DispatchIntent,
     model::Error,
-    runtime::{Backend, Completion, DispatchOutcome, DispatchReport, PollReport},
+    runtime::{Backend, Completion, DispatchOutcome, DispatchReport, PollReport, TerminalReceipt},
 };
 
 pub(super) struct Operation {
@@ -314,6 +314,11 @@ impl Backend for OwnerBackend<'_> {
         let report = PollReport {
             completion,
             receipt,
+            terminal_receipt: Some(TerminalReceipt {
+                action_key: key.into(),
+                operation_id: token.into(),
+                pid: std::process::id(),
+            }),
         };
         if let Err(e) = self
             .state

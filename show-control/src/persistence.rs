@@ -41,6 +41,12 @@ impl<C: Clock> Runtime<C> {
             schema_version: if self.jobs.iter().any(|job| {
                 job.records
                     .iter()
+                    .any(|record| record.terminal_receipt.is_some())
+            }) {
+                3
+            } else if self.jobs.iter().any(|job| {
+                job.records
+                    .iter()
                     .any(|record| !record.revision_receipts.is_empty())
             }) {
                 2
@@ -86,7 +92,7 @@ impl<C: Clock> Runtime<C> {
             .and_then(serde_json::Value::as_u64)
             .ok_or_else(|| Error::new("UNKNOWN_SCHEMA", "missing checkpoint version"))?;
         let state: Checkpoint = match version {
-            1 | 2 => serde_json::from_value(value)
+            1..=3 => serde_json::from_value(value)
                 .map_err(|_| Error::new("INVALID_CHECKPOINT", "malformed checkpoint fields"))?,
             0 => {
                 let old: DraftCheckpoint = serde_json::from_value(value)
@@ -161,6 +167,7 @@ impl<C: Clock> Runtime<C> {
             for record in &job.records {
                 if record.revision_receipts.len() > 2
                     || (state.schema_version < 2 && !record.revision_receipts.is_empty())
+                    || (state.schema_version < 3 && record.terminal_receipt.is_some())
                 {
                     return Err(Error::new(
                         "INVALID_CHECKPOINT",
@@ -182,6 +189,26 @@ impl<C: Clock> Runtime<C> {
                         ));
                     }
                     previous = Some(receipt.after);
+                }
+                if let Some(receipt) = &record.terminal_receipt {
+                    let operation = record.operation_id.as_deref().ok_or_else(|| {
+                        Error::new("INVALID_CHECKPOINT", "terminal has no accepted operation")
+                    })?;
+                    receipt.validate(
+                        &format!("{}:{}:{}", job.correlation_id, job.id, record.index),
+                        operation,
+                        job.expected.pid,
+                    )?;
+                    if record.revision_receipts.len() != 1
+                        || record.revision_receipts[0].after != job.expected
+                        || record.stage != crate::runtime::Stage::Completed
+                        || !matches!(job.state, JobState::Completed | JobState::Cancelled)
+                    {
+                        return Err(Error::new(
+                            "INVALID_CHECKPOINT",
+                            "terminal evidence cannot resume or replace dispatch attribution",
+                        ));
+                    }
                 }
                 if let Some(plan) = &record.plan {
                     plan.action.validate()?;

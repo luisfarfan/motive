@@ -116,6 +116,7 @@ fn intent_is_recoverable_before_dispatch_and_acknowledgment_is_separate() {
                     before,
                     after,
                 }),
+                terminal_receipt: None,
             },
         )
         .unwrap();
@@ -231,5 +232,63 @@ fn oversized_result_fails_closed_without_erasing_durable_intent() {
     assert_eq!(
         IntentJournal::read(&directory.path()).unwrap().actions["event:1:0"],
         RecoveryState::Uncertain
+    );
+}
+
+#[test]
+fn terminal_proof_is_durable_without_claiming_foreign_revisions() {
+    let directory = OwnedDirectory::new();
+    let mut journal = IntentJournal::create(&directory.path(), "session-1", 71).unwrap();
+    journal.begin(intent()).unwrap();
+    journal.record_dispatch("event:1:0", accepted()).unwrap();
+    let accepted_bytes = fs::read(directory.path()).unwrap();
+    let report = PollReport {
+        completion: Completion::Completed,
+        receipt: None,
+        terminal_receipt: Some(TerminalReceipt {
+            action_key: "event:1:0".into(),
+            operation_id: "animation-1".into(),
+            pid: 71,
+        }),
+    };
+    for corruption in ["key", "operation", "pid", "pending", "unknown"] {
+        let mut invalid = report.clone();
+        let receipt = invalid.terminal_receipt.as_mut().unwrap();
+        match corruption {
+            "key" => receipt.action_key = "another:1:0".into(),
+            "operation" => receipt.operation_id = "other-session:animation-1".into(),
+            "pid" => receipt.pid = 72,
+            "pending" => invalid.completion = Completion::Pending,
+            "unknown" => invalid.completion = Completion::Unknown,
+            _ => unreachable!(),
+        }
+        assert!(
+            journal
+                .record_completion("event:1:0", "animation-1", invalid)
+                .is_err()
+        );
+        assert_eq!(fs::read(directory.path()).unwrap(), accepted_bytes);
+    }
+    journal
+        .record_completion("event:1:0", "animation-1", report)
+        .unwrap();
+    let recovered = IntentJournal::read(&directory.path()).unwrap();
+    assert_eq!(recovered.actions["event:1:0"], RecoveryState::Terminal);
+    assert_eq!(recovered.entries.len(), 4);
+    assert!(
+        fs::read(directory.path())
+            .unwrap()
+            .starts_with(&accepted_bytes)
+    );
+    match &recovered.entries[3] {
+        JournalEntry::Completion { report, .. } => {
+            assert!(report.receipt.is_none());
+            assert_eq!(report.terminal_receipt.as_ref().unwrap().pid, 71);
+        }
+        _ => panic!("expected retained native terminal"),
+    }
+    assert_eq!(
+        journal.begin(intent()).unwrap_err().code,
+        "INTENT_ALREADY_RECORDED"
     );
 }

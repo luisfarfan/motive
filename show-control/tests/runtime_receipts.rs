@@ -17,6 +17,9 @@ struct Owner {
     foreign_during_operation: bool,
     omit_dispatch_receipt: bool,
     omit_terminal_receipt: bool,
+    native_terminal_evidence: bool,
+    corrupt_terminal_evidence: Option<&'static str>,
+    cancels: usize,
     simulated: bool,
     corrupt_receipt: Option<&'static str>,
 }
@@ -65,6 +68,7 @@ impl Backend for Owner {
         panic!("checked owner poll required")
     }
     fn request_cancel(&mut self, _: &str) -> Result<(), Error> {
+        self.cancels += 1;
         Ok(())
     }
     fn dispatch_checked(
@@ -99,15 +103,33 @@ impl Backend for Owner {
             return PollReport::legacy(Completion::Pending);
         }
         self.snapshot.revision += 1;
+        let mut terminal_receipt = self.native_terminal_evidence.then(|| TerminalReceipt {
+            action_key: key.into(),
+            operation_id: operation.into(),
+            pid: self.snapshot.pid,
+        });
+        if let Some(receipt) = &mut terminal_receipt {
+            match self.corrupt_terminal_evidence {
+                Some("key") => receipt.action_key = "other:1:0".into(),
+                Some("operation") => receipt.operation_id = "other-session:animation-17".into(),
+                Some("pid") => receipt.pid += 1,
+                _ => {}
+            }
+        }
         if self.foreign_during_operation {
             // Terminal observation is valid, but the owner cannot certify a clean revision chain.
             self.snapshot.revision += 1;
-            PollReport::legacy(Completion::Completed)
+            PollReport {
+                completion: Completion::Completed,
+                receipt: None,
+                terminal_receipt,
+            }
         } else {
             PollReport {
                 completion: Completion::Completed,
                 receipt: (!self.omit_terminal_receipt)
                     .then(|| self.receipt(key, expected, Some(operation))),
+                terminal_receipt,
             }
         }
     }
@@ -551,4 +573,186 @@ fn simulated_animated_trigger_does_not_require_owner_receipts() {
     assert_eq!(runtime.variables.get("goals"), Some(&Scalar::Int(1)));
     assert_eq!(runtime.jobs[0].records[1].stage, Stage::Simulated);
     assert_eq!(owner.sent.len(), 1);
+}
+
+#[test]
+fn native_terminal_reconciliation_settles_without_rebase_replay_or_counter() {
+    let mut owner = animated_owner();
+    let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+    runtime.tick(&mut owner);
+    owner.completion = true;
+    owner.foreign_during_operation = true;
+    owner.native_terminal_evidence = true;
+    runtime.tick(&mut owner);
+    assert_eq!(runtime.jobs[0].state, JobState::NeedsReconciliation);
+    assert!(runtime.jobs[0].state.blocks_reconfiguration());
+    assert!(runtime.jobs[0].records[0].terminal_receipt.is_none());
+    let expected = runtime.jobs[0].expected;
+    assert_eq!(
+        runtime.reconcile(1, &mut owner).unwrap(),
+        JobState::Cancelled
+    );
+    let job = &runtime.jobs[0];
+    assert!(!job.state.blocks_reconfiguration());
+    assert_eq!(job.expected, expected);
+    assert_eq!(job.cursor, 0);
+    assert_eq!(job.records[0].stage, Stage::Completed);
+    assert_eq!(job.records[0].revision_receipts.len(), 1);
+    assert_eq!(
+        job.records[0].code.as_deref(),
+        Some("MISSING_MUTATION_RECEIPT")
+    );
+    assert!(job.records[0].terminal_receipt.is_some());
+    assert_eq!(
+        runtime.reconcile(1, &mut owner).unwrap_err().code,
+        "RECONCILIATION_NOT_REQUIRED"
+    );
+    runtime.tick(&mut owner);
+    assert_eq!(runtime.jobs.len(), 1);
+    assert_eq!(owner.sent.len(), 1);
+    assert!(!runtime.variables.contains_key("goals"));
+}
+
+#[test]
+fn native_terminal_evidence_cannot_replace_dispatch_or_repair_wrong_identity() {
+    for missing_dispatch in [false, true] {
+        for corruption in [None, Some("key"), Some("operation"), Some("pid")] {
+            if !missing_dispatch && corruption.is_none() {
+                continue;
+            }
+            let mut owner = animated_owner();
+            owner.omit_dispatch_receipt = missing_dispatch;
+            let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+            runtime.tick(&mut owner);
+            owner.completion = true;
+            owner.foreign_during_operation = true;
+            owner.native_terminal_evidence = true;
+            owner.corrupt_terminal_evidence = corruption;
+            runtime.tick(&mut owner);
+            let expected = runtime.jobs[0].expected;
+            assert_eq!(
+                runtime.reconcile(1, &mut owner).unwrap(),
+                JobState::NeedsReconciliation
+            );
+            assert!(runtime.jobs[0].state.blocks_reconfiguration());
+            assert_eq!(runtime.jobs[0].expected, expected);
+            assert!(runtime.jobs[0].records[0].terminal_receipt.is_none());
+            assert_eq!(owner.sent.len(), 1);
+            assert!(!runtime.variables.contains_key("goals"));
+        }
+    }
+}
+
+#[test]
+fn native_terminal_without_revision_attribution_completes_last_action_only() {
+    let mut owner = animated_owner();
+    let mut runtime = runtime_actions(&owner, vec![animated_trigger()]);
+    runtime.tick(&mut owner);
+    owner.completion = true;
+    owner.foreign_during_operation = true;
+    owner.native_terminal_evidence = true;
+    runtime.tick(&mut owner);
+    let expected = runtime.jobs[0].expected;
+    assert_eq!(
+        runtime.reconcile(1, &mut owner).unwrap(),
+        JobState::Completed
+    );
+    assert_eq!(runtime.jobs[0].expected, expected);
+    assert_eq!(owner.sent.len(), 1);
+}
+
+#[test]
+fn cancellation_before_first_tick_dispatches_nothing_and_preserves_deduplication() {
+    let mut owner = animated_owner();
+    let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+    runtime.cancel(1, &mut owner).unwrap();
+    runtime.tick(&mut owner);
+    assert_eq!(runtime.jobs[0].state, JobState::Cancelled);
+    assert!(!runtime.jobs[0].state.blocks_reconfiguration());
+    assert!(runtime.jobs[0].records.is_empty());
+    assert!(owner.sent.is_empty());
+    assert_eq!(owner.cancels, 0);
+    assert!(!runtime.variables.contains_key("goals"));
+    let checkpoint: serde_json::Value =
+        serde_json::from_str(&runtime.checkpoint().unwrap()).unwrap();
+    assert_eq!(checkpoint["seen"], serde_json::json!(["id:button-1"]));
+}
+
+#[test]
+fn cancellation_after_first_tick_waits_for_terminal_without_counter() {
+    let mut owner = animated_owner();
+    let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+    runtime.tick(&mut owner);
+    runtime.cancel(1, &mut owner).unwrap();
+    runtime.cancel(1, &mut owner).unwrap();
+    assert_eq!(owner.cancels, 1);
+    assert_eq!(
+        runtime.reconcile(1, &mut owner).unwrap(),
+        JobState::NeedsReconciliation
+    );
+    assert!(runtime.jobs[0].state.blocks_reconfiguration());
+    owner.completion = true;
+    owner.foreign_during_operation = true;
+    owner.native_terminal_evidence = true;
+    assert_eq!(
+        runtime.reconcile(1, &mut owner).unwrap(),
+        JobState::Cancelled
+    );
+    runtime.tick(&mut owner);
+    assert_eq!(owner.sent.len(), 1);
+    assert!(!runtime.variables.contains_key("goals"));
+}
+
+#[test]
+fn reconciliation_checkpoint_preserves_terminal_evidence_and_never_replays() {
+    let mut owner = animated_owner();
+    let mut runtime = runtime_actions(&owner, followed_by_counter(animated_trigger()));
+    runtime.tick(&mut owner);
+    owner.completion = true;
+    owner.foreign_during_operation = true;
+    owner.native_terminal_evidence = true;
+    runtime.tick(&mut owner);
+    runtime.reconcile(1, &mut owner).unwrap();
+    let checkpoint = runtime.checkpoint().unwrap();
+    let value: serde_json::Value = serde_json::from_str(&checkpoint).unwrap();
+    assert_eq!(value["schema_version"], 3);
+    let mut restored = Runtime::restore(&checkpoint, ManualClock::default()).unwrap();
+    restored.tick(&mut owner);
+    assert_eq!(restored.jobs[0].state, JobState::Cancelled);
+    assert!(restored.jobs[0].records[0].terminal_receipt.is_some());
+    assert_eq!(owner.sent.len(), 1);
+    assert!(!restored.variables.contains_key("goals"));
+    for corruption in [
+        "version",
+        "key",
+        "operation",
+        "pid",
+        "stage",
+        "state",
+        "receipt",
+    ] {
+        let mut invalid = value.clone();
+        match corruption {
+            "version" => invalid["schema_version"] = 2.into(),
+            "key" => {
+                invalid["jobs"][0]["records"][0]["terminal_receipt"]["action_key"] =
+                    "another:1:0".into()
+            }
+            "operation" => {
+                invalid["jobs"][0]["records"][0]["terminal_receipt"]["operation_id"] =
+                    "other-session:animation-17".into()
+            }
+            "pid" => invalid["jobs"][0]["records"][0]["terminal_receipt"]["pid"] = 72.into(),
+            "stage" => invalid["jobs"][0]["records"][0]["stage"] = "accepted".into(),
+            "state" => invalid["jobs"][0]["state"] = "running".into(),
+            "receipt" => {
+                invalid["jobs"][0]["records"][0]["revision_receipts"] = serde_json::json!([])
+            }
+            _ => unreachable!(),
+        }
+        assert!(
+            Runtime::restore(&invalid.to_string(), ManualClock::default()).is_err(),
+            "{corruption}"
+        );
+    }
 }

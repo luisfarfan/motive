@@ -282,6 +282,11 @@ pub enum JobState {
     NeedsReconciliation,
 }
 impl JobState {
+    /// Scheduling is terminal during uncertainty, but session replacement must
+    /// retain the unresolved job until explicit owner reconciliation succeeds.
+    pub fn blocks_reconfiguration(&self) -> bool {
+        !self.terminal() || *self == Self::NeedsReconciliation
+    }
     pub fn terminal(&self) -> bool {
         matches!(
             self,
@@ -321,6 +326,10 @@ pub struct ActionRecord {
     /// Owner-attributed revision changes, never inferred from a later snapshot.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub revision_receipts: Vec<MutationReceipt>,
+    /// Explicit reconciliation may acknowledge a durable native terminal without
+    /// attributing intervening revisions or resuming the remaining sequence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terminal_receipt: Option<TerminalReceipt>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -419,17 +428,48 @@ pub enum Completion {
     Cancelled,
     Unknown,
 }
+/// Owner evidence that the exact accepted operation crossed its native terminal
+/// barrier. This grants no revision advancement and is not a mutation receipt.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminalReceipt {
+    pub action_key: String,
+    pub operation_id: String,
+    pub pid: u32,
+}
+impl TerminalReceipt {
+    pub fn validate(&self, action_key: &str, operation_id: &str, pid: u32) -> Result<(), Error> {
+        if pid == 0
+            || self.pid != pid
+            || self.action_key != action_key
+            || action_key.is_empty()
+            || action_key.len() > 300
+            || self.operation_id != operation_id
+            || operation_id.is_empty()
+            || operation_id.len() > 256
+        {
+            return Err(Error::new(
+                "INVALID_TERMINAL_RECEIPT",
+                "native terminal does not match the accepted action, operation and owner",
+            ));
+        }
+        Ok(())
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PollReport {
     pub completion: Completion,
     pub receipt: Option<MutationReceipt>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terminal_receipt: Option<TerminalReceipt>,
 }
 impl PollReport {
     pub fn legacy(completion: Completion) -> Self {
         Self {
             completion,
             receipt: None,
+            terminal_receipt: None,
         }
     }
 }
@@ -878,8 +918,29 @@ impl<C: Clock> Runtime<C> {
                 "uncertain transport requires manual owner-side reconciliation",
             )
         })?;
-        let report = backend.poll_checked(operation, &action_key(j, record.index), j.expected);
-        let completion = accept_poll_report(j, report, backend.simulated());
+        let key = action_key(j, record.index);
+        let report = backend.poll_checked(operation, &key, j.expected);
+        // A foreign revision prevents continuation, but it does not undo a
+        // durable native terminal. Only explicit reconciliation may use this
+        // independent evidence, and only after an accepted dispatch receipt.
+        // Never fall back around a malformed mutation receipt.
+        let terminal = (!backend.simulated()
+            && report.receipt.is_none()
+            && matches!(report.completion, Completion::Completed)
+            && record.revision_receipts.len() == 1
+            && record.revision_receipts[0].action_key == key
+            && record.revision_receipts[0].operation_id.as_deref() == Some(operation.as_str())
+            && record.revision_receipts[0].after == j.expected)
+            .then_some(report.terminal_receipt.as_ref())
+            .flatten()
+            .filter(|receipt| receipt.validate(&key, operation, j.expected.pid).is_ok())
+            .cloned();
+        let completion = if let Some(receipt) = terminal {
+            j.records.last_mut().unwrap().terminal_receipt = Some(receipt);
+            Completion::Completed
+        } else {
+            accept_poll_report(j, report, backend.simulated())
+        };
         let record = j.records.last_mut().unwrap();
         match completion {
             Completion::Completed => {
@@ -1007,6 +1068,7 @@ impl<C: Clock> Runtime<C> {
                     code: Some(e.code.clone()),
                     plan: None,
                     revision_receipts: Vec::new(),
+                    terminal_receipt: None,
                 });
                 if e.code == "CAPABILITY_UNAVAILABLE"
                     && j.failure_policy == FailurePolicy::ContinueUnavailable
@@ -1027,6 +1089,7 @@ impl<C: Clock> Runtime<C> {
             code: None,
             plan: Some(prepared.clone()),
             revision_receipts: Vec::new(),
+            terminal_receipt: None,
         });
         j.records.last_mut().unwrap().stage = Stage::Prepared;
         if !backend.simulated() && j.simulated {

@@ -41,6 +41,139 @@ class BsdInfo(ctypes.Structure):
 _LIBPROC = ctypes.CDLL('/usr/lib/libproc.dylib', use_errno=True)
 _LIBPROC.proc_pidinfo.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_int]
 _LIBPROC.proc_pidinfo.restype = ctypes.c_int
+_LIBPROC.proc_pid_rusage.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p]
+_LIBPROC.proc_pid_rusage.restype = ctypes.c_int
+_LIBPROC.proc_pidpath.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
+_LIBPROC.proc_pidpath.restype = ctypes.c_int
+
+
+class RusageInfoV0(ctypes.Structure):
+    # Public SDK sys/resource.h: RUSAGE_INFO_V0. CPU fields use Mach ticks;
+    # normalize through the public timebase, never assume ticks == nanoseconds.
+    _fields_ = [('uuid', ctypes.c_uint8 * 16)] + [(name, ctypes.c_uint64) for name in (
+        'user_time', 'system_time', 'pkg_idle_wkups', 'interrupt_wkups', 'pageins',
+        'wired_size', 'resident_size', 'phys_footprint', 'proc_start_abstime', 'proc_exit_abstime')]
+
+
+class MachTimebaseInfo(ctypes.Structure):
+    _fields_ = [('numer', ctypes.c_uint32), ('denom', ctypes.c_uint32)]
+
+
+_LIBSYSTEM = ctypes.CDLL('/usr/lib/libSystem.B.dylib')
+_LIBSYSTEM.mach_timebase_info.argtypes = [ctypes.POINTER(MachTimebaseInfo)]
+_LIBSYSTEM.mach_timebase_info.restype = ctypes.c_int
+_TIMEBASE = MachTimebaseInfo()
+if _LIBSYSTEM.mach_timebase_info(ctypes.byref(_TIMEBASE)) != 0 or not _TIMEBASE.denom:
+    raise RuntimeError('MACH_TIMEBASE_UNAVAILABLE')
+
+
+def mach_ticks_to_ns(ticks):
+    return ticks * _TIMEBASE.numer // _TIMEBASE.denom
+
+
+def owned_resource_usage(process):
+    """Read only a PID already attributed to this launch; reject identity races."""
+    if birth_identity(process.pid) != process.birth:
+        return None
+    usage = RusageInfoV0()
+    if _LIBPROC.proc_pid_rusage(process.pid, 0, ctypes.byref(usage)) != 0:
+        return None
+    path = ctypes.create_string_buffer(4096)  # Public PROC_PIDPATHINFO_MAXSIZE.
+    count = _LIBPROC.proc_pidpath(process.pid, path, len(path))
+    name = os.path.basename(os.fsdecode(path.value)) if count > 0 else ''
+    roles = {'MotiveBrowserFixture': 'browser_host', 'MotiveBrowserFixture Helper': 'helper_unspecified'}
+    roles.update({'MotiveBrowserFixture Helper (' + role + ')': role.lower() + '_helper'
+                  for role in ('Alerts', 'GPU', 'Plugin', 'Renderer')})
+    role = roles.get(name, 'owned_python' if name.lower().startswith('python') else 'other_owned_process')
+    if birth_identity(process.pid) != process.birth:
+        return None
+    return {'pid': process.pid, 'birth': list(process.birth), 'role': role,
+            'proc_start_abstime': usage.proc_start_abstime,
+            'user_time_mach_ticks': usage.user_time, 'system_time_mach_ticks': usage.system_time,
+            'user_time_ns': mach_ticks_to_ns(usage.user_time), 'system_time_ns': mach_ticks_to_ns(usage.system_time),
+            'cpu_time_ns': mach_ticks_to_ns(usage.user_time + usage.system_time),
+            'resident_bytes': usage.resident_size, 'phys_footprint_bytes': usage.phys_footprint}
+
+
+class ResourceSampler:
+    """Consecutive samples only; exited/new/missed processes never become zero CPU."""
+    def __init__(self):
+        self.previous = {}
+        self.previous_ns = None
+        self.total_samples = 0
+        self.partial_samples = 0
+        self.peak_footprint = None
+        self.cpu_intervals = 0
+        self.cpu_delta_ns = 0
+        self.wall_delta_ns = 0
+        self.observed_roles = {}
+
+    def capture(self, processes):
+        started = time.monotonic_ns()
+        wall = None if self.previous_ns is None else started - self.previous_ns
+        current, records = {}, []
+        for process in processes:
+            row = owned_resource_usage(process)
+            if row is None:
+                continue
+            current[process.identity] = row
+            self.observed_roles[process.identity] = row['role']
+            old = self.previous.get(process.identity)
+            delta = None
+            if old and wall and old['proc_start_abstime'] == row['proc_start_abstime']:
+                difference = row['cpu_time_ns'] - old['cpu_time_ns']
+                if difference >= 0:
+                    delta = difference
+            row['cpu_delta_ns'] = delta
+            records.append(row)
+        deltas = [r['cpu_delta_ns'] for r in records if r['cpu_delta_ns'] is not None]
+        footprint = sum(r['phys_footprint_bytes'] for r in records)
+        memory_complete = bool(processes) and len(records) == len(processes)
+        # Even complete coverage of observed identities cannot discover children
+        # that were born and exited entirely between two process snapshots.
+        cpu_complete = (memory_complete and len(deltas) == len(processes)
+                        and set(current) == set(self.previous))
+        percent = 100 * sum(deltas) / wall if deltas and wall else None
+        if memory_complete:
+            self.peak_footprint = max(self.peak_footprint or 0, footprint)
+        if deltas and wall:
+            self.cpu_intervals += 1
+            self.cpu_delta_ns += sum(deltas)
+            self.wall_delta_ns += wall
+        self.total_samples += 1
+        if not (memory_complete and cpu_complete):
+            self.partial_samples += 1
+        self.previous, self.previous_ns = current, started
+        return {'version': 1, 'sample_monotonic_ns': started,
+                'sample_duration_ns': time.monotonic_ns() - started, 'wall_delta_ns': wall,
+                'attempted_processes': len(processes), 'sampled_processes': len(records),
+                'cpu_delta_processes': len(deltas), 'cpu_observed_identity_coverage_complete': cpu_complete,
+                'cpu_percent_one_core': percent, 'cpu_delta_ns': sum(deltas) if deltas else None,
+                'phys_footprint_bytes': footprint if memory_complete else None,
+                'observed_phys_footprint_bytes': footprint if records else None,
+                'memory_observed_identity_coverage_complete': memory_complete,
+                'processes': records, 'gpu_percent': None}
+
+    def report(self):
+        counts = {}
+        for role in self.observed_roles.values():
+            counts[role] = counts.get(role, 0) + 1
+        return {'version': 1, 'api': 'proc_pid_rusage(RUSAGE_INFO_V0)',
+                'mach_timebase': {'numer': _TIMEBASE.numer, 'denom': _TIMEBASE.denom},
+                'cpu_unit': 'nanoseconds; percent 100 equals one fully occupied core',
+                'total_samples': self.total_samples, 'partial_samples': self.partial_samples,
+                'valid_cpu_intervals': self.cpu_intervals, 'observed_cpu_delta_ns': self.cpu_delta_ns,
+                'measured_wall_delta_ns': self.wall_delta_ns,
+                'observed_cpu_mean_percent_one_core': (100 * self.cpu_delta_ns / self.wall_delta_ns
+                                                     if self.wall_delta_ns else None),
+                'peak_observed_tree_phys_footprint_bytes': self.peak_footprint,
+                'observed_process_roles': counts, 'gpu_percent': None,
+                'limits': ['Only consecutive observations of matching PID/birth/start identity contribute CPU deltas.',
+                           'CPU before first/after last observation and processes shorter than the sampling interval may be missed.',
+                           'Memory is a sequential sum of per-process physical footprints, not a coalition or unique physical-page total.',
+                           'Reported CPU excludes the supervisor and process-list collection overhead.',
+                           'Roles identify observed executable basenames; a helper role does not measure GPU utilization.',
+                           'Historical cpu_percent_ps remains ps output; legacy footprint_bytes remains unspecified/null.']}
 
 
 def birth_identity(pid):
@@ -85,7 +218,7 @@ class Supervisor:
         self.active = False
         self.last_report = None
 
-    def run(self, executable_and_args, *, cancelled=lambda: False):
+    def run(self, executable_and_args, *, cancelled=lambda: False, on_sample=None):
         """Trusted launch API, never exposed to package/MCP/renderer input.
 
         The caller must independently hold the repository-specific authorization
@@ -99,6 +232,7 @@ class Supervisor:
         self.generation += 1
         run_root = self.root / f'{self.session_id}-generation-{self.generation}'
         samples = deque(maxlen=256)
+        resources = ResourceSampler()
         known = {}
         start = time.monotonic()
         reason = 'exit'
@@ -145,7 +279,12 @@ class Supervisor:
                     live = [p for p in members.values() if not p.state.startswith('Z')]
                     rss = sum(p.rss_kib for p in live)
                     peak_rss = max(peak_rss, rss)
-                    samples.append({'elapsed_ms': round((time.monotonic() - start) * 1000, 3), 'processes': len(live), 'rss_kib': rss, 'cpu_percent_ps': sum(p.cpu_percent for p in live)})
+                    sample = {'elapsed_ms': round((time.monotonic() - start) * 1000, 3), 'processes': len(live),
+                              'rss_kib': rss, 'cpu_percent_ps': sum(p.cpu_percent for p in live),
+                              'resource_usage': resources.capture(live)}
+                    samples.append(sample)
+                    if on_sample is not None:
+                        on_sample(sample)
                     if child.poll() is not None:
                         break
                     if cancelled(): reason = 'cancelled'; break
@@ -181,11 +320,15 @@ class Supervisor:
                     'cleanup_observed_tree': not remaining_live and returncode is not None, 'peak_tree_rss_kib': peak_rss, 'samples': list(samples),
                     'footprint_bytes': None, 'gpu_percent': None, 'launch_kind': 'trusted_caller_supplied_executable',
                     'scope': 'observed owned tree; not proof against unobserved process escape or an OS sandbox'}
+                report['resource_measurements'] = resources.report()
+                report['sample_retention'] = {'capacity': samples.maxlen, 'retained': len(samples),
+                                              'dropped_oldest': max(0, resources.total_samples - len(samples))}
                 return report
         except BaseException as error:
             report = {'session_id': self.session_id, 'generation': self.generation,
                       'reason': 'supervisor_error', 'error_type': type(error).__name__,
                       'scope': 'best-effort cleanup of observed owned tree'}
+            report.update(samples=list(samples), resource_measurements=resources.report())
             raise
         finally:
             # This path does not use snapshot(): it also runs after ps failure or

@@ -1,0 +1,64 @@
+{
+  "max_actions_per_event": 32,
+  "queue_capacity": 8,
+  "rate_limit": 20,
+  "rate_window_ms": 1000,
+  "rules": [
+    {
+      "actions": [
+        {
+          "source_id": "countdown-content",
+          "type": "countdown_start"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "button_id",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "start"
+          }
+        }
+      ],
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "enabled": false,
+      "event_kind": "manual.button_pressed",
+      "failure_policy": "stop",
+      "id": "countdown-start",
+      "priority": 5,
+      "timeout_ms": 15000
+    },
+    {
+      "actions": [
+        {
+          "source_id": "countdown-content",
+          "type": "countdown_reset"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "button_id",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "reset"
+          }
+        }
+      ],
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "enabled": false,
+      "event_kind": "manual.button_pressed",
+      "failure_policy": "stop",
+      "id": "countdown-reset",
+      "priority": 5,
+      "timeout_ms": 15000
+    }
+  ],
+  "schema_version": 1,
+  "variables": {}
+}

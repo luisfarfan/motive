@@ -1,0 +1,209 @@
+{
+  "animations": [
+    {
+      "distance": 96,
+      "duration_ms": 450,
+      "easing": "ease_out",
+      "id": "exit-entry",
+      "kind": "slide_in",
+      "layer_id": "exit-content-layer",
+      "scale_from": 0.9,
+      "scene_id": "exit-scene"
+    },
+    {
+      "distance": 96,
+      "duration_ms": 450,
+      "easing": "ease_in",
+      "id": "exit-exit",
+      "kind": "slide_out",
+      "layer_id": "exit-content-layer",
+      "scale_from": 0.9,
+      "scene_id": "exit-scene"
+    }
+  ],
+  "author": "Motive contributors",
+  "budget": {
+    "max_estimated_texture_bytes": 100663296,
+    "max_resource_bytes": 1048576,
+    "max_simultaneous_animations": 1
+  },
+  "events": [
+    "manual.button_pressed",
+    "motive.custom_event"
+  ],
+  "id": "exit",
+  "license": "GPL-3.0-or-later",
+  "name": "Goal Celebration",
+  "overlays": [
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 16106108,
+          "background": 2237481,
+          "color": 15856372,
+          "duration_ms": 5000,
+          "height": 140,
+          "kind": "alert",
+          "opacity": 1,
+          "subtitle": "Club del Puerto",
+          "title": "GOOOOL",
+          "width": 600
+        }
+      },
+      "id": "exit-content",
+      "name": "Goal Celebration"
+    },
+    {
+      "definition": {
+        "kind": "image",
+        "opacity": 0.8,
+        "resource_id": "exit-motif-asset"
+      },
+      "id": "exit-motif",
+      "name": "Original stripe motif"
+    },
+    {
+      "definition": {
+        "align": "center",
+        "background": null,
+        "background_opacity": 0,
+        "color": 15856372,
+        "font": "Menlo",
+        "height": 80,
+        "kind": "text",
+        "opacity": 1,
+        "outline": false,
+        "size": 48,
+        "text": "2 — 1",
+        "width": 300
+      },
+      "id": "exit-score",
+      "name": "Score"
+    }
+  ],
+  "properties": [
+    {
+      "id": "exit-title",
+      "label": "Título",
+      "overlay_id": "exit-content",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "GOOOOL"
+      }
+    },
+    {
+      "id": "exit-description",
+      "label": "Equipo",
+      "overlay_id": "exit-content",
+      "target": "widget_subtitle",
+      "value": {
+        "type": "text",
+        "value": "Club del Puerto"
+      }
+    },
+    {
+      "id": "exit-score",
+      "label": "Marcador",
+      "overlay_id": "exit-score",
+      "target": "text_content",
+      "value": {
+        "type": "text",
+        "value": "2 — 1"
+      }
+    }
+  ],
+  "requires": [
+    "image_asset",
+    "layer_animation",
+    "text",
+    "widget"
+  ],
+  "resources": [
+    {
+      "bytes": 217,
+      "duration_ms": null,
+      "file_name": "exit-motif.png",
+      "height": 48,
+      "id": "exit-motif-asset",
+      "kind": "image",
+      "sha256": "0f8b3a86a87cf0897a7d45061b6d39a54e1f889868128e381a24589a6ec22aab",
+      "width": 48
+    }
+  ],
+  "rule_ids": [
+    "exit-trigger",
+    "exit-exit"
+  ],
+  "scenes": [
+    {
+      "id": "exit-scene",
+      "layers": [
+        {
+          "horizontal": {
+            "height": 140,
+            "order": 0,
+            "visible": true,
+            "width": 600,
+            "x": 40,
+            "y": 170
+          },
+          "id": "exit-content-layer",
+          "overlay_id": "exit-content",
+          "vertical": {
+            "height": 108,
+            "order": 0,
+            "visible": true,
+            "width": 460,
+            "x": 40,
+            "y": 340
+          }
+        },
+        {
+          "horizontal": {
+            "height": 48,
+            "order": 1,
+            "visible": true,
+            "width": 48,
+            "x": 660,
+            "y": 220
+          },
+          "id": "exit-motif-layer",
+          "overlay_id": "exit-motif",
+          "vertical": {
+            "height": 48,
+            "order": 1,
+            "visible": true,
+            "width": 48,
+            "x": 246,
+            "y": 470
+          }
+        },
+        {
+          "horizontal": {
+            "height": 80,
+            "order": 2,
+            "visible": true,
+            "width": 300,
+            "x": 340,
+            "y": 330
+          },
+          "id": "exit-score-layer",
+          "overlay_id": "exit-score",
+          "vertical": {
+            "height": 80,
+            "order": 2,
+            "visible": true,
+            "width": 300,
+            "x": 120,
+            "y": 560
+          }
+        }
+      ],
+      "name": "Goal Celebration"
+    }
+  ],
+  "schema_version": 1,
+  "version": "1.0.0"
+}

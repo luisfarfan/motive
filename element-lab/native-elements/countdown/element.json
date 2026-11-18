@@ -1,0 +1,333 @@
+{
+  "animations": [],
+  "author": "Motive contributors",
+  "budget": {
+    "max_layers": 8,
+    "max_resource_bytes": 1048576,
+    "max_sources": 4,
+    "max_texture_bytes": 100663296
+  },
+  "capabilities": {
+    "future": [],
+    "required": [
+      "widget",
+      "image_asset"
+    ]
+  },
+  "dependencies": [],
+  "events": [
+    {
+      "actions": [
+        {
+          "source_id": "content",
+          "type": "countdown_start"
+        }
+      ],
+      "description": "Intención visual declarativa; instalar y armar después mediante Motive",
+      "event_kind": "manual.button_pressed",
+      "id": "start",
+      "match": "start"
+    },
+    {
+      "actions": [
+        {
+          "source_id": "content",
+          "type": "countdown_reset"
+        }
+      ],
+      "description": "Intención visual declarativa; instalar y armar después mediante Motive",
+      "event_kind": "manual.button_pressed",
+      "id": "reset",
+      "match": "reset"
+    }
+  ],
+  "id": "countdown",
+  "kind": "native_element",
+  "layers": [
+    {
+      "horizontal": {
+        "height": 140,
+        "order": 0,
+        "visible": true,
+        "width": 600,
+        "x": 40,
+        "y": 170
+      },
+      "id": "content-layer",
+      "node": "content",
+      "vertical": {
+        "height": 108,
+        "order": 0,
+        "visible": true,
+        "width": 460,
+        "x": 40,
+        "y": 340
+      }
+    },
+    {
+      "horizontal": {
+        "height": 48,
+        "order": 1,
+        "visible": true,
+        "width": 48,
+        "x": 660,
+        "y": 220
+      },
+      "id": "motif-layer",
+      "node": "motif",
+      "vertical": {
+        "height": 48,
+        "order": 1,
+        "visible": true,
+        "width": 48,
+        "x": 246,
+        "y": 470
+      }
+    }
+  ],
+  "license": "GPL-3.0-or-later",
+  "metadata": {
+    "category": "overlay",
+    "description": "Countdown Card · original native composition",
+    "limitations": [
+      "Preview esquemático, no equivalencia de píxeles con libobs.",
+      "El motivo decorativo es una capa independiente y permanece visible.",
+      "Las propiedades compile_time generan otra definición; no amplían las cuatro properties de CreatorPack v1."
+    ],
+    "tags": [
+      "native",
+      "original",
+      "countdown"
+    ]
+  },
+  "name": "Countdown Card",
+  "nodes": [
+    {
+      "children": [
+        "content",
+        "motif"
+      ],
+      "id": "root",
+      "name": "Countdown Card",
+      "type": "composed"
+    },
+    {
+      "id": "content",
+      "name": "Countdown Card",
+      "native": {
+        "kind": "widget",
+        "widget": {
+          "accent": 16106108,
+          "background": 2237481,
+          "color": 15856372,
+          "duration_ms": 90000,
+          "height": 140,
+          "kind": "countdown",
+          "opacity": 1,
+          "subtitle": "Un momento para preparar lo siguiente",
+          "title": "Volvemos en",
+          "width": 600
+        }
+      },
+      "type": "primitive"
+    },
+    {
+      "id": "motif",
+      "name": "Original stripe motif",
+      "native": {
+        "kind": "image",
+        "opacity": 0.8,
+        "resource_id": "motif-asset"
+      },
+      "type": "primitive"
+    }
+  ],
+  "properties": [
+    {
+      "bindings": [
+        {
+          "field": "widget.title",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "creatorpack_property",
+      "id": "title",
+      "label": "Título",
+      "value": {
+        "default": "Volvemos en",
+        "max_length": 100,
+        "type": "string"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "widget.subtitle",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "creatorpack_property",
+      "id": "description",
+      "label": "Mensaje",
+      "value": {
+        "default": "Un momento para preparar lo siguiente",
+        "max_length": 160,
+        "type": "string"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "widget.background",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "compile_time",
+      "id": "background",
+      "label": "Fondo",
+      "value": {
+        "default": 2237481,
+        "type": "color"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "widget.accent",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "compile_time",
+      "id": "accent",
+      "label": "Acento",
+      "value": {
+        "default": 16106108,
+        "type": "color"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "widget.opacity",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "compile_time",
+      "id": "opacity",
+      "label": "Opacidad",
+      "value": {
+        "default": 1,
+        "maximum": 1,
+        "minimum": 0,
+        "type": "number"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "horizontal.x",
+          "ref": "content-layer",
+          "scope": "layout"
+        }
+      ],
+      "export": "compile_time",
+      "id": "horizontal-x",
+      "label": "Posición X horizontal",
+      "value": {
+        "default": 40,
+        "maximum": 320,
+        "minimum": 0,
+        "type": "number"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "vertical.y",
+          "ref": "content-layer",
+          "scope": "layout"
+        }
+      ],
+      "export": "compile_time",
+      "id": "vertical-y",
+      "label": "Posición Y vertical",
+      "value": {
+        "default": 340,
+        "maximum": 800,
+        "minimum": 0,
+        "type": "number"
+      }
+    },
+    {
+      "bindings": [
+        {
+          "field": "widget.duration_ms",
+          "ref": "content",
+          "scope": "node"
+        }
+      ],
+      "export": "compile_time",
+      "id": "duration",
+      "label": "Tiempo (ms)",
+      "value": {
+        "default": 90000,
+        "maximum": 3600000,
+        "minimum": 1000,
+        "type": "integer"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "bytes": 224,
+      "duration_ms": null,
+      "height": 48,
+      "id": "motif-asset",
+      "kind": "image",
+      "license": "GPL-3.0-or-later",
+      "path": "assets/motif.png",
+      "sha256": "60ffb9cab6c9dea69305db25334aab7b8e0e2d7157d732d8b9fe802e81a0f9ac",
+      "width": 48
+    }
+  ],
+  "root": "root",
+  "schema_version": 1,
+  "states": [
+    {
+      "backend": "native_widget",
+      "description": "Estado informativo del countdown; su reloj pertenece al motor nativo",
+      "id": "ready"
+    },
+    {
+      "backend": "native_widget",
+      "description": "Estado informativo del countdown; su reloj pertenece al motor nativo",
+      "id": "running"
+    },
+    {
+      "backend": "native_widget",
+      "description": "Estado informativo del countdown; su reloj pertenece al motor nativo",
+      "id": "completed"
+    }
+  ],
+  "variants": [
+    {
+      "id": "warm",
+      "properties": {
+        "accent": 16106108
+      }
+    },
+    {
+      "id": "cool",
+      "properties": {
+        "accent": 10398197,
+        "background": 1514286
+      }
+    }
+  ],
+  "version": "1.0.0"
+}

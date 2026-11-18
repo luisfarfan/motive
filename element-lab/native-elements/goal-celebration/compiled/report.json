@@ -1,0 +1,240 @@
+{
+  "authoring_document_sha256": "c49224ebf67ff75ae60a8991f669a9803c62eadba21192809499e1e771e4b928",
+  "budget": {
+    "counts": {
+      "layers": 3,
+      "scenes": 1,
+      "sources": 3,
+      "texture_bytes": 26048256,
+      "video_sources": 0
+    },
+    "native_texture_estimate_bytes": 26048256,
+    "occupied": {
+      "layers": 0,
+      "scenes": 0,
+      "sources": 0,
+      "texture_bytes": 0,
+      "video_sources": 0
+    },
+    "pack_texture_bytes": 18409216,
+    "remaining": {
+      "layers": 29,
+      "scenes": 7,
+      "sources": 13,
+      "texture_bytes": 242387200,
+      "video_sources": 4
+    },
+    "rss_measured": false,
+    "total": {
+      "layers": 3,
+      "scenes": 1,
+      "sources": 3,
+      "texture_bytes": 26048256,
+      "video_sources": 0
+    }
+  },
+  "dependency_order": [
+    "content",
+    "motif",
+    "score",
+    "root"
+  ],
+  "mode": "real_show_control_contract_offline",
+  "native_render_verified": false,
+  "pack_id": "exit",
+  "plan": {
+    "estimated_texture_bytes": 18409216,
+    "executable": false,
+    "limitations": [
+      "Offline proposal only; no Production importer or live acceptance has been implemented.",
+      "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+      "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+      "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+      "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+    ],
+    "pack_id": "exit",
+    "pack_version": "1.0.0",
+    "requires_idle": true,
+    "schema_version": 1,
+    "steps": [
+      {
+        "file_name": "exit-motif.png",
+        "operation": "import_asset_after_local_authorization",
+        "resource_ref": "exit-motif-asset"
+      },
+      {
+        "name": "Goal Celebration",
+        "operation": "create_scene",
+        "scene_ref": "exit-scene"
+      },
+      {
+        "definition": {
+          "kind": "widget",
+          "widget": {
+            "accent": 16106108,
+            "background": 2237481,
+            "color": 15856372,
+            "duration_ms": 5000,
+            "height": 140,
+            "kind": "alert",
+            "opacity": 1.0,
+            "subtitle": "Club del Puerto",
+            "title": "GOOOOL",
+            "width": 600
+          }
+        },
+        "first_layer_ref": "exit-content-layer",
+        "name": "Goal Celebration",
+        "operation": "create_overlay",
+        "scene_ref": "exit-scene",
+        "source_ref": "exit-content"
+      },
+      {
+        "layer_ref": "exit-content-layer",
+        "operation": "set_transform",
+        "scene_ref": "exit-scene",
+        "transform": {
+          "height": 140.0,
+          "order": 0,
+          "visible": true,
+          "width": 600.0,
+          "x": 40.0,
+          "y": 170.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "exit-content-layer",
+        "operation": "set_transform",
+        "scene_ref": "exit-scene",
+        "transform": {
+          "height": 108.0,
+          "order": 0,
+          "visible": true,
+          "width": 460.0,
+          "x": 40.0,
+          "y": 340.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "kind": "image",
+          "opacity": 0.800000011920929,
+          "resource_id": "exit-motif-asset"
+        },
+        "first_layer_ref": "exit-motif-layer",
+        "name": "Original stripe motif",
+        "operation": "create_overlay",
+        "scene_ref": "exit-scene",
+        "source_ref": "exit-motif"
+      },
+      {
+        "layer_ref": "exit-motif-layer",
+        "operation": "set_transform",
+        "scene_ref": "exit-scene",
+        "transform": {
+          "height": 48.0,
+          "order": 1,
+          "visible": true,
+          "width": 48.0,
+          "x": 660.0,
+          "y": 220.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "exit-motif-layer",
+        "operation": "set_transform",
+        "scene_ref": "exit-scene",
+        "transform": {
+          "height": 48.0,
+          "order": 1,
+          "visible": true,
+          "width": 48.0,
+          "x": 246.0,
+          "y": 470.0
+        },
+        "variant": "vertical"
+      },
+      {
+        "definition": {
+          "align": "center",
+          "background": null,
+          "background_opacity": 0.0,
+          "color": 15856372,
+          "font": "Menlo",
+          "height": 80,
+          "kind": "text",
+          "opacity": 1.0,
+          "outline": false,
+          "size": 48,
+          "text": "2 — 1",
+          "width": 300
+        },
+        "first_layer_ref": "exit-score-layer",
+        "name": "Score",
+        "operation": "create_overlay",
+        "scene_ref": "exit-scene",
+        "source_ref": "exit-score"
+      },
+      {
+        "layer_ref": "exit-score-layer",
+        "operation": "set_transform",
+        "scene_ref": "exit-scene",
+        "transform": {
+          "height": 80.0,
+          "order": 2,
+          "visible": true,
+          "width": 300.0,
+          "x": 340.0,
+          "y": 330.0
+        },
+        "variant": "horizontal"
+      },
+      {
+        "layer_ref": "exit-score-layer",
+        "operation": "set_transform",
+        "scene_ref": "exit-scene",
+        "transform": {
+          "height": 80.0,
+          "order": 2,
+          "visible": true,
+          "width": 300.0,
+          "x": 120.0,
+          "y": 560.0
+        },
+        "variant": "vertical"
+      }
+    ],
+    "unavailable": []
+  },
+  "prepared_actions": 3,
+  "production_connected": false,
+  "properties": {
+    "accent": 16106108,
+    "background": 2237481,
+    "description": "Club del Puerto",
+    "duration": 5000,
+    "entry-duration": 450,
+    "horizontal-x": 40,
+    "opacity": 1,
+    "score": "2 — 1",
+    "title": "GOOOOL",
+    "vertical-y": 340
+  },
+  "states": [
+    {
+      "backend": "native_widget",
+      "description": "Visibilidad del widget nativo; sin máquina de estados adicional",
+      "id": "hidden"
+    },
+    {
+      "backend": "native_widget",
+      "description": "Visibilidad del widget nativo; sin máquina de estados adicional",
+      "id": "visible"
+    }
+  ],
+  "status": "PASS",
+  "unsupported": []
+}

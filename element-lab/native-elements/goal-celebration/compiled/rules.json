@@ -1,0 +1,85 @@
+{
+  "max_actions_per_event": 32,
+  "queue_capacity": 8,
+  "rate_limit": 20,
+  "rate_window_ms": 1000,
+  "rules": [
+    {
+      "actions": [
+        {
+          "animation": {
+            "distance": 96,
+            "duration_ms": 450,
+            "easing": "ease_out",
+            "kind": "slide_in",
+            "scale_from": 0.9
+          },
+          "layer_id": "exit-content-layer",
+          "scene_id": "exit-scene",
+          "source_id": "exit-content",
+          "type": "trigger_animated_widget"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "name",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "goal-scored"
+          }
+        }
+      ],
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "enabled": false,
+      "event_kind": "motive.custom_event",
+      "failure_policy": "stop",
+      "id": "exit-trigger",
+      "priority": 5,
+      "timeout_ms": 15000
+    },
+    {
+      "actions": [
+        {
+          "animation": {
+            "distance": 96,
+            "duration_ms": 450,
+            "easing": "ease_in",
+            "kind": "slide_out",
+            "scale_from": 0.9
+          },
+          "layer_id": "exit-content-layer",
+          "scene_id": "exit-scene",
+          "type": "animate"
+        },
+        {
+          "source_id": "exit-content",
+          "type": "hide_overlay"
+        }
+      ],
+      "busy_policy": "reject",
+      "conditions": [
+        {
+          "field": "button_id",
+          "type": "equals",
+          "value": {
+            "type": "string",
+            "value": "exit"
+          }
+        }
+      ],
+      "cooldown_ms": 1000,
+      "debounce_ms": 0,
+      "enabled": false,
+      "event_kind": "manual.button_pressed",
+      "failure_policy": "stop",
+      "id": "exit-exit",
+      "priority": 5,
+      "timeout_ms": 15000
+    }
+  ],
+  "schema_version": 1,
+  "variables": {}
+}

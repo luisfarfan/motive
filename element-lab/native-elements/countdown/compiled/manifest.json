@@ -1,0 +1,137 @@
+{
+  "animations": [],
+  "author": "Motive contributors",
+  "budget": {
+    "max_estimated_texture_bytes": 100663296,
+    "max_resource_bytes": 1048576,
+    "max_simultaneous_animations": 0
+  },
+  "events": [
+    "manual.button_pressed"
+  ],
+  "id": "countdown",
+  "license": "GPL-3.0-or-later",
+  "name": "Countdown Card",
+  "overlays": [
+    {
+      "definition": {
+        "kind": "widget",
+        "widget": {
+          "accent": 16106108,
+          "background": 2237481,
+          "color": 15856372,
+          "duration_ms": 90000,
+          "height": 140,
+          "kind": "countdown",
+          "opacity": 1,
+          "subtitle": "Un momento para preparar lo siguiente",
+          "title": "Volvemos en",
+          "width": 600
+        }
+      },
+      "id": "countdown-content",
+      "name": "Countdown Card"
+    },
+    {
+      "definition": {
+        "kind": "image",
+        "opacity": 0.8,
+        "resource_id": "countdown-motif-asset"
+      },
+      "id": "countdown-motif",
+      "name": "Original stripe motif"
+    }
+  ],
+  "properties": [
+    {
+      "id": "countdown-title",
+      "label": "Título",
+      "overlay_id": "countdown-content",
+      "target": "widget_title",
+      "value": {
+        "type": "text",
+        "value": "Volvemos en"
+      }
+    },
+    {
+      "id": "countdown-description",
+      "label": "Mensaje",
+      "overlay_id": "countdown-content",
+      "target": "widget_subtitle",
+      "value": {
+        "type": "text",
+        "value": "Un momento para preparar lo siguiente"
+      }
+    }
+  ],
+  "requires": [
+    "image_asset",
+    "widget"
+  ],
+  "resources": [
+    {
+      "bytes": 224,
+      "duration_ms": null,
+      "file_name": "countdown-motif.png",
+      "height": 48,
+      "id": "countdown-motif-asset",
+      "kind": "image",
+      "sha256": "60ffb9cab6c9dea69305db25334aab7b8e0e2d7157d732d8b9fe802e81a0f9ac",
+      "width": 48
+    }
+  ],
+  "rule_ids": [
+    "countdown-start",
+    "countdown-reset"
+  ],
+  "scenes": [
+    {
+      "id": "countdown-scene",
+      "layers": [
+        {
+          "horizontal": {
+            "height": 140,
+            "order": 0,
+            "visible": true,
+            "width": 600,
+            "x": 40,
+            "y": 170
+          },
+          "id": "countdown-content-layer",
+          "overlay_id": "countdown-content",
+          "vertical": {
+            "height": 108,
+            "order": 0,
+            "visible": true,
+            "width": 460,
+            "x": 40,
+            "y": 340
+          }
+        },
+        {
+          "horizontal": {
+            "height": 48,
+            "order": 1,
+            "visible": true,
+            "width": 48,
+            "x": 660,
+            "y": 220
+          },
+          "id": "countdown-motif-layer",
+          "overlay_id": "countdown-motif",
+          "vertical": {
+            "height": 48,
+            "order": 1,
+            "visible": true,
+            "width": 48,
+            "x": 246,
+            "y": 470
+          }
+        }
+      ],
+      "name": "Countdown Card"
+    }
+  ],
+  "schema_version": 1,
+  "version": "1.0.0"
+}

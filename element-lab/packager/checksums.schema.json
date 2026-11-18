@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "sha256"
+    },
+    "files": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "maximum": 67108864,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "path": {
+            "maxLength": 240,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "[0-9a-f]{64}",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "maxItems": 255,
+      "minItems": 1,
+      "type": "array"
+    },
+    "version": {
+      "const": 1
+    }
+  },
+  "required": [
+    "version",
+    "algorithm",
+    "files"
+  ],
+  "type": "object"
+}

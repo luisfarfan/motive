@@ -395,3 +395,20 @@ globalmente H14. La prueba externa autorizada de 104.837 s sigue siendo
 usuario, sin copia remota decodificada independiente ni repetición externa
 B3. Segunda Mac, notarización, hardware removible, permisos y demás límites
 mantienen su estado en el [índice de gates](h14-beta-verification.md).
+
+## H15 — estabilización B4, aceptación pendiente
+
+[H15](h15-beta-verification.md) restringe frame reordering antes de iniciar
+outputs, despierta el control por eventos, añade recibos durables y guards de
+Show Control, y expone suspensión SCK sin confundir idle con pérdida. 119 tests
+raíz, 129 Show Control y 123 Python pasan, junto con Clippy/rustfmt. Bundle local
+portable B4 firmado, ejecutado fuera del checkout; sin publicación.
+
+**Beta privada NOT_ACCEPTED**: foco independiente confirma el congelamiento de
+ventana default y el contraste join-all solo de la fixture; recuperar una ventana
+recreada falla al crear SCStream. Audio conserva una caída interior de 997 Hz y
+el fallo histórico de identidad no se reproduce ni se declara reparado. Outputs
+conservadores son utilizables con colas PARTIAL. Memoria/RPC bajo carga siguen
+PARTIAL. Guardado GPUI se coteja con bytes durables y reapertura del núcleo pasa;
+el [recorrido nativo](h15-native-ux-verification.md) queda parcial por CUA.
+Hardware/permisos supervisados, segunda Mac y distribución mantienen gates propios.

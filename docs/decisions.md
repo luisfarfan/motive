@@ -648,3 +648,23 @@ según visibilidad. Retirar la fuente y pausar su decoder tienen costes y
 retenciones diferentes. La voz opcional sigue como benchmark offline, con
 fiabilidad insuficiente y sin ruta de reconocimiento en vivo. Ninguna de estas
 ampliaciones añade DSP paralelo, audio por escena, nube, CEF ni otro owner.
+
+## H15 — admisión conservadora y recibos observables
+
+Los perfiles persistidos con frame reordering=true conservan su valor al cargar,
+pero preflight/start devuelven FRAME_REORDERING_UNSUPPORTED antes de reservar
+recursos. La UI permite desactivarlo explícitamente. No se modifica OBS/H8 ni se
+añaden esperas para simular drenaje.
+
+Guardar Show Control devuelve un recibo después de escritura, rename y fsync
+de directorio; incluye hash, bytes, owner, revisión, sesión y fingerprint. Un
+guard opcional rechaza revisiones/sesiones obsoletas; el guardado no crea una
+revisión de producción ni invalida trabajos. La restauración sigue desarmada
+y sin replay. Configurar/guardar/activar validan los IDs del proyecto.
+
+La cola de control despierta al owner GPUI mediante canal acotado. No traslada
+Production a otro thread ni introduce un reloj multimedia externo. Suspended/
+stopped observados por SCK se muestran y bloquean nuevos starts; no convierten
+idle en fallo, no fuerzan reconexión y no detienen outputs activos por sí solos.
+Los nuevos diagnósticos de identidad/reloj son observacionales; no cambian la
+aplicación autorizada ni hacen de MCP un transporte audiovisual.

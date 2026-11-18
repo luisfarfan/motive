@@ -112,3 +112,40 @@ Clippy detectó un patrón de versiones que se sustituyó por `1..=3`.
    Restaurar stores y cerrar mediante las barreras normales; confirmar proceso,
    socket, workers y lock liberados. Si se grabó/transmitió por loopback,
    decodificar ambos medios y conservar el análisis independiente de entrega.
+
+## Runner nativo H17
+
+`scripts/verify_h17_show_recovery.py --output var/evidence/h17-show-recovery-NN`
+implementa un ensayo independiente sobre un owner portable ya abierto y fresco.
+Recibe los tres `MOTIVE_TEST_*` de `h15_run_owned.py`. `--owner-pid` permite fijar
+el PID esperado; si se omite, obtiene el peer de ese socket una sola vez y
+verifica ejecutable y nacimiento antes de cualquier mutación. Cada conexión
+valida de nuevo `LOCAL_PEERPID`; cada comando coteja el lock canónico.
+
+La fixture es una alerta propia creada mediante `create_overlay`, una regla
+explícita `configure_show_control` y un tono sin monitoreo. No instala MATCHDAY
+ni atribuye acciones a GPUI. Usa el protocolo socket de CLI y conserva respuestas
+completas con brackets monotónicos. El trigger dura siempre 450 ms: para cubrir
+la carrera, el estado nativo anterior y el incluido en la respuesta de gain
+deben confirmar `running`, primer tick ejecutado y elapsed <450 ms. Dos intentos
+fallidos conservan BLOCKED.
+
+Reconcile debe conservar cursor, revisión, recibo de dispatch, contador y job;
+el recibo terminal se coteja con el journal nativo. Después comprueba deduplicación,
+cancelación posterior al primer tick, load desarmado, rechazo estando desarmado,
+armado explícito sin jobs y save durable. Cancelar antes del primer tick sigue
+NOT_EVALUATED: el control público no ofrece batching atómico ni se cambia su reloj.
+
+El único store escrito es `show-control/configuration.json`, mediante el API.
+El runner guarda bytes previos, valida recibos/hash/longitud y restaura solo si
+los bytes actuales coinciden exactamente con su última escritura reconocida.
+Los otros stores se cotejan por hash, los journals históricos permanecen
+intactos y los propios solo pueden crecer por prefijo. La fixture se retira por
+API. Contadores de IDs/migración del proyecto en memoria no se rebobinan; el
+caller conserva la responsabilidad del cierre normal del owner.
+
+`python3 -m unittest discover -s scripts -p test_h17_show_recovery.py -v`:
+**PASS**, cinco pruebas offline del verificador (recibos inválidos, duración,
+primer tick, restauración exacta y rechazo de enlaces/cambios ajenos).
+Compilación Python: **PASS**. Ensayo físico del runner: **NOT_EVALUATED** al
+prepararlo; no se ejecutó ni se tomó el owner sin cesión explícita del coordinador.

@@ -13,6 +13,11 @@ impl Identity {
         if instance == 0 || generation == 0 {
             return Err("IDENTITY");
         }
-        Ok(Self { instance, generation })
+        Ok(Self {
+            instance,
+            generation,
+        })
     }
 }
+
+pub mod lifecycle;

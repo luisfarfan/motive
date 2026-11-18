@@ -59,6 +59,7 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 | Área | Estado actual | Evidencia pendiente |
 |---|---|---|
 | Frescura y detección de captura | FAIL | [Ensayo B3 A→B→A](h14-collection-b3-verification.md): B entrega contador fresco en MKV/RTMP, pero foco no corroborado; A1/A2 FAIL conservados, sin causa aislada ni recuperación aceptada |
+| Continuidad de audio de aplicación | FAIL | [Secuencia H13 sobre B3](h14-b3-h13-additional-verification.md): `APPLICATION_UNAVAILABLE` durante `tone_resumed`, aunque la fixture seguía produciendo; seis subtrials `ok=true` no prueban continuidad completa. Micrófono aislado, A/V y autoexclusión pasan por separado |
 | Integridad/finalización de salidas | PARTIAL | [15 casos finales B3](h14-output-matrix-b3-verification.md): 10 PARTIAL/5 FAIL, 22 medios decodificables; siete fallan cadencia y dos colas tienen AAC pre-stop ausente; default sin reordering es mitigación |
 | Memoria y sesión prolongada | PARTIAL | B3 30/60 FPS y soak dual de 1800.07 s completos; ambos medios pasan decode/cadencia/píxeles/PCM; 39 skips y pausa visual 0.601 s conservados; RPC excedido, A/V no evaluado y ownership sin determinar |
 | Bundle autocontenido | PARTIAL | B1/B2/B3 ejecutados fuera del checkout, firma/closure/tools PASS; segunda Mac, notarización y reconstrucción pendientes |
@@ -66,8 +67,8 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 | Show Control real | PARTIAL | B3 demuestra entradas completas, cancelación posterior y continuidad sin MCP; concurrencia GPUI custom3000 PASS, stock450 NOT_OBSERVED; cancelación anterior no observada y FAIL geométrico estricto custom conservado |
 | Live Deck y MATCHDAY | PARTIAL | B3 instalado por GPUI 73/73, celebración real y restauración exacta del proyecto/reglas desactivadas; recorrido de producción restante pendiente |
 | Voz opcional | PARTIAL | Benchmark offline ejecutado, recall 50% falla fiabilidad; voz en vivo NOT IMPLEMENTED |
-| UX y biblioteca de grabaciones | PARTIAL | Biblioteca y controles integrados; recorrido nativo final pendiente |
-| Suite unificada sobre binario final | PARTIAL | 116+129 tests, Clippy/formato y 23/23 suites H1–H12 PASS sobre B3; H13 adicionales y producción nativa completa pendientes |
+| UX y biblioteca de grabaciones | PARTIAL | Biblioteca y controles integrados; recorrido nativo final **EN CURSO**, sin resultado anticipado |
+| Suite unificada sobre binario final | PARTIAL | 116+129 tests, Clippy/formato y 23/23 suites H1–H12 PASS sobre B3; [nueve invocaciones H13 adicionales](h14-b3-h13-additional-verification.md): 6 PASS, 1 FAIL, 2 INCONCLUSIVE. Producción nativa final EN CURSO |
 
 Primer checkpoint de instrumentación: **75 tests Rust**, Clippy all-targets
 con warnings como errores y formato pasan. Logs en
@@ -256,6 +257,35 @@ incluida la corrida fallida. No es una única ejecución continua. El PASS H12
 no contiene un límite RSS: su settling final conserva mediana 858.45 MiB.
 El resultado no cubre automáticamente las pruebas adicionales H13, los
 gestos GPUI, hot-unplug físico ni denegación real de permisos.
+
+La [consolidación H13 adicional sobre B3](h14-b3-h13-additional-verification.md)
+retiene **nueve invocaciones: seis PASS, un FAIL y dos INCONCLUSIVE**, con
+32 pares de originales/copias verificados. Pasan cierre durante importación,
+video 7/7, outputs 4/4, micrófono + sistema en owner nuevo, A/V y autoexclusión.
+Los dos intentos de cola de cierre conservan TIMEOUT/INCONCLUSIVE, aunque
+ambos owners salieron y no apareció ningún MKV nuevo. No hay un tercer intento.
+La secuencia de siete etapas de audio mantiene FAIL; el PASS separado de
+micrófono no la sustituye. Los seis wrappers confirman limpieza y restauración
+de stores; los owners de esas corridas se cerraron normalmente antes del
+siguiente caso.
+
+El [diagnóstico posterior del audio](../var/evidence/h14-system-audio-b3-failure-audit-01/findings.md)
+sitúa la primera `APPLICATION_UNAVAILABLE` durante `tone_resumed`, con buffers
+de 161 ms de edad. La fixture seguía generando audio al menos 16,73 s después.
+La edad stale de 16,989 s al intentar la siguiente grabación es posterior al
+error fijado y a la separación de la captura. No se observó cuál de las
+condiciones de identidad de aplicación produjo el rechazo. Los seis subtrials
+`ok=true`, incluido `silence`, acreditan sus ventanas medidas; no la continuidad
+completa de la aplicación: 70 muestras posteriores están `failed` y falta
+997 Hz al final, mientras continúa el tono interno de 440 Hz.
+
+El A/V separado conserva siete pares, mediana audio−video −2,75 ms y rango
+33 ms; mide alineación en esa toma, no deriva prolongada ni ausencia de latencia.
+La autoexclusión pasa su contraste espectral controlado; el owner emisor se
+cerró y el owner nativo siguiente se abrió sin emisor. **El recorrido GPUI
+final está EN CURSO**. Ninguno de estos resultados cierra los gates de captura,
+entrega completa, memoria ni distribución, y **la beta sigue no aceptada**.
+
 El [derivado posterior del soak](h14-memory-b3-soak-verification.md#derivado-posterior-framing-y-paquetes-finales)
 prueba la correspondencia inicial de framing Annex B/AVCC y clasifica la cola
 como `STOP_BOUNDARY_PACKETS_NOT_DELIVERED`: aparecen 143/144 paquetes de video

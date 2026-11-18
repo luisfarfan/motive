@@ -10,8 +10,10 @@ persistencia GPUI y soak dual completo de 1800.07 s. La concurrencia GPUI pasa
 en custom3000; stock450 sigue NOT_OBSERVED y el FAIL geométrico estricto de
 custom se conserva. La prueba RTMPS privada corresponde al bundle B2. El
 [índice H14](h14-beta-verification.md) separa resultados por binario y mantiene
-abiertos captura, entrega, memoria, pruebas adicionales H13, recorrido nativo
-y distribución. Las verificaciones H13 siguientes son históricas y no
+abiertos captura, audio de aplicación, entrega, memoria y distribución. Las
+[nueve invocaciones H13 adicionales sobre B3](h14-b3-h13-additional-verification.md)
+conservan **6 PASS, 1 FAIL y 2 INCONCLUSIVE**; el recorrido nativo final está
+**EN CURSO**. Las verificaciones del bundle H13 histórico siguientes no
 certifican automáticamente B3.
 
 **H13 implementado; aceptación PARCIAL.** Canvas configurable, audio del
@@ -45,7 +47,7 @@ ampliaciones posteriores se registran en su propio hito.
 | 11 — Overlay Engine y widgets | Texto, imagen alpha, formas, video visual, seis animaciones por capa, widgets y tres presets en dos layouts; CLI/MCP, grabación/RTMP y persistencia reales | [H11](h11-overlay-verification.md): 13 clips y 49 tests; aceptación condicionada a regresiones H1–H10 abiertas. Browser bloqueado; GPUI integra el [contrato](h11-overlay-ui-contract.md) por separado |
 | 12 — Creative Studio integrado | Biblioteca, picker, inspectores tipados, eventos, animaciones y persistencia desde GPUI; grabación VT/RTMP decodificada; 22 suites en sus últimas ejecuciones | [H12](h12-creative-studio-verification.md): 55 tests y Clippy; se conserva el fallo previo de render lag sin causa resuelta, sin certificar bundles posteriores |
 | 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12; producción GPUI y sesión dual de más de 30 min ejecutadas | [H13](h13-production-verification.md): aceptación **PARCIAL, EN CURSO**. Toma principal y compacto pasan sus gates de decode/cadencia; alerta corregida y última exclusión G PASS. Ventana congelada FAIL, contabilidad terminal y memoria sin cerrar; fallos anteriores conservados |
-| 14 — Beta Candidate | Portable B3: 23/23 suites H1–H12, Show Control/MATCHDAY y persistencia GPUI, lifecycle 30/60 FPS y soak dual 1800.07 s; concurrencia custom3000 PASS. RTMPS privado corresponde a B2 | [H14](h14-beta-verification.md): **BETA NO ACEPTADA**. Stock450 NOT_OBSERVED, FAIL geométrico estricto custom, captura/entrega/memoria y aceptación H13/nativa/distribución pendientes; históricos intactos |
+| 14 — Beta Candidate | Portable B3: 23/23 suites H1–H12; nueve invocaciones H13 adicionales: 6 PASS, 1 FAIL, 2 INCONCLUSIVE; Show Control/MATCHDAY y persistencia GPUI, lifecycle 30/60 FPS y soak dual 1800.07 s. RTMPS privado corresponde a B2 | [H14](h14-beta-verification.md): **BETA NO ACEPTADA**. Prueba nativa final EN CURSO; audio de aplicación FAIL, cola de cierre INCONCLUSIVE, stock450 NOT_OBSERVED y FAIL geométrico custom conservados; captura/entrega/memoria/distribución abiertas |
 
 Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
 bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión
@@ -335,8 +337,24 @@ corridas elegidas; no es una sola sesión continua. Conserva el primer fallo
 de ruta de escenas y la primera toma H1, que no probó la reproducción del
 tono esperado. Las repeticiones corrigieron el harness sin alterar el binario
 ni relajar criterios. El PASS H12 no impone un presupuesto RSS: su settling
-final mantiene mediana 858.45 MiB. La matriz adicional H13 y el recorrido GPUI
-completo requieren evidencia propia sobre B3.
+final mantiene mediana 858.45 MiB.
+
+Las [verificaciones H13 adicionales](h14-b3-h13-additional-verification.md)
+suman **nueve invocaciones: seis PASS, un FAIL y dos INCONCLUSIVE**, con 32
+pares de evidencia original/copia verificados. Pasan cierre durante importación,
+video 7/7, outputs 4/4, micrófono + sistema en owner nuevo, A/V y autoexclusión.
+La cola de cierre conserva dos TIMEOUT/INCONCLUSIVE; ambos procesos salieron
+sin nuevos MKV, pero no se observó la respuesta de rechazo requerida.
+La secuencia de siete etapas de audio sigue FAIL; el resultado independiente
+de micrófono no la sustituye. El [diagnóstico de esa secuencia](../var/evidence/h14-system-audio-b3-failure-audit-01/findings.md)
+sitúa `APPLICATION_UNAVAILABLE` durante `tone_resumed`, con la fixture aún
+produciendo audio al menos 16,73 s después. La subcausa de identidad no fue
+observada. Sus seis subtrials `ok=true` cubren ventanas parciales, no continuidad
+completa: 70 muestras posteriores quedan failed y desaparece 997 Hz al final.
+Los seis wrappers verifican limpieza y restauración de stores; sus owners se
+cerraron normalmente entre casos. El A/V separado tiene siete pares, mediana
+−2,75 ms y rango 33 ms, sin acreditar deriva prolongada. **La prueba nativa
+final GPUI está EN CURSO**; no se anticipa su resultado ni se acepta la beta.
 
 El [lifecycle 1080p60 y soak dual B3](h14-memory-b3-soak-verification.md)
 completó tres ciclos y 1800.07 s de grabación/RTMP local. Los dos archivos

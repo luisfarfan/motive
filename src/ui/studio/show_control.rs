@@ -133,7 +133,12 @@ impl Studio {
             || self.production.status()["output_lifecycle"]["shutdown_pending"] == true
     }
     fn show_control_command(&mut self, command: ShowControlCommand, cx: &mut Context<Self>) {
-        self.command(Command::ShowControl(command), "UI", cx);
+        let arming = matches!(&command, ShowControlCommand::ArmShowControl { .. });
+        let result = self.command(Command::ShowControl(command), "UI", cx);
+        if arming && result["ok"] == true {
+            self.message = "Producción activada".into();
+            cx.notify();
+        }
     }
     fn deck_error(&mut self, error: motive_show_control::model::Error, cx: &mut Context<Self>) {
         self.message = format!("{} · {}", error.code, error.message);

@@ -14,7 +14,7 @@ VERSION = {"type":"string", "pattern":"[0-9]{1,6}\\.[0-9]{1,6}\\.[0-9]{1,6}"}
 LICENSE = {"enum":["GPL-3.0-or-later","CC0-1.0","MIT","CC-BY-4.0"]}
 PATH = {"type":"string", "maxLength":240, "minLength":1}
 HASH = {"type":"string", "pattern":"[0-9a-f]{64}"}
-SCALAR = {"oneOf":[string(4096),number(-4096,3600000),{"type":"boolean"}]}
+SCALAR = {"oneOf":[string(4096),number(-4096,0xffffff),{"type":"boolean"}]}
 VALUE_SPEC = obj({"type":{"enum":["string","number","integer","boolean","color"]},"default":{},
     "minimum":number(-4096,3600000),"maximum":number(-4096,3600000),"max_length":number(1,4096,True)},
     ("minimum","maximum","max_length"))

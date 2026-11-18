@@ -174,7 +174,17 @@ def compile_element(path: Path, values: dict | None = None, variant: str | None 
         require(b['scope']=='node' and b['field'] in targets,'PROPERTY_EXPORT','Only the four native v1 property targets can be exported')
         properties.append({'id':symbol(prefix,p['id']),'label':p['label'],'overlay_id':source_ids[b['ref']],
                            'target':targets[b['field']],'value':{'type':'color' if p['value']['type']=='color' else 'text','value':p['value']['default']}})
-    rules = config([rule(b,prefix,[action_remap(a,source_ids,layer_ids,{'$scene':scene_id}) for a in b['actions']]) for b in doc['events']])
+    def resolve_animation(action):
+        action = deepcopy(action)
+        if 'animation_ref' in action:
+            require('animation' not in action,'ANIMATION_REFERENCE','Choose an animation reference or inline animation')
+            ref=action.pop('animation_ref')
+            authored=next((a for a in doc['animations'] if a['id']==ref),None)
+            require(authored is not None and authored['layer_id']==action.get('layer_id'),'ANIMATION_REFERENCE',str(ref))
+            action['animation']={k:v for k,v in authored.items() if k not in ('id','layer_id')}
+        if action.get('type')=='sequence':action['actions']=[resolve_animation(a) for a in action['actions']]
+        return action
+    rules = config([rule(b,prefix,[action_remap(resolve_animation(a),source_ids,layer_ids,{'$scene':scene_id}) for a in b['actions']]) for b in doc['events']])
     pack = {'schema_version':1,'id':prefix,'version':doc['version'],'name':doc['name'],'author':doc['author'],'license':doc['license'],
             'resources':resources,'scenes':[{'id':scene_id,'name':doc['name'],'layers':pack_layers}],'overlays':overlays,
             'animations':animations,'properties':properties,'events':sorted({b['event_kind'] for b in doc['events']}),

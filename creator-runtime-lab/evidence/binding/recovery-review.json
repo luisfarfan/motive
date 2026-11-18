@@ -1,0 +1,29 @@
+{
+  "scope": "independent review of isolated runtime; no Production mutations",
+  "initial_observation": {
+    "trigger": "preexisting source sim-1-source-2 plus Lower Third insertion",
+    "status": "FAIL",
+    "cli_exit": 1,
+    "original_output": {
+      "status": "FAIL",
+      "error": {
+        "code": "ID_CONFLICT",
+        "message": "Source already exists"
+      }
+    },
+    "gap": "Prior successful asset mutation and its receipt were lost from install API/CLI result"
+  },
+  "correction": {
+    "step": "known dispatch/apply failures retain Partial journal with no pending operation",
+    "install": "accepted review returns installation report including partial/uncertain state",
+    "cli": "PARTIAL exit1 emits installations, snapshot, current budget and sidecar; batch stops; earlier successful installations retained on later review rejection"
+  },
+  "checks": {
+    "command": "cargo test --offline --locked --manifest-path creator-runtime-lab/Cargo.toml --test recovery",
+    "passed": 4,
+    "failed": 0,
+    "clippy": "PASS"
+  },
+  "atomic_rollback": false,
+  "native_integration": false
+}

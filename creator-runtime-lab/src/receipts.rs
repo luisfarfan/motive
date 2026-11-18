@@ -316,7 +316,7 @@ pub fn apply_model_step(
             PlanStep::ImportAssetAfterLocalAuthorization { resource_ref, .. },
             StepResult::Asset { id },
         ) => {
-            label(&id.0)?;
+            resource_id(&id.0)?;
             check(
                 !out.assets.contains_key(id),
                 "ID_CONFLICT",
@@ -477,15 +477,29 @@ impl StrictOwnerModel {
     }
     pub fn step(&mut self, installation: &mut Installation) -> Result<(), Error> {
         let index = installation.begin_step(&self.snapshot)?;
-        let result = self.dispatch(installation, index)?;
+        let result = match self.dispatch(installation, index) {
+            Ok(result) => result,
+            Err(error) => {
+                // The strict model has not mutated the graph. This is a known
+                // rejection, distinct from an uncertain native dispatch outcome.
+                installation.rejected(&error.code);
+                return Err(error);
+            }
+        };
         let before = self.snapshot.clone();
-        let after = apply_model_step(
+        let after = match apply_model_step(
             &before,
             &installation.plan,
             &installation.bindings,
             index,
             &result,
-        )?;
+        ) {
+            Ok(after) => after,
+            Err(error) => {
+                installation.rejected(&error.code);
+                return Err(error);
+            }
+        };
         let receipt = Receipt {
             instance_id: installation.plan.instance_id.clone(),
             session: before.session.clone(),
@@ -521,12 +535,25 @@ impl StrictOwnerModel {
             }
         })
     }
+    /// Once review is accepted, always return the installation journal, including
+    /// partial/uncertain outcomes. Ok means a report exists, not that installation
+    /// succeeded; callers must inspect Phase::InstalledInModel before using it.
+    /// Only a rejected begin returns Err because it made no modeled mutation.
     pub fn install(&mut self, review: LocalModelReview) -> Result<Installation, Error> {
         let mut installation = self.begin(review)?;
         while installation.phase == Phase::Installing {
-            self.step(&mut installation)?;
+            if let Err(error) = self.step(&mut installation) {
+                if installation.phase == Phase::Installing {
+                    installation.uncertain(&error.code);
+                }
+                break;
+            }
         }
-        installation.bound_rules()?;
+        if installation.phase == Phase::InstalledInModel
+            && let Err(error) = installation.bound_rules()
+        {
+            installation.uncertain(&error.code);
+        }
         Ok(installation)
     }
 }

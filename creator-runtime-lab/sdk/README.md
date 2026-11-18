@@ -74,6 +74,15 @@ no se promete una transacción atómica de múltiples archivos ni un journal
 persistido antes de cada operación simulada. El futuro owner real debe guardar
 intenciones duraderas antes de despachar y reconciliar resultados inciertos.
 
+Si el staging contiene una entrada ajena, un inode reemplazado o bytes alterados,
+la CLI conserva **también el contenedor exterior**, informa
+`STAGING_RECONCILIATION` y entrega `staging_recovery_path`. Solo retira directorios
+propios vacíos cuya identidad sigue coincidiendo; no hay limpieza recursiva del
+workspace. La persona/owner debe revisar ese estado antes de retirarlo o volver a
+importar. La prueba de intrusión verifica esta conservación tanto al planificar
+como al evaluar una restauración.
+
+
 `restore` revalida el sidecar con `Store::parse`, vuelve a revisar los paquetes
 reales y produce **solo una evaluación**. No restaura recursos ni ejecuta eventos:
 

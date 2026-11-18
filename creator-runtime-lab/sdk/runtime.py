@@ -8,6 +8,7 @@ from copy import deepcopy
 import hashlib
 import json
 import os
+import stat
 from pathlib import Path
 import subprocess
 import sys
@@ -116,11 +117,73 @@ def _run_model(request, expected_scope="strict_offline_owner_model"):
     result = subprocess.run([str(LAB / "target/debug/motive-creator-runtime-lab")], input=payload,
                             capture_output=True, timeout=30)
     report = loads(result.stdout)
-    if result.returncode:
+    if result.returncode and report.get("status") != "PARTIAL":
         raise LabError(report["error"]["code"], report["error"]["message"])
     require(report.get("production_connected") is False and report.get("scope") == expected_scope,
             "MODEL_SCOPE", "Unexpected owner model response")
     return report
+
+
+class _StagingWorkspace:
+    """Own one container, removing only its empty, identity-checked directories.
+
+    Never wrap security-sensitive staging in TemporaryDirectory: its recursive
+    cleanup would erase foreign objects deliberately preserved by StagedPackage.
+    """
+
+    def __enter__(self):
+        scratch = LAB / ".scratch"
+        scratch.mkdir(exist_ok=True)
+        self._parent_fd = _open_directory(scratch)
+        self._fd = self._stage_fd = None
+        self.path = None
+        try:
+            self.path = Path(tempfile.mkdtemp(prefix="sdk-", dir=scratch))
+            self._fd = _open_directory(self.path)
+            os.mkdir("private-staging", mode=0o700, dir_fd=self._fd)
+            self._stage_fd = os.open("private-staging", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=self._fd)
+            info = os.fstat(self._fd)
+            self._identity = info.st_dev, info.st_ino
+            info = os.fstat(self._stage_fd)
+            self._stage_identity = info.st_dev, info.st_ino
+            return self.path
+        except BaseException as exc:
+            self._close()
+            if self.path is not None:
+                error = LabError("STAGING_RECONCILIATION", "Workspace construction was interrupted; preserve it for explicit recovery")
+                error.recovery_path = str(self.path)
+                error.original_error_code = getattr(exc, "code", None)
+                raise error from exc
+            raise
+
+    def _close(self):
+        for fd in (self._stage_fd, self._fd, self._parent_fd):
+            if fd is not None:
+                os.close(fd)
+        self._stage_fd = self._fd = self._parent_fd = None
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        retained = False
+        try:
+            outer = os.stat(self.path.name, dir_fd=self._parent_fd, follow_symlinks=False)
+            inner = os.stat("private-staging", dir_fd=self._fd, follow_symlinks=False)
+            owned = (stat.S_ISDIR(outer.st_mode) and (outer.st_dev, outer.st_ino) == self._identity and
+                     stat.S_ISDIR(inner.st_mode) and (inner.st_dev, inner.st_ino) == self._stage_identity)
+            if owned and os.listdir(self._fd) == ["private-staging"] and not os.listdir(self._stage_fd):
+                os.rmdir("private-staging", dir_fd=self._fd)
+                os.rmdir(self.path.name, dir_fd=self._parent_fd)
+            else:
+                retained = True
+        except OSError:
+            retained = True
+        finally:
+            self._close()
+        if retained:
+            error = LabError("STAGING_RECONCILIATION", "Staging was preserved for explicit recovery; no recursive cleanup was attempted")
+            error.recovery_path = str(self.path)
+            error.original_error_code = getattr(exc_value, "code", None)
+            raise error from exc_value
+        return False
 
 
 def run(packages, *, snapshot=None, target_scenes=None, overrides=None, instance_ids=None, mode="plan"):
@@ -138,10 +201,8 @@ def run(packages, *, snapshot=None, target_scenes=None, overrides=None, instance
     require(isinstance(overrides or {}, dict), "OVERRIDES", "Overrides must map instance IDs to properties/layouts")
     overrides = deepcopy(overrides or {})
     require(instance_ids is None or len(instance_ids) == len(packages), "INSTANCE_SELECTION", "One instance ID per package required")
-    scratch = LAB / ".scratch"
-    scratch.mkdir(exist_ok=True)
     reviews, insertions, stages = [], [], []
-    with tempfile.TemporaryDirectory(dir=scratch) as temporary, ExitStack() as stack:
+    with _StagingWorkspace() as temporary, ExitStack() as stack:
         for index, path in enumerate(packages):
             reviewed = review_package(Path(path), policy)
             instance = instance_ids[index] if instance_ids is not None else symbol(f"instance-{index + 1}", reviewed.package_id)
@@ -162,13 +223,13 @@ def run(packages, *, snapshot=None, target_scenes=None, overrides=None, instance
         for stage in stages:
             stage.reverify()
     plans = [installation["plan"] for installation in result["installations"]]
-    report = {"status": "PASS", "mode": mode, "scope": "sequential_strict_offline_owner_model",
+    report = {"status": result["status"], "mode": mode, "scope": "sequential_strict_offline_owner_model",
               "production_connected": False, "native_render_verified": False, "capabilities_observed_live": False,
               "installed_in_production": False, "owner_authorized": False, "show_control_armed": False,
               "simulated_ids_only": True, "staging_reverified_and_cleaned": True,
               "scene_ids_preserved": set(result["snapshot"]["scenes"]) == set(snapshot["scenes"]),
               "target_scenes": scenes, "reviews": reviews, "plans": plans,
-              "final_budget": plans[-1]["budget"],
+              "final_budget": result["snapshot_budget"],
               "changes": {"new_scenes": 0, "new_instances": len(plans),
                           "new_sources": len(result["snapshot"]["sources"]) - len(snapshot["sources"]),
                           "new_layers": len(result["snapshot"]["layers"]) - len(snapshot["layers"]),
@@ -178,7 +239,7 @@ def run(packages, *, snapshot=None, target_scenes=None, overrides=None, instance
                         "Plans append above existing layers and retain both layout orientations; no visual overlap acceptance is claimed.",
                         "Sequential proposals use predicted model revisions; the real owner must review current state before each operation.",
                         "Preview SVG is approximate; neither JS nor modeled receipts demonstrate native frames."]}
-    if mode == "simulate":
+    if mode == "simulate" or result["status"] == "PARTIAL":
         report["simulation"] = result
     return report
 
@@ -187,12 +248,10 @@ def assess_restore(store_path, packages, snapshot):
     """Recheck actual archives and ask Rust to assess an inert experimental sidecar."""
     store = read_json(Path(store_path))
     verified = {}
-    scratch = LAB / ".scratch"
-    scratch.mkdir(exist_ok=True)
     # Static contract availability only: Rust independently checks the destination
     # snapshot so unavailable runtime capabilities are reported as restore issues.
     policy = _policy(fixture_snapshot())
-    with tempfile.TemporaryDirectory(dir=scratch) as temporary, ExitStack() as stack:
+    with _StagingWorkspace() as temporary, ExitStack() as stack:
         stages = []
         for path in packages:
             reviewed = review_package(Path(path), policy)
@@ -280,7 +339,10 @@ def main(argv=None):
         print(data.decode(), end="")
         return 0 if report["status"] == "PASS" else 1
     except (LabError, OSError, subprocess.SubprocessError) as exc:
-        print(encode({"status": "FAIL", "error": {"code": getattr(exc, "code", "LOCAL_RUNTIME"), "message": str(exc)}}).decode(), file=sys.stderr, end="")
+        error = {"code": getattr(exc, "code", "LOCAL_RUNTIME"), "message": str(exc)}
+        if getattr(exc, "recovery_path", None):
+            error.update(staging_recovery_path=exc.recovery_path, original_error_code=exc.original_error_code)
+        print(encode({"status": "FAIL", "error": error}).decode(), file=sys.stderr, end="")
         return 1
 
 

@@ -4,9 +4,11 @@ from io import StringIO
 import json
 from pathlib import Path
 import stat
+import shutil
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 LAB = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(LAB / "sdk"))
@@ -32,7 +34,7 @@ class SdkTests(unittest.TestCase):
         stdout, stderr = StringIO(), StringIO()
         with redirect_stdout(stdout), redirect_stderr(stderr):
             code = runtime.main(args)
-        return code, json.loads(stdout.getvalue() if code == 0 else stderr.getvalue())
+        return code, json.loads(stdout.getvalue() or stderr.getvalue())
 
     def test_catalog_reports_seven_native_candidates_and_blocked_web(self):
         catalog = runtime.library()
@@ -171,6 +173,37 @@ class SdkTests(unittest.TestCase):
         store.write_bytes(runtime.encode(bad))
         self.rejects("STORE_AUTHORITY", lambda: runtime.assess_restore(store, [self.lower], simulated["snapshot"]))
 
+    def test_foreign_staging_entries_survive_sdk_and_restore_cleanup(self):
+        simulated = runtime.run([self.lower], mode="simulate")["simulation"]
+        store = self.root / "sidecar.json"
+        runtime._write_new(store, runtime.encode(simulated["store"]))
+        original_stage = runtime.stage_package
+        for operation in (lambda: runtime.run([self.lower]),
+                          lambda: runtime.assess_restore(store, [self.lower], simulated["snapshot"])):
+            created = []
+            def interfere(reviewed, root):
+                stage = original_stage(reviewed, root)
+                foreign = stage.path / "foreign-retain.txt"
+                foreign.write_text("controlled test-owned foreign entry")
+                created.append((stage.path, foreign))
+                return stage
+            with self.subTest(operation=operation), patch.object(runtime, "stage_package", side_effect=interfere):
+                try:
+                    with self.assertRaises(LabError) as caught:
+                        operation()
+                    self.assertEqual(caught.exception.code, "STAGING_RECONCILIATION")
+                    operation_path, foreign = created[0]
+                    self.assertEqual(foreign.read_text(), "controlled test-owned foreign entry")
+                    self.assertTrue((operation_path / "reviewed.motivepack").exists())
+                    workspace = operation_path.parent.parent
+                    self.assertEqual(caught.exception.recovery_path, str(workspace))
+                    self.assertTrue(workspace.exists())
+                finally:
+                    # Explicit test-fixture disposal after verifying preservation.
+                    # Every file here was created by this test, including the intrusion.
+                    if created:
+                        shutil.rmtree(created[0][0].parent.parent)
+
     def test_snapshot_io_rejects_duplicate_keys_and_symlinks(self):
         snapshot = self.root / "snapshot.json"
         snapshot.write_text('{"session":"one","session":"two"}')
@@ -178,6 +211,35 @@ class SdkTests(unittest.TestCase):
         link = self.root / "link.json"
         link.symlink_to(snapshot)
         self.rejects("FILE_BOUNDARY", lambda: runtime.read_json(link))
+
+    def test_partial_installation_retains_receipts_actual_budget_and_private_store(self):
+        snapshot = runtime.fixture_snapshot()
+        collision = "sim-1-source-2"
+        snapshot["sources"][collision] = {"id": collision, "definition": None,
+            "texture_bytes": 0, "video": False, "installation": None}
+        snapshot_path = self.root / "snapshot.json"
+        snapshot_path.write_bytes(runtime.encode(snapshot))
+        store_path = self.root / "partial-store.json"
+        code, report = self.cli(["simulate", str(self.lower), "--snapshot", str(snapshot_path),
+                                 "--store-output", str(store_path)])
+        self.assertEqual(code, 1)
+        self.assertEqual(report["status"], "PARTIAL")
+        state = report["simulation"]["installations"][0]
+        self.assertEqual(state["phase"], "partial")
+        self.assertEqual(state["error"], "ID_CONFLICT")
+        self.assertEqual(len(state["receipts"]), 1)
+        self.assertEqual(report["final_budget"]["sources"], 1)
+        self.assertEqual(report["final_budget"]["resource_count"], 1)
+        self.assertEqual(json.loads(store_path.read_bytes())["instances"][0]["installation_phase"], "partial")
+        self.assertEqual(report["simulation"]["snapshot"]["sources"][collision], snapshot["sources"][collision])
+
+    def test_batch_review_rejection_keeps_earlier_installed_state(self):
+        report = runtime.run([self.lower, self.lower], instance_ids=["same", "same"], mode="plan")
+        self.assertEqual(report["status"], "PARTIAL")
+        self.assertEqual(report["simulation"]["stopped_on_error"]["code"], "INSTANCE_CONFLICT")
+        self.assertEqual(len(report["simulation"]["installations"]), 1)
+        self.assertEqual(len(report["simulation"]["store"]["instances"]), 1)
+        self.assertEqual(report["final_budget"]["sources"], 2)
 
 
 if __name__ == "__main__":

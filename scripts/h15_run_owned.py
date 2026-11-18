@@ -59,7 +59,16 @@ def main():
             else:
                 raise RuntimeError('Owner startup timeout')
             suite = subprocess.Popen(args.command, cwd=ROOT, env=env, stdout=suite_log, stderr=suite_log)
-            report['suite_exit'] = suite.wait(timeout=args.timeout)
+            deadline = time.monotonic() + args.timeout
+            while suite.poll() is None:
+                # Reap an owner that closed itself. Otherwise a child verifier
+                # observing ps sees our zombie and mistakes it for live native
+                # ownership, even though normal shutdown already completed.
+                owner.poll()
+                if time.monotonic() >= deadline:
+                    raise subprocess.TimeoutExpired(args.command, args.timeout)
+                time.sleep(.1)
+            report['suite_exit'] = suite.returncode
             report['status'] = 'PASS_RUNNER' if report['suite_exit'] == 0 else 'FAIL_RUNNER'
         except Exception as error:
             report['error'] = str(error)

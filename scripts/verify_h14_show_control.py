@@ -251,7 +251,10 @@ class Suite:
 
     def open(self):
         self.owner_text = self.lock.read_text()
-        check(str(ROOT) in self.owner_text and 'H14' in self.owner_text, 'canonical H14 lock for this checkout')
+        owner = json.loads(self.owner_text)
+        check(owner.get('worktree') == str(ROOT) and
+              bool({'H14', 'H15'} & set(owner.get('owner', '').split())),
+              'canonical verification lock for this checkout')
         self.report['lock'] = {'path': str(self.lock), 'owner_sha256': __import__('hashlib').sha256(self.owner_text.encode()).hexdigest()}
         self.client = Client(self.directory)
         self.initial = self.snapshot('initial')

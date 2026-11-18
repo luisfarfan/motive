@@ -77,9 +77,9 @@ Conserva las aserciones anteriores y los límites de silencio/pausa. Su contrast
 offline con el medio histórico H14 y el nuevo B1 queda separado en
 `h15-audio-continuity-checker/report.json`; no reescribe aquellos informes.
 El nuevo checker rechaza la pérdida tardía histórica. También conserva un
-fallo de la ventana final del tono inicial en B1 (mínimo 0,01691 frente a
+fallo de una ventana del tono inicial en B1 (mínimo 0,01691 frente a
 referencia 0,03160), aunque reanudación/cola pasan y no hay fallos de identidad.
-La alineación del borde tono→silencio necesita revisión; no se amplía el guard
+La alineación se investigó como hipótesis, aún sin demostrar; no se amplía el guard
 de 200 ms para producir un PASS. El PASS del runner anterior sigue acotado a
 sus aserciones originales.
 
@@ -156,3 +156,37 @@ retroactivo. El fallo intermitente de identidad continúa abierto.
 El helper de regresiones adopta reordering=false por defecto como perfil H15
 permitido. Los ensayos que soliciten true explícitamente deben comprobar rechazo;
 la matriz H14 original y sus resultados permanecen intactos.
+
+### C — resultado B4, límite conservado
+
+`h13-system-audio-1794978516071979000/report.json`: pilot, RTMP, recovery,
+transitions y persistence PASS. Silence conserva FAIL del nuevo gate de
+continuidad: amplitud 997 Hz 0,016809 frente a referencia 0,031605 en la ventana
+interior 2,7–2,8 s; resumed y tail PASS, sin failed/disconnected inesperado.
+El nuevo bracket es 38,85 ms y relaciona 1.688.576 muestras de 1649 frames AAC.
+La hipótesis inicial de un borde de fase **no explica** esta caída. El análisis
+de 20 ms (`h15-audio-b4/low-projection-review.json`) conserva una caída a 0,0190
+y 0,0106 alrededor de 2,72–2,76 s mientras 440 Hz continúa. No se conoce todavía
+si es discontinuidad/ausencia en captura o tratamiento temporal del audio; los
+meters espaciados no observan ese intervalo. No se cambia el umbral ni se declara
+reparación. El log registra buffering OBS de 42 ms, sin demostrar causalidad.
+El fallo H14 de identidad tampoco se ha reproducido: son dos límites distintos.
+
+### D/E — matriz conservadora y regresión del candidato B4
+
+`h15-output-matrix-b4/report.json`: ocho primeros casos funcionales PASS
+(VideoToolbox/x264 × recording/streaming/dual, cancelación y receiver-loss).
+Cada medio decodifica, cumple cadencia, AAC continuo y ausencia de clipping;
+las colas conservan `STOP_BOUNDARY_PACKETS_NOT_DELIVERED`, y receptor perdido
+queda INCONCLUSIVE/medio parcial intencional. No se ocultan diferencias de contadores.
+El noveno caso original es FAIL del harness: el padre dejó un zombie mientras
+el verificador esperaba que desapareciera en ps. Owner ya había salido normalmente
+y escrito el terminal. Se corrige reaping en `h15_run_owned.py`; el nuevo caso
+`h15-regressions-b4/shutdown-reaped` obtiene functional PASS / PARTIAL de cola,
+owner exit 0, sin force-stop. No reemplaza el informe fallido.
+
+Control MCP/CLI compartido, desconexión de cliente y recepción fragmentada PASS.
+El test live de perfiles verifica rechazo de preflight/start sin incrementar
+attempt y conserva la selección unsafe hasta desactivación explícita. Latencia
+B4: mediana 3,399 ms / p95 12,047 ms / máximo 27,868 ms en 100 consultas idle;
+el gate p95<20 ms pasa. No implica latencia garantizada bajo carga.

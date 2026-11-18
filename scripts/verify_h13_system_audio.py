@@ -250,8 +250,12 @@ class Run:
         return trial
 
     def sample(self):
+        fixture_before = dict(monotonic=time.monotonic(), pid=self.fixture.pid,
+                              exit_code=self.fixture.poll()) if self.fixture else None
         state = self.client.state()
         now = time.monotonic()
+        fixture_after = dict(monotonic=now, pid=self.fixture.pid,
+                             exit_code=self.fixture.poll()) if self.fixture else None
         cpu, rss = process_sample(state['pid'])
         assert state['pid'] == self.initial['pid'] and output_active(state, self.kind), state
         assert input_state(state, self.tone)['instance_id'] == self.tone_instance
@@ -261,6 +265,7 @@ class Run:
         assert state['stats']['encoded_frames'] >= self.last_encoded_frames
         self.last_encoded_frames = state['stats']['encoded_frames']
         observation = dict(seconds=now-self.current['origin'], state=state,
+            fixture_process_bracket=[fixture_before, fixture_after],
             cpu_percent=100*(cpu-self.previous_cpu)/(now-self.previous_time), rss_mib=rss)
         self.previous_cpu, self.previous_time = cpu, now
         return observation

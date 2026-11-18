@@ -20,7 +20,7 @@ METADATA=obj({'package_version':{'const':1},'format':{'const':'motive-element-la
     'content_kind':{'enum':['declarative_pack','web_element']},'id':string(64),'version':VERSION,'name':string(128),'author':string(128),'license':LICENSE,
     'manifest':{'enum':['manifest.json','web-element.json']},'preview_paths':arr(PATH,16,1),
     'payload_files':number(1,254,True),'payload_bytes':number(1,MAX_TOTAL,True),
-    'compatibility':obj({'baseline':{'type':'string','pattern':'[0-9a-f]{40}'},'creatorpack_schema':number(0,1,True),'web_element_schema':number(0,1,True),'required_capabilities':arr(string(64),32)}),
+    'compatibility':obj({'baseline':{'type':'string','pattern':'^[0-9a-f]{40}$'},'creatorpack_schema':number(0,1,True),'web_element_schema':number(0,1,True),'required_capabilities':arr(string(64),32)}),
     'review':{'const':'required_before_official_installation'},'trusted_author':{'const':False}})
 CHECKSUMS=obj({'version':{'const':1},'algorithm':{'const':'sha256'},'files':arr(obj({'path':PATH,'bytes':number(1,MAX_FILE,True),'sha256':HASH}),255,1)})
 BASELINE='6019ad0acac4b52dcf1ebc44f2006406fde533f8'

@@ -5,6 +5,15 @@ from common import read_json, require
 from compiler import Bundle, capabilities, symbol
 from contracts import check_assets, config, contract, estimate
 
+VISUAL_ACTIONS={'show_overlay','hide_overlay','widget','trigger_animated_widget','animate',
+                'countdown_start','countdown_reset','select_scene','update_text','sequence'}
+
+def unsupported_actions(action):
+    result=[] if action['type'] in VISUAL_ACTIONS else [action['type']]
+    if action['type']=='sequence':
+        for child in action['actions']:result+=unsupported_actions(child)
+    return result
+
 def load_pack(directory: Path) -> Bundle:
     pack=read_json(directory/'manifest.json')
     rules=read_json(directory/'rules.json') if (directory/'rules.json').exists() else config()
@@ -62,7 +71,9 @@ def select(bundle: Bundle,scene_ids: list[str] | None=None,source_ids: list[str]
     dropped=[];kept=[]
     for rule in rules['rules']:
         missing=set().union(*(action_refs(a) for a in rule['actions']))-refs
-        if missing:dropped.append({'id':rule['id'],'reason':'references_outside_selection','references':sorted(missing)})
+        unsupported=[t for a in rule['actions'] for t in unsupported_actions(a)]
+        if unsupported:dropped.append({'id':rule['id'],'reason':'unbound_action_semantics','actions':unsupported})
+        elif missing:dropped.append({'id':rule['id'],'reason':'references_outside_selection','references':sorted(missing)})
         else:rule['enabled']=False;kept.append(rule)
     rules['rules']=kept
     assets={r['file_name']:bundle.assets[r['file_name']] for r in pack['resources']}
@@ -74,6 +85,8 @@ def select(bundle: Bundle,scene_ids: list[str] | None=None,source_ids: list[str]
 def combine(bundles: list[Bundle],id_: str='composition',single_scene: bool=False,occupied=None) -> Bundle:
     require(0 < len(bundles) <= 16,'COMPOSE_LIMIT','Choose 1..16 inputs')
     require(all(not b.rules['variables'] for b in bundles),'COMPOSE_VARIABLES','Variables need explicit migration; this adapter rejects them')
+    require(all(not unsupported_actions(a) for b in bundles for r in b.rules['rules'] for a in r['actions']),
+            'COMPOSE_ACTION','Only visual actions have namespace semantics; select first to review discarded rules')
     # Distinct licenses need a reviewed composite license policy, not a guessed replacement.
     licenses={b.pack['license'] for b in bundles}
     require(len(licenses)==1,'LICENSE_COMBINATION','Mixed licenses require review; no silent relicensing')

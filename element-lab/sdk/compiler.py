@@ -144,6 +144,7 @@ def compile_element(path: Path, values: dict | None = None, variant: str | None 
     asset_ids = {r['id']:symbol(prefix,r['id']) for r in doc['resources']}
     assets,resources = {},[]
     for r in doc['resources']:
+        require(r['license'] == doc['license'],'RESOURCE_LICENSE','Mixed resource licenses need a reviewed attribution policy; no silent relicensing')
         data = read_bytes(path.parent,r['path']); basename = Path(r['path']).name
         name = symbol(prefix,Path(basename).stem)+Path(basename).suffix
         descriptor = {k:r[k] for k in ('kind','sha256','bytes','width','height','duration_ms')}

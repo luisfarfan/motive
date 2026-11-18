@@ -3,7 +3,8 @@ import hashlib
 from pathlib import Path
 import struct
 import zlib
-from common import LAB, read_bytes, require, write_json
+from common import LAB, read_bytes, require, validate, write_json
+from schemas import ID
 
 TEMPLATES=['lower-third','community-alert','goal-celebration','countdown']
 
@@ -20,6 +21,7 @@ def motif(seed: int) -> bytes:
 def create(template: str,directory: Path,id_: str | None=None) -> Path:
     require(template in TEMPLATES,'TEMPLATE',template);require(not directory.exists(),'OUTPUT_EXISTS',str(directory))
     seed=TEMPLATES.index(template);id_=id_ or template
+    validate(id_,ID,'element.id')
     title,subtitle,kind,duration=[('Alex Rivera','Ideas que merecen una conversación','lower_third',0),
         ('Una nueva voz','Gracias por ser parte de la comunidad','alert',4500),
         ('GOOOOL','Club del Puerto','alert',5000),('Volvemos en','Un momento para preparar lo siguiente','countdown',90000)][seed]

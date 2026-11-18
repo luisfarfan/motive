@@ -26,3 +26,9 @@ Variables de reglas y mezclas de licencias diferentes exigen un adaptador futuro
 revisado: se rechazan explícitamente. No se trasladan Decks; los nuevos bindings
 se revisarán en el instalador oficial. No se inventan botones con referencias
 inválidas ni se instala un plan.
+
+`select` conserva el id/version de la colección de origen como propuesta parcial;
+el hash del paquete distingue exactamente sus bytes. No presentarlo como una
+actualización oficial del pack completo. Antes de publicar selecciones en un
+registro futuro habrá que asignar identidad/versionado de derivación y revisar
+la relación con el origen. `compose --id` sí crea una nueva identidad explícita.

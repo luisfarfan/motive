@@ -1,7 +1,7 @@
 //! Read-only contract adapter. No Motive, libobs, socket or backend dependency.
 use motive_show_control::{
     actions::{self, Action},
-    model::Error,
+    model::{Error, Event},
     packs::{Capability, CreatorPack},
     runtime::Config,
     simulation,
@@ -15,6 +15,8 @@ use std::io::{self, Read};
 struct Request {
     pack: Value,
     rules: Value,
+    #[serde(default)]
+    events: Vec<Value>,
 }
 
 fn validate(input: &str) -> Result<Value, Error> {
@@ -46,9 +48,24 @@ fn validate(input: &str) -> Result<Value, Error> {
         }
     }
     let plan = pack.plan(&Capability::h12_contracts())?;
+    let events = request
+        .events
+        .iter()
+        .map(|e| Event::from_json(&e.to_string()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let rehearsal = if events.is_empty() {
+        None
+    } else {
+        Some(simulation::run_events(
+            "element-lab-explicit-fixture",
+            rules,
+            events,
+            simulation::pack_snapshot(&pack)?,
+        )?)
+    };
     Ok(
         json!({"status":"PASS", "mode":"real_show_control_contract_offline", "pack_id":pack.id,
-        "prepared_actions":prepared,"plan":plan,"production_connected":false,"native_render_verified":false}),
+        "prepared_actions":prepared,"plan":plan,"rehearsal":rehearsal,"production_connected":false,"native_render_verified":false}),
     )
 }
 fn main() {

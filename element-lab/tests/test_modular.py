@@ -1,4 +1,5 @@
 import sys,unittest,hashlib
+from copy import deepcopy
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'sdk'))
 from common import LAB,REPO,LabError
@@ -34,5 +35,13 @@ class ModularTests(unittest.TestCase):
     def test_deterministic(self):
         a=select(self.tech,scene_ids=['tech-starting']);b=select(self.arena,scene_ids=['arena-starting'])
         self.assertEqual(combine([a,b]),combine([a,b]))
+    def test_unbound_action_is_explicitly_removed_or_rejected(self):
+        p=deepcopy(self.tech)
+        target=p.rules['rules'][0];target['actions']=[{'type':'counter_increment','counter_id':'unbound','amount':1}]
+        selected=select(p,scene_ids=['tech-starting'])
+        removed=next(r for r in selected.report['selection']['removed_rules'] if r['id']==target['id'])
+        self.assertEqual(removed['reason'],'unbound_action_semantics')
+        with self.assertRaises(LabError) as error:combine([p])
+        self.assertEqual(error.exception.code,'COMPOSE_ACTION')
 
 if __name__=='__main__':unittest.main()

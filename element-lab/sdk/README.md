@@ -20,7 +20,9 @@ python3 element-lab/sdk/motive_elements.py inspect element-lab/.scratch/my-pack
 revisión. Nada instala contenido en Production. Los outputs existentes se
 rechazan. Borrar solo outputs propios o elegir otro nombre para repetir.
 
-stdout: JSON de resultado. stderr: `{status:"FAIL",error:{code,message}}`, exit 1.
+stdout: JSON de resultado. Errores de contenido en stderr:
+`{status:"FAIL",error:{code,message}}`, exit 1. Uso inválido de argumentos:
+ayuda estándar de argparse, exit 2.
 Entradas con claves duplicadas, NaN, campos/versiones desconocidas, paths no
 relativos, symlinks y referencias inválidas fallan. `--set` recibe valores JSON
 (tipados, sin coerción). Los presets crean recursos originales localmente.
@@ -35,3 +37,10 @@ Las propiedades marcadas compile_time se hornean en la definición exportada.
 Las cuatro properties v1 del pack conservan exactamente su contrato. Estados son
 metadatos; referencias animation_ref se resuelven en acciones existentes. No hay
 keyframes, código ejecutable, expresiones ni motores adicionales.
+
+Órdenes adicionales: `select` extrae escenas/fuentes de un pack, `rehearse` admite
+fixtures en el simulador real de Show Control, `web-validate` revisa el contrato
+web, `package` recibe una carpeta candidata nativa o una web con `--web`,
+`verify-package` verifica integridad/contrato sin instalar, `catalog-validate`
+revisa entradas locales y `serve` abre el harness loopback. Ver `--help` de cada
+orden. [Ejemplos completos de autoría](../docs/agent-authoring.md).

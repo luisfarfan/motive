@@ -5,6 +5,8 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'sdk'))
 from common import LAB
 
 class CLITests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):(LAB/'.scratch').mkdir(exist_ok=True)
     def run_cli(self,*args):
         return subprocess.run([sys.executable,str(LAB/'sdk/motive_elements.py'),*map(str,args)],capture_output=True,text=True)
     def test_workflow(self):
@@ -20,5 +22,14 @@ class CLITests(unittest.TestCase):
     def test_capabilities_static(self):
         result=self.run_cli('capabilities');self.assertEqual(result.returncode,0)
         self.assertFalse(json.loads(result.stdout)['production_connected'])
+    def test_agent_authoring_end_to_end(self):
+        with tempfile.TemporaryDirectory(dir=LAB/'.scratch') as temp:
+            result=subprocess.run([sys.executable,str(LAB/'sdk/examples/author_from_brief.py'),
+                str(LAB/'sdk/examples/donation-brief.json'),'--output',str(Path(temp)/'delivery')],capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            report=json.loads(result.stdout)
+            self.assertEqual(report['properties']['title'],'Gracias, Lucía')
+            self.assertEqual(report['composed_budget']['counts']['sources'],4)
+            self.assertFalse(report['installed'])
 
 if __name__=='__main__':unittest.main()

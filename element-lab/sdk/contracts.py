@@ -10,7 +10,7 @@ from common import LAB, LabError, encode, loads, read_bytes, require
 
 _built = False
 
-def contract(pack: dict, rules: dict) -> dict:
+def contract(pack: dict, rules: dict, events: list | None = None) -> dict:
     global _built
     project = LAB/'sdk/contract-validator'
     if not _built:
@@ -19,7 +19,7 @@ def contract(pack: dict, rules: dict) -> dict:
         require(result.returncode == 0, 'CONTRACT_BUILD', result.stderr[-4000:])
         _built = True
     result = subprocess.run([str(project/'target/debug/motive-element-contract')],
-                            input=encode({'pack':pack,'rules':rules}), capture_output=True, timeout=15)
+                            input=encode({'pack':pack,'rules':rules,'events':events or []}), capture_output=True, timeout=15)
     report = loads(result.stdout)
     if result.returncode:
         raise LabError(report['error']['code'], report['error']['message'])

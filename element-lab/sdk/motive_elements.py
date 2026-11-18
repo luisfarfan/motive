@@ -24,9 +24,11 @@ def parser():
     compose=sub.add_parser('compose');compose.add_argument('inputs',nargs='+',type=Path);compose.add_argument('--output','-o',required=True,type=Path)
     compose.add_argument('--id',default='composition');compose.add_argument('--single-scene',action='store_true');compose.add_argument('--occupied',type=Path)
     selection=sub.add_parser('select');selection.add_argument('input',type=Path);selection.add_argument('--scenes',nargs='+');selection.add_argument('--sources',nargs='+');selection.add_argument('--output','-o',required=True,type=Path)
+    rehearsal=sub.add_parser('rehearse');rehearsal.add_argument('input',type=Path);rehearsal.add_argument('--events',required=True,type=Path);rehearsal.add_argument('--enable-for-simulation',action='store_true')
     web=sub.add_parser('web-validate');web.add_argument('input',type=Path)
     package=sub.add_parser('package');package.add_argument('input',type=Path);package.add_argument('--output','-o',required=True,type=Path);package.add_argument('--web',action='store_true')
     verify=sub.add_parser('verify-package');verify.add_argument('input',type=Path)
+    catalog=sub.add_parser('catalog-validate');catalog.add_argument('input',type=Path)
     serve=sub.add_parser('serve');serve.add_argument('--port',type=int,default=8776)
     return p
 
@@ -64,9 +66,20 @@ def run(args):
     if args.command=='web-validate':
         from web_contract import validate_web
         return validate_web(args.input)[1]
+    if args.command=='rehearse':
+        from contracts import contract
+        b=bundle(args.input)
+        if args.enable_for_simulation:
+            for rule in b.rules['rules']:rule['enabled']=True
+        events=read_json(args.events);require(type(events) is list and 0<len(events)<=32,'SIMULATION_INPUT','Choose 1..32 synthetic events')
+        result=contract(b.pack,b.rules,events);result['fixture_rules_enabled']=args.enable_for_simulation
+        return result
     if args.command in ('package','verify-package'):
         from packaging import package, verify_package
         return package(args.input,args.output,args.web) if args.command=='package' else verify_package(args.input)
+    if args.command=='catalog-validate':
+        from catalog import validate_catalog
+        return validate_catalog(args.input)
     if args.command=='serve':
         from server import serve
         serve(args.port);return {'status':'stopped'}

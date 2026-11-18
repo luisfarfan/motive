@@ -10,7 +10,7 @@ from packaging import verify_bytes
 ENTRY=obj({'id':string(64),'version':VERSION,'kind':{'enum':['element','pack']},'mode':{'enum':['native','web']},
     'name':string(128),'description':string(1024),'author':obj({'id':string(64),'name':string(128),'identity':{'const':'unverified'}}),
     'category':string(64),'tags':arr(string(32),16),'license':LICENSE,'required_capabilities':arr(string(64),32),
-    'compatibility':obj({'baseline_source_commit':{'type':'string','pattern':'[0-9a-f]{40}'},'element_schema':{'const':1},
+    'compatibility':obj({'baseline_source_commit':{'type':'string','pattern':'^[0-9a-f]{40}$'},'element_schema':{'const':1},
                          'creatorpack_schema':{'enum':[0,1]},'web_element_schema':{'enum':[0,1]},'official_installation':{'const':'pending'}}),
     'package':obj({'path':PATH,'sha256':HASH,'bytes':{'type':'integer','minimum':1,'maximum':128*1024**2},
                    'content_kind':{'enum':['declarative_pack','web_element']}}),

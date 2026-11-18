@@ -1,0 +1,28 @@
+   Compiling motive-browser-contracts v0.1.0 (/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/poc/browser-host)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.22s
+     Running unittests src/lib.rs (web-host-lab/poc/browser-host/target/debug/deps/motive_browser_contracts-e4a4fd7cede96102)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+     Running tests/ipc.rs (web-host-lab/poc/browser-host/target/debug/deps/ipc-f1f8a2269422ca1e)
+
+running 1 test
+timeout config: Os { code: 22, kind: InvalidInput, message: "Invalid argument" }
+
+thread 'real_socketpair_length_guard_fragmentation_and_eof' (10343158) panicked at tests/ipc.rs:124:5:
+assertion `left == right` failed
+  left: Err("TRANSPORT_IO")
+ right: Err("TRANSPORT_EOF")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test real_socketpair_length_guard_fragmentation_and_eof ... FAILED
+
+failures:
+
+failures:
+    real_socketpair_length_guard_fragmentation_and_eof
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test ipc`

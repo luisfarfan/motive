@@ -60,10 +60,10 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 |---|---|---|
 | Frescura y detección de captura | FAIL | GPUI propio avanza en MKV/RTMP; fixture suspendida y recuperación fallida conservadas; repetir final |
 | Integridad/finalización de salidas | PARTIAL | Matriz A/B ejecutada; reordering falla al cerrar, mitigación por defecto sin reordering; repetir final |
-| Memoria y sesión prolongada | PARTIAL | B3 30/60 FPS y soak dual de 1800 s medidos; ambos medios pasan decode/cadencia/PCM; 39 skips y pausa visual 0.601 s conservados; RPC excedido y A/V no evaluado |
+| Memoria y sesión prolongada | PARTIAL | B3 30/60 FPS y soak dual de 1800.07 s completos; ambos medios pasan decode/cadencia/píxeles/PCM; 39 skips y pausa visual 0.601 s conservados; RPC excedido, A/V no evaluado y ownership sin determinar |
 | Bundle autocontenido | PARTIAL | B1/B2/B3 ejecutados fuera del checkout, firma/closure/tools PASS; segunda Mac, notarización y reconstrucción pendientes |
 | RTMPS externo seguro | PARTIAL | B2 emitió 104,837 s a YouTube privado; usuario confirmó video/audio; MKV decodificado; copia remota y contabilidad completa siguen pendientes |
-| Show Control real | PARTIAL | B3 demuestra entradas completas en ambos medios, cancelación posterior y continuidad sin MCP; cancelación anterior y concurrencia UI pendientes |
+| Show Control real | PARTIAL | B3 demuestra entradas completas, cancelación posterior y continuidad sin MCP; concurrencia GPUI custom3000 PASS, stock450 NOT_OBSERVED; cancelación anterior no observada y FAIL geométrico estricto custom conservado |
 | Live Deck y MATCHDAY | PARTIAL | B3 instalado por GPUI 73/73, celebración real y restauración exacta del proyecto/reglas desactivadas; recorrido de producción restante pendiente |
 | Voz opcional | PARTIAL | Benchmark offline ejecutado, recall 50% falla fiabilidad; voz en vivo NOT IMPLEMENTED |
 | UX y biblioteca de grabaciones | PARTIAL | Biblioteca y controles integrados; recorrido nativo final pendiente |
@@ -95,8 +95,9 @@ no se restan contadores para declarar equivalencia.
 El [informe de captura](h14-capture-investigation.md) conserva la comparación de
 productores y recuperación fallida. El benchmark opcional de
 [voz offline](h14-voice-offline.md) no habilita voz en vivo. Los controles nuevos
-de [Live Deck](h14-live-deck-ui.md) aún necesitan recorrido nativo y medios sobre
-el bundle integrado. Ninguna prueba de fuente sustituye esa aceptación final.
+de [Live Deck](h14-live-deck-ui.md) tienen la evidencia GPUI y multimedia B3
+descrita abajo; el recorrido completo sigue pendiente. Ninguna prueba de
+fuente sustituye esa aceptación final.
 
 Pruebas físicas exclusivamente bajo `motive/var/run/physical-test.lock`, owner
 H14 root. Cada fallo y cada repetición conservarán su directorio de evidencia.
@@ -154,7 +155,8 @@ Las asignaciones activas vuelven cerca del baseline después de retirar fuentes;
 RSS y footprint retienen páginas. Esas observaciones no certifican ausencia de
 fuga. La reproducción continúa oculta por configuración explícita de FFmpeg;
 la siguiente prueba compara pausa manual sin cambiar comportamiento automático.
-La sesión prolongada todavía está pendiente.
+En ese checkpoint la sesión prolongada todavía estaba pendiente; B3 conserva
+su ejecución posterior por separado.
 
 La revisión de los cuadros B1 detectó un frame a escala completa antes del
 ScaleIn de la celebración: Trigger y Animate eran acciones separadas. B3
@@ -189,8 +191,8 @@ de escala B1 en ambos medios. Hay 2273 frames MKV y 2266 RTMP, hueco máximo
 34 ms, PCM continuo sin clipping. El contador progresa solo `0→1→2→3`.
 La cancelación posterior, la protección ante edición concurrente MCP/CLI y la
 continuidad después de desconectar MCP pasan. Dos intentos no observaron
-cancelación anterior al primer tick; se conserva `NOT_OBSERVED`. La edición
-concurrente desde GPUI sigue pendiente. Un trabajo concurrente permanece
+cancelación anterior al primer tick; se conserva `NOT_OBSERVED`. Esa corrida no
+evalúa la edición concurrente desde GPUI. Un trabajo concurrente permanece
 `needs_reconciliation`, sin reejecución ni incremento de contador.
 
 Las trazas iniciales permiten correlacionar las colas de ambos medios: los
@@ -198,6 +200,20 @@ Las trazas iniciales permiten correlacionar las colas de ambos medios: los
 posterior a la orden de parada por salida. Dos frames entre encoder y observer
 siguen sin atribución. Esto no se presenta como equivalencia entre contadores
 ni entrega total garantizada.
+
+La [prueba posterior de concurrencia GPUI](h14-ui-concurrency-b3-verification.md)
+separa dos sesiones: **stock450 NOT_OBSERVED**, porque el segundo clic llegó
+después de la animación, y **custom3000 PASS**, con duración temporal de 3000 ms
+sin guardar. En custom hay 33 muestras de la misma operación aún running con
+ganancia 0 dB y acción `UI · set_audio_gain`; el job queda en
+`needs_reconciliation`, cursor 0, `MISSING_MUTATION_RECEIPT`, y el contador
+permanece 0. La animación termina sin replay observado en el journal y la
+ventana posterior de 0.94 s. Los cuatro medios decodifican completos, con
+escalón RMS de 12.009–12.014 dB, sin clipping ni silencio interior de 100 ms.
+Los stores conservan sus hashes. El gate geométrico estricto conserva **FAIL**:
+cuatro descensos de altura de un píxel en la máscara de custom. El derivado
+documenta sensibilidad al umbral, sin cambiarlo ni certificar la geometría.
+El PASS concurrente de 3000 ms no sustituye la observación pendiente de 450 ms.
 
 La persistencia B3 está en `var/evidence/h14-persistence-b3-01`: copias anteriores,
 guardadas, estado de reinicio y restauración, y recibos de cierre. Proyecto y
@@ -209,30 +225,43 @@ mantuvieron sus hashes. Las capturas de UI posteriores al reinicio muestran
 una miniatura de Stage Manager; AX y JSON del núcleo prueban estas operaciones,
 pero no sustituyen una revisión visual completa de ese tramo.
 
-El PID 32487 completó el [lifecycle 1080p60 y soak dual de 1800 s](h14-memory-b3-soak-verification.md).
-Ambos medios pasan decodificación completa, cadencia y PCM; hay 108057 frames
+El PID 32487 completó tres ciclos de [lifecycle 1080p60 y soak dual de 1800.07 s](h14-memory-b3-soak-verification.md).
+Ambos medios pasan decodificación completa, cadencia, píxeles y PCM; hay 108057 frames
 MKV y 108028 recibidos por RTMP. CPU mediana 52.72% de un núcleo, footprint
 máximo muestreado 1277.03 MiB, sin clipping ni ventanas silenciosas de 100 ms.
 Se conservan 39 skips, un render lagged y una pausa visual de hasta 0.601 s.
-RPC de memoria p95 50.88 ms excede 20 ms. Entrega exacta INCONCLUSIVE y A/V
-NOT_EVALUATED; no se infiere ausencia de fuga. Ambos outputs llegaron a
+RPC de memoria p95 50.88 ms durante el soak excede 20 ms; la colección nativa
+p95 0.865 ms del conjunto cumple 2 ms. El análisis original conserva entrega
+INCONCLUSIVE y A/V NOT_EVALUATED; no se infiere ausencia de fuga ni ownership
+de las asignaciones. Ambos outputs llegaron a
 quiescence en 189 ms y el owner cerró normalmente, sin errores de cleanup.
 
 La repetición estática `h14-beta-b3-static-01` verifica 116 tests raíz, 129 Show
 Control, ambos Clippy all-targets y formato. Los inputs del producto coinciden
 exactamente con `d0deeb5`; scripts/documentación avanzan por separado. Las dos
 suites de control en `h14-beta-b3-control-01` pasan con informe primario fresco
-y cleanup confirmado. `h14-beta-b3-regressions-01` pasa H1 físico, pero conserva
-un fallo del harness de escenas al buscar `preview.png` bajo el checkout en
-vez del diagnóstico portable. Se corrigieron sus tres lectores y se repite
-la suite completa; aquel informe no se convierte retrospectivamente en PASS.
+y cleanup confirmado. `h14-beta-b3-regressions-01` conserva un fallo del harness
+de escenas al buscar `preview.png` bajo el checkout en vez del diagnóstico
+portable. Su primer H1 devolvió `ok=true`, pero no acreditó la reproducción
+del estímulo esperado por otra ruta de desarrollo; no se selecciona para la
+matriz final. Se corrigieron los lectores y se repitieron escenas y H1 sin
+alterar B3 ni relajar los checks; los originales permanecen intactos.
 
 La [consolidación de 23 regresiones B3](h14-b3-regressions-verification.md)
 selecciona las repeticiones completas de escenas y H1, más las demás suites.
-Todas tienen primario fresco PASS, exit cero y cleanup confirmado; se
-verificaron hashes, fuente compilada, cliente y restauración. El resultado
-no cubre automáticamente las pruebas adicionales H13 ni los gestos GPUI.
+Las **23/23 suites H1–H12** tienen primario fresco PASS, exit cero y cleanup
+confirmado. Las tres corridas seleccionadas suman 1087.02 s de suites;
+se verificaron hashes, fuente compilada, cliente y restauración de stores,
+incluida la corrida fallida. No es una única ejecución continua. El PASS H12
+no contiene un límite RSS: su settling final conserva mediana 858.45 MiB.
+El resultado no cubre automáticamente las pruebas adicionales H13, los
+gestos GPUI, hot-unplug físico ni denegación real de permisos.
 El [derivado posterior del soak](h14-memory-b3-soak-verification.md#derivado-posterior-framing-y-paquetes-finales)
-explica el framing inicial y localiza un video final ausente por destino
-después del bracket de stop. Mantiene la entrega global parcial y el análisis
-original inconcluso intacto.
+prueba la correspondencia inicial de framing Annex B/AVCC y clasifica la cola
+como `STOP_BOUNDARY_PACKETS_NOT_DELIVERED`: aparecen 143/144 paquetes de video
+finales retenidos y 112/112 AAC por destino. El video ausente tiene DTS
+1.267 ms y 5.433 ms después del retorno de stop, respectivamente; no hay
+ausencias trazadas anteriores o dentro de su bracket. La diferencia previa
+al observer sigue sin localizarse. Se conservan los conteos originales,
+el análisis inconcluso y la entrega global parcial; no se afirma identidad
+criptográfica de payload ni entrega completa. **La beta sigue no aceptada.**

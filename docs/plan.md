@@ -4,12 +4,15 @@ Estado: 2026-11-17 (America/Lima). Base experimental ejecutable; no es una
 release ni paridad con OBS/Meld. La investigación documental quedó resuelta
 para esta fase y REA no bloqueó los hitos.
 
-**H14 en ejecución; beta no aceptada.** El bundle B3 autocontenido, Show Control
-real, instalación MATCHDAY y persistencia GPUI tienen evidencia local. La prueba
-RTMPS privada corresponde al bundle B2. El [índice H14](h14-beta-verification.md)
-separa los resultados por binario y conserva los gates pendientes de captura,
-salidas, regresiones finales y distribución. Las verificaciones H13 siguientes
-son históricas y no certifican automáticamente B3.
+**H14 en ejecución; beta no aceptada.** El bundle B3 autocontenido tiene
+23/23 suites H1–H12 verificadas, Show Control real, instalación MATCHDAY,
+persistencia GPUI y soak dual completo de 1800.07 s. La concurrencia GPUI pasa
+en custom3000; stock450 sigue NOT_OBSERVED y el FAIL geométrico estricto de
+custom se conserva. La prueba RTMPS privada corresponde al bundle B2. El
+[índice H14](h14-beta-verification.md) separa resultados por binario y mantiene
+abiertos captura, entrega, memoria, pruebas adicionales H13, recorrido nativo
+y distribución. Las verificaciones H13 siguientes son históricas y no
+certifican automáticamente B3.
 
 **H13 implementado; aceptación PARCIAL.** Canvas configurable, audio del
 sistema y salidas MKV/RTMP independientes ya comparten núcleo, CLI/MCP y GPUI.
@@ -42,6 +45,7 @@ ampliaciones posteriores se registran en su propio hito.
 | 11 — Overlay Engine y widgets | Texto, imagen alpha, formas, video visual, seis animaciones por capa, widgets y tres presets en dos layouts; CLI/MCP, grabación/RTMP y persistencia reales | [H11](h11-overlay-verification.md): 13 clips y 49 tests; aceptación condicionada a regresiones H1–H10 abiertas. Browser bloqueado; GPUI integra el [contrato](h11-overlay-ui-contract.md) por separado |
 | 12 — Creative Studio integrado | Biblioteca, picker, inspectores tipados, eventos, animaciones y persistencia desde GPUI; grabación VT/RTMP decodificada; 22 suites en sus últimas ejecuciones | [H12](h12-creative-studio-verification.md): 55 tests y Clippy; se conserva el fallo previo de render lag sin causa resuelta, sin certificar bundles posteriores |
 | 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12; producción GPUI y sesión dual de más de 30 min ejecutadas | [H13](h13-production-verification.md): aceptación **PARCIAL, EN CURSO**. Toma principal y compacto pasan sus gates de decode/cadencia; alerta corregida y última exclusión G PASS. Ventana congelada FAIL, contabilidad terminal y memoria sin cerrar; fallos anteriores conservados |
+| 14 — Beta Candidate | Portable B3: 23/23 suites H1–H12, Show Control/MATCHDAY y persistencia GPUI, lifecycle 30/60 FPS y soak dual 1800.07 s; concurrencia custom3000 PASS. RTMPS privado corresponde a B2 | [H14](h14-beta-verification.md): **BETA NO ACEPTADA**. Stock450 NOT_OBSERVED, FAIL geométrico estricto custom, captura/entrega/memoria y aceptación H13/nativa/distribución pendientes; históricos intactos |
 
 Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
 bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión
@@ -319,3 +323,54 @@ CPU/RSS y colas se conservan en la [medición de encoders](h13-encoder-tail-inve
 Siguen pendientes USB hot-unplug, revocación real de permisos, cambio físico de
 display, sleep/wake, otras versiones de macOS, RTMPS positivo confiable y bundle
 portable/notarizado. No hay autorización de push, merge, release ni emisión pública.
+
+## H14 — B3 verificado por alcance; beta NO aceptada
+
+El ejecutable portable B3 `797b9722…04549dc`, compilado desde `d0deeb5`, conserva
+116 tests raíz y 129 del crate Show Control, Clippy y formato aprobados. Las
+[23/23 regresiones H1–H12](h14-b3-regressions-verification.md) seleccionadas
+tienen primario fresco PASS, exit cero y cleanup confirmado. La consolidación
+verifica hashes, cliente, fuente compilada y restauración de stores de tres
+corridas elegidas; no es una sola sesión continua. Conserva el primer fallo
+de ruta de escenas y la primera toma H1, que no probó la reproducción del
+tono esperado. Las repeticiones corrigieron el harness sin alterar el binario
+ni relajar criterios. El PASS H12 no impone un presupuesto RSS: su settling
+final mantiene mediana 858.45 MiB. La matriz adicional H13 y el recorrido GPUI
+completo requieren evidencia propia sobre B3.
+
+El [lifecycle 1080p60 y soak dual B3](h14-memory-b3-soak-verification.md)
+completó tres ciclos y 1800.07 s de grabación/RTMP local. Los dos archivos
+pasan decodificación completa, cadencia, frescura de píxeles y PCM, con 108057
+y 108028 frames. CPU mediana 52.72% de un núcleo y footprint máximo muestreado
+1277.03 MiB. Se conservan 39 skips, un render lagged y una pausa visual máxima
+de 0.601 s: pasar el gate <1 s no significa ausencia de pausas. El RPC de
+memoria p95 50.88 ms supera su presupuesto; A/V no se evalúa y no hay evidencia
+de ownership/asignaciones suficiente para decidir sobre fugas.
+
+El derivado posterior explica las diferencias iniciales Annex B/AVCC sin
+relajar el guard de origen. En cada cola retenida aparecen 143/144 videos y
+112/112 AAC; el video ausente tiene DTS posterior al retorno de stop. Conserva
+`STOP_BOUNDARY_PACKETS_NOT_DELIVERED`, el original INCONCLUSIVE y los conteos
+encoder/output/archivo. No localiza la diferencia anterior al observer ni
+prueba identidad de payload o entrega completa. El cleanup y cierre normal
+del owner pasan; no equivalen a restauración byte a byte en esa toma.
+
+La [concurrencia real GPUI](h14-ui-concurrency-b3-verification.md) distingue
+**custom3000 PASS** de **stock450 NOT_OBSERVED**. En custom se observa el clic
+de ganancia mientras la misma operación nativa sigue running; el job queda
+`needs_reconciliation`, cursor 0, `MISSING_MUTATION_RECEIPT`, sin incremento
+de contador ni replay en el journal y ventana observada. La duración de
+3000 ms fue temporal, sin guardar; no sustituye la prueba stock de 450 ms.
+Los cuatro medios decodifican completos y reflejan el escalón de ganancia de
+12.009–12.014 dB sin clipping ni silencio interior de 100 ms. El check estricto
+de geometría conserva **FAIL** por cuatro descensos de altura de un píxel en
+la máscara custom; el análisis de sensibilidad al umbral no cambia ese gate.
+También sigue NOT_OBSERVED la cancelación anterior al primer tick en la toma
+Show Control previa.
+
+Estos resultados no modifican los fallos históricos H11/H13/B1 ni aceptan
+globalmente H14. La prueba externa autorizada de 104.837 s sigue siendo
+[evidencia B2](h14-rtmps-b2-verification.md), con video/audio observados por el
+usuario, sin copia remota decodificada independiente ni repetición externa
+B3. Segunda Mac, notarización, hardware removible, permisos y demás límites
+mantienen su estado en el [índice de gates](h14-beta-verification.md).

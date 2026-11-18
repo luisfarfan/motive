@@ -67,6 +67,7 @@ char *motive_output_packet_trace(motive_engine *e,unsigned target) {
             @"timebase_num":@(p.timebase_num),@"timebase_den":@(p.timebase_den),@"keyframe":@(p.keyframe)}];
     }
     NSDictionary *info=@{@"version":@1,@"scope":@"before_output_plugin",
+        @"observed_ns":@(os_gettime_ns()),@"clock":@"obs.os_gettime_ns",
         @"capacity":@(MOTIVE_OUTPUT_TRACE_CAPACITY),@"snapshot_busy":@(busy),
         @"summary":output_diagnostic_summary(s),@"packets":packets};
     NSData *json=[NSJSONSerialization dataWithJSONObject:info options:0 error:nil];

@@ -45,7 +45,7 @@ class Client:
         return {'response':response,'end':end,'elapsed':time.monotonic()-start}
     def close(self):self.p.stdin.close();self.p.wait(timeout=8)
 
-def profile(id='h7-test',encoder='videotoolbox',bitrate=2500,keyframes=2,reorder=True):
+def profile(id='h7-test',encoder='videotoolbox',bitrate=2500,keyframes=2,reorder=False):
     return {'id':id,'encoder':encoder,'bitrate_kbps':bitrate,'rate_control':'cbr','keyframe_seconds':keyframes,'frame_reordering':reorder}
 
 def process_sample(pid):

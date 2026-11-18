@@ -374,17 +374,18 @@ def mark(args):
         'clock':'python.time.monotonic','host_monotonic':time.monotonic(),'wall_unix':time.time(),
         'observation':'root_observed_focus_after_cua','note':args.note,'proves_published_pixels':False}
     if getattr(args,'system_probe',None):
-        from h15_focus import corroborate
+        from h15_focus import corroborate, fixture_at_probe_end
         probe=load(args.system_probe,65536)
         _,states=validate_fixture(lines(manifest['fixture']['log']),manifest)
         expected=manifest['owner']['pid'] if args.phase=='studio_front' else manifest['fixture']['pid']
-        assessment=corroborate(probe,states[-1],fixture_pid=manifest['fixture']['pid'],
+        own=fixture_at_probe_end(probe,states)
+        assessment=corroborate(probe,own,fixture_pid=manifest['fixture']['pid'],
                               window_id=manifest['fixture']['window_id'],expected_pid=expected)
         anchor=clock_anchor()
         require(assessment['status']=='PASS' and 0<=anchor['fixture_clock_s']-probe['after_s']<=1.5,
                 'HUMAN_ACTION_REQUIRED: independent system focus and fixture must agree recently')
         event.update(observation='system_frontmost_application',system_probe=probe,
-                     fixture_observation=states[-1],clock_anchor=anchor)
+                     fixture_observation=own,clock_anchor=anchor)
     fd=os.open(path,os.O_WRONLY|os.O_APPEND|os.O_CREAT|os.O_NOFOLLOW,0o600)
     with os.fdopen(fd,'a') as destination:destination.write(json.dumps(event)+'\n')
     print(json.dumps(event))

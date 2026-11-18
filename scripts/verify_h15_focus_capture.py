@@ -14,7 +14,7 @@ import subprocess
 import sys
 import time
 
-from h15_focus import corroborate
+from h15_focus import corroborate, fixture_at_probe_end
 from verify_h14_collection import (Client, ROOT, default_owner, digest, executable,
                                   lines, lock, process_identity, require, save)
 
@@ -103,7 +103,7 @@ def main():
 
         def observe(phase, expected):
             value = json.loads(subprocess.check_output([str(probe), str(expected), str(window)], text=True))
-            own = next(e for e in reversed(lines(out / 'fixture.jsonl')) if e['event'] == 'window_state')
+            own = fixture_at_probe_end(value, lines(out / 'fixture.jsonl'))
             assessment = corroborate(value, own, fixture_pid=fixture.pid, window_id=window, expected_pid=expected)
             row = {'phase': phase, 'host_monotonic': time.monotonic(), 'probe': value,
                    'fixture': own, 'assessment': assessment}

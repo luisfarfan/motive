@@ -2,6 +2,28 @@
 import math
 
 
+def fixture_at_probe_end(probe, events):
+    """Select the latest logged state no later than this independent sample.
+
+    Reading a growing fixture log after the probe must not accidentally pair it
+    with a future state. Selection is solely temporal: identity/focus mismatches
+    on the selected record still fail corroboration; never search for agreement.
+    """
+    after = probe.get('after_s')
+    if type(after) not in (float, int) or not math.isfinite(after):
+        return None
+    selected = None
+    for event in events:
+        if event.get('event') != 'window_state':
+            continue
+        timestamp = event.get('uptime_seconds')
+        if type(timestamp) not in (float, int) or not math.isfinite(timestamp):
+            return None  # Cannot order incomplete or malformed timing evidence.
+        if timestamp <= after and (selected is None or timestamp >= selected['uptime_seconds']):
+            selected = event
+    return selected
+
+
 def corroborate(probe, fixture, *, fixture_pid, window_id, expected_pid):
     """Require independently sampled system focus AND contemporaneous fixture state.
 
@@ -12,6 +34,7 @@ def corroborate(probe, fixture, *, fixture_pid, window_id, expected_pid):
     def finite(value):
         return type(value) in (float, int) and math.isfinite(value)
 
+    fixture = fixture or {}
     before, after = probe.get('before_s'), probe.get('after_s')
     timestamp = fixture.get('uptime_seconds')
     window = probe.get('window') or {}

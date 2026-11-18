@@ -1,0 +1,166 @@
+{
+  "assets": [
+    {
+      "bytes": 1101,
+      "media_type": "text/html",
+      "path": "index.html",
+      "sha256": "68651af9c892222befb08fee2ceb452c71ea8e7c8fbb6609a043bb842bb074c5"
+    },
+    {
+      "bytes": 2754,
+      "media_type": "text/css",
+      "path": "goal.css",
+      "sha256": "210f2db4887e3b61a27f67baffcdac132ce507b7500f737a3a36071ce3365865"
+    },
+    {
+      "bytes": 4256,
+      "media_type": "text/javascript",
+      "path": "goal.mjs",
+      "sha256": "740538442e21b6cb65645fb5519aae2da168999fc1ecc5072de5ec8a1f302ba9"
+    },
+    {
+      "bytes": 7006,
+      "media_type": "text/javascript",
+      "path": "runtime.mjs",
+      "sha256": "d09d87f307439186687be8beb85d2d92281e951c1d14d22c3922cdcf95985d8f"
+    },
+    {
+      "bytes": 693,
+      "media_type": "image/svg+xml",
+      "path": "preview.svg",
+      "sha256": "92604894823be36d58a0db839a403cc02fdb77886896f4f48c18657c2184bf9e"
+    }
+  ],
+  "author": "Motive contributors",
+  "capabilities": [
+    "html",
+    "css",
+    "javascript"
+  ],
+  "dependencies": [],
+  "entry": "index.html",
+  "events": {
+    "goal.scored": {
+      "fields": {
+        "away": {
+          "maximum": 99,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "home": {
+          "maximum": 99,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "team": {
+          "max_length": 60,
+          "type": "string"
+        }
+      }
+    }
+  },
+  "id": "goal-celebration-web",
+  "kind": "web_element",
+  "license": "GPL-3.0-or-later",
+  "lifecycle": {
+    "autostart": false,
+    "on_dispose": "cleanup",
+    "on_error": "stop",
+    "on_hidden": "cancel"
+  },
+  "limits": {
+    "events_per_second": 8,
+    "max_active_ms": 15000,
+    "max_asset_bytes": 1048576,
+    "max_message_bytes": 4096,
+    "max_total_bytes": 4194304,
+    "requested_memory_mib": 128
+  },
+  "metadata": {
+    "category": "celebration",
+    "description": "Original geometric goal celebration with synthetic events and reduced motion",
+    "integration": "authoring_prototype_only",
+    "preview": "preview.svg",
+    "tags": [
+      "goal",
+      "sport",
+      "original"
+    ]
+  },
+  "name": "Goal Celebration — Web Edition",
+  "permissions": {
+    "clipboard": false,
+    "devices": false,
+    "mcp": false,
+    "network": false,
+    "production": false,
+    "shell": false,
+    "storage": false
+  },
+  "properties": {
+    "accent": {
+      "default": "#f5c27c",
+      "type": "color"
+    },
+    "away": {
+      "default": 1,
+      "maximum": 99,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "background": {
+      "default": "#222429",
+      "type": "color"
+    },
+    "holdMs": {
+      "default": 2500,
+      "maximum": 10000,
+      "minimum": 500,
+      "type": "integer"
+    },
+    "home": {
+      "default": 2,
+      "maximum": 99,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "reducedMotion": {
+      "default": false,
+      "type": "boolean"
+    },
+    "team": {
+      "default": "Club del Puerto",
+      "max_length": 60,
+      "type": "string"
+    },
+    "testMode": {
+      "default": true,
+      "type": "boolean"
+    },
+    "title": {
+      "default": "GOOOOL",
+      "max_length": 12,
+      "type": "string"
+    }
+  },
+  "requested_fps": 30,
+  "schema_version": 1,
+  "states": [
+    "ready",
+    "active",
+    "cancelled",
+    "error",
+    "disposed"
+  ],
+  "version": "1.0.0",
+  "viewport": {
+    "horizontal": {
+      "height": 540,
+      "width": 960
+    },
+    "vertical": {
+      "height": 960,
+      "width": 540
+    }
+  }
+}

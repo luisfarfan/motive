@@ -58,10 +58,23 @@ def validate_web(directory: Path) -> tuple[dict,dict,dict]:
         if ext!='.png':
             text=data.decode('utf-8')
             # Review gate for supplied source; obfuscated JavaScript is not proven safe.
-            require(not re.search(r'https?://|wss?://|file://|/Users/|/etc/',text,re.I),'WEB_EXTERNAL_REFERENCE',name)
+            scanned=text.replace('http://www.w3.org/2000/svg','')
+            require(not re.search(r'https?://|wss?://|file://|/Users/|/etc/',scanned,re.I),'WEB_EXTERNAL_REFERENCE',name)
             require('sourceMappingURL=' not in text,'WEB_SOURCE_MAP','Package compiled JS without undeclared maps')
         files[name]=data
     require(manifest['entry'] in files and manifest['entry'].endswith('.html'),'WEB_ENTRY','Declared HTML entry required')
+    for name,data in files.items():
+        if not name.endswith(('.html','.css','.js','.mjs','.svg')):continue
+        text=data.decode('utf-8')
+        refs=re.findall(r'(?:src|href)=[\"\']([^\"\']+)',text) if name.endswith(('.html','.svg')) else []
+        refs+=re.findall(r'(?:from\s+|import\s*)[\"\']([^\"\']+)[\"\']',text) if name.endswith(('.js','.mjs')) else []
+        refs+=re.findall(r'url\(\s*[\"\']?([^\"\')]+)',text) if name.endswith('.css') else []
+        for ref in refs:
+            if ref.startswith('#'):continue
+            require(not ref.startswith('/') and '?' not in ref and '#' not in ref,'WEB_DEPENDENCY',ref)
+            cleaned=ref[2:] if ref.startswith('./') else ref
+            relative(cleaned);target=(Path(name).parent/cleaned).as_posix()
+            require(target in files,'WEB_DEPENDENCY',f'{name} references undeclared {ref}')
     require(manifest['metadata']['preview'] in files,'WEB_PREVIEW','Declared preview required')
     require(sum(map(len,files.values())) <= manifest['limits']['max_total_bytes'],'WEB_BUDGET','Total assets exceed limit')
     for dependency in manifest['dependencies']:require(dependency['asset'] in files,'WEB_DEPENDENCY',dependency['id'])

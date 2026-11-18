@@ -1,8 +1,9 @@
 # H17 — reconciliación terminal de Show Control
 
-Estado: **PARTIAL**. La causa del bloqueo de B6 está localizada y la corrección
-del contrato está verificada offline. La repetición sobre el owner nativo de la
-nueva candidata y la carrera GPUI stock450 conservan gates separados.
+Estado: **PARTIAL**. La recuperación en el mismo proceso, cancelación posterior
+al primer tick y restauración desarmada pasan sobre el owner nativo B7. La carrera
+GPUI stock450, cancelación antes del primer tick y presentación multimedia
+conservan gates separados.
 
 ## Evidencia original y causa
 
@@ -57,11 +58,11 @@ offline con evidencia terminal usan v3, con lectura de v0–v2 conservada.
 
 | ID | Prioridad | Tipo | Estado previo | Estado actual | Evidencia y prueba restante |
 |---|---|---|---|---|---|
-| H17-SC-01 | P1 | Bug de runtime | FAIL | PARTIAL | B6 conserva terminal y receipt null; tests demuestran cierre sin rebase/replay. Falta repetir load en el mismo proceso nativo. |
+| H17-SC-01 | P1 | Bug de runtime | FAIL | PASS | B7 reproduce terminal con receipt null; reconcile cierra sin rebase/replay y admite load en el mismo proceso. Evidencia nativa abajo. |
 | H17-SC-02 | P1 | Barrera de concurrencia | PASS | PASS | Tests conservados de revisión ajena, token/PID incorrectos, dispatch sin recibo y observación sin recibo terminal. No certifica una carrera física. |
 | H17-SC-03 | P1 | Cancelación antes del tick | NOT_EVALUATED | PARTIAL | Test cancela job queued sin dispatch/cancel nativo ni contador; deduplicación retenida. Cancelación física antes del primer tick OBS pendiente. |
-| H17-SC-04 | P1 | Cancelación después del tick | PARTIAL | PARTIAL | Un cancel, espera pending, reconcile terminal y ningún contador; contrato offline. Evidencia física H15 no certifica el nuevo binario. |
-| H17-SC-05 | P1 | Journal y restauración | PASS | PARTIAL | Tests de append-only, token/PID, no replay y checkpoints v3 pasan; guardado durable/restauración desarmada de la candidata pendientes. |
+| H17-SC-04 | P1 | Cancelación después del tick | PARTIAL | PASS | B7: native started/widget_triggered true antes de cancel; terminal cancelled sin pending_ack; contador 0. |
+| H17-SC-05 | P1 | Journal y restauración | PASS | PASS | B7: journal retenido, load desarmado, rechazo de press, armado explícito y dos recibos de 1836 bytes cotejados. |
 | H17-SC-06 | P1 | Carrera GPUI stock450 | PARTIAL | BLOCKED | Requiere gesto humano/nativo observado antes del terminal, sin ampliar los 450 ms. |
 
 Riesgo de regresión principal: confundir prueba de finalización con propiedad de
@@ -78,8 +79,8 @@ journals incompletos.
   **PASS**.
 - Formato del crate y `git diff --check`: **PASS**.
 - Test nuevo del owner `reconfiguration_keeps_native_operations_and_storage_failures_blocked`:
-  **NOT_EVALUATED** en este checkpoint; requiere compilar el binario de tests
-  principal. No abre dispositivos ni ejecuta multimedia.
+  **PASS**, confirmado en `var/evidence/h17-checks/rust-tests.log`, suite
+  principal de 120 tests. No abre dispositivos ni ejecuta multimedia.
 
 Los backends de tests representan el contrato del owner; sus recibos no son
 recibos físicos de libobs ni evidencia de presentación. Una primera ejecución
@@ -147,5 +148,47 @@ caller conserva la responsabilidad del cierre normal del owner.
 `python3 -m unittest discover -s scripts -p test_h17_show_recovery.py -v`:
 **PASS**, cinco pruebas offline del verificador (recibos inválidos, duración,
 primer tick, restauración exacta y rechazo de enlaces/cambios ajenos).
-Compilación Python: **PASS**. Ensayo físico del runner: **NOT_EVALUATED** al
-prepararlo; no se ejecutó ni se tomó el owner sin cesión explícita del coordinador.
+Compilación Python: **PASS**. Al preparar el runner, el ensayo físico era
+NOT_EVALUATED; el coordinador lo ejecutó después con el resultado siguiente.
+
+## Resultado nativo B7
+
+Evidencia: `var/evidence/h17-show-b7/report.json`, SHA-256
+`9860fbe861b88a9b0f29cc312ccdb98f69a9c4cd02f8626b86c6de8af7b4a6a1`;
+respuestas completas en `responses.jsonl`. PID 40290, binario B7 SHA-256
+`d5b702d8b245a143575a6dd77cc80dc047425139f0ebc16db8c1f8451eb0ad31`.
+
+La primera carrera pasó. La operación 1, configurada a 450 ms, estaba `running`
+con `started=true` y `widget_triggered=true` antes y después de la edición real
+de gain por CLI. Ambas observaciones tenían elapsed 0 ms: el primer tick ya había
+ocurrido, aunque aún no había transcurrido otro frame. El terminal observado
+tenía elapsed 466 ms, `completed` y `pending_ack=false`; no se amplió la duración
+configurada para conseguir la carrera.
+
+El job 1 quedó `needs_reconciliation`, cursor 0, expected revisión 11 y recibo
+de dispatch 9→11. Load devolvió `SHOW_CONTROL_BUSY`. Reconcile dejó la acción
+completed y el job cancelled, conservando revisión 11, cursor 0 y contador 0.
+La respuesta nativa contiene el recibo terminal del token
+`6562581fdeb006ce3c2f7eda535abd17:animation:1:1`; el journal tiene una intención,
+un dispatch y una completion con el mismo recibo y `receipt:null`. Tras el
+cooldown, repetir el event ID devolvió `DUPLICATE`.
+
+La cancelación del job 2 también comenzó tras observar `started=true` y
+`widget_triggered=true`. El terminal nativo fue cancelled sin pending_ack.
+Reconcile retuvo ambos jobs cancelled, cursor 0 y goals 0. El journal conserva
+una intención, un dispatch, un cancel_intent y una completion cancelled para
+ese token. Sus ocho entradas totales, incluido header, tienen SHA-256
+`8f62ef6af524433e6a71ec678c5f992ea83b784a8b65d7b2dc7b9f69984be317`.
+
+Load creó la sesión `340ad969518059f603958e6e3dd2d480`, desarmada, con bindings
+actuales y cero jobs. Press fue rechazado mientras estaba desarmada. Armado
+explícito dejó cero jobs. Los guardados de revisiones 9 y 25 certificaron 1836
+bytes durables y SHA-256
+`08e2adfe7b7a66e359523b8b861ff039b6579b383f196382255d73b3d97d3ed8`.
+Stores antes/después coinciden por hash; fuente/capa/tono propios se retiraron.
+El wrapper `var/evidence/h17-show-b7-owner/report.json` conserva suite exit 0,
+shutdown true, owner exit 0 y cero errores de cleanup.
+
+El agregado del runner permanece PARTIAL: no abrió outputs ni decodificó píxeles,
+no hizo gestos GPUI y no observó cancelación previa al primer tick. Esos límites
+no invalidan el cierre demostrado del bloqueo de reconciliación de B6.

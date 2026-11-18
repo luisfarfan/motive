@@ -15,14 +15,13 @@ use gpui_kit::{
 };
 use serde_json::Value;
 use std::{
-    sync::{Arc, mpsc::Receiver},
+    sync::Arc,
     time::{Duration, Instant},
 };
 pub struct Studio {
     pub(crate) production: Production,
     frame: Option<Arc<RenderImage>>,
     sequence: u64,
-    requests: Receiver<control::Request>,
     _server: control::Server,
     pub(crate) message: String,
     devices: Value,
@@ -45,7 +44,7 @@ impl Studio {
     pub fn new(
         production: Production,
         server: control::Server,
-        requests: Receiver<control::Request>,
+        requests: async_channel::Receiver<control::Request>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
@@ -55,6 +54,24 @@ impl Studio {
         let editor = editor::Editor::new(window, cx);
         let forms = forms::Forms::new(window, cx);
         let destinations_ui = destinations::DestinationsUi::new(window, cx);
+        // Control wakes the same foreground owner directly. Preview cadence is
+        // not a control scheduler; Production and libobs keep their ownership.
+        // Rules still advance only in the heartbeat below, including with no
+        // MCP client. No second owner, media clock or automatic command retry.
+        cx.spawn(async move |this, cx| {
+            while let Ok(request) = requests.recv().await {
+                if this
+                    .update(cx, |view, cx| {
+                        let result = view.command(request.command, request.origin, cx);
+                        let _ = request.reply.send(result);
+                    })
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        })
+        .detach();
         cx.spawn(async move |this, cx| {
             loop {
                 cx.background_executor()
@@ -100,13 +117,6 @@ impl Studio {
                                 view.production.engine.close_test_window();
                             }
                         }
-                        for _ in 0..4 {
-                            let Ok(request) = view.requests.try_recv() else {
-                                break;
-                            };
-                            let result = view.command(request.command, request.origin, cx);
-                            let _ = request.reply.send(result);
-                        }
                         if let Some((seq, _, pixels)) =
                             view.production.engine.frame_if_new(view.sequence)
                         {
@@ -132,7 +142,6 @@ impl Studio {
             production,
             frame: None,
             sequence: 0,
-            requests,
             _server: server,
             message: "Listo. La fuente y el overlay se componen en libobs.".into(),
             devices,

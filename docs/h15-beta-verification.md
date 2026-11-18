@@ -93,3 +93,15 @@ desactivarlo explícitamente y explica el bloqueo. No se modifica OBS, stop_ts,
 interleaver, muxer, encoders ni barrera H8, y no se añade una espera de drenaje.
 La restricción trata los fallos H14 demostrados; no promete entrega completa
 del perfil sin reordering. 116 tests raíz y Clippy all-targets PASS.
+
+### E — latencia del control, sin cambiar multimedia
+
+La cola acotada despierta al owner GPUI por eventos; deja de esperar al tick de
+preview de 33 ms. El listener usa poll del socket, sin sondeo de 10 ms. Conserva
+un único Production, serialización y replies; no añade reconexiones ni reintentos.
+100 consultas comparables sin outputs: B1 mediana 17,926 ms / p95 45,518 ms;
+B2 mediana 1,326 ms / p95 10,983 ms, máximo 42,765 ms. Evidencia:
+`h15-rpc-baseline-b1/report.json`, `h15-rpc-wakeup-b2/report.json`, hashes de
+binario/fuentes en cada build-binding. Presupuesto p95 <20 ms PASS en este caso,
+no garantiza latencia bajo carga ni cierra el soak H14. Tests raíz y Clippy PASS.
+No se ha demostrado una fuga ni se modifica el compositor/allocator.

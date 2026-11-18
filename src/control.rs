@@ -3,6 +3,7 @@ use serde_json::{Value, json};
 use std::{
     fs,
     io::{self, BufRead, BufReader, Read, Write},
+    os::fd::AsRawFd,
     os::unix::{
         fs::{DirBuilderExt, PermissionsExt},
         net::{UnixListener, UnixStream},
@@ -11,7 +12,7 @@ use std::{
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
-        mpsc::{self, Receiver, SyncSender},
+        mpsc::{self, SyncSender},
     },
     thread,
     time::Duration,
@@ -61,7 +62,7 @@ fn read_frame(reader: &mut impl BufRead, limit: u64) -> io::Result<Option<Value>
 }
 
 impl Server {
-    pub fn start() -> anyhow::Result<(Self, Receiver<Request>)> {
+    pub fn start() -> anyhow::Result<(Self, async_channel::Receiver<Request>)> {
         let dir = data_dir().join("run");
         fs::DirBuilder::new()
             .recursive(true)
@@ -74,7 +75,7 @@ impl Server {
             .map_err(|e| anyhow::anyhow!("CONTROL_UNAVAILABLE: {} ({e})", path.display()))?;
         fs::set_permissions(&path, fs::Permissions::from_mode(0o600))?;
         listener.set_nonblocking(true)?;
-        let (tx, rx) = mpsc::sync_channel::<Request>(32);
+        let (tx, rx) = async_channel::bounded::<Request>(32);
         let stop = Arc::new(AtomicBool::new(false));
         let shutdown = stop.clone();
         let thread = thread::spawn(move || {
@@ -127,7 +128,19 @@ impl Server {
                         let _ = writeln!(stream, "{result}");
                     }
                     Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                        thread::sleep(Duration::from_millis(10))
+                        // Wake on a real connection instead of quantizing RPCs
+                        // to a sleep. Timeout bounds Drop's existing join only.
+                        let mut event = libc::pollfd {
+                            fd: listener.as_raw_fd(),
+                            events: libc::POLLIN,
+                            revents: 0,
+                        };
+                        let result = unsafe { libc::poll(&mut event, 1, 100) };
+                        if result < 0
+                            && io::Error::last_os_error().kind() != io::ErrorKind::Interrupted
+                        {
+                            break;
+                        }
                     }
                     Err(_) => break,
                 }

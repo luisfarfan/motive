@@ -117,6 +117,33 @@ class LauncherInputTests(unittest.TestCase):
         self.assertEqual(zlib.decompress(payload), bytes((0, 255, 0, 0, 128, 0, 0, 0, 0)))
         self.assertEqual(pixels, bytes((0, 0, 128, 128, 0, 0, 0, 0)))
 
+    def test_supervisor_exception_does_not_claim_process_never_executed(self):
+        class FailedSupervisor:
+            last_report = {"reason": "supervisor_error", "error_type": "RuntimeError"}
+            def run(self, command):
+                raise RuntimeError("controlled unit exception; no process launched by this stub")
+        report = {"native_host_executed": False, "native_host_execution_attempted": False}
+        result = launcher.invoke_supervisor(FailedSupervisor(), [], report)
+        self.assertTrue(report["native_host_execution_attempted"])
+        self.assertIsNone(report["native_host_executed"])
+        self.assertEqual(result["reason"], "supervisor_error")
+
+    def test_owned_logs_are_bounded_and_labeled_as_prefixes(self):
+        root, output = self.root / "supervisor", self.root / "output"
+        root.mkdir(); output.mkdir()
+        session = "a" * 32
+        launch = root / (session + "-generation-1")
+        launch.mkdir()
+        (launch / "stdout.log").write_bytes(b"controlled fixture stdout" * 4000)
+        (launch / "stderr.log").write_bytes(b"controlled fixture stderr")
+        result = launcher.collect_process_logs(root, output, {"session_id": session, "generation": 1})
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["streams"]["stdout.log"]["saved_bytes"], 65536)
+        self.assertTrue(result["streams"]["stdout.log"]["truncated"])
+        self.assertFalse(result["streams"]["stderr.log"]["truncated"])
+        self.assertEqual((output / "supervisor-stdout.log").stat().st_size, 65536)
+        self.assertEqual(result["streams"]["stdout.log"]["saved_prefix_sha256"], launcher.sha((output / "supervisor-stdout.log").read_bytes()))
+
     def test_failed_exclusive_output_does_not_write_into_foreign_directory(self):
         foreign = self.root / "foreign"
         foreign.mkdir()

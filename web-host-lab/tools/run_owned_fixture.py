@@ -279,6 +279,65 @@ def classify(supervision, samples):
             "counter_wrap_possible": True}
 
 
+def invoke_supervisor(supervisor, command, report):
+    """An attempted launch is not proof of execution or proof that it never began."""
+    report["native_host_execution_attempted"] = True
+    report["native_host_executed"] = None
+    try:
+        supervision = supervisor.run(command)
+        report["native_host_executed"] = True
+        return supervision
+    except BaseException as error:
+        report["supervisor_error_type"] = type(error).__name__
+        # Error reports may omit observed_processes even after Popen succeeded.
+        # Keep execution unknown rather than manufacture a false no-launch claim.
+        supervision = supervisor.last_report or {}
+        if supervision.get("observed_processes", 0) > 0:
+            report["native_host_executed"] = True
+        return supervision
+
+
+def collect_process_logs(supervisor_root, output, supervision, limit=65536):
+    """Preserve at most 64 KiB per owned stream, without reading arbitrary files."""
+    require(1 <= limit <= 65536, "LOG_LIMIT")
+    session = supervision.get("session_id")
+    generation = supervision.get("generation")
+    if not (isinstance(session, str) and re.fullmatch(r"[0-9a-f]{32}", session) and
+            type(generation) is int and generation > 0):
+        return {"status": "NOT_EVALUATED", "reason": "supervisor launch identity unavailable"}
+    directory = supervisor_root / f"{session}-generation-{generation}"
+    records = {}
+    for name in ("stdout.log", "stderr.log"):
+        fd = None
+        try:
+            canonical_directory(directory)
+            fd = os.open(directory / name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            before = os.fstat(fd)
+            require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1, "LOG_FILE_BOUNDARY")
+            data = bytearray()
+            while len(data) < limit:
+                chunk = os.read(fd, limit - len(data))
+                if not chunk:
+                    break
+                data.extend(chunk)
+            after = os.fstat(fd)
+            require((before.st_size, before.st_mtime_ns, before.st_ctime_ns) ==
+                    (after.st_size, after.st_mtime_ns, after.st_ctime_ns), "LOG_CHANGED")
+            destination = "supervisor-" + name
+            write_new(output / destination, data)
+            records[name] = {"status": "PASS", "file": destination, "source_bytes": before.st_size,
+                             "saved_bytes": len(data), "saved_prefix_sha256": sha(data),
+                             "truncated": before.st_size > len(data)}
+        except (OSError, ValueError) as error:
+            records[name] = {"status": "NOT_EVALUATED", "error_type": type(error).__name__}
+        finally:
+            if fd is not None:
+                os.close(fd)
+    return {"status": "PASS" if all(r["status"] == "PASS" for r in records.values()) else "PARTIAL",
+            "scope": "bounded streams of the explicitly launched controlled fixture", "per_stream_limit_bytes": limit,
+            "streams": records}
+
+
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--build-root", type=Path, required=True)
@@ -298,7 +357,7 @@ def parser():
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    report = {"status": "FAIL", "native_host_executed": False, "third_party_content_allowed": False,
+    report = {"status": "FAIL", "native_host_executed": False, "native_host_execution_attempted": False, "third_party_content_allowed": False,
               "production_connected": False, "sandbox_verified": False}
     output = None
     output_created = False
@@ -315,7 +374,7 @@ def main(argv=None):
                       build_report_sha256=sha(regular_bytes(report_path, 2 * 1024**2)),
                       expected_executable_sha256=args.expected_sha256, requested={"width": args.width, "height": args.height,
                       "fps": args.fps, "duration_ms": args.duration_ms, "deadline_seconds": args.deadline_seconds,
-                      "rss_limit_mib": args.rss_limit_mib}, source_identity=build_report.get("source_sha256"))
+                      "rss_limit_mib": args.rss_limit_mib}, source_identity=build_report.get("source_sha256"), credential_backend=build_report.get("credential_backend"))
         if args.preflight_only:
             report.update(status="PASS", scope="static_preflight_only", native_host_executed=False)
         else:
@@ -338,13 +397,8 @@ def main(argv=None):
             command = [str(executable), "--owned-fixture", str(fixture_root), str(generation), str(args.width),
                        str(args.height), str(args.fps), str(args.duration_ms)]
             report.update(scope="owned_cef_smoke_fixture", native_generation=generation, raw_evidence_root=str(private))
-            try:
-                supervision = supervisor.run(command)
-                report["native_host_executed"] = True
-            except BaseException as error:
-                supervision = supervisor.last_report or {}
-                report["supervisor_error_type"] = type(error).__name__
-                report["native_host_executed"] = bool(supervision.get("observed_processes", 0))
+            supervision = invoke_supervisor(supervisor, command, report)
+            report["diagnostic_streams"] = collect_process_logs(supervisor_root, output, supervision)
             report["supervision"] = supervision
             save_json(output / "supervision.json", supervision)
             samples = collect_samples(fixture_root, output, args.width, args.height, generation, args.png)

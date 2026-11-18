@@ -1,0 +1,104 @@
+{
+  "date_utc": "2026-11-18T23:14:39.608595+00:00",
+  "scope": "isolated binding contracts and owned fixture",
+  "checks": {
+    "rust-tests": {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "creator-runtime-lab/binding/Cargo.toml"
+      ],
+      "status": "PASS",
+      "exit_code": 0
+    },
+    "clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "creator-runtime-lab/binding/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "PASS",
+      "exit_code": 0
+    },
+    "format": {
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "creator-runtime-lab/binding/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "status": "PASS",
+      "exit_code": 0
+    },
+    "fixture-build": {
+      "command": [
+        "cargo",
+        "build",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "creator-runtime-lab/binding/Cargo.toml",
+        "--example",
+        "fixture_host"
+      ],
+      "status": "PASS",
+      "exit_code": 0
+    },
+    "node-tests": {
+      "command": [
+        "node",
+        "--test",
+        "creator-runtime-lab/binding/tests/port-adapter.test.mjs"
+      ],
+      "status": "PASS",
+      "exit_code": 0
+    },
+    "python-tests": {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "creator-runtime-lab/binding/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "status": "PASS",
+      "exit_code": 0
+    }
+  },
+  "code_sha256": {
+    "creator-runtime-lab/binding/.gitignore": "e356932f2c04c11d613b5d44ddd12acb0686125572b25a0a9bf46a90118affba",
+    "creator-runtime-lab/binding/Cargo.lock": "5af5f976a35c7ba115b1168feaeabc4e579f6cd67e6590b18a9ae77d4ba23c02",
+    "creator-runtime-lab/binding/Cargo.toml": "d98d537c032425497d84e8a487e8b3d8e59a78a2225fcc3f9134c233d03246e4",
+    "creator-runtime-lab/binding/examples/fixture_host.rs": "e35928d4860bdfdcd3e215f3bc46e4ab03e70cbf7acd5bcbed6d20b326cb91cc",
+    "creator-runtime-lab/binding/serve_fixture.py": "3b19b7fafd900339c90a8d199c348266e66c80513db40d53b4c049c8d3ce349d",
+    "creator-runtime-lab/binding/src/lib.rs": "61c0075656c38ce797f64946316e9e97ba225b752bfe8aee3edda3db8271aea3",
+    "creator-runtime-lab/binding/tests/binding.rs": "d1434698d12368a8507db270c0b2622f98c98b93340ff13b6b3fe5d966c3a790",
+    "creator-runtime-lab/binding/tests/browser-checks.js": "1557515c2a630d92eddee470217b38aa47221c1aa1611f5f4d77b9f1d9b2ee99",
+    "creator-runtime-lab/binding/tests/port-adapter.test.mjs": "4f342d092b3a00edbb7e441a9edd011ea8765d33ed51a605dac7eeaeb11a9c07",
+    "creator-runtime-lab/binding/tests/test_fixture_server.py": "2552d498cd6dfe3bf83ed23d12cd04044e3801df521808c08439dff6b0b0def9",
+    "creator-runtime-lab/binding/web/fixture.css": "7df3967beb1bf3869c8093d95ccff79244e1c318acea0566d342d7b0e10104cc",
+    "creator-runtime-lab/binding/web/fixture.mjs": "80daf1a974218f87d8c06cde78c3e1a2788e367b785b5abc70da4b1d083cc69c",
+    "creator-runtime-lab/binding/web/index.html": "8f8386e15af8fd32e25acd9c33405e23fb41f841161d5e3e88eb16066d8c6303",
+    "creator-runtime-lab/binding/web/port-adapter.mjs": "95e94a24c5364eb27f4a93ac83c40cc8dd129deac6885b9dcf25cfe936b66e97"
+  },
+  "cef_executed": false,
+  "production_connected": false,
+  "third_party_execution": "BLOCKED",
+  "native_frame_acceptance": "BLOCKED"
+}

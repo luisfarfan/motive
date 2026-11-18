@@ -30,11 +30,24 @@ Collector contract for the later authorized runner:
 - Report medians and p95 with sample count, failures and thermal/background limits.
   High load triggers cancellation, then bounded tree shutdown, never higher limits.
 
-The initial native fixture retains at most 360 observation timestamps and one
-complete frame; its cooperative timer and final snapshot are insufficient for this
-whole protocol. The external process collector/watchdog and continuous frame sink
-remain to be implemented before performance acceptance. No synthetic measurement
-file is provided as a stand-in for those runs.
+H18 adds a linked, locally sealed AppKit fixture and an external supervisor
+exercised with owned non-browser processes. The fixture now copies OnPaint into
+the existing Rust mailbox and retains two bounded disk samples plus at most 1024
+frame telemetry rows. It separates accepted mailbox paints, coalesces, busy and
+invalid callbacks, observed/acquired timestamps, maximum callback publish time,
+and disk-consumer duration. Publish duration includes gate/lock/copy overhead;
+disk-consumer duration includes file writes and lease release. Neither is an
+isolated memcpy benchmark or libobs upload time. No CEF sample has been collected.
+
+The supervisor observes public process identity, RSS and `ps %cpu`, and applies
+external deadline/cancel/RSS termination. `ps %cpu` is the platform's reported
+statistic, not the requested CPU-time delta sampler. Footprint, GPU, load/DOM and
+full resize/shutdown timestamps, pixel hashes/counter analysis and repeated native
+texture draws remain unimplemented/unmeasured. The smoke app accepts short runs;
+the full 60-second/soak/scenario harness still needs native authorization and
+implementation. [H18-benchmark-status.json](../evidence/H18-benchmark-status.json)
+keeps every Chromium metric null and every scenario BLOCKED. Non-browser supervisor
+results and synthetic C ABI cycles are not substituted for Chromium measurements.
 
 `evidence/J-buffer-budget.json` is arithmetic only: three transient CPU buffers per
 mailbox (callback copy + pending + leased), excluding Chromium, GPU, textures,

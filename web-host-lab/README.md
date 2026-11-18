@@ -19,3 +19,16 @@ Source archives and binaries used for static inspection are checksum pinned
 in [sources.lock.json](research/sources.lock.json) and cached only in `.cache/`.
 They are not vendored, published, executed, or installed into Motive.
 
+
+## H18 continuation
+
+H18 now supplies a linked ARM64 AppKit development bundle with the pinned CEF
+wrapper/framework/helpers, local ad-hoc seals, a C ABI to the existing Rust
+mailbox, a bounded consumer, future libobs admission policy and an external
+supervisor tested with owned non-browser processes. **CEF remains unexecuted.**
+
+Run `python3 web-host-lab/tools/verify_h18.py` for build/static checks and
+non-browser tests. Read [the artifact and scoped execution gate](docs/h18-native-host.md),
+[per-surface security matrix](docs/h18-security-checkpoint.md) and
+[H18 static results](evidence/H18-static-summary.json). H16 documents above are
+historical; H18 does not rewrite their earlier unlinked state or acceptance.

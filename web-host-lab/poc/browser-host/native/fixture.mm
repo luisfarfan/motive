@@ -3,6 +3,8 @@
 #import <AppKit/AppKit.h>
 #include "scheme.hpp"
 #include "fixture_assets.hpp"
+#include "fixture.hpp"
+#include "frame_consumer.hpp"
 #include "include/cef_application_mac.h"
 #include "include/cef_browser.h"
 #include "include/cef_client.h"
@@ -21,22 +23,27 @@
 #include <vector>
 
 namespace h16 {
-constexpr int Width=640, Height=360, Fps=30;
-constexpr const char* Entry="motive://i1-g1/index.html";
+
 constexpr const char* Csp="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'";
-struct Frame { uint64_t index, observed_ns; int width,height,stride; std::vector<unsigned char> pixels; };
 struct State {
-  std::mutex mutex;
-  std::optional<Frame> latest;
-  uint64_t paints=0, coalesced=0;
-  std::atomic<uint64_t> invalid{0}, busy{0};
-  std::vector<uint64_t> observations;
+  explicit State(const FixtureConfig& options):config(options),mailbox(motive_frames_create(1,options.generation,1,options.width,options.height)) {
+    const std::string origin="motive://i1-g"+std::to_string(options.generation)+"/";
+    entry=origin+"index.html";
+    for(const auto& [url,asset]:Assets)inventory.emplace(origin+url.substr(std::string("motive://i1-g1/").size()),asset);
+  }
+  ~State(){motive_frames_destroy(mailbox);}
+  const FixtureConfig config;
+  MotiveFrameBridge* mailbox;
+  std::string entry;
+  std::map<std::string,Asset> inventory;
+  std::atomic<uint64_t> invalid{0},busy{0},callbacks{0},max_publish_ns{0};
   // Only accessed on CEF UI thread. Not a cross-process supervisor.
   std::map<int,CefRefPtr<CefBrowser>> browsers;
-  bool stopping=false;
+  std::atomic<bool> stopping{false};
   unsigned pending_creates=0;
   void CloseAll() {
     stopping=true;
+    motive_frames_revoke(mailbox);
     auto copy=browsers;
     for(auto& [id,browser]:copy) { browser->GetHost()->WasHidden(true); browser->GetHost()->CloseBrowser(true); }
     if(browsers.empty()&&pending_creates==0) CefQuitMessageLoop();
@@ -66,19 +73,23 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
   CefRefPtr<CefDialogHandler> GetDialogHandler() override {return this;}
   CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override {return this;}
   CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override {return this;}
-  void GetViewRect(CefRefPtr<CefBrowser>,CefRect& rect) override {rect=CefRect(0,0,Width,Height);}
+  void GetViewRect(CefRefPtr<CefBrowser>,CefRect& rect) override {rect=CefRect(0,0,s_->config.width,s_->config.height);}
+  bool GetScreenInfo(CefRefPtr<CefBrowser>,CefScreenInfo& info) override {
+    info.device_scale_factor=1.0f;info.depth=32;info.depth_per_component=8;
+    info.is_monochrome=false;info.rect=CefRect(0,0,s_->config.width,s_->config.height);
+    info.available_rect=info.rect;return true;
+  }
   void OnPaint(CefRefPtr<CefBrowser>,PaintElementType type,const RectList& dirty,const void* buffer,int width,int height) override {
-    if(s_->stopping || !primary_ || type!=PET_VIEW || !buffer || width!=Width || height!=Height || dirty.size()>128) {++s_->invalid;return;}
+    ++s_->callbacks;
+    if(s_->stopping || !primary_ || type!=PET_VIEW || !buffer || width!=s_->config.width || height!=s_->config.height || dirty.size()>128) {++s_->invalid;return;}
     for(const auto& r:dirty) if(r.x<0||r.y<0||r.width<=0||r.height<=0||int64_t(r.x)+r.width>width||int64_t(r.y)+r.height>height){++s_->invalid;return;}
-    std::unique_lock lock(s_->mutex,std::try_to_lock);
-    if(!lock.owns_lock()){++s_->busy;return;}
-    const auto observed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-    const auto* p=static_cast<const unsigned char*>(buffer);
-    // Complete copy before callback return. No CEF-owned pointer escapes.
-    Frame frame{++s_->paints,uint64_t(observed),width,height,width*4,std::vector<unsigned char>(p,p+size_t(width)*height*4)};
-    if(s_->latest)++s_->coalesced;
-    s_->latest=std::move(frame);
-    if(s_->observations.size()<360)s_->observations.push_back(observed);
+    // The existing Rust mailbox copies all bytes synchronously before return.
+    // It never retains this CEF-owned pointer and drops paints on contention.
+    const auto started=MonotonicNs();
+    const int result=motive_frames_publish(s_->mailbox,s_->config.generation,1,MonotonicNs(),
+      static_cast<const uint8_t*>(buffer),size_t(width)*size_t(height)*4);
+    s_->max_publish_ns=std::max(s_->max_publish_ns.load(),MonotonicNs()-started);
+    if(result==1)++s_->busy;else if(result!=0)++s_->invalid;
   }
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
     if(primary_&&s_->pending_creates)--s_->pending_creates;
@@ -91,23 +102,23 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
   }
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override {
     s_->browsers.erase(browser->GetIdentifier());
-    if(primary_)s_->stopping=true;
+    if(primary_){s_->stopping=true;motive_frames_revoke(s_->mailbox);}
     if(s_->stopping&&s_->browsers.empty()&&s_->pending_creates==0)CefQuitMessageLoop();
   }
   bool OnBeforePopup(CefRefPtr<CefBrowser>,CefRefPtr<CefFrame>,int,const CefString&,const CefString&,
     cef_window_open_disposition_t,bool,const CefPopupFeatures&,CefWindowInfo&,CefRefPtr<CefClient>&,
     CefBrowserSettings&,CefRefPtr<CefDictionaryValue>&,bool*) override {return true;}
   bool OnBeforeBrowse(CefRefPtr<CefBrowser>,CefRefPtr<CefFrame> frame,CefRefPtr<CefRequest> r,bool,bool redirect) override {
-    if(!primary_||navigated_||!frame->IsMain()||redirect||r->GetURL()!=Entry||r->GetMethod()!="GET")return true;
+    if(!primary_||navigated_||!frame->IsMain()||redirect||r->GetURL()!=s_->entry||r->GetMethod()!="GET")return true;
     navigated_=true;return false;
   }
   bool OnOpenURLFromTab(CefRefPtr<CefBrowser>,CefRefPtr<CefFrame>,const CefString&,cef_window_open_disposition_t,bool) override {return true;}
   CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser>,CefRefPtr<CefFrame>,CefRefPtr<CefRequest>,bool,bool,const CefString&,bool& disable) override {disable=true;return this;}
   ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser>,CefRefPtr<CefFrame>,CefRefPtr<CefRequest> r,CefRefPtr<CefCallback>) override {
-    return primary_&&r->GetMethod()=="GET"&&Assets.contains(r->GetURL().ToString())?RV_CONTINUE:RV_CANCEL;
+    return primary_&&r->GetMethod()=="GET"&&s_->inventory.contains(r->GetURL().ToString())?RV_CONTINUE:RV_CANCEL;
   }
   CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser>,CefRefPtr<CefFrame>,CefRefPtr<CefRequest> r) override {
-    auto it=Assets.find(r->GetURL().ToString());if(!primary_||r->GetMethod()!="GET"||it==Assets.end())return nullptr;
+    auto it=s_->inventory.find(r->GetURL().ToString());if(!primary_||r->GetMethod()!="GET"||it==s_->inventory.end())return nullptr;
     const auto& a=it->second;
     // Generated arrays are immutable and live for process lifetime.
     auto reader=CefStreamReader::CreateForHandler(new CefByteReadHandler(a.bytes,a.size,nullptr));
@@ -140,13 +151,13 @@ class App final : public SchemeApp, public CefBrowserProcessHandler {
   CefRefPtr<CefClient> GetDefaultClient() override {return new Client(s_,false);}
   void OnContextInitialized() override {
     CefWindowInfo window;window.SetAsWindowless(0);window.shared_texture_enabled=false;
-    CefBrowserSettings settings;settings.windowless_frame_rate=Fps;settings.background_color=0;
+    CefBrowserSettings settings;settings.windowless_frame_rate=s_->config.fps;settings.background_color=0;
     CefRequestContextSettings context_settings;
     auto context=CefRequestContext::CreateContext(context_settings,nullptr);
     s_->pending_creates=1;
-    if(!CefBrowserHost::CreateBrowser(window,new Client(s_,true),Entry,settings,nullptr,context)){s_->pending_creates=0;s_->CloseAll();return;}
+    if(!CefBrowserHost::CreateBrowser(window,new Client(s_,true),s_->entry,settings,nullptr,context)){s_->pending_creates=0;s_->CloseAll();return;}
     auto state=s_;
-    CefPostDelayedTask(TID_UI,new Later([state](){state->CloseAll();}),5000);
+    CefPostDelayedTask(TID_UI,new Later([state](){state->CloseAll();}),s_->config.duration_ms);
   }
  private:
   std::shared_ptr<State> s_;
@@ -165,34 +176,27 @@ class App final : public SchemeApp, public CefBrowserProcessHandler {
 -(void)terminate:(id)sender{(void)sender;if(auto state=h16::active_state.lock())state->CloseAll();}
 @end
 
-// Prepared implementation; intentionally has NO executable entry point.
-// Needs reviewed bundle layout, process supervisor and explicit native exception.
-int RunOwnedFixture(const std::string& private_root,const std::string& output_prefix) {
+// Linked only by the isolated development fixture, never by Production.
+int RunOwnedFixture(const FixtureConfig& config,int argc,char** argv) {
   CefScopedLibraryLoader library;if(!library.LoadInMain())return 2;
   @autoreleasepool {
     [H16Application sharedApplication];
     if(![NSApp isKindOfClass:[H16Application class]])return 3;
     [NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited];
-    char name[]="Motive H16 Fixture";char* argv[]={name,nullptr};CefMainArgs args(1,argv);
+    CefMainArgs args(argc,argv);
     CefSettings settings;settings.no_sandbox=false;settings.windowless_rendering_enabled=true;
     settings.command_line_args_disabled=true;settings.log_severity=LOGSEVERITY_DISABLE;
-    CefString(&settings.root_cache_path)=private_root;
-    auto state=std::make_shared<h16::State>();h16::active_state=state;
+    CefString(&settings.root_cache_path)=config.private_root+"/cache";
+    auto state=std::make_shared<h16::State>(config);
+    if(!state->mailbox)return 7;
+    FrameConsumer consumer(state->mailbox,config.private_root);
+    if(!consumer.valid())return 8;
+    h16::active_state=state;
     CefRefPtr<h16::App> app=new h16::App(state);
-    if(!CefInitialize(args,settings,app,nullptr))return 4;
+    if(!CefInitialize(args,settings,app,nullptr)){h16::active_state.reset();return 4;}
     CefRunMessageLoop();
-    // No further CEF references may survive shutdown. The helper-tree watchdog
-    // and reap verification belong to the future external runner, not this task.
+    state->CloseAll();consumer.Stop();
     state->browsers.clear();app=nullptr;h16::active_state.reset();CefShutdown();
-    std::lock_guard lock(state->mutex);
-    if(!state->latest)return 5;
-    const auto& f=*state->latest;
-    std::ofstream raw(output_prefix+".bgra",std::ios::binary);
-    raw.write(reinterpret_cast<const char*>(f.pixels.data()),f.pixels.size());
-    std::ofstream meta(output_prefix+".json");
-    meta<<"{\"native_executed\":true,\"width\":"<<f.width<<",\"height\":"<<f.height<<",\"stride\":"<<f.stride<<",\"index\":"<<f.index<<",\"observed_ns\":"<<f.observed_ns<<",\"paints\":"<<state->paints<<",\"coalesced\":"<<state->coalesced<<",\"observations_ns\":[";
-    for(size_t i=0;i<state->observations.size();++i){if(i)meta<<',';meta<<state->observations[i];}
-    meta<<"],\"helper_cleanup_verified\":false,\"sandbox_verified\":false}";
-    return raw&&meta?0:6;
+    return consumer.WriteReport(state->callbacks,state->busy,state->invalid,state->max_publish_ns)?0:5;
   }
 }

@@ -1,0 +1,26 @@
+test_cancellation_and_rss_limit_are_external (test_supervisor.SupervisorTests.test_cancellation_and_rss_limit_are_external) ... ERROR
+test_exit_and_restart_use_distinct_generations (test_supervisor.SupervisorTests.test_exit_and_restart_use_distinct_generations) ... ok
+test_external_deadline_terminates_child_tree (test_supervisor.SupervisorTests.test_external_deadline_terminates_child_tree) ... ok
+test_invalid_root_and_limits (test_supervisor.SupervisorTests.test_invalid_root_and_limits) ... ok
+test_parent_crash_does_not_leave_observed_child (test_supervisor.SupervisorTests.test_parent_crash_does_not_leave_observed_child) ... ok
+
+======================================================================
+ERROR: test_cancellation_and_rss_limit_are_external (test_supervisor.SupervisorTests.test_cancellation_and_rss_limit_are_external)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/tests/test_supervisor.py", line 53, in test_cancellation_and_rss_limit_are_external
+    r = self.run_owned(self.supervisor(rss_limit_kib=1), 'import time; time.sleep(30)')
+  File "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/tests/test_supervisor.py", line 30, in run_owned
+    result = supervisor.run([sys.executable, '-c', code], **kw)
+  File "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/poc/browser-host/supervisor.py", line 70, in run
+    run_root.mkdir(mode=0o700)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 1011, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+FileExistsError: [Errno 17] File exists: '/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/.cache/tmpzud0ef20/generation-1'
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.144s
+
+FAILED (errors=1)

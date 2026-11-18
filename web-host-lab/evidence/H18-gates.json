@@ -1,0 +1,68 @@
+{
+  "status": "PARTIAL",
+  "native_cef_executed": false,
+  "sealed_host_sha256": "38a1f280f8c539b144ea6e0b9e6b28b336efca79e6605011484cd55cf0179d14",
+  "bundle_regular_file_bytes": 325227969,
+  "gates": [
+    {
+      "gate": "matching CEF wrapper/framework build + entry + helpers + local seal",
+      "status": "PASS",
+      "evidence": "H18-native-build.json",
+      "scope": "static only"
+    },
+    {
+      "gate": "existing Rust contracts + future libobs admission",
+      "status": "PASS",
+      "tests": 20,
+      "evidence": "H18-rust-contracts.log"
+    },
+    {
+      "gate": "Rust FFI + C++ linked ABI",
+      "status": "PASS",
+      "tests": 2,
+      "evidence": [
+        "H18-frame-bridge.log",
+        "H18-frame-abi.log"
+      ],
+      "scope": "synthetic data; 100 synthetic lifecycles"
+    },
+    {
+      "gate": "Python broker, layout and external supervisor",
+      "status": "PASS",
+      "tests": 17,
+      "evidence": "H18-python.log",
+      "scope": "six supervisor tests use owned Python processes, no browser"
+    },
+    {
+      "gate": "existing JS runtime interop",
+      "status": "PASS",
+      "tests": 2,
+      "evidence": "H18-node.log"
+    },
+    {
+      "gate": "CefInitialize/AppKit loop/OnPaint/alpha/real resize/restart/helper cleanup",
+      "status": "BLOCKED",
+      "reason": "explicit native browser exception not granted"
+    },
+    {
+      "gate": "third-party OS/process sandbox",
+      "status": "BLOCKED",
+      "reason": "browser-process confinement and per-role runtime verification absent"
+    },
+    {
+      "gate": "Chromium 1/3/5 widget performance",
+      "status": "BLOCKED",
+      "evidence": "H18-benchmark-status.json"
+    },
+    {
+      "gate": "native Web Element dispatcher/bootstrap",
+      "status": "PARTIAL",
+      "reason": "separate typed/JS adapter; not connected to CEF fixture"
+    },
+    {
+      "gate": "Production/libobs texture upload + MKV/RTMP",
+      "status": "BLOCKED",
+      "reason": "no H17 handoff/authorization; no native execution"
+    }
+  ]
+}

@@ -1,3 +1,7 @@
+> H18 continuation: a linked, locally sealed fixture and additional offline
+> checks now exist. See [H18 build and execution gates](h18-native-host.md).
+> The H16 instructions/results below preserve their original scope.
+
 # Reproducir H16 sin ejecutar un navegador
 
 El resultado reproducible de esta etapa es el build del crate independiente,

@@ -1,8 +1,10 @@
 # H14 — ensayo propuesto de colección de ventanas
 
-**NOT_RUN.** Propuesta y fixture separada; no se compiló ni ejecutó durante la
-preparación del bundle. No cambia Motive, H13, preferencias globales, permisos,
-Stage Manager ni método de captura. No atribuye la suspensión observada.
+**Propuesta ejecutada posteriormente sobre B3; resultado inconcluso.** Durante
+la preparación del bundle permanecía NOT_RUN. La [ejecución A→B→A y sus medios](h14-collection-b3-verification.md)
+conservan A1/A2 FAIL y B INCONCLUSIVE: contador fresco global, foco sin corroborar.
+No cambia Motive, H13, preferencias globales, permisos, Stage Manager ni método
+de captura. No atribuye la suspensión observada ni demuestra una corrección.
 
 ## Evidencia y límites de las APIs
 

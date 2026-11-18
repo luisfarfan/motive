@@ -58,8 +58,8 @@ sus rutas. La verificación del paquete autocontenido se registrará por separad
 
 | Área | Estado actual | Evidencia pendiente |
 |---|---|---|
-| Frescura y detección de captura | FAIL | GPUI propio avanza en MKV/RTMP; fixture suspendida y recuperación fallida conservadas; repetir final |
-| Integridad/finalización de salidas | PARTIAL | Matriz A/B ejecutada; reordering falla al cerrar, mitigación por defecto sin reordering; repetir final |
+| Frescura y detección de captura | FAIL | [Ensayo B3 A→B→A](h14-collection-b3-verification.md): B entrega contador fresco en MKV/RTMP, pero foco no corroborado; A1/A2 FAIL conservados, sin causa aislada ni recuperación aceptada |
+| Integridad/finalización de salidas | PARTIAL | [15 casos finales B3](h14-output-matrix-b3-verification.md): 10 PARTIAL/5 FAIL, 22 medios decodificables; siete fallan cadencia y dos colas tienen AAC pre-stop ausente; default sin reordering es mitigación |
 | Memoria y sesión prolongada | PARTIAL | B3 30/60 FPS y soak dual de 1800.07 s completos; ambos medios pasan decode/cadencia/píxeles/PCM; 39 skips y pausa visual 0.601 s conservados; RPC excedido, A/V no evaluado y ownership sin determinar |
 | Bundle autocontenido | PARTIAL | B1/B2/B3 ejecutados fuera del checkout, firma/closure/tools PASS; segunda Mac, notarización y reconstrucción pendientes |
 | RTMPS externo seguro | PARTIAL | B2 emitió 104,837 s a YouTube privado; usuario confirmó video/audio; MKV decodificado; copia remota y contabilidad completa siguen pendientes |

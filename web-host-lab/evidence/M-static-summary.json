@@ -1,0 +1,151 @@
+{
+  "date_utc": "2026-11-18T16:19:38.632100+00:00",
+  "base": "130b626168cbe1336afb85c3810fa6be5e6b2b11",
+  "tested_head_before_final_commit": "057614763df4432f0fa491ad63e7dac930f4290e",
+  "status": "PASS",
+  "native_cef_executed": false,
+  "native_linked": false,
+  "production_integrated": false,
+  "native_security": "BLOCKED",
+  "checks": [
+    {
+      "name": "rust-tests",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/poc/browser-host/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--config",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/.cache/cargo-local.toml"
+      ]
+    },
+    {
+      "name": "clippy",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "clippy",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/poc/browser-host/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--config",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/.cache/cargo-local.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    {
+      "name": "format",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/poc/browser-host/Cargo.toml",
+        "--",
+        "--check"
+      ]
+    },
+    {
+      "name": "security",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ]
+    },
+    {
+      "name": "projection",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "run",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/poc/browser-host/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--config",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/.cache/cargo-local.toml",
+        "--example",
+        "project_goal"
+      ]
+    },
+    {
+      "name": "runtime",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "node",
+        "--test",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/tests/runtime-interop.test.mjs"
+      ]
+    },
+    {
+      "name": "native-api",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/tools/compile_native_api.py"
+      ]
+    },
+    {
+      "name": "source-audit",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/tools/audit_sources.py"
+      ]
+    },
+    {
+      "name": "scope",
+      "status": "PASS",
+      "outside_lab": []
+    }
+  ],
+  "implementation_sha256": {
+    "poc/frame-consumer/check_frame.py": "ce84cfc800f23f50d11b8fd5aa76056b7f97b4a5025a3053060f1dea2258396b",
+    "poc/browser-host/asset_broker.py": "76d79530beaa9688e89e8e167df56db5c1e485182feacf8532cccdc6e146696f",
+    "poc/browser-host/Cargo.toml": "9961c20ba1487c43500a417e1f570bd14e2db2f0a48cc6e8fbfde8c1a529d36f",
+    "poc/browser-host/Cargo.lock": "df091ff6a855621c018dabe357966f5498e3919a04b1fb003b904b9cf648550e",
+    "poc/fixtures/index.html": "e418f6b378b327f12b94a131140afe3bdff8e2790f9484a8307b822be84c293d",
+    "poc/fixtures/fixture.js": "3b9c0bd2115430b0891e0f1d1b4cf45db3ddc08b061d792a8a3b8a38184f62c7",
+    "poc/fixtures/fixture.css": "58994719a358ec0ae3582c1780f02d8639c609c31044fc20ea6f6a22441d7b48",
+    "poc/browser-host/native/helper.cc": "feb7ca4f0331ed26951172e1be4771e26170d53d8bda56202ac76b79b2a81203",
+    "poc/browser-host/native/fixture.mm": "7625c89ee32ce06bc843ae1d9aeb24871ad408875d4847d1ee51b4f1955cd2cd",
+    "poc/browser-host/native/scheme.hpp": "ad04c3ba19031756b5653f86cc2c54bcef9c7320710aab866f5a85d1f795f847",
+    "poc/browser-host/native/NOTICE.md": "2f45a6442be004fef306f0f8313f6a7aa86b96bd10b648e78e35e9c07ae74b6c",
+    "poc/browser-host/tests/ipc.rs": "e933ed43b1ce6dee708a13347305bb2ad41c2b451de37857de4b897534cf4c84",
+    "poc/browser-host/examples/project_goal.rs": "5142522ad41c50d8fd7fe69c88e1ca880a3d75bf795eaa7a2ca4cdf6dcb10de5",
+    "poc/browser-host/src/ipc.rs": "5913a20ee699d3164ebad15d8c9339f5652eedb04e210b596d2dd0d305ca4858",
+    "poc/browser-host/src/lib.rs": "c1bf363fe8a77347a950390296e17a55cc9e8a4f3dc70660b911fbcd87e28a68",
+    "poc/browser-host/src/projection.rs": "25758b565f803942f92bea88e497b5216061b884168197b61a99670914a3f24c",
+    "poc/browser-host/src/frame.rs": "986cb9d8f71fa48f59a5d0a212437e6578b7390e46cc2921870a5e06298754e9",
+    "poc/browser-host/src/lifecycle.rs": "baaa2a22f264923ad14d832949aa105cfce84a49a875c274b35b04e24e81c4b3",
+    "tests/test_security.py": "4872de5e85f83eb59932860450663516c6967025d25d1bfa057a982aed115922",
+    "tests/runtime-interop.test.mjs": "93a563a4ddf13d0d95869949a1c37baf8612e41c22fcd844cecc2fc76b03adc9",
+    "tools/audit_sources.py": "02cbb59fb37a4873e524a27e2f991b140343670635ed2dec63f625f5f4572d89",
+    "tools/fetch_sources.py": "8537c8c9e18a144000e9963e09e86828113e0fe3d9f6aa428c80095ae26abe06",
+    "tools/compile_native_api.py": "f8e87017d24f39d62dbf76f867ec51a442cf4dfa8e35880e8c13024eb9fd1dd8",
+    "tools/test_lab.py": "9d80eeab8b4c06b90c6a41ae00cda8e367eb2a55e91279481069b7b6bc9c9cf5"
+  }
+}

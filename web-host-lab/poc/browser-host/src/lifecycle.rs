@@ -126,7 +126,8 @@ impl Lifecycle {
         }
         self.timed(now, 5_000, State::Closing)?;
         self.active_sequence = None;
-        self.dispose_on_close = dispose;
+        // A retry after a close timeout cannot downgrade terminal disposal.
+        self.dispose_on_close |= dispose;
         Ok(())
     }
     pub fn closed(&mut self, identity: Identity, now: u64) -> Result<()> {
@@ -229,6 +230,10 @@ mod tests {
         assert_eq!(l.poll(0), Err("CLOCK_REGRESSION"));
         l.close(true, 2).unwrap();
         assert_eq!(l.poll(5002), Err("DEADLINE"));
+        assert_eq!(l.restart_after_reap(), Err("LIFECYCLE"));
+        l.close(false, 5003).unwrap();
+        l.closed(l.identity(), 5004).unwrap();
+        assert_eq!(l.state(), State::Disposed);
         assert_eq!(l.restart_after_reap(), Err("LIFECYCLE"));
     }
 }

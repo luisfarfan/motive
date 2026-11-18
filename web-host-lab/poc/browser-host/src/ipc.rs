@@ -127,10 +127,10 @@ fn validate_field(v: &Value, s: &Value) -> Result<()> {
         }
         _ => return Err("FIELD_SPEC"),
     }
-    if let Some(options) = s.get("options") {
-        if !options.as_array().ok_or("FIELD_SPEC")?.contains(v) {
-            return Err("FIELD_OPTION");
-        }
+    if let Some(options) = s.get("options")
+        && !options.as_array().ok_or("FIELD_SPEC")?.contains(v)
+    {
+        return Err("FIELD_OPTION");
     }
     Ok(())
 }

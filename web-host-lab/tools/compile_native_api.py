@@ -8,7 +8,7 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 sys.dont_write_bytecode=True
 sys.path.insert(0,str(ROOT/'tools'))
-from fetch_sources import verify
+from fetch_sources import verify_tree
 sources=json.loads((ROOT/'research/sources.lock.json').read_text())['sources']
 out=ROOT/'.cache/native-api';out.mkdir(parents=True,exist_ok=True)
 fixture=ROOT/'poc/fixtures'
@@ -22,12 +22,12 @@ rows.append('inline const std::map<std::string,Asset> Assets={'+','.join(entries
 reports=[]
 for e in sources:
     if not e['id'].startswith('cef-obs'):continue
-    verify(e)
+    verified_headers=verify_tree(e)
     for file in ['fixture.mm','helper.cc']:
         command=['clang++','-std=c++20','-DCEF_API_VERSION=15000','-I'+str(ROOT/e['source']),'-I'+str(out),'-fsyntax-only',str(ROOT/'poc/browser-host/native'/file)]
         result=subprocess.run(command,text=True,capture_output=True)
-        reports.append({'source':e['id'],'file':file,'command':command,'returncode':result.returncode,'diagnostics':result.stdout+result.stderr})
-report={'native_executed':False,'linked':False,'checks':reports,'status':'PASS' if all(x['returncode']==0 for x in reports) else 'FAIL'}
+        reports.append({'source':e['id'],'file':file,'command':command,'verified_header_files':verified_headers,'source_sha256':hashlib.sha256((ROOT/'poc/browser-host/native'/file).read_bytes()).hexdigest(),'returncode':result.returncode,'diagnostics':result.stdout+result.stderr})
+report={'compiler':subprocess.check_output(['clang++','--version'],text=True).splitlines()[0],'fixture_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in fixture.iterdir() if p.is_file()},'native_executed':False,'linked':False,'checks':reports,'status':'PASS' if all(x['returncode']==0 for x in reports) else 'FAIL'}
 (ROOT/'evidence/I-native-api.json').write_text(json.dumps(report,indent=2)+'\n')
-for r in reports:print(r['source'],r['file'],r['returncode'],r['diagnostics'][:5000])
+for r in reports:print(f"{r['source']} {r['file']} {r['returncode']} {r['diagnostics'][:5000]}".rstrip())
 sys.exit(0 if report['status']=='PASS' else 1)

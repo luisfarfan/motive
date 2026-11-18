@@ -139,3 +139,27 @@ fn silent_peer_timeout_is_bounded() {
     assert!(read_packet(&mut a, 4096, Duration::from_millis(20)).is_err());
     assert!(start.elapsed() < Duration::from_secs(1));
 }
+
+#[test]
+fn trickled_body_cannot_extend_absolute_deadline() {
+    let (mut a, mut b) = UnixStream::pair().unwrap();
+    let t = std::thread::spawn(move || {
+        if b.write_all(&10u32.to_be_bytes()).is_err() {
+            return;
+        }
+        for _ in 0..10 {
+            std::thread::sleep(Duration::from_millis(8));
+            if b.write_all(b"x").is_err() {
+                break;
+            }
+        }
+    });
+    let start = Instant::now();
+    assert_eq!(
+        read_packet(&mut a, 4096, Duration::from_millis(20)),
+        Err("TRANSPORT_TIMEOUT")
+    );
+    assert!(start.elapsed() < Duration::from_millis(100));
+    drop(a);
+    t.join().unwrap();
+}

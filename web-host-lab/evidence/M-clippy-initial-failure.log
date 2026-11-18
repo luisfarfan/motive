@@ -1,0 +1,25 @@
+    Checking motive-browser-contracts v0.1.0 (/Users/luisfarfan/Developer/products/motive-h16/web-host-lab/poc/browser-host)
+error: this `if` statement can be collapsed
+   --> src/ipc.rs:130:5
+    |
+130 | /     if let Some(options) = s.get("options") {
+131 | |         if !options.as_array().ok_or("FIELD_SPEC")?.contains(v) {
+132 | |             return Err("FIELD_OPTION");
+133 | |         }
+134 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#collapsible_if
+    = note: `-D clippy::collapsible-if` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+    |
+130 ~     if let Some(options) = s.get("options")
+131 ~         && !options.as_array().ok_or("FIELD_SPEC")?.contains(v) {
+132 |             return Err("FIELD_OPTION");
+133 ~         }
+    |
+
+error: could not compile `motive-browser-contracts` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `motive-browser-contracts` (lib test) due to 1 previous error

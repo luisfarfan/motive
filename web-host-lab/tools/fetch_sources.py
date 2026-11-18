@@ -11,9 +11,31 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def verify(entry):
     path = ROOT / entry['cache']
-    if not path.is_file() or hashlib.file_digest(path.open('rb'), 'sha256').hexdigest() != entry['sha256']:
-        raise ValueError(f"ARCHIVE_HASH: {entry['id']}")
+    if not path.is_file():
+        raise ValueError(f"ARCHIVE_MISSING: {entry['id']}")
+    with path.open('rb') as stream:
+        if hashlib.file_digest(stream, 'sha256').hexdigest() != entry['sha256']:
+            raise ValueError(f"ARCHIVE_HASH: {entry['id']}")
     return path
+
+def verify_tree(entry, prefixes=('include/',)):
+    """Verify extracted API files against the pinned archive, not only its hash."""
+    archive = verify(entry)
+    count = 0
+    with tarfile.open(archive) as bundle:
+        for member in bundle:
+            parts = Path(member.name).parts[entry['strip_components']:]
+            if not parts or not member.isfile(): continue
+            relative = Path(*parts).as_posix()
+            if not any(relative.startswith(prefix) for prefix in prefixes): continue
+            path = ROOT/entry['source']/relative
+            if not path.is_file() or path.is_symlink(): raise ValueError('SOURCE_MISSING')
+            expected = hashlib.file_digest(bundle.extractfile(member), 'sha256').hexdigest()
+            with path.open('rb') as f: actual = hashlib.file_digest(f, 'sha256').hexdigest()
+            if expected != actual: raise ValueError(f'SOURCE_HASH: {relative}')
+            count += 1
+    if not count: raise ValueError('NO_VERIFIED_FILES')
+    return count
 
 def main():
     parser = argparse.ArgumentParser()
@@ -28,8 +50,9 @@ def main():
             tmp = p.with_suffix(p.suffix+'.partial')
             with urllib.request.urlopen(e['url'], timeout=60) as response, tmp.open('wb') as output:
                 while chunk := response.read(1024*1024): output.write(chunk)
-            if hashlib.file_digest(tmp.open('rb'), 'sha256').hexdigest() != e['sha256']:
-                raise ValueError(f"DOWNLOAD_HASH: {e['id']}")
+            with tmp.open('rb') as stream:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != e['sha256']:
+                    raise ValueError(f"DOWNLOAD_HASH: {e['id']}")
             tmp.rename(p)
         verify(e)
         destination = ROOT/e['source']

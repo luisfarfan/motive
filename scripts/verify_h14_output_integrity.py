@@ -77,7 +77,14 @@ def correlate_tail(initial_trace, final_trace, packets):
     if initial_trace['snapshot_busy'] or final_trace['snapshot_busy']:
         result['reason'] = 'trace_snapshot_busy'
         return result
+    if summary.get('quiescent_observed_ns') is None:
+        result['reason'] = 'terminal_quiescence_not_observed'
+        return result
     if initial_trace['summary']['trace_missed_records'] or initial_trace['summary']['trace_overwritten_records']:
+        result['reason'] = 'beginning_of_trace_not_complete'
+        return result
+    initial_sequences = [p['sequence'] for p in initial_trace['packets']]
+    if not initial_sequences or initial_sequences != list(range(1, len(initial_sequences) + 1)):
         result['reason'] = 'beginning_of_trace_not_complete'
         return result
     records = final_trace['packets']
@@ -85,6 +92,15 @@ def correlate_tail(initial_trace, final_trace, packets):
     result['tail_sequence_contiguous'] = all(b == a + 1 for a, b in zip(sequences, sequences[1:]))
     if not records or not result['tail_sequence_contiguous']:
         result['reason'] = 'missing_tail_metadata'
+        return result
+    # The observer increments its sequence and media counter before trying the
+    # trace lock. Losing the final callback therefore leaves a contiguous but
+    # incomplete tail. Only a quiescent snapshot whose last retained sequence
+    # reaches the unchanged dispatch counters can establish the tail endpoint.
+    observed = summary['observed_video_packets'] + summary['observed_audio_packets']
+    result['tail_reaches_dispatch_endpoint'] = sequences[-1] == observed
+    if not result['tail_reaches_dispatch_endpoint']:
+        result['reason'] = 'missing_terminal_metadata'
         return result
     classified = []
     for kind in ('video', 'audio'):
@@ -96,18 +112,28 @@ def correlate_tail(initial_trace, final_trace, packets):
             continue
         origin = float(actual[0]['pts_time']) - first_native['pts'] * first_native['timebase_num'] / first_native['timebase_den']
         container_pts = sorted(float(p['pts_time']) for p in actual)
+        used_container_indices = set()
         matches, absent = [], []
         for packet in (p for p in records if p['media_type'] == kind):
             expected = packet['pts'] * packet['timebase_num'] / packet['timebase_den'] + origin
             index = bisect.bisect_left(container_pts, expected)
+            lower = bisect.bisect_left(container_pts, expected - .0011)
+            upper = bisect.bisect_right(container_pts, expected + .0011)
+            available = [i for i in range(lower, upper) if i not in used_container_indices]
+            matched_index = min(available, key=lambda i: abs(container_pts[i]-expected), default=None)
             nearby = container_pts[max(0, index-1):index+1]
             delta = min((abs(p-expected) for p in nearby), default=math.inf)
             item = {'sequence': packet['sequence'], 'native_pts': packet['pts'],
                     'container_pts_expected_s': expected, 'closest_delta_s': delta,
                     'sys_dts_usec': packet['sys_dts_usec']}
-            if delta <= .0011:
+            if matched_index is not None:
+                # A single container packet cannot certify two dispatches.
+                used_container_indices.add(matched_index)
+                item['container_packet_index'] = matched_index
                 matches.append(item)
             else:
+                if delta <= .0011:
+                    item['correspondence_failure'] = 'container_packet_already_matched'
                 stop_lo, stop_hi = summary['stop_requested_ns'], summary['stop_call_returned_ns']
                 if stop_lo is None or stop_hi is None:
                     category = 'no_normal_stop_bracket'

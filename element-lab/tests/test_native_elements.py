@@ -12,6 +12,7 @@ class NativeElementsTests(unittest.TestCase):
             for variant in ['warm','cool']:
                 with self.subTest(name=name,variant=variant):
                     b=compile_element(LAB/'native-elements'/name/'element.json',variant=variant)
+                    self.assertEqual(b.pack['id'],name)
                     self.assertEqual(b.report['status'],'PASS');self.assertEqual(len(b.assets),1)
                     self.assertEqual(len(b.pack['scenes']),1)
                     for s in b.pack['scenes']:

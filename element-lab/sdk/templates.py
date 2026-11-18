@@ -53,8 +53,8 @@ def create(template: str,directory: Path,id_: str | None=None) -> Path:
         binding('start',[{'type':'countdown_start','source_id':'content'}]);binding('reset',[{'type':'countdown_reset','source_id':'content'}])
         states=[{'id':s,'backend':'native_widget','description':'Estado informativo del countdown; su reloj pertenece al motor nativo'} for s in ('ready','running','completed')]
     else:
-        for id_,kind_ in [('entry','slide_in'),('exit','slide_out')]:
-            animations.append({'id':id_,'layer_id':'content-layer','kind':kind_,'easing':'ease_out' if id_=='entry' else 'ease_in',
+        for animation_id,kind_ in [('entry','slide_in'),('exit','slide_out')]:
+            animations.append({'id':animation_id,'layer_id':'content-layer','kind':kind_,'easing':'ease_out' if animation_id=='entry' else 'ease_in',
                                'duration_ms':450,'distance':96,'scale_from':.9})
         binding('trigger',[{'type':'trigger_animated_widget','source_id':'content','scene_id':'$scene','layer_id':'content-layer','animation_ref':'entry'}],
                 'motive.custom_event' if seed==2 else 'manual.button_pressed','goal-scored' if seed==2 else 'trigger')

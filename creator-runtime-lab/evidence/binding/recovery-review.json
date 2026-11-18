@@ -20,10 +20,15 @@
   },
   "checks": {
     "command": "cargo test --offline --locked --manifest-path creator-runtime-lab/Cargo.toml --test recovery",
-    "passed": 4,
+    "passed": 6,
     "failed": 0,
     "clippy": "PASS"
   },
   "atomic_rollback": false,
-  "native_integration": false
+  "native_integration": false,
+  "owner_scope": {
+    "gap": "Local review nonce was not retained in Installation; another owner with identical snapshot could dispatch the accepted journal",
+    "correction": "Private serde-skipped Option<u64> capability minted at begin; step rejects different owner or deserialized journal and marks reconciliation",
+    "serializable_authority": false
+  }
 }

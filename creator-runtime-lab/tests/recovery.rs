@@ -168,3 +168,43 @@ fn known_step_rejection_clears_intent_and_keeps_prior_receipts() {
         1
     );
 }
+
+#[test]
+fn accepted_journal_cannot_dispatch_to_another_owner_with_identical_snapshot() {
+    let first = StrictOwnerModel::new(Snapshot::empty_fixture()).unwrap();
+    let mut other = StrictOwnerModel::new(Snapshot::empty_fixture()).unwrap();
+    assert_eq!(first.snapshot, other.snapshot);
+    let review = first.review(request("scoped")).unwrap();
+    let mut installation = first.begin(review).unwrap();
+    let unchanged = other.snapshot.clone();
+    assert_eq!(
+        other.step(&mut installation).unwrap_err().code,
+        "OWNER_SCOPE"
+    );
+    assert_eq!(other.snapshot, unchanged);
+    assert!(installation.receipts.is_empty());
+    assert!(installation.pending_step.is_none());
+    assert_eq!(installation.phase, Phase::NeedsReconciliation);
+}
+
+#[test]
+fn deserialized_journal_never_recreates_owner_execution_capability() {
+    let mut owner = StrictOwnerModel::new(Snapshot::empty_fixture()).unwrap();
+    let review = owner.review(request("restored")).unwrap();
+    let mut installation = owner.begin(review).unwrap();
+    owner.step(&mut installation).unwrap();
+    let serialized = serde_json::to_value(&installation).unwrap();
+    assert!(serialized.get("owner_nonce").is_none());
+    let mut restored: Installation = serde_json::from_value(serialized.clone()).unwrap();
+    let unchanged = owner.snapshot.clone();
+    assert_eq!(owner.step(&mut restored).unwrap_err().code, "OWNER_SCOPE");
+    assert_eq!(owner.snapshot, unchanged);
+    assert_eq!(restored.receipts.len(), 1);
+    assert_eq!(restored.phase, Phase::NeedsReconciliation);
+    let mut forged = serialized;
+    forged["owner_nonce"] = json!(1);
+    assert!(serde_json::from_value::<Installation>(forged).is_err());
+    // The original in-memory capability is still valid for this owner.
+    owner.step(&mut installation).unwrap();
+    assert_eq!(installation.receipts.len(), 2);
+}

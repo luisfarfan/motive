@@ -35,6 +35,10 @@ pub enum Phase {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Installation {
+    // Process-local execution capability. Persisted journals are evidence only;
+    // deserialization must never recreate authority to mutate an owner.
+    #[serde(skip)]
+    owner_nonce: Option<u64>,
     pub plan: InstancePlan,
     pub plan_sha256: String,
     pub phase: Phase,
@@ -48,6 +52,7 @@ pub struct Installation {
 impl Installation {
     fn new(plan: InstancePlan) -> Result<Self, Error> {
         Ok(Self {
+            owner_nonce: None,
             plan_sha256: digest(&plan)?,
             last_revision: plan.revision,
             last_snapshot_sha256: plan.snapshot_sha256.clone(),
@@ -473,9 +478,18 @@ impl StrictOwnerModel {
             "REVIEW_STALE",
             "Local review belongs to another owner or state",
         )?;
-        Installation::new(review.plan)
+        let mut installation = Installation::new(review.plan)?;
+        installation.owner_nonce = Some(self.nonce);
+        Ok(installation)
     }
     pub fn step(&mut self, installation: &mut Installation) -> Result<(), Error> {
+        if installation.owner_nonce != Some(self.nonce) {
+            installation.uncertain("OWNER_SCOPE");
+            return Err(Error::new(
+                "OWNER_SCOPE",
+                "Journal has no execution capability for this owner; local review/reconciliation required",
+            ));
+        }
         let index = installation.begin_step(&self.snapshot)?;
         let result = match self.dispatch(installation, index) {
             Ok(result) => result,

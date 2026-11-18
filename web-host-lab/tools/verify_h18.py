@@ -38,7 +38,7 @@ def main():
     manifest = ROOT / 'poc/frame-bridge/Cargo.toml'
     check('bridge-rust', ['cargo', 'test', '--offline', '--locked', '--manifest-path', manifest, '--features', 'creator-bridge'])
     check('bridge-clippy', ['cargo', 'clippy', '--offline', '--locked', '--manifest-path', manifest, '--features', 'creator-bridge', '--all-targets', '--', '-D', 'warnings'])
-    if check('bridge-build', [sys.executable, ROOT / 'tools/build_native.py', '--build-name', 'h18-native-bridge-ephemeral', '--mock-keychain', '--bridge'], timeout=600):
+    if check('bridge-build', [sys.executable, ROOT / 'tools/build_native.py', '--build-name', 'h18-native-bridge-alpha-ephemeral', '--mock-keychain', '--bridge'], timeout=600):
         binary = ROOT / '.cache/native-bridge-policy-test'
         if check('bridge-policy-build', ['clang++', '-std=c++20', '-O2', '-Wall', '-Wextra', '-Werror', ROOT / 'tests/native_bridge_policy.cc', ROOT / 'poc/frame-bridge/target/release/libmotive_frame_bridge.a', '-framework', 'Security', '-framework', 'CoreFoundation', '-lresolv', '-lpthread', '-o', binary]):
             check('bridge-policy', [binary])  # No CEF linkage or execution.

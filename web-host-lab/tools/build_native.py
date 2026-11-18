@@ -57,7 +57,7 @@ def main():
     parser.add_argument('--bridge', action='store_true')
     parser.add_argument('--mock-keychain', action='store_true')
     args = parser.parse_args()
-    if args.bridge and args.build_name not in {'h18-native-bridge','h18-native-bridge-ephemeral'}:
+    if args.bridge and args.build_name not in {'h18-native-bridge','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral'}:
         raise ValueError('BRIDGE_NEEDS_SEPARATE_BUILD_ROOT')
     if args.mock_keychain != args.build_name.endswith('-ephemeral'):
         raise ValueError('EPHEMERAL_PROFILE_AND_KEYCHAIN_BACKEND_MUST_MATCH')
@@ -66,7 +66,7 @@ def main():
     entry = next(e for e in json.loads((ROOT / 'research/sources.lock.json').read_text())['sources'] if e['id'] == 'cef-obs-7871')
     verified = verify_tree(entry, ('include/', 'libcef_dll/', 'Release/'))
     sdk = ROOT / entry['source']
-    if args.build_name not in {'h18-native-diagnostic','h18-native-close-once','h18-native-bridge','h18-native-ephemeral','h18-native-bridge-ephemeral'}:
+    if args.build_name not in {'h18-native-diagnostic','h18-native-close-once','h18-native-bridge','h18-native-ephemeral','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral'}:
         raise ValueError('ISOLATED_BUILD_NAME_REQUIRED')
     build = ROOT / '.cache' / args.build_name
     report_name = 'H18-native-' + args.build_name.removeprefix('h18-native-') + '-build'
@@ -80,7 +80,7 @@ def main():
     fingerprint = hashlib.sha256(json.dumps([entry['sha256'], compiler, flags]).encode()).hexdigest()[:16]
     objects = build / ('wrapper-' + fingerprint)
     if not objects.exists():
-        previous = ROOT / '.cache/h18-native-diagnostic' / ('wrapper-' + fingerprint)
+        previous = next((p for p in (ROOT / '.cache').glob('h18-native*/wrapper-' + fingerprint) if p != objects and p.is_dir()), objects)
         if previous.is_dir() and previous != objects:
             shutil.copytree(previous, objects)
         else:

@@ -52,13 +52,13 @@ it does not claim a release configuration or JIT acceptance.
 | Popups / unmanaged windows | Popup callback denies; non-primary clients close immediately | **PARTIAL** compile; **BLOCKED** actual popup/new-window/task cleanup |
 | Devices and permissions | Media callback cancels, permission prompt denies; no device entitlements or usage prompts added | **BLOCKED:** real API denials and absence of TCC prompts must be observed without changing permissions |
 | Clipboard | No host clipboard bridge, CSP/permission policy, permission prompt denies | **BLOCKED:** browser read/write denial and activation paths untested |
-| IPC | Existing typed Rust gate enforces size, sequence, generation, allowlists, rate/deadline | Contract tests **PASS**; native browser/process/frame/generation/URL dispatcher now compiled and pure-boundary tested; live transport **NOT_EVALUATED**; no Production/MCP exposed to JS |
+| IPC | Existing typed Rust gate enforces size, sequence, generation, allowlists, rate/deadline | Contract tests **PASS**; native browser/process/frame/generation/URL dispatcher now compiled and pure-boundary tested; live fixed Goal transport **PASS** in its own run; no Production/MCP exposed to JS |
 | Cookies/profiles | Fresh origin per generation, private root cache, new in-memory request context | **BLOCKED:** prove no reuse/persistence/service worker contamination; new context is not a sandbox |
 | JIT | Matching renderer/GPU entitlement references recorded; no broad exceptions added | **PARTIAL:** original own JS visibly animated; no hardened release/JIT role acceptance; do not add unsigned-executable-memory/library-validation exceptions speculatively |
 | CPU/RSS/deadline | External supervisor tests terminate owned Python trees; CEF callback mailbox bounded | Non-browser tests **PASS**; Chromium exhaustion/whole-tree cost **BLOCKED**; footprint/GPU null |
 | Process crash/escape | PID+microsecond birth tracking; group isolation; finally cleans observed escaped child after exception | Owned fixture tests **PASS**; observed CEF helper cleanup after deadline **PASS**; malicious unobserved escape **BLOCKED**; polling is not confinement |
 | Close/restart | Native final-close flow compiled, Rust generations/revocation tested; fresh origin/root required | **FAIL** default Chromium Keychain shutdown; **PASS** one ephemeral test-backend close/cleanup; repeated cycles remain separate evidence; no replay/reuse of revoked admission |
-| Alpha/frame ownership | C++↔Rust copied callback bytes, one lease, bounded coalescing tested without CEF | ABI/ownership **PASS**; actual OnPaint and original half-alpha smoke **PASS**; Goal native pixels and libobs remain separate gates |
+| Alpha/frame ownership | C++↔Rust copied callback bytes, one lease, bounded coalescing tested without CEF | ABI/ownership **PASS**; actual OnPaint and original half-alpha smoke **PASS**; fixed Goal native pixels/transparency also **PASS**; libobs remains unintegrated |
 
 No `no_sandbox=true`, private sandbox APIs, remote debugging, external browser
 connection or global HTTP server is used. No third-party package was executed.

@@ -228,7 +228,7 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
     if(kind=="visual_ack")s_->Trace("visual_ack");
     if(kind=="visual_state"){
       if(status->GetString("state")=="active"){
-        s_->Trace("visual_active");uint64_t empty=0;s_->visual_capture_after_ns.compare_exchange_strong(empty,MonotonicNs()+300000000);
+        s_->Trace("visual_active");uint64_t empty=0;s_->visual_capture_after_ns.compare_exchange_strong(empty,MonotonicNs()+600000000);
       }
       if(status->GetString("state")=="ready"&&status->GetType("sequence")!=VTYPE_NULL)s_->Trace("visual_complete");
     }

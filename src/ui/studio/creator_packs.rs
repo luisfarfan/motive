@@ -111,8 +111,8 @@ impl Studio {
         self.panel = None;
         window.open_dialog(cx,move|dialog,_,_| {
             let review=review.clone();let weak=weak.clone();
-            dialog.title("Revisar instalación de MATCHDAY")
-                .child(col().id("matchday-review-scroll").max_h(px(300.)).overflow_y_scroll().child(description.clone()))
+            dialog.title(Text::new("matchday-review-title".into(), "Revisar instalación de MATCHDAY".into()))
+                .child(col().id("matchday-review-scroll").max_h(px(300.)).overflow_y_scroll().child(Text::new("matchday-review-body".into(), description.clone().into())))
                 .footer(DialogFooter::new().child(DialogClose::new().trigger(|b|b.label("Cancelar")))
                     .child(DialogAction::new().child(control("install-matchday-local","Instalar MATCHDAY"))))
                 .button_props(DialogButtonProps::default().ok_text("Instalar MATCHDAY").cancel_text("Cancelar").show_cancel(true)

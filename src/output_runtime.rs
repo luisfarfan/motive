@@ -73,6 +73,8 @@ impl Production {
             target
         };
         let profile = self.profile(selected).clone();
+        // Includes the legacy UDP path before reserving a file or an attempt.
+        profile.validate_for_output()?;
         let profile_json = serde_json::to_string(&profile)?;
         let path = if target == OutputTarget::Recording {
             let stamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros();

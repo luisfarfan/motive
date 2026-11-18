@@ -513,7 +513,8 @@ impl Production {
     }
     fn output_capabilities(&self) -> Value {
         json!({"encoders":self.engine.encoding_info(),"rate_controls":["cbr"],"bitrate_kbps":{"min":250,"max":20000},
-            "keyframe_seconds":{"min":1,"max":10},"frame_reordering":[true,false],
+            "keyframe_seconds":{"min":1,"max":10},"frame_reordering":[false],
+            "saved_frame_reordering_preserved":true,"frame_reordering_block_reason":"FRAME_REORDERING_UNSUPPORTED",
             "canvas":{"width":self.engine.width,"height":self.engine.height,"fps":self.engine.fps,
                 "configuration":self.project.video.unwrap_or_default(),"capabilities":video::capabilities(),
                 "profile_resolution_configurable":false,"production_resolution_configurable":true,"fps_configurable":true},
@@ -541,7 +542,7 @@ impl Production {
         );
         self.source_ready()?;
         let p = self.profile(target);
-        p.validate()?;
+        p.validate_for_output()?;
         if p.encoder == RecordingEncoder::Videotoolbox {
             anyhow::ensure!(
                 self.engine.encoding_info()["videotoolbox_id"].is_string(),

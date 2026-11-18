@@ -278,13 +278,14 @@ impl Studio {
                 quiet(
                     "reorder",
                     if self.forms.reorder {
-                        "Reordenamiento: activado"
+                        "Desactivar reordenamiento para producir"
                     } else {
                         "Reordenamiento: desactivado"
                     },
                 )
+                .disabled(!self.forms.reorder)
                 .on_click(cx.listener(|v, _, _, cx| {
-                    v.forms.reorder = !v.forms.reorder;
+                    v.forms.reorder = false;
                     cx.notify();
                 })),
             )

@@ -433,18 +433,25 @@ impl Default for OutputProfile {
     }
 }
 impl OutputProfile {
-    /// A measured risk advisory, not an acceptance gate or delivery receipt.
-    /// Saved profiles retain their explicit setting and receive the same warning.
+    /// Saved profiles retain their setting, but unsafe modes cannot start.
     pub fn warnings(&self) -> Vec<OutputWarning> {
         if self.frame_reordering {
             vec![OutputWarning {
                 code: OutputWarningCode::FrameReorderingTailRisk,
-                message: "El reordenamiento puede dejar saltos de video al finalizar la salida.",
-                recommendation: "Desactiva el reordenamiento en el perfil para reducir este riesgo. La integridad de la salida todavía requiere verificación.",
+                message: "Este perfil no puede iniciar: el reordenamiento produjo saltos de video y pérdida de audio al finalizar.",
+                recommendation: "Desactiva el reordenamiento y aplica el perfil. El ajuste guardado se conserva hasta que lo cambies explícitamente.",
             }]
         } else {
             Vec::new()
         }
+    }
+    pub fn validate_for_output(&self) -> anyhow::Result<()> {
+        self.validate()?;
+        anyhow::ensure!(
+            !self.frame_reordering,
+            "FRAME_REORDERING_UNSUPPORTED: Desactiva el reordenamiento y aplica el perfil antes de iniciar la salida"
+        );
+        Ok(())
     }
     pub fn validate(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
@@ -706,6 +713,7 @@ mod tests {
     fn default_avoids_reordering_without_migrating_saved_v1_profiles() {
         assert!(!OutputProfile::default().frame_reordering);
         assert!(OutputProfile::default().warnings().is_empty());
+        OutputProfile::default().validate_for_output().unwrap();
         let saved = serde_json::json!({"version":1,"profiles":[{
             "id":"saved","encoder":"auto","bitrate_kbps":4000,
             "rate_control":"cbr","keyframe_seconds":2,"frame_reordering":true
@@ -728,8 +736,15 @@ mod tests {
             let mut p = restored.profiles[0].clone();
             p.encoder = encoder;
             assert!(!p.warnings().is_empty());
+            assert!(
+                p.validate_for_output()
+                    .unwrap_err()
+                    .to_string()
+                    .starts_with("FRAME_REORDERING_UNSUPPORTED:")
+            );
             p.frame_reordering = false;
             assert!(p.warnings().is_empty());
+            p.validate_for_output().unwrap();
         }
     }
     #[test]

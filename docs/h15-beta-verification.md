@@ -76,3 +76,20 @@ reanudación y cola a 997 Hz, y rechaza estados failed/disconnected no previstos
 Conserva las aserciones anteriores y los límites de silencio/pausa. Su contraste
 offline con el medio histórico H14 y el nuevo B1 queda separado en
 `h15-audio-continuity-checker/report.json`; no reescribe aquellos informes.
+El nuevo checker rechaza la pérdida tardía histórica. También conserva un
+fallo de la ventana final del tono inicial en B1 (mínimo 0,01691 frente a
+referencia 0,03160), aunque reanudación/cola pasan y no hay fallos de identidad.
+La alineación del borde tono→silencio necesita revisión; no se amplía el guard
+de 200 ms para producir un PASS. El PASS del runner anterior sigue acotado a
+sus aserciones originales.
+
+### D — restringir el modo que pierde cadencia/audio
+
+Se impide iniciar cualquier destino con `frame_reordering=true`, incluido el
+UDP heredado, antes de reservar archivo/attempt. Preflight devuelve
+`FRAME_REORDERING_UNSUPPORTED`; capabilities solo anuncia false. Los perfiles
+v1 siguen cargando y conservan exactamente el valor guardado; la UI permite
+desactivarlo explícitamente y explica el bloqueo. No se modifica OBS, stop_ts,
+interleaver, muxer, encoders ni barrera H8, y no se añade una espera de drenaje.
+La restricción trata los fallos H14 demostrados; no promete entrega completa
+del perfil sin reordering. 116 tests raíz y Clippy all-targets PASS.

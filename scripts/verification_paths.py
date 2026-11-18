@@ -42,7 +42,8 @@ class VerificationPaths:
         except (ValueError, TypeError):
             return False
         return (isinstance(owner, dict) and owner.get('worktree') == str(self.root)
-                and isinstance(owner.get('owner'), str) and 'H14' in owner['owner'].split())
+                and isinstance(owner.get('owner'), str)
+                and bool({'H14', 'H15'} & set(owner['owner'].split())))
 
     def manifest(self):
         return {**{key: str(value) if isinstance(value, Path) else value

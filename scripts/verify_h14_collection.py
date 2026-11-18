@@ -373,6 +373,18 @@ def mark(args):
         'fixture_pid':manifest['fixture']['pid'],'window_id':manifest['fixture']['window_id'],
         'clock':'python.time.monotonic','host_monotonic':time.monotonic(),'wall_unix':time.time(),
         'observation':'root_observed_focus_after_cua','note':args.note,'proves_published_pixels':False}
+    if getattr(args,'system_probe',None):
+        from h15_focus import corroborate
+        probe=load(args.system_probe,65536)
+        _,states=validate_fixture(lines(manifest['fixture']['log']),manifest)
+        expected=manifest['owner']['pid'] if args.phase=='studio_front' else manifest['fixture']['pid']
+        assessment=corroborate(probe,states[-1],fixture_pid=manifest['fixture']['pid'],
+                              window_id=manifest['fixture']['window_id'],expected_pid=expected)
+        anchor=clock_anchor()
+        require(assessment['status']=='PASS' and 0<=anchor['fixture_clock_s']-probe['after_s']<=1.5,
+                'HUMAN_ACTION_REQUIRED: independent system focus and fixture must agree recently')
+        event.update(observation='system_frontmost_application',system_probe=probe,
+                     fixture_observation=states[-1],clock_anchor=anchor)
     fd=os.open(path,os.O_WRONLY|os.O_APPEND|os.O_CREAT|os.O_NOFOLLOW,0o600)
     with os.fdopen(fd,'a') as destination:destination.write(json.dumps(event)+'\n')
     print(json.dumps(event))
@@ -417,7 +429,17 @@ def analyze(args):
             fixture_bounds=[sample['fixture_latest']['cg_own_window_metadata']['bounds'] for sample in report['samples']
                             if isinstance(sample['fixture_latest'].get('cg_own_window_metadata'),dict)]
             require(fixture_bounds,'Owned window bounds unavailable');bounds=fixture_bounds[0]
-            require(all(b['Width']==bounds['Width'] and b['Height']==bounds['Height'] for b in fixture_bounds),'Fixture size changed')
+            appkit=[sample['fixture_latest'].get('appkit_frame') for sample in report['samples']]
+            content=[sample['fixture_latest'].get('appkit_content') for sample in report['samples']]
+            if all(isinstance(frame,dict) for frame in appkit):
+                require(all(frame==appkit[0] for frame in appkit)
+                        and all(frame=={'width':680,'height':240} for frame in content),
+                        'AppKit producer geometry changed')
+                bounds={'Width':appkit[0]['width'],'Height':appkit[0]['height']}
+                row['geometry_basis']='Stable AppKit frame/content plus constant SCK source dimensions; WindowServer thumbnail bounds are retained separately.'
+                row['windowserver_bounds_changed']=any(b!=fixture_bounds[0] for b in fixture_bounds)
+            else:
+                require(all(b['Width']==bounds['Width'] and b['Height']==bounds['Height'] for b in fixture_bounds),'Fixture size changed')
             boxes=counter_patches(next(iter(sizes)),(bounds['Width'],bounds['Height']))
             decoded=[{'pts_s':float(frame['best_effort_timestamp_time']),
                 'counter':decode_counter(raw[i*frame_bytes:(i+1)*frame_bytes],480,boxes)} for i,frame in enumerate(selected)]
@@ -436,8 +458,18 @@ def analyze(args):
             native=next(p for p in first['packets'] if p['media_type']=='video')
             require(native['pts']==native['dts'],'Reordered PTS unsupported for focus alignment')
             actual=next(p for p in packets if p['codec_type']=='video')
-            require(int(actual['size'])==native['size'] and ('K' in actual['flags'])==native['keyframe'],
-                    'First native/container video packet identity cannot be established')
+            if int(actual['size'])!=native['size'] and getattr(args,'verify_vt_framing',False):
+                from h15_packet_framing import vt_first_packet_proof
+                require(report['profile']['encoder']=='videotoolbox','Framing proof is specific to pinned VideoToolbox')
+                prefix=json.loads(command(args.ffprobe,['-v','error','-select_streams','v:0',
+                    '-read_intervals','%+#10','-show_packets','-show_streams','-show_data','-of','json',str(path)]))
+                require(prefix['packets'][0]['pts_time']==actual['pts_time']
+                        and prefix['packets'][0]['size']==actual['size'],'Framing probe changed origin')
+                row['first_packet_framing']=vt_first_packet_proof(native,prefix['packets'][0],prefix['streams'][0],
+                    (ROOT/'.deps/obs-studio-33.0.1/plugins/mac-videotoolbox/encoder.c').read_bytes())
+            else:
+                require(int(actual['size'])==native['size'],'First native/container video packet size cannot be established')
+            require(('K' in actual['flags'])==native['keyframe'],'First native/container keyframe differs')
             anchor=report['capture_clock_anchor'];lo,hi=anchor['offset_interval_s'];uncertainty=hi-lo
             require(0<=uncertainty<=1,'Creation clock bracket too wide for phase alignment')
             origin=(lo+hi)/2+native['sys_dts_usec']/1e6-float(actual['pts_time'])
@@ -488,7 +520,9 @@ def main():
     commands.add_parser('plan')
     run=commands.add_parser('run');run.add_argument('--lock-held',action='store_true',required=True);run.add_argument('--manifest',required=True);run.add_argument('--output',required=True)
     marker=commands.add_parser('mark');marker.add_argument('--lock-held',action='store_true',required=True);marker.add_argument('--manifest',required=True);marker.add_argument('--phase',choices=PHASES,required=True);marker.add_argument('--note',default='Root observed focus through CUA')
+    marker.add_argument('--system-probe',help='Fresh H15 independent focus probe JSON; requires fixture agreement')
     decoder=commands.add_parser('analyze');decoder.add_argument('--lock-held',action='store_true',required=True);decoder.add_argument('--report',required=True);decoder.add_argument('--output',required=True);decoder.add_argument('--ffmpeg',required=True);decoder.add_argument('--ffprobe',required=True)
+    decoder.add_argument('--verify-vt-framing',action='store_true',help='Prove exact pinned Annex B/AVCC conversion from packet bytes and CodecPrivate')
     args=parser.parse_args()
     if args.mode=='plan':print(json.dumps(plan(),indent=2));return 0
     return {'run':run_trial,'mark':mark,'analyze':analyze}[args.mode](args)

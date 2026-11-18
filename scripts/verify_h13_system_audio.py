@@ -234,6 +234,18 @@ class Run:
         self.last_encoded_frames = started['stats']['encoded_frames']
         self.previous_cpu, _ = process_sample(started['pid'])
         self.previous_time = time.monotonic()
+        if name in ('silence', 'av'):
+            trial['packet_clock_observations'] = []
+            for _ in range(20):
+                before = time.monotonic()
+                trace = self.client.call('output_diagnostics', target=self.kind)['packet_trace']
+                after = time.monotonic()
+                trial['packet_clock_observations'].append(dict(before=before, after=after, trace=trace))
+                if (not trace['snapshot_busy'] and after-before <= .05
+                        and any(p['media_type'] == 'audio' for p in trace['packets'])):
+                    break
+                time.sleep(.025)
+            trial['initial_packet_clock'] = dict(before=before, after=after, trace=trace)
         self.save()
         return trial
 
@@ -396,6 +408,37 @@ class Run:
         if not ready_zeros:
             self.report.setdefault('pending_coverage', []).append('SCK did not deliver measured zero buffers during the owned zero/pause intervals')
         trial['tone_continuity'] = tone_continuity(samples, trial['stages'], .0316227766)
+        # H15: the former single resumed window missed H14's later application
+        # loss. Keep the original checks and additionally cover every interior
+        # 100ms window of each continuous-tone phase, including the final tail.
+        trial['application_continuity_control_clock'] = application_continuity(
+            samples, trial['stages'], stages['tone']['decoded']['a997'], self.system)
+        # Anchor decoded samples to the observed output clock, not the time an
+        # asynchronous start RPC happened to return. Retain the old comparison.
+        from h15_audio_alignment import align_samples
+        audio_packets = json.loads(subprocess.check_output(['ffprobe', '-v', 'error',
+            '-select_streams', 'a:0', '-show_packets', '-show_entries',
+            'packet=pts_time,dts_time,size', '-of', 'json', trial['path']]))['packets']
+        audio_frames = json.loads(subprocess.check_output(['ffprobe', '-v', 'error',
+            '-select_streams', 'a:0', '-show_frames', '-show_entries',
+            'frame=best_effort_timestamp_time,nb_samples', '-of', 'json', trial['path']]))['frames']
+        trial['audio_clock_alignment'] = align_samples(trial['initial_packet_clock'], audio_packets,
+                                                       audio_frames, len(samples))
+        origin = trial['audio_clock_alignment']['first_sample_host_s']
+        events = [json.loads(line) for line in pathlib.Path(fixture['stdout']).read_text().splitlines()]
+        mode_events = [e for e in events if e['event'] == 'mode']
+        trial['fixture_mode_events'] = mode_events
+        # Exact fixture mode changes bound the phase, rather than a polling
+        # loop that can finish late. A new clock is never fitted to the PCM.
+        changes = [e['uptime_seconds'] for e in mode_events if e['uptime_seconds'] > fixture['sequence_start']+.1]
+        assert len(changes) == 5, mode_events
+        boundaries = [fixture['sequence_start'], *changes, fixture['sequence_start']+36]
+        phase_times = {name: (max(0, boundaries[i]-origin), boundaries[i+1]-origin)
+            for i, name in enumerate(('tone', 'zero_buffers', 'engine_paused', 'tone_resumed', 'pulses', 'tail'))}
+        trial['application_continuity'] = application_continuity(
+            samples, trial['stages'], stages['tone']['decoded']['a997'], self.system, phase_times)
+        self.save()
+        assert trial['application_continuity']['ok'], trial['application_continuity']
         if av:
             trial['av_pulses'] = analyse_pulses(pathlib.Path(trial['path']), samples, stages['pulses'], trial['media'])
             self.client.call('configure_transition', transition=dict(kind='cut', duration_ms=0))
@@ -621,6 +664,30 @@ def tone_continuity(samples, stages, reference):
         amplitudes = [power(samples[i:i+4800], 440) for i in range(lo, hi-4799, 4800)]
         assert amplitudes and min(amplitudes) > reference*.65, dict(stage=stage['name'], minimum=min(amplitudes, default=0), reference=reference)
         result[stage['name']] = dict(minimum=min(amplitudes), maximum=max(amplitudes), windows=len(amplitudes))
+    return result
+
+
+def application_continuity(samples, stages, reference, input_id, phase_times=None):
+    result = {'ok': reference > .005, 'reference_997': reference, 'phases': {},
+              'unexpected_failures': [], 'window_ms': 100, 'boundary_guard_ms': 200}
+    for stage in stages:
+        failures = [input_state(v['state'], input_id) for v in stage['samples']
+                    if input_state(v['state'], input_id)['phase'] in ('failed', 'disconnected')]
+        if failures:
+            result['unexpected_failures'].append({'phase': stage['name'], 'count': len(failures),
+                                                   'first': failures[0]})
+            result['ok'] = False
+        if stage['name'] not in ('tone', 'tone_resumed', 'tail'):
+            continue  # Digital silence, engine pause and pulsed tone have other gates.
+        start, end = phase_times[stage['name']] if phase_times else (stage['start'], stage['end'])
+        lo, hi = round((start+.2)*48000), round((end-.2)*48000)
+        amplitudes = [power(samples[i:i+4800], 997) for i in range(lo, hi-4799, 4800)]
+        minimum = min(amplitudes, default=0)
+        passed = bool(amplitudes) and minimum > reference*.65
+        result['phases'][stage['name']] = {'ok': passed, 'minimum': minimum,
+                                          'windows': len(amplitudes), 'sample_interval_s': [start, end]}
+        result['ok'] = result['ok'] and passed
+    result['ok'] = result['ok'] and set(result['phases']) == {'tone', 'tone_resumed', 'tail'}
     return result
 
 

@@ -3,6 +3,7 @@ use serde_json::{Value, json};
 use std::{
     fs,
     io::{self, BufRead, BufReader, Read, Write},
+    os::fd::AsRawFd,
     os::unix::{
         fs::{DirBuilderExt, PermissionsExt},
         net::{UnixListener, UnixStream},
@@ -11,7 +12,7 @@ use std::{
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
-        mpsc::{self, Receiver, SyncSender},
+        mpsc::{self, SyncSender},
     },
     thread,
     time::Duration,
@@ -61,7 +62,7 @@ fn read_frame(reader: &mut impl BufRead, limit: u64) -> io::Result<Option<Value>
 }
 
 impl Server {
-    pub fn start() -> anyhow::Result<(Self, Receiver<Request>)> {
+    pub fn start() -> anyhow::Result<(Self, async_channel::Receiver<Request>)> {
         let dir = data_dir().join("run");
         fs::DirBuilder::new()
             .recursive(true)
@@ -74,7 +75,7 @@ impl Server {
             .map_err(|e| anyhow::anyhow!("CONTROL_UNAVAILABLE: {} ({e})", path.display()))?;
         fs::set_permissions(&path, fs::Permissions::from_mode(0o600))?;
         listener.set_nonblocking(true)?;
-        let (tx, rx) = mpsc::sync_channel::<Request>(32);
+        let (tx, rx) = async_channel::bounded::<Request>(32);
         let stop = Arc::new(AtomicBool::new(false));
         let shutdown = stop.clone();
         let thread = thread::spawn(move || {
@@ -127,7 +128,19 @@ impl Server {
                         let _ = writeln!(stream, "{result}");
                     }
                     Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                        thread::sleep(Duration::from_millis(10))
+                        // Wake on a real connection instead of quantizing RPCs
+                        // to a sleep. Timeout bounds Drop's existing join only.
+                        let mut event = libc::pollfd {
+                            fd: listener.as_raw_fd(),
+                            events: libc::POLLIN,
+                            revents: 0,
+                        };
+                        let result = unsafe { libc::poll(&mut event, 1, 100) };
+                        if result < 0
+                            && io::Error::last_os_error().kind() != io::ErrorKind::Interrupted
+                        {
+                            break;
+                        }
                     }
                     Err(_) => break,
                 }
@@ -688,7 +701,7 @@ pub fn tools() -> Vec<Value> {
         tool("select_approved_destination", "Selecciona solo un destino previamente aprobado por ID; null vuelve al modo loopback. No aprueba ni inicia una emisión externa.", json!({"id":{"type":["string","null"],"maxLength":48}}), &["id"], false),
         tool("preflight_destination", "Valida configuración y acceso opaco a Keychain por ID aprobado; no conecta ni verifica entrega.", json!({"id":{"type":"string","minLength":1,"maxLength":48}}), &["id"], true),
         tool("show_control_status", "Estado compartido de reglas, Live Deck, cooldowns, jobs, recibos e historial del owner real.", json!({}), &[], true),
-        tool("save_show_control", "Guarda configuración/deck/bindings v1 en archivo privado separado; no persiste autorización para reanudar jobs.", json!({}), &[], false),
+        tool("save_show_control", "Guarda configuración/deck/bindings v1 con recibo durable. expected opcional exige pid/revision/session observados; sin él guarda el estado actual. No persiste autorización para reanudar jobs.", json!({"expected":{"type":"object","additionalProperties":false,"properties":{"pid":{"type":"integer","minimum":1},"revision":{"type":"integer","minimum":0},"session":{"type":"string","minLength":32,"maxLength":32}},"required":["pid","revision","session"]}}), &[], false),
         tool("load_show_control", "Carga explícitamente configuración v1 desarmada. No restaura jobs ni repite triggers.", json!({}), &[], false),
         tool("arm_show_control", "Activa configuración cargada solo para pid/revision exactos y fingerprint de bindings actual. No concede confirmaciones sensibles ni permiso de streaming.", json!({"pid":{"type":"integer","minimum":1},"revision":{"type":"integer","minimum":0}}), &["pid","revision"], false),
         tool("press_show_control", "Activa un botón ya configurado en la sesión owner exacta con event_id estable para deduplicación. Botones sensibles requieren confirmación local; no existe booleano remoto de aprobación.", json!({"session":{"type":"string","minLength":32,"maxLength":32},"button_id":{"type":"string","minLength":1,"maxLength":64},"event_id":{"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9_:.-]+$"}}), &["session","button_id","event_id"], false),

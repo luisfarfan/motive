@@ -278,13 +278,14 @@ impl Studio {
                 quiet(
                     "reorder",
                     if self.forms.reorder {
-                        "Reordenamiento: activado"
+                        "Desactivar reordenamiento para producir"
                     } else {
                         "Reordenamiento: desactivado"
                     },
                 )
+                .disabled(!self.forms.reorder)
                 .on_click(cx.listener(|v, _, _, cx| {
-                    v.forms.reorder = !v.forms.reorder;
+                    v.forms.reorder = false;
                     cx.notify();
                 })),
             )
@@ -395,7 +396,12 @@ impl Studio {
                 let id=source["id"].as_str().unwrap_or("");
                 let name=self.production.graph().sources.iter().find(|item|item.id==id).map(|item|item.name.as_str()).unwrap_or(id);
                 let age=source["frame_age_ms"].as_u64().map(|ms|format!(" Último buffer hace {:.1} s.",ms as f64/1000.)).unwrap_or_default();
-                label(format!("{name} · La ventana no entrega buffers recientes; comprueba el contenido y su visibilidad.{age}"),p.warn)
+                let reason=match source["freshness_notice"].as_str() {
+                    Some("CAPTURE_SUSPENDED")=>"macOS suspendió las actualizaciones. Muestra la ventana capturada y comprueba que el contenido avance.",
+                    Some("CAPTURE_STOPPED")=>"La captura se detuvo. Revisa la fuente y reconéctala explícitamente cuando las salidas estén detenidas.",
+                    _=>"No hay buffers recientes. Comprueba el contenido: una ventana estática también puede dejar de entregar buffers.",
+                };
+                label(format!("{name} · {reason}{age}"),p.warn)
             }))
             .child(label(format!("Render {} · retrasados {} · descartes preview {}",s["stats"]["rendered_frames"],s["stats"]["lagged_frames"],s["stats"]["preview_busy_drops"]),p.secondary))
             .child(self.action("record-preflight","Comprobar grabación",Command::PreflightOutput{target:OutputTarget::Recording},cx))

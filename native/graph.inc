@@ -105,7 +105,9 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
         obs_data_set_bool(settings,"overlay",true);obs_data_set_int(settings,"color",[d[@"spec"][@"color"] unsignedIntValue]);
     } else if (![kind isEqualToString:@"pattern"]) {snprintf(e->error,sizeof(e->error),"INVALID_SOURCE_KIND");goto fail;}
     s->source=obs_source_create_private(type,s->id,settings);obs_data_release(settings);
-    if (!s->source) {snprintf(e->error,sizeof(e->error),"SOURCE_CREATE_FAILED");visual_destroy(s);return NULL;}
+    // OBS retains the settings object even when the plugin's create callback
+    // fails. Reject that shell immediately; it cannot ever publish a frame.
+    if (!s->source || obs_obj_invalid(s->source)) {snprintf(e->error,sizeof(e->error),"SOURCE_CREATE_FAILED");visual_destroy(s);return NULL;}
     s->instance_id=++e->visual_instances;
     obs_source_set_muted(s->source,true);
     obs_source_set_audio_mixers(s->source,0);
@@ -251,6 +253,8 @@ char *motive_graph_health(motive_engine *e) {
         uint64_t now=os_gettime_ns();
         NSString *notice=@"";
         if(capture && captured && now>captured && now-captured>3000000000ULL)notice=@"NO_RECENT_CAPTURE_BUFFER";
+        if([capture[@"sample_status"] isEqual:@"suspended"])notice=@"CAPTURE_SUSPENDED";
+        else if([capture[@"sample_status"] isEqual:@"stopped"])notice=@"CAPTURE_STOPPED";
         [states addObject:@{@"id":@(s->id),@"active":@(active),@"issue":@(issue),
             @"warming":@(s->warming),@"instance_id":@(s->instance_id),@"kind":@(s->kind),
             @"width":@(s->source ? obs_source_get_width(s->source):0),@"height":@(s->source ? obs_source_get_height(s->source):0),

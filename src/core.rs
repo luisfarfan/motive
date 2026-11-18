@@ -36,6 +36,26 @@ use video::VideoConfig;
 pub fn data_dir() -> PathBuf {
     crate::paths::data_dir()
 }
+fn capture_ready_for_start(health: &Value) -> anyhow::Result<()> {
+    for source in health
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|s| s["active"] == true)
+    {
+        match source["capture_diagnostics"]["sample_status"].as_str() {
+            Some("suspended") => anyhow::bail!(
+                "CAPTURE_SUSPENDED: muestra la ventana capturada y espera que macOS reanude las actualizaciones"
+            ),
+            Some("stopped") => {
+                anyhow::bail!("CAPTURE_STOPPED: revisa y recupera explícitamente la fuente")
+            }
+            // Idle/static content and buffer age alone do not prove a fault.
+            _ => {}
+        }
+    }
+    Ok(())
+}
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Variant {
@@ -513,7 +533,8 @@ impl Production {
     }
     fn output_capabilities(&self) -> Value {
         json!({"encoders":self.engine.encoding_info(),"rate_controls":["cbr"],"bitrate_kbps":{"min":250,"max":20000},
-            "keyframe_seconds":{"min":1,"max":10},"frame_reordering":[true,false],
+            "keyframe_seconds":{"min":1,"max":10},"frame_reordering":[false],
+            "saved_frame_reordering_preserved":true,"frame_reordering_block_reason":"FRAME_REORDERING_UNSUPPORTED",
             "canvas":{"width":self.engine.width,"height":self.engine.height,"fps":self.engine.fps,
                 "configuration":self.project.video.unwrap_or_default(),"capabilities":video::capabilities(),
                 "profile_resolution_configurable":false,"production_resolution_configurable":true,"fps_configurable":true},
@@ -541,7 +562,7 @@ impl Production {
         );
         self.source_ready()?;
         let p = self.profile(target);
-        p.validate()?;
+        p.validate_for_output()?;
         if p.encoder == RecordingEncoder::Videotoolbox {
             anyhow::ensure!(
                 self.engine.encoding_info()["videotoolbox_id"].is_string(),
@@ -715,6 +736,7 @@ impl Production {
         Ok(())
     }
     fn source_ready(&self) -> anyhow::Result<()> {
+        capture_ready_for_start(&self.engine.graph_health())?;
         anyhow::ensure!(
             self.engine.video_info()["available"] == true,
             "VIDEO_UNAVAILABLE"
@@ -1916,6 +1938,16 @@ fn create_tone() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn capture_start_distinguishes_suspended_from_legitimate_static_content() {
+        for state in ["complete", "idle", "started"] {
+            assert!(super::capture_ready_for_start(&serde_json::json!([{"active":true,"frame_age_ms":12000,"capture_diagnostics":{"sample_status":state}}])).is_ok());
+        }
+        for state in ["suspended", "stopped"] {
+            assert!(super::capture_ready_for_start(&serde_json::json!([{"active":true,"capture_diagnostics":{"sample_status":state}}])).is_err());
+            assert!(super::capture_ready_for_start(&serde_json::json!([{"active":false,"capture_diagnostics":{"sample_status":state}}])).is_ok());
+        }
+    }
     use super::*;
     #[test]
     fn recordings_commands_accept_no_paths_or_extra_fields() {

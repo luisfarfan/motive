@@ -247,7 +247,7 @@ def main():
                 'CFBundleIdentifier': 'local.motive.studio', 'CFBundleName': 'Motive',
                 'CFBundleDisplayName': 'Motive', 'CFBundleExecutable': 'motive',
                 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.1.0',
-                'CFBundleVersion': '14', 'LSMinimumSystemVersion': '15.0',
+                'CFBundleVersion': '15', 'LSMinimumSystemVersion': '15.0',
                 'NSHighResolutionCapable': True, 'LSAppNapIsDisabled': True,
                 'NSMicrophoneUsageDescription': 'Motive usa la entrada de audio que eliges para tu producción.',
                 'NSCameraUsageDescription': 'Motive usa únicamente la cámara que eliges para tu producción.',

@@ -648,3 +648,50 @@ según visibilidad. Retirar la fuente y pausar su decoder tienen costes y
 retenciones diferentes. La voz opcional sigue como benchmark offline, con
 fiabilidad insuficiente y sin ruta de reconocimiento en vivo. Ninguna de estas
 ampliaciones añade DSP paralelo, audio por escena, nube, CEF ni otro owner.
+
+## H15 — admisión conservadora y recibos observables
+
+Los perfiles persistidos con frame reordering=true conservan su valor al cargar,
+pero preflight/start devuelven FRAME_REORDERING_UNSUPPORTED antes de reservar
+recursos. La UI permite desactivarlo explícitamente. No se modifica OBS/H8 ni se
+añaden esperas para simular drenaje.
+
+Guardar Show Control devuelve un recibo después de escritura, rename y fsync
+de directorio; incluye hash, bytes, owner, revisión, sesión y fingerprint. Un
+guard opcional rechaza revisiones/sesiones obsoletas; el guardado no crea una
+revisión de producción ni invalida trabajos. La restauración sigue desarmada
+y sin replay. Configurar/guardar/activar validan los IDs del proyecto.
+
+La cola de control despierta al owner GPUI mediante canal acotado. No traslada
+Production a otro thread ni introduce un reloj multimedia externo. Suspended/
+stopped observados por SCK se muestran y bloquean nuevos starts; no convierten
+idle en fallo, no fuerzan reconexión y no detienen outputs activos por sí solos.
+Los nuevos diagnósticos de identidad/reloj son observacionales; no cambian la
+aplicación autorizada ni hacen de MCP un transporte audiovisual.
+
+### H15 B6 — margen de mezcla acotado y observación de recuperación
+
+El núcleo configura `obs_reset_audio2` con 48 kHz estéreo y buffering fijo de
+128 ms: seis bloques de 1024 muestras. La evidencia B4 relaciona un bloque de
+mezcla incompleto con callbacks SCK hasta 48,24 ms después de PTS y solo 42 ms
+de margen dinámico. B6 pasa continuidad estricta sin cambiar ventanas, guards,
+umbrales, timestamps de origen ni ownership del mixer. Se reserva al iniciar;
+no se reconstruye el mixer, no se añade otra captura y no se simula un drain.
+Ese margen no garantiza latencia cero: la medición A/V de siete pulsos conserva
+−36,875 ms audio−video. No se declara reparada una pérdida de identidad por
+haber corregido el jitter observado. Evidencia: [reanudación H15](h15-resume-verification.md).
+
+Crear una fuente OBS puede devolver un objeto cuyo callback create falló.
+La captura comprueba `obs_obj_invalid` y rechaza SOURCE_CREATE_FAILED. El parche
+SCK añadido solo registra código/dominio tipado de error, ventana y PID propio;
+no filtra ventanas ni reconecta, ni imprime userInfo o descripciones privadas.
+Recibir buffers tras recrear una ventana tampoco acredita recuperación final:
+el nuevo start puede observar suspensión y debe rechazarla. La prueba B6
+conserva ese FAIL en lugar de aceptar el snapshot listo anterior.
+
+El mixer no mantiene el borrador Forms y lee el estado compartido en vivo;
+se excluye de ese aviso stale, conservando los guards de formularios reales.
+Guardar reglas sigue produciendo un recibo durable y no incrementa revisiones
+de producción. Reconciliar no elimina silenciosamente jobs ni habilita replay;
+si la sesión aún rechaza cargar por BUSY, se conserva el límite y se exige una
+reapertura/restauración explícita desarmada en lugar de modificar el journal.

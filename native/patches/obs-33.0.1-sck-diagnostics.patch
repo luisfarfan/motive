@@ -21,9 +21,13 @@
 +    motive_sck_diagnostics_phase(&sc->motive_diagnostics, 3);
 @@ -75,0 +77 @@
 +    motive_sck_diagnostics_phase(&sc->motive_diagnostics, 1);
-@@ -264,0 +267,2 @@
+@@ -264,0 +267,6 @@
 +        motive_sck_diagnostics_phase(&sc->motive_diagnostics, did_stream_start ? 2 : 4);
 +        if (error) motive_sck_diagnostics_error(&sc->motive_diagnostics, error.code);
++        if (error) MACCAP_ERR("motive_capture_start_failure: code=%ld sck_domain=%d window=%u source_pid=%d",
++            (long)error.code, [error.domain isEqualToString:SCStreamErrorDomain],
++            sc->window, (int)getpid());
++        // No localized text/userInfo: they may contain private application data.
 @@ -283,0 +288 @@
 +    motive_sck_diagnostics_init(&sc->motive_diagnostics);
 @@ -316,0 +322 @@

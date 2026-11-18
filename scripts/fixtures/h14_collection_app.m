@@ -68,6 +68,8 @@ static void emit(NSDictionary *event) {
         @"window_class":NSStringFromClass(window.class),@"view_class":NSStringFromClass(_view.class),
         @"initial_collection_behavior":@(_initialBehavior),@"collection_behavior":@(window.collectionBehavior),
         @"window_level":@(window.level),@"style_mask":@(window.styleMask),
+        @"appkit_frame":@{@"width":@(window.frame.size.width),@"height":@(window.frame.size.height)},
+        @"appkit_content":@{@"width":@(_view.bounds.size.width),@"height":@(_view.bounds.size.height)},
         @"window_visible":@((bool)window.visible),@"window_occlusion_visible":@((bool)(window.occlusionState & NSWindowOcclusionStateVisible)),
         @"on_active_space":@((bool)window.onActiveSpace),@"miniaturized":@((bool)window.miniaturized),
         @"key_window":@((bool)window.keyWindow),@"hides_on_deactivate":@((bool)window.hidesOnDeactivate),

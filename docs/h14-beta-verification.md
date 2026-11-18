@@ -10,6 +10,10 @@ reúne 15 áreas y 80 artefactos existentes, con hashes y 35 correspondencias
 verificadas. Conserva `beta_acceptance=NOT_ACCEPTED`, sin aprobado agregado.
 SHA-256: `081acd5025fb12f07ca4bb9c24f1c107e01b02559c26f4898a1fec50343f143c`.
 
+El [seguimiento con ventanas agrupadas](h14-collection-b3-followup.md) conserva
+ese índice histórico y añade evidencia independiente de 60/180 s. El cambio
+real al foco del estudio sigue sin corroborarse; la beta continúa no aceptada.
+
 ## Baseline
 
 H13 y Show Control no tuvieron archivos solapados en su merge. Show Control

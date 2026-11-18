@@ -6,6 +6,10 @@ real avanzando pero queda INCONCLUSIVE, y A2 no alcanza una observación válida
 del primer foco. Se conservan esos resultados; no se incorporó ninguna
 preferencia de colección al producto.
 
+La [repetición posterior con ventanas agrupadas](h14-collection-b3-followup.md)
+conserva estos resultados históricos. Obtiene dos tomas adicionales del brazo
+default, pero sigue sin corroborar el foco del estudio y no cierra el gate.
+
 | Brazo | Fixture PID / window ID | Medios | Resultado original | Análisis separado |
 |---|---|---|---|---|
 | A1 · default | 89834 / 12258 | Ninguno | FAIL | **FAIL** |

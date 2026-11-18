@@ -20,4 +20,5 @@ impl Identity {
     }
 }
 
+pub mod frame;
 pub mod lifecycle;

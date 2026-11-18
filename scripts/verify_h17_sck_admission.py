@@ -9,7 +9,8 @@ import shutil
 import subprocess
 import tarfile
 
-from build_obs_capture import ARCHIVE_SHA, DEPS, PATCH, ADMISSION_PATCH, ROOT, SOURCE
+from build_obs_capture import (ARCHIVE_SHA, DEPS, PATCH, ADMISSION_PATCH,
+                               ADMISSION_OBSERVATION_PATCH, ROOT, SOURCE)
 
 
 def sha(path):
@@ -49,6 +50,10 @@ def main():
     shutil.copytree(upstream, patched)
     for patch in (PATCH, ADMISSION_PATCH):
         subprocess.run(['patch', '-p1', '-i', str(patch)], cwd=patched, check=True, capture_output=True)
+    admission_expressions = expressions((patched / 'mac-sck-video-capture.m').read_text())
+    subprocess.run(['patch', '-p1', '-i', str(ADMISSION_OBSERVATION_PATCH)],
+                   cwd=patched, check=True, capture_output=True)
+    assert expressions((patched / 'mac-sck-video-capture.m').read_text()) == admission_expressions
     template_path = ROOT / 'scripts/fixtures/h17_sck_admission.c'
     template = template_path.read_text()
     frameworks = DEPS / 'OBS.app/Contents/Frameworks'
@@ -92,9 +97,9 @@ def main():
     (out / 'syntax.log').write_text(syntax.stdout + syntax.stderr)
     report = {'status': 'PASS' if syntax.returncode == 0 and all(r['status'] == 'PASS' for r in runs) else 'FAIL',
               'scope': 'synthetic admission conditions, real libobs invalid-object contract; no physical capture',
-              'physical_capture': 'NOT_EVALUATED', 'runs': runs,
+              'physical_capture': 'NOT_EVALUATED', 'observation_preserves_admission_expressions': 'PASS', 'runs': runs,
               'syntax': {'status': 'PASS' if syntax.returncode == 0 else 'FAIL', 'command': command},
-              'inputs': {str(p): sha(p) for p in [PATCH, ADMISSION_PATCH, template_path,
+              'inputs': {str(p): sha(p) for p in [PATCH, ADMISSION_PATCH, ADMISSION_OBSERVATION_PATCH, template_path,
                   upstream / 'mac-sck-common.h', upstream / 'mac-sck-video-capture.m']}}
     (out / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({'output': str(out), 'status': report['status']}))

@@ -1,0 +1,76 @@
+--- a/mac-sck-video-capture.m
++++ b/mac-sck-video-capture.m
+@@ -76,6 +76,12 @@
+ {
+     motive_sck_diagnostics_phase(&sc->motive_diagnostics, 1);
+     SCContentFilter *content_filter;
++    CGWindowID motive_matched_window = 0;
++    pid_t motive_matched_owner = 0;
++    CGRect motive_matched_frame = CGRectZero;
++    CGRect motive_filter_rect = CGRectZero;
++    float motive_filter_scale = 0;
++    bool motive_filter_geometry_available = false;
+     if (sc->capture_failed) {
+         sc->capture_failed = false;
+         obs_source_update_properties(sc->source);
+@@ -155,6 +161,9 @@
+                 os_event_init(&sc->stream_start_completed, OS_EVENT_TYPE_MANUAL);
+                 return false;
+             } else {
++                motive_matched_window = target_window.windowID;
++                motive_matched_owner = target_window.owningApplication.processID;
++                motive_matched_frame = target_window.frame;
+                 content_filter = [[SCContentFilter alloc] initWithDesktopIndependentWindow:target_window];
+ 
+                 [sc->stream_properties setWidth:(size_t) target_window.frame.size.width];
+@@ -237,6 +246,13 @@
+     sc->disp = [[SCStream alloc] initWithFilter:content_filter configuration:sc->stream_properties
+                                        delegate:sc->capture_delegate];
+ 
++    if (sc->capture_type == ScreenCaptureWindowStream) {
++        if (@available(macOS 14.0, *)) {
++            motive_filter_rect = content_filter.contentRect;
++            motive_filter_scale = content_filter.pointPixelScale;
++            motive_filter_geometry_available = true;
++        }
++    }
+     [content_filter release];
+ 
+     NSError *addStreamOutputError = nil;
+@@ -269,6 +285,26 @@
+     }
+     os_event_init(&sc->stream_start_completed, OS_EVENT_TYPE_MANUAL);
+ 
++    if (sc->capture_type == ScreenCaptureWindowStream) {
++        CMTime interval = sc->stream_properties.minimumFrameInterval;
++        // One scalar record for the exact admitted target, before startCapture.
++        // No titles, application names, userInfo or inventories are logged.
++        MACCAP_LOG(LOG_INFO,
++                   "motive_capture_admission: created_ns=%llu source_pid=%d window=%u owner_pid=%d expected_pid=%lld "
++                   "frame_w=%.17g frame_h=%.17g filter_geometry=%d content_x=%.17g content_y=%.17g "
++                   "content_w=%.17g content_h=%.17g point_pixel_scale=%.9g config_w=%zu config_h=%zu "
++                   "config_fps_num=%d config_fps_den=%lld obs_fps_num=%u obs_fps_den=%u",
++                   (unsigned long long)atomic_load_explicit(&sc->motive_diagnostics.created_ns, memory_order_relaxed),
++                   (int)getpid(), motive_matched_window, (int)motive_matched_owner,
++                   (long long)sc->motive_window_owner_pid,
++                   motive_matched_frame.size.width, motive_matched_frame.size.height,
++                   motive_filter_geometry_available, motive_filter_rect.origin.x, motive_filter_rect.origin.y,
++                   motive_filter_rect.size.width, motive_filter_rect.size.height, (double)motive_filter_scale,
++                   sc->stream_properties.width, sc->stream_properties.height, interval.timescale,
++                   (long long)interval.value, hasVideoInfo ? video_info.fps_num : 0,
++                   hasVideoInfo ? video_info.fps_den : 0);
++    }
++
+     __block BOOL did_stream_start = NO;
+     [sc->disp startCaptureWithCompletionHandler:^(NSError *_Nullable error) {
+         did_stream_start = (BOOL) (error == nil);
+@@ -279,8 +315,7 @@
+             sc->window, (int)getpid());
+         // No localized text/userInfo: they may contain private application data.
+         if (!did_stream_start) {
+-            MACCAP_ERR("init_screen_stream: Failed to start capture with error %s\n",
+-                       [[error localizedFailureReason] cStringUsingEncoding:NSUTF8StringEncoding]);
++            // The typed start-failure record above is the entire error diagnostic.
+             // Clean up disp so it isn't stopped
+             [sc->disp release];
+             sc->disp = NULL;

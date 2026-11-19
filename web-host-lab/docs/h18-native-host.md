@@ -144,3 +144,11 @@ The separate artifact in `H18-native-bridge-controls-ephemeral-build.json` has
 not been executed by those checks. Its fixed native scenario requires all
 observations and independently verifies final pixels, real browser shutdown and
 external cleanup when run with `run_owned_goal.py --control-scenario`.
+
+[The real fixed control run](../evidence/H18-native-goal-controls/report.json) then
+passed at 640×360, 30 FPS, generation 14: repeat rejected, cancel/resume/dispose
+observed in order, retained active pixels, final transparent pixels, exit 0 and
+zero observed remaining processes. [Independent source and pixel inspection](../evidence/H18-native-goal-controls/inspection.json)
+keeps the final ACK distinct from native shutdown and cleanup. Horizontal
+960×540 and vertical 540×960 normal Goal runs also passed their own native
+IPC, visible content, alpha, completed transparency and cleanup checks.

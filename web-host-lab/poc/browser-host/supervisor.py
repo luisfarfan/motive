@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import os
 import ctypes
 import json
+import re
 from pathlib import Path
 import signal
 import subprocess
@@ -55,6 +56,16 @@ class RusageInfoV0(ctypes.Structure):
         'wired_size', 'resident_size', 'phys_footprint', 'proc_start_abstime', 'proc_exit_abstime')]
 
 
+class ProcTaskInfo(ctypes.Structure):
+    # Public SDK sys/proc_info.h, PROC_PIDTASKINFO. Virtual size is reservation,
+    # not resident/private/unique physical RAM. No task-for-pid or memory reads.
+    _fields_ = [(name, ctypes.c_uint64) for name in (
+        'virtual_size', 'resident_size', 'total_user', 'total_system', 'threads_user', 'threads_system')]
+    _fields_ += [(name, ctypes.c_int32) for name in (
+        'policy', 'faults', 'pageins', 'cow_faults', 'messages_sent', 'messages_received',
+        'syscalls_mach', 'syscalls_unix', 'csw', 'threadnum', 'numrunning', 'priority')]
+
+
 class MachTimebaseInfo(ctypes.Structure):
     _fields_ = [('numer', ctypes.c_uint32), ('denom', ctypes.c_uint32)]
 
@@ -85,6 +96,8 @@ def owned_resource_usage(process):
     roles.update({'MotiveBrowserFixture Helper (' + role + ')': role.lower() + '_helper'
                   for role in ('Alerts', 'GPU', 'Plugin', 'Renderer')})
     role = roles.get(name, 'owned_python' if name.lower().startswith('python') else 'other_owned_process')
+    task = ProcTaskInfo()
+    task_valid = _LIBPROC.proc_pidinfo(process.pid, 4, 0, ctypes.byref(task), ctypes.sizeof(task)) == ctypes.sizeof(task)
     if birth_identity(process.pid) != process.birth:
         return None
     return {'pid': process.pid, 'birth': list(process.birth), 'role': role,
@@ -92,12 +105,17 @@ def owned_resource_usage(process):
             'user_time_mach_ticks': usage.user_time, 'system_time_mach_ticks': usage.system_time,
             'user_time_ns': mach_ticks_to_ns(usage.user_time), 'system_time_ns': mach_ticks_to_ns(usage.system_time),
             'cpu_time_ns': mach_ticks_to_ns(usage.user_time + usage.system_time),
-            'resident_bytes': usage.resident_size, 'phys_footprint_bytes': usage.phys_footprint}
+            'resident_bytes': usage.resident_size, 'phys_footprint_bytes': usage.phys_footprint,
+            'wired_bytes': usage.wired_size, 'pageins': usage.pageins,
+            'virtual_bytes': task.virtual_size if task_valid else None,
+            'thread_count': task.threadnum if task_valid else None,
+            'private_resident_bytes': None, 'shared_resident_bytes': None,
+            'unique_physical_bytes': None}
 
 
 class ResourceSampler:
     """Consecutive samples only; exited/new/missed processes never become zero CPU."""
-    def __init__(self):
+    def __init__(self, inspect_roles=False):
         self.previous = {}
         self.previous_ns = None
         self.total_samples = 0
@@ -107,6 +125,8 @@ class ResourceSampler:
         self.cpu_delta_ns = 0
         self.wall_delta_ns = 0
         self.observed_roles = {}
+        self.inspect_roles = inspect_roles
+        self.role_cache = {}
 
     def capture(self, processes):
         started = time.monotonic_ns()
@@ -116,6 +136,11 @@ class ResourceSampler:
             row = owned_resource_usage(process)
             if row is None:
                 continue
+            if self.inspect_roles:
+                if process.identity not in self.role_cache:
+                    self.role_cache[process.identity] = owned_chromium_role(process, row['role'])
+                row['executable_role'] = row['role']
+                row['role'] = self.role_cache[process.identity]
             current[process.identity] = row
             self.observed_roles[process.identity] = row['role']
             old = self.previous.get(process.identity)
@@ -172,8 +197,44 @@ class ResourceSampler:
                            'CPU before first/after last observation and processes shorter than the sampling interval may be missed.',
                            'Memory is a sequential sum of per-process physical footprints, not a coalition or unique physical-page total.',
                            'Reported CPU excludes the supervisor and process-list collection overhead.',
-                           'Roles identify observed executable basenames; a helper role does not measure GPU utilization.',
+                           ('Roles parse a finite allowlist of owned helper process arguments, birth checked before/after; no raw command line retained.' if self.inspect_roles else 'Roles identify observed executable basenames; a helper role does not measure GPU utilization.'),
+                           'Virtual bytes are address-space reservation; private/shared residency and unique physical pages remain unavailable.',
                            'Historical cpu_percent_ps remains ps output; legacy footprint_bytes remains unspecified/null.']}
+
+
+def chromium_role(arguments, fallback):
+    """Return finite role names only, never retain a command line or payload."""
+    kind = re.search(r'(?:^|\s)--type=([a-z-]+)(?:\s|$)', arguments)
+    if not kind:
+        return fallback
+    roles = {'renderer': 'renderer', 'gpu-process': 'gpu', 'utility': 'utility',
+             'zygote': 'zygote', 'crashpad-handler': 'crash_handler'}
+    role = roles.get(kind[1], fallback)
+    if role == 'utility':
+        service = re.search(r'(?:^|\s)--utility-sub-type=([A-Za-z.]+)(?:\s|$)', arguments)
+        return {'network.mojom.NetworkService': 'network_service',
+                'storage.mojom.StorageService': 'storage_service',
+                'audio.mojom.AudioService': 'audio_service'}.get(service[1] if service else '', role)
+    return role
+
+
+def owned_chromium_role(process, fallback):
+    # The caller already attributed this PID to the explicitly launched tree.
+    # Read only these controlled helper arguments; no environment or command
+    # lines of other applications. Birth is checked on both sides of ps.
+    if fallback not in {'browser_host', 'helper_unspecified', 'alerts_helper',
+                        'gpu_helper', 'plugin_helper', 'renderer_helper'}:
+        return fallback
+    if birth_identity(process.pid) != process.birth:
+        return fallback
+    try:
+        args = subprocess.check_output(['/bin/ps', '-p', str(process.pid), '-o', 'command='],
+                                       text=True, timeout=1, stderr=subprocess.DEVNULL)
+    except subprocess.SubprocessError:
+        return fallback
+    if birth_identity(process.pid) != process.birth:
+        return fallback
+    return chromium_role(args, fallback)
 
 
 def birth_identity(pid):
@@ -203,9 +264,12 @@ def snapshot():
 
 
 class Supervisor:
-    def __init__(self, root: Path, *, deadline_seconds=5.0, rss_limit_kib=2 * 1024 * 1024, interval_seconds=0.025):
+    def __init__(self, root: Path, *, deadline_seconds=5.0, rss_limit_kib=2 * 1024 * 1024, interval_seconds=0.025,
+                 sample_capacity=256, inspect_roles=False):
         if not 0.05 <= deadline_seconds <= 720 or not 1 <= rss_limit_kib <= 16 * 1024 * 1024 or not 0.005 <= interval_seconds <= 1:
             raise ValueError('SUPERVISOR_LIMITS')
+        if type(sample_capacity) is not int or not 1 <= sample_capacity <= 8192:
+            raise ValueError('SUPERVISOR_SAMPLE_CAPACITY')
         self.root = Path(root).resolve(strict=True)
         st = self.root.stat()
         if st.st_uid != os.getuid() or st.st_mode & 0o077:
@@ -213,6 +277,8 @@ class Supervisor:
         self.deadline_seconds = deadline_seconds
         self.rss_limit_kib = rss_limit_kib
         self.interval_seconds = interval_seconds
+        self.sample_capacity = sample_capacity
+        self.inspect_roles = inspect_roles
         self.session_id = uuid.uuid4().hex
         self.generation = 0
         self.active = False
@@ -231,12 +297,13 @@ class Supervisor:
         self.active = True
         self.generation += 1
         run_root = self.root / f'{self.session_id}-generation-{self.generation}'
-        samples = deque(maxlen=256)
-        resources = ResourceSampler()
+        samples = deque(maxlen=self.sample_capacity)
+        resources = ResourceSampler(self.inspect_roles)
         known = {}
         start = time.monotonic()
         reason = 'exit'
         peak_rss = 0
+        first_rss_exceedance = None
         child = None
         report = None
         try:
@@ -274,17 +341,24 @@ class Supervisor:
                             members[p.pid] = p
                     return current, members
 
-                while True:
-                    current, members = observe()
+                def sample_members(members, phase):
+                    nonlocal peak_rss, first_rss_exceedance
                     live = [p for p in members.values() if not p.state.startswith('Z')]
                     rss = sum(p.rss_kib for p in live)
                     peak_rss = max(peak_rss, rss)
                     sample = {'elapsed_ms': round((time.monotonic() - start) * 1000, 3), 'processes': len(live),
                               'rss_kib': rss, 'cpu_percent_ps': sum(p.cpu_percent for p in live),
-                              'resource_usage': resources.capture(live)}
+                              'resource_usage': resources.capture(live), 'phase': phase}
+                    if rss > self.rss_limit_kib and first_rss_exceedance is None:
+                        first_rss_exceedance = {'elapsed_ms': sample['elapsed_ms'], 'rss_kib': rss, 'phase': phase}
                     samples.append(sample)
                     if on_sample is not None:
                         on_sample(sample)
+                    return rss
+
+                while True:
+                    current, members = observe()
+                    rss = sample_members(members, 'running')
                     if child.poll() is not None:
                         break
                     if cancelled(): reason = 'cancelled'; break
@@ -297,6 +371,7 @@ class Supervisor:
                 # matches this launched tree; never kill by name or unknown PID.
                 for sig, seconds in [(signal.SIGTERM, 0.5), (signal.SIGKILL, 1.0)]:
                     current, members = observe()
+                    sample_members(members, 'cleanup')
                     alive = [p for p in members.values() if not p.state.startswith('Z')]
                     if not alive:
                         break
@@ -309,6 +384,7 @@ class Supervisor:
                     while time.monotonic() < until:
                         child.poll()
                         _, members = observe()
+                        sample_members(members, 'cleanup')
                         if not any(not p.state.startswith('Z') for p in members.values()): break
                         time.sleep(self.interval_seconds)
                 try: returncode = child.wait(timeout=0.1)
@@ -321,6 +397,11 @@ class Supervisor:
                     'footprint_bytes': None, 'gpu_percent': None, 'launch_kind': 'trusted_caller_supplied_executable',
                     'scope': 'observed owned tree; not proof against unobserved process escape or an OS sandbox'}
                 report['resource_measurements'] = resources.report()
+                report['rss_budget'] = {'limit_kib': self.rss_limit_kib,
+                    'first_exceedance': first_rss_exceedance,
+                    'observed_overshoot_kib': max(0, peak_rss - self.rss_limit_kib),
+                    'cleanup_sampled': True,
+                    'scope': 'sampled emergency stop, not a hard allocation cap; intersample peaks may be missed'}
                 report['sample_retention'] = {'capacity': samples.maxlen, 'retained': len(samples),
                                               'dropped_oldest': max(0, resources.total_samples - len(samples))}
                 return report

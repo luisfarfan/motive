@@ -1,0 +1,28 @@
+test_ctypes_layout_matches_installed_public_sdk (test_resource_sampler.ResourceSamplerTests.test_ctypes_layout_matches_installed_public_sdk) ... ok
+test_missing_and_reused_identity_do_not_create_fake_cpu_zero (test_resource_sampler.ResourceSamplerTests.test_missing_and_reused_identity_do_not_create_fake_cpu_zero) ... ok
+test_owned_busy_child_has_measured_cpu_memory_and_cleanup (test_resource_sampler.ResourceSamplerTests.test_owned_busy_child_has_measured_cpu_memory_and_cleanup) ... FAIL
+test_public_cpu_unit_matches_python_process_time_nanoseconds (test_resource_sampler.ResourceSamplerTests.test_public_cpu_unit_matches_python_process_time_nanoseconds) ... FAIL
+test_wrong_birth_is_rejected_before_read (test_resource_sampler.ResourceSamplerTests.test_wrong_birth_is_rejected_before_read) ... ok
+
+======================================================================
+FAIL: test_owned_busy_child_has_measured_cpu_memory_and_cleanup (test_resource_sampler.ResourceSamplerTests.test_owned_busy_child_has_measured_cpu_memory_and_cleanup)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/tests/test_resource_sampler.py", line 74, in test_owned_busy_child_has_measured_cpu_memory_and_cleanup
+    self.assertGreater(resources['observed_cpu_delta_ns'], 100_000_000)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 16405599 not greater than 100000000
+
+======================================================================
+FAIL: test_public_cpu_unit_matches_python_process_time_nanoseconds (test_resource_sampler.ResourceSamplerTests.test_public_cpu_unit_matches_python_process_time_nanoseconds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/tests/test_resource_sampler.py", line 42, in test_public_cpu_unit_matches_python_process_time_nanoseconds
+    self.assertGreater(delta, 90_000_000)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+AssertionError: 2401679 not greater than 90000000
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.140s
+
+FAILED (failures=2)

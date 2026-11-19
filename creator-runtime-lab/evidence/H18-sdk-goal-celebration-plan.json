@@ -1,0 +1,764 @@
+{
+  "capabilities_observed_live": false,
+  "changes": {
+    "new_assets": 1,
+    "new_instances": 1,
+    "new_layers": 3,
+    "new_scenes": 0,
+    "new_sources": 3
+  },
+  "final_budget": {
+    "layers": 3,
+    "resource_bytes": 217,
+    "resource_count": 1,
+    "scenes": 1,
+    "sources": 3,
+    "texture_bytes": 26048256,
+    "video_sources": 0
+  },
+  "installed_in_production": false,
+  "limits": {
+    "layers": 32,
+    "scenes": 8,
+    "sources": 16,
+    "texture_bytes": 268435456,
+    "video_sources": 4
+  },
+  "mode": "simulate",
+  "native_render_verified": false,
+  "notes": [
+    "Properties change one instance; shared placements of that instance share its source state.",
+    "Plans append above existing layers and retain both layout orientations; no visual overlap acceptance is claimed.",
+    "Sequential proposals use predicted model revisions; the real owner must review current state before each operation.",
+    "Preview SVG is approximate; neither JS nor modeled receipts demonstrate native frames."
+  ],
+  "owner_authorized": false,
+  "plans": [
+    {
+      "budget": {
+        "layers": 3,
+        "resource_bytes": 217,
+        "resource_count": 1,
+        "scenes": 1,
+        "sources": 3,
+        "texture_bytes": 26048256,
+        "video_sources": 0
+      },
+      "definition": {
+        "package_id": "goal-celebration",
+        "package_sha256": "8bd5828c295205d7f09e18ada5bd869190829b54f3ed1c6b4b394a81ab59af90",
+        "version": "1.0.0"
+      },
+      "executable_in_production": false,
+      "initial_bindings": {
+        "layers": {},
+        "resources": {},
+        "scenes": {
+          "instance-1-goal-celebration-placement-0": "fixture-scene"
+        },
+        "sources": {}
+      },
+      "instance_id": "instance-1-goal-celebration",
+      "layer_symbols": [
+        {
+          "goal-celebration-content-layer": "instance-1-goal-celebration-p0-goal-celebration-content-layer",
+          "goal-celebration-motif-layer": "instance-1-goal-celebration-p0-goal-celebration-motif-layer",
+          "goal-celebration-score-layer": "instance-1-goal-celebration-p0-goal-celebration-score-layer"
+        }
+      ],
+      "license": "GPL-3.0-or-later",
+      "properties": {
+        "goal-celebration-description": {
+          "type": "text",
+          "value": "Club del Puerto"
+        },
+        "goal-celebration-score": {
+          "type": "text",
+          "value": "2 — 1"
+        },
+        "goal-celebration-title": {
+          "type": "text",
+          "value": "GOOOOL"
+        }
+      },
+      "resources": {
+        "instance-1-goal-celebration-goal-celebration-motif-asset": {
+          "bytes": 217,
+          "duration_ms": null,
+          "file_name": "goal-celebration-motif.png",
+          "height": 48,
+          "id": "goal-celebration-motif-asset",
+          "kind": "image",
+          "sha256": "0f8b3a86a87cf0897a7d45061b6d39a54e1f889868128e381a24589a6ec22aab",
+          "width": 48
+        }
+      },
+      "revision": 1,
+      "rules": {
+        "max_actions_per_event": 32,
+        "queue_capacity": 8,
+        "rate_limit": 20,
+        "rate_window_ms": 1000,
+        "rules": [
+          {
+            "actions": [
+              {
+                "animation": {
+                  "distance": 96.0,
+                  "duration_ms": 450,
+                  "easing": "ease_out",
+                  "kind": "slide_in",
+                  "scale_from": 0.8999999761581421
+                },
+                "layer_id": "instance-1-goal-celebration-p0-goal-celebration-content-layer",
+                "scene_id": "instance-1-goal-celebration-placement-0",
+                "source_id": "instance-1-goal-celebration-goal-celebration-content",
+                "type": "trigger_animated_widget"
+              }
+            ],
+            "busy_policy": "reject",
+            "conditions": [
+              {
+                "field": "name",
+                "type": "equals",
+                "value": {
+                  "type": "string",
+                  "value": "goal-scored"
+                }
+              }
+            ],
+            "cooldown_ms": 1000,
+            "debounce_ms": 0,
+            "enabled": false,
+            "event_kind": "motive.custom_event",
+            "failure_policy": "stop",
+            "id": "instance-1-goal-celebration-p0-goal-celebration-trigger",
+            "priority": 5,
+            "timeout_ms": 15000
+          },
+          {
+            "actions": [
+              {
+                "animation": {
+                  "distance": 96.0,
+                  "duration_ms": 450,
+                  "easing": "ease_in",
+                  "kind": "slide_out",
+                  "scale_from": 0.8999999761581421
+                },
+                "layer_id": "instance-1-goal-celebration-p0-goal-celebration-content-layer",
+                "scene_id": "instance-1-goal-celebration-placement-0",
+                "type": "animate"
+              },
+              {
+                "source_id": "instance-1-goal-celebration-goal-celebration-content",
+                "type": "hide_overlay"
+              }
+            ],
+            "busy_policy": "reject",
+            "conditions": [
+              {
+                "field": "button_id",
+                "type": "equals",
+                "value": {
+                  "type": "string",
+                  "value": "exit"
+                }
+              }
+            ],
+            "cooldown_ms": 1000,
+            "debounce_ms": 0,
+            "enabled": false,
+            "event_kind": "manual.button_pressed",
+            "failure_policy": "stop",
+            "id": "instance-1-goal-celebration-p0-goal-celebration-exit",
+            "priority": 5,
+            "timeout_ms": 15000
+          }
+        ],
+        "schema_version": 1,
+        "variables": {}
+      },
+      "session": "offline-owner-session",
+      "snapshot_sha256": "afb369e66393e4a7c0acc1dba8c6d98cbb5898d1a60b62014fac9440b7bbe864",
+      "source_symbols": {
+        "goal-celebration-content": "instance-1-goal-celebration-goal-celebration-content",
+        "goal-celebration-motif": "instance-1-goal-celebration-goal-celebration-motif",
+        "goal-celebration-score": "instance-1-goal-celebration-goal-celebration-score"
+      },
+      "source_texture_bytes": {
+        "instance-1-goal-celebration-goal-celebration-content": 17449216,
+        "instance-1-goal-celebration-goal-celebration-motif": 18432,
+        "instance-1-goal-celebration-goal-celebration-score": 8580608
+      },
+      "steps": [
+        {
+          "file_name": "goal-celebration-motif.png",
+          "operation": "import_asset_after_local_authorization",
+          "resource_ref": "instance-1-goal-celebration-goal-celebration-motif-asset"
+        },
+        {
+          "definition": {
+            "kind": "widget",
+            "widget": {
+              "accent": 16106108,
+              "background": 2237481,
+              "color": 15856372,
+              "duration_ms": 5000,
+              "height": 140,
+              "kind": "alert",
+              "opacity": 1.0,
+              "subtitle": "Club del Puerto",
+              "title": "GOOOOL",
+              "width": 600
+            }
+          },
+          "first_layer_ref": "instance-1-goal-celebration-p0-goal-celebration-content-layer",
+          "name": "Goal Celebration",
+          "operation": "create_overlay",
+          "scene_ref": "instance-1-goal-celebration-placement-0",
+          "source_ref": "instance-1-goal-celebration-goal-celebration-content"
+        },
+        {
+          "layer_ref": "instance-1-goal-celebration-p0-goal-celebration-content-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-goal-celebration-placement-0",
+          "transform": {
+            "height": 140.0,
+            "order": 0,
+            "visible": true,
+            "width": 600.0,
+            "x": 40.0,
+            "y": 170.0
+          },
+          "variant": "horizontal"
+        },
+        {
+          "layer_ref": "instance-1-goal-celebration-p0-goal-celebration-content-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-goal-celebration-placement-0",
+          "transform": {
+            "height": 108.0,
+            "order": 0,
+            "visible": true,
+            "width": 460.0,
+            "x": 40.0,
+            "y": 340.0
+          },
+          "variant": "vertical"
+        },
+        {
+          "definition": {
+            "kind": "image",
+            "opacity": 0.800000011920929,
+            "resource_id": "instance-1-goal-celebration-goal-celebration-motif-asset"
+          },
+          "first_layer_ref": "instance-1-goal-celebration-p0-goal-celebration-motif-layer",
+          "name": "Original stripe motif",
+          "operation": "create_overlay",
+          "scene_ref": "instance-1-goal-celebration-placement-0",
+          "source_ref": "instance-1-goal-celebration-goal-celebration-motif"
+        },
+        {
+          "layer_ref": "instance-1-goal-celebration-p0-goal-celebration-motif-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-goal-celebration-placement-0",
+          "transform": {
+            "height": 48.0,
+            "order": 1,
+            "visible": true,
+            "width": 48.0,
+            "x": 660.0,
+            "y": 220.0
+          },
+          "variant": "horizontal"
+        },
+        {
+          "layer_ref": "instance-1-goal-celebration-p0-goal-celebration-motif-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-goal-celebration-placement-0",
+          "transform": {
+            "height": 48.0,
+            "order": 1,
+            "visible": true,
+            "width": 48.0,
+            "x": 246.0,
+            "y": 470.0
+          },
+          "variant": "vertical"
+        },
+        {
+          "definition": {
+            "align": "center",
+            "background": null,
+            "background_opacity": 0.0,
+            "color": 15856372,
+            "font": "Menlo",
+            "height": 80,
+            "kind": "text",
+            "opacity": 1.0,
+            "outline": false,
+            "size": 48,
+            "text": "2 — 1",
+            "width": 300
+          },
+          "first_layer_ref": "instance-1-goal-celebration-p0-goal-celebration-score-layer",
+          "name": "Score",
+          "operation": "create_overlay",
+          "scene_ref": "instance-1-goal-celebration-placement-0",
+          "source_ref": "instance-1-goal-celebration-goal-celebration-score"
+        },
+        {
+          "layer_ref": "instance-1-goal-celebration-p0-goal-celebration-score-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-goal-celebration-placement-0",
+          "transform": {
+            "height": 80.0,
+            "order": 2,
+            "visible": true,
+            "width": 300.0,
+            "x": 340.0,
+            "y": 330.0
+          },
+          "variant": "horizontal"
+        },
+        {
+          "layer_ref": "instance-1-goal-celebration-p0-goal-celebration-score-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-goal-celebration-placement-0",
+          "transform": {
+            "height": 80.0,
+            "order": 2,
+            "visible": true,
+            "width": 300.0,
+            "x": 120.0,
+            "y": 560.0
+          },
+          "variant": "vertical"
+        }
+      ]
+    }
+  ],
+  "production_connected": false,
+  "reviews": [
+    {
+      "content_kind": "declarative_pack",
+      "id": "goal-celebration",
+      "installed_in_production": false,
+      "instance_id": "instance-1-goal-celebration",
+      "layouts": [
+        {
+          "authored_scene": "goal-celebration-scene",
+          "layers": [
+            {
+              "horizontal": {
+                "height": 140,
+                "order": 0,
+                "visible": true,
+                "width": 600,
+                "x": 40,
+                "y": 170
+              },
+              "id": "goal-celebration-content-layer",
+              "overlay_id": "goal-celebration-content",
+              "vertical": {
+                "height": 108,
+                "order": 0,
+                "visible": true,
+                "width": 460,
+                "x": 40,
+                "y": 340
+              }
+            },
+            {
+              "horizontal": {
+                "height": 48,
+                "order": 1,
+                "visible": true,
+                "width": 48,
+                "x": 660,
+                "y": 220
+              },
+              "id": "goal-celebration-motif-layer",
+              "overlay_id": "goal-celebration-motif",
+              "vertical": {
+                "height": 48,
+                "order": 1,
+                "visible": true,
+                "width": 48,
+                "x": 246,
+                "y": 470
+              }
+            },
+            {
+              "horizontal": {
+                "height": 80,
+                "order": 2,
+                "visible": true,
+                "width": 300,
+                "x": 340,
+                "y": 330
+              },
+              "id": "goal-celebration-score-layer",
+              "overlay_id": "goal-celebration-score",
+              "vertical": {
+                "height": 80,
+                "order": 2,
+                "visible": true,
+                "width": 300,
+                "x": 120,
+                "y": 560
+              }
+            }
+          ]
+        }
+      ],
+      "name": "Goal Celebration",
+      "preview_paths": [
+        "previews/goal-celebration-scene-horizontal.svg",
+        "previews/goal-celebration-scene-vertical.svg"
+      ],
+      "previews_are_approximate": true,
+      "properties": [
+        {
+          "id": "goal-celebration-title",
+          "label": "Título",
+          "overlay_id": "goal-celebration-content",
+          "target": "widget_title",
+          "value": {
+            "type": "text",
+            "value": "GOOOOL"
+          }
+        },
+        {
+          "id": "goal-celebration-description",
+          "label": "Equipo",
+          "overlay_id": "goal-celebration-content",
+          "target": "widget_subtitle",
+          "value": {
+            "type": "text",
+            "value": "Club del Puerto"
+          }
+        },
+        {
+          "id": "goal-celebration-score",
+          "label": "Marcador",
+          "overlay_id": "goal-celebration-score",
+          "target": "text_content",
+          "value": {
+            "type": "text",
+            "value": "2 — 1"
+          }
+        }
+      ],
+      "review": {
+        "available_capabilities": [
+          "image_asset",
+          "layer_animation",
+          "scene_transition",
+          "shape",
+          "text",
+          "video_asset",
+          "widget"
+        ],
+        "budget": {
+          "counts": {
+            "layers": 3,
+            "scenes": 1,
+            "sources": 3,
+            "texture_bytes": 26048256,
+            "video_sources": 0
+          },
+          "native_texture_estimate_bytes": 26048256,
+          "occupied": {
+            "layers": 0,
+            "scenes": 0,
+            "sources": 0,
+            "texture_bytes": 0,
+            "video_sources": 0
+          },
+          "pack_texture_bytes": 18409216,
+          "remaining": {
+            "layers": 29,
+            "scenes": 7,
+            "sources": 13,
+            "texture_bytes": 242387200,
+            "video_sources": 4
+          },
+          "rss_measured": false,
+          "total": {
+            "layers": 3,
+            "scenes": 1,
+            "sources": 3,
+            "texture_bytes": 26048256,
+            "video_sources": 0
+          }
+        },
+        "bytes": 47728,
+        "cleanup": "only owned staging objects, otherwise reconciliation required",
+        "container": "motive-element-lab-review",
+        "content_kind": "declarative_pack",
+        "contract": {
+          "budget": {
+            "counts": {
+              "layers": 3,
+              "scenes": 1,
+              "sources": 3,
+              "texture_bytes": 26048256,
+              "video_sources": 0
+            },
+            "native_texture_estimate_bytes": 26048256,
+            "occupied": {
+              "layers": 0,
+              "scenes": 0,
+              "sources": 0,
+              "texture_bytes": 0,
+              "video_sources": 0
+            },
+            "pack_texture_bytes": 18409216,
+            "remaining": {
+              "layers": 29,
+              "scenes": 7,
+              "sources": 13,
+              "texture_bytes": 242387200,
+              "video_sources": 4
+            },
+            "rss_measured": false,
+            "total": {
+              "layers": 3,
+              "scenes": 1,
+              "sources": 3,
+              "texture_bytes": 26048256,
+              "video_sources": 0
+            }
+          },
+          "mode": "real_show_control_contract_offline",
+          "native_render_verified": false,
+          "pack_id": "goal-celebration",
+          "plan": {
+            "estimated_texture_bytes": 18409216,
+            "executable": false,
+            "limitations": [
+              "Offline proposal only; no Production importer or live acceptance has been implemented.",
+              "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+              "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+              "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+              "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+            ],
+            "pack_id": "goal-celebration",
+            "pack_version": "1.0.0",
+            "requires_idle": true,
+            "schema_version": 1,
+            "steps": [
+              {
+                "file_name": "goal-celebration-motif.png",
+                "operation": "import_asset_after_local_authorization",
+                "resource_ref": "goal-celebration-motif-asset"
+              },
+              {
+                "name": "Goal Celebration",
+                "operation": "create_scene",
+                "scene_ref": "goal-celebration-scene"
+              },
+              {
+                "definition": {
+                  "kind": "widget",
+                  "widget": {
+                    "accent": 16106108,
+                    "background": 2237481,
+                    "color": 15856372,
+                    "duration_ms": 5000,
+                    "height": 140,
+                    "kind": "alert",
+                    "opacity": 1.0,
+                    "subtitle": "Club del Puerto",
+                    "title": "GOOOOL",
+                    "width": 600
+                  }
+                },
+                "first_layer_ref": "goal-celebration-content-layer",
+                "name": "Goal Celebration",
+                "operation": "create_overlay",
+                "scene_ref": "goal-celebration-scene",
+                "source_ref": "goal-celebration-content"
+              },
+              {
+                "layer_ref": "goal-celebration-content-layer",
+                "operation": "set_transform",
+                "scene_ref": "goal-celebration-scene",
+                "transform": {
+                  "height": 140.0,
+                  "order": 0,
+                  "visible": true,
+                  "width": 600.0,
+                  "x": 40.0,
+                  "y": 170.0
+                },
+                "variant": "horizontal"
+              },
+              {
+                "layer_ref": "goal-celebration-content-layer",
+                "operation": "set_transform",
+                "scene_ref": "goal-celebration-scene",
+                "transform": {
+                  "height": 108.0,
+                  "order": 0,
+                  "visible": true,
+                  "width": 460.0,
+                  "x": 40.0,
+                  "y": 340.0
+                },
+                "variant": "vertical"
+              },
+              {
+                "definition": {
+                  "kind": "image",
+                  "opacity": 0.800000011920929,
+                  "resource_id": "goal-celebration-motif-asset"
+                },
+                "first_layer_ref": "goal-celebration-motif-layer",
+                "name": "Original stripe motif",
+                "operation": "create_overlay",
+                "scene_ref": "goal-celebration-scene",
+                "source_ref": "goal-celebration-motif"
+              },
+              {
+                "layer_ref": "goal-celebration-motif-layer",
+                "operation": "set_transform",
+                "scene_ref": "goal-celebration-scene",
+                "transform": {
+                  "height": 48.0,
+                  "order": 1,
+                  "visible": true,
+                  "width": 48.0,
+                  "x": 660.0,
+                  "y": 220.0
+                },
+                "variant": "horizontal"
+              },
+              {
+                "layer_ref": "goal-celebration-motif-layer",
+                "operation": "set_transform",
+                "scene_ref": "goal-celebration-scene",
+                "transform": {
+                  "height": 48.0,
+                  "order": 1,
+                  "visible": true,
+                  "width": 48.0,
+                  "x": 246.0,
+                  "y": 470.0
+                },
+                "variant": "vertical"
+              },
+              {
+                "definition": {
+                  "align": "center",
+                  "background": null,
+                  "background_opacity": 0.0,
+                  "color": 15856372,
+                  "font": "Menlo",
+                  "height": 80,
+                  "kind": "text",
+                  "opacity": 1.0,
+                  "outline": false,
+                  "size": 48,
+                  "text": "2 — 1",
+                  "width": 300
+                },
+                "first_layer_ref": "goal-celebration-score-layer",
+                "name": "Score",
+                "operation": "create_overlay",
+                "scene_ref": "goal-celebration-scene",
+                "source_ref": "goal-celebration-score"
+              },
+              {
+                "layer_ref": "goal-celebration-score-layer",
+                "operation": "set_transform",
+                "scene_ref": "goal-celebration-scene",
+                "transform": {
+                  "height": 80.0,
+                  "order": 2,
+                  "visible": true,
+                  "width": 300.0,
+                  "x": 340.0,
+                  "y": 330.0
+                },
+                "variant": "horizontal"
+              },
+              {
+                "layer_ref": "goal-celebration-score-layer",
+                "operation": "set_transform",
+                "scene_ref": "goal-celebration-scene",
+                "transform": {
+                  "height": 80.0,
+                  "order": 2,
+                  "visible": true,
+                  "width": 300.0,
+                  "x": 120.0,
+                  "y": 560.0
+                },
+                "variant": "vertical"
+              }
+            ],
+            "unavailable": []
+          },
+          "prepared_actions": 3,
+          "production_connected": false,
+          "rehearsal": null,
+          "status": "PASS"
+        },
+        "creator_identity_verified": false,
+        "dependencies": {
+          "downloads": false,
+          "resolution": "embedded_inventory_only",
+          "resources": [
+            "goal-celebration-motif-asset"
+          ]
+        },
+        "files": 8,
+        "format": "experimental_review_package",
+        "id": "goal-celebration",
+        "installed": false,
+        "integrity_verified": true,
+        "license": {
+          "declared": "GPL-3.0-or-later",
+          "matches_local_policy": true,
+          "ownership_verified": false,
+          "resource_attribution": "CreatorPack v1 inherits the pack license; per-resource provenance is not carried",
+          "text_sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0"
+        },
+        "native_asset_decoder_verified": false,
+        "official_installation_format": false,
+        "owner_authorized": false,
+        "package_sha256": "8bd5828c295205d7f09e18ada5bd869190829b54f3ed1c6b4b394a81ab59af90",
+        "package_version": 1,
+        "required_capabilities": [
+          "image_asset",
+          "layer_animation",
+          "text",
+          "widget"
+        ],
+        "resource_bytes": 217,
+        "reviewed_for": "offline_installation_proposal",
+        "rules_arming_authorized": false,
+        "sha256": "8bd5828c295205d7f09e18ada5bd869190829b54f3ed1c6b4b394a81ab59af90",
+        "staging_budget_bytes": 269484032,
+        "staging_bytes": 96068,
+        "status": "PASS",
+        "version": "1.0.0"
+      },
+      "sha256": "8bd5828c295205d7f09e18ada5bd869190829b54f3ed1c6b4b394a81ab59af90",
+      "state": "reviewed_candidate",
+      "version": "1.0.0"
+    }
+  ],
+  "scene_ids_preserved": true,
+  "scope": "sequential_strict_offline_owner_model",
+  "show_control_armed": false,
+  "simulated_ids_only": true,
+  "staging_reverified_and_cleaned": true,
+  "status": "PASS",
+  "target_scenes": [
+    "fixture-scene"
+  ]
+}

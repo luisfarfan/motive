@@ -1,3 +1,7 @@
+> H18 continuation: a linked, locally sealed fixture and additional offline
+> checks now exist. See [H18 build and execution gates](h18-native-host.md).
+> The H16 instructions/results below preserve their original scope.
+
 # Reproducir H16 sin ejecutar un navegador
 
 El resultado reproducible de esta etapa es el build del crate independiente,
@@ -88,3 +92,17 @@ Una futura prueba autorizada empezaría únicamente con el HTML original incluid
 metadatos; todavía no se ejecutó contra salida CEF. Un JSON de observaciones o
 un buffer artificial no cumplen ese gate. Contenido de terceros continúa
 bloqueado hasta demostrar también aislamiento del proceso y de recursos del OS.
+
+## Continuación H18 (posterior a la evidencia H16 anterior)
+
+El propietario autorizó pruebas locales Motive: el host/helper ya enlazan y la
+prueba CEF propia produjo BGRA real y alpha. El cierre inicial falló por una tarea
+de Keychain; el perfil efímero con backend oficial de prueba cerró correctamente.
+El dispatcher Goal también compila; su ejecución se evalúa por separado.
+
+`python3 web-host-lab/tools/verify_h18.py` ejecuta únicamente verificaciones
+estáticas y tests sin CEF. Reconstruye los bundles de diagnóstico efímeros: no
+correr mientras esos mismos artefactos estén en una prueba supervisada. Escribe
+`H18-current-*` para preservar los resultados históricos. Consulte
+[h18-native-host.md](h18-native-host.md) y los reportes de ejecución antes de
+interpretar los gates históricos de esta página.

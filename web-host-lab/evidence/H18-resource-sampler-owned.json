@@ -1,0 +1,880 @@
+{
+  "scope": "owned Python process resource measurement only",
+  "native_cef_executed": false,
+  "supervisor_sha256": "855e474d9b56ee7aedf36db4a39465573208d88f10580c79cef28ad800b2dd18",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "fixture_source": "import time,subprocess,sys; memory=bytearray(48*1024*1024); p=subprocess.Popen([sys.executable,\"-c\",\"import time; memory=bytearray(32*1024*1024); time.sleep(1)\"]); end=time.monotonic()+.8\nwhile time.monotonic()<end: pass\np.wait()",
+  "report": {
+    "session_id": "6fe8618600dd4cd1a6bbbd5a42840d50",
+    "generation": 1,
+    "reason": "exit",
+    "returncode": 0,
+    "elapsed_ms": 1159.927,
+    "shutdown_ms": 47.789,
+    "observed_processes": 2,
+    "remaining_observed_live_pids": [],
+    "cleanup_observed_tree": true,
+    "peak_tree_rss_kib": 112848,
+    "samples": [
+      {
+        "elapsed_ms": 27.263,
+        "processes": 1,
+        "rss_kib": 4704,
+        "cpu_percent_ps": 0.0,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757240947958,
+          "sample_duration_ns": 117292,
+          "wall_delta_ns": null,
+          "attempted_processes": 1,
+          "sampled_processes": 1,
+          "cpu_delta_processes": 0,
+          "cpu_observed_identity_coverage_complete": false,
+          "cpu_percent_one_core": null,
+          "cpu_delta_ns": null,
+          "phys_footprint_bytes": 44597728,
+          "observed_phys_footprint_bytes": 44597728,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 346929,
+              "system_time_mach_ticks": 190659,
+              "user_time_ns": 14455375,
+              "system_time_ns": 7944125,
+              "cpu_time_ns": 22399500,
+              "resident_bytes": 52428800,
+              "phys_footprint_bytes": 44597728,
+              "cpu_delta_ns": null
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 106.867,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 0.0,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757320553500,
+          "sample_duration_ns": 116208,
+          "wall_delta_ns": 79605542,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 1,
+          "cpu_observed_identity_coverage_complete": false,
+          "cpu_percent_one_core": 97.49148495214064,
+          "cpu_delta_ns": 77608625,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 2157581,
+              "system_time_mach_ticks": 242614,
+              "user_time_ns": 89899208,
+              "system_time_ns": 10108916,
+              "cpu_time_ns": 100008125,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 77608625
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": null
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 186.436,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 30.8,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757400118583,
+          "sample_duration_ns": 97417,
+          "wall_delta_ns": 79565083,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 96.11502573308445,
+          "cpu_delta_ns": 76474000,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 3985419,
+              "system_time_mach_ticks": 250152,
+              "user_time_ns": 166059125,
+              "system_time_ns": 10423000,
+              "cpu_time_ns": 176482125,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 76474000
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 261.026,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 58.099999999999994,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757474709083,
+          "sample_duration_ns": 93917,
+          "wall_delta_ns": 74590500,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 103.38056857106469,
+          "cpu_delta_ns": 77112083,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 5828996,
+              "system_time_mach_ticks": 257265,
+              "user_time_ns": 242874833,
+              "system_time_ns": 10719375,
+              "cpu_time_ns": 253594208,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 77112083
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 335.675,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 58.099999999999994,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757549356083,
+          "sample_duration_ns": 75083,
+          "wall_delta_ns": 74647000,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 99.09016169437486,
+          "cpu_delta_ns": 73967833,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 7593320,
+              "system_time_mach_ticks": 268169,
+              "user_time_ns": 316388333,
+              "system_time_ns": 11173708,
+              "cpu_time_ns": 327562041,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 73967833
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 411.018,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 71.8,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757624707125,
+          "sample_duration_ns": 97583,
+          "wall_delta_ns": 75351042,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 100.11192015101796,
+          "cpu_delta_ns": 75435375,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 9392599,
+              "system_time_mach_ticks": 279339,
+              "user_time_ns": 391358291,
+              "system_time_ns": 11639125,
+              "cpu_time_ns": 402997416,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 75435375
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 487.495,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 71.8,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757701175708,
+          "sample_duration_ns": 76208,
+          "wall_delta_ns": 76468583,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 99.18844710382564,
+          "cpu_delta_ns": 75848000,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 11197484,
+              "system_time_mach_ticks": 294806,
+              "user_time_ns": 466561833,
+              "system_time_ns": 12283583,
+              "cpu_time_ns": 478845416,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 75848000
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 567.168,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 82.0,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757780850708,
+          "sample_duration_ns": 88125,
+          "wall_delta_ns": 79675000,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 97.35681455914653,
+          "cpu_delta_ns": 77569042,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 13033127,
+              "system_time_mach_ticks": 320820,
+              "user_time_ns": 543046958,
+              "system_time_ns": 13367500,
+              "cpu_time_ns": 556414458,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 77569042
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 642.326,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 88.5,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757856008291,
+          "sample_duration_ns": 89625,
+          "wall_delta_ns": 75157583,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 98.84010373244706,
+          "cpu_delta_ns": 74285833,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 14800225,
+              "system_time_mach_ticks": 336582,
+              "user_time_ns": 616676041,
+              "system_time_ns": 14024250,
+              "cpu_time_ns": 630700291,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 74285833
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 719.953,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 88.5,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124757933634541,
+          "sample_duration_ns": 90667,
+          "wall_delta_ns": 77626250,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 97.6691737653178,
+          "cpu_delta_ns": 75816917,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 16600015,
+              "system_time_mach_ticks": 356398,
+              "user_time_ns": 691667291,
+              "system_time_ns": 14849916,
+              "cpu_time_ns": 706517208,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 75816917
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 797.942,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 91.30000000000001,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124758011625625,
+          "sample_duration_ns": 115583,
+          "wall_delta_ns": 77991084,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 99.13136352868233,
+          "cpu_delta_ns": 77313625,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 18435018,
+              "system_time_mach_ticks": 376922,
+              "user_time_ns": 768125750,
+              "system_time_ns": 15705083,
+              "cpu_time_ns": 783830833,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 77313625
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 876.849,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 90.3,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124758090531625,
+          "sample_duration_ns": 85791,
+          "wall_delta_ns": 78906000,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 40.57306541961321,
+          "cpu_delta_ns": 32014583,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 19195193,
+              "system_time_mach_ticks": 385097,
+              "user_time_ns": 799799708,
+              "system_time_ns": 16045708,
+              "cpu_time_ns": 815845416,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 32014583
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 955.257,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 90.3,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124758168939416,
+          "sample_duration_ns": 81584,
+          "wall_delta_ns": 78407791,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 0.0,
+          "cpu_delta_ns": 0,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 19195193,
+              "system_time_mach_ticks": 385097,
+              "user_time_ns": 799799708,
+              "system_time_ns": 16045708,
+              "cpu_time_ns": 815845416,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 0
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 1034.313,
+        "processes": 2,
+        "rss_kib": 112848,
+        "cpu_percent_ps": 56.300000000000004,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124758247995541,
+          "sample_duration_ns": 99834,
+          "wall_delta_ns": 79056125,
+          "attempted_processes": 2,
+          "sampled_processes": 2,
+          "cpu_delta_processes": 2,
+          "cpu_observed_identity_coverage_complete": true,
+          "cpu_percent_one_core": 0.0,
+          "cpu_delta_ns": 0,
+          "phys_footprint_bytes": 100123584,
+          "observed_phys_footprint_bytes": 100123584,
+          "memory_observed_identity_coverage_complete": true,
+          "processes": [
+            {
+              "pid": 68532,
+              "birth": [
+                1795046319,
+                234104
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173134356,
+              "user_time_mach_ticks": 19195193,
+              "system_time_mach_ticks": 385097,
+              "user_time_ns": 799799708,
+              "system_time_ns": 16045708,
+              "cpu_time_ns": 815845416,
+              "resident_bytes": 66945024,
+              "phys_footprint_bytes": 59146720,
+              "cpu_delta_ns": 0
+            },
+            {
+              "pid": 68534,
+              "birth": [
+                1795046319,
+                261978
+              ],
+              "role": "owned_python",
+              "proc_start_abstime": 2994173803350,
+              "user_time_mach_ticks": 261689,
+              "system_time_mach_ticks": 153600,
+              "user_time_ns": 10903708,
+              "system_time_ns": 6400000,
+              "cpu_time_ns": 17303708,
+              "resident_bytes": 48611328,
+              "phys_footprint_bytes": 40976864,
+              "cpu_delta_ns": 0
+            }
+          ],
+          "gpu_percent": null
+        }
+      },
+      {
+        "elapsed_ms": 1112.119,
+        "processes": 0,
+        "rss_kib": 0,
+        "cpu_percent_ps": 0,
+        "resource_usage": {
+          "version": 1,
+          "sample_monotonic_ns": 124758325801291,
+          "sample_duration_ns": 2292,
+          "wall_delta_ns": 77805750,
+          "attempted_processes": 0,
+          "sampled_processes": 0,
+          "cpu_delta_processes": 0,
+          "cpu_observed_identity_coverage_complete": false,
+          "cpu_percent_one_core": null,
+          "cpu_delta_ns": null,
+          "phys_footprint_bytes": null,
+          "observed_phys_footprint_bytes": null,
+          "memory_observed_identity_coverage_complete": false,
+          "processes": [],
+          "gpu_percent": null
+        }
+      }
+    ],
+    "footprint_bytes": null,
+    "gpu_percent": null,
+    "launch_kind": "trusted_caller_supplied_executable",
+    "scope": "observed owned tree; not proof against unobserved process escape or an OS sandbox",
+    "resource_measurements": {
+      "version": 1,
+      "api": "proc_pid_rusage(RUSAGE_INFO_V0)",
+      "mach_timebase": {
+        "numer": 125,
+        "denom": 3
+      },
+      "cpu_unit": "nanoseconds; percent 100 equals one fully occupied core",
+      "total_samples": 15,
+      "partial_samples": 3,
+      "valid_cpu_intervals": 13,
+      "observed_cpu_delta_ns": 793445916,
+      "measured_wall_delta_ns": 1007047583,
+      "observed_cpu_mean_percent_one_core": 78.7893173464873,
+      "peak_observed_tree_phys_footprint_bytes": 100123584,
+      "observed_process_roles": {
+        "owned_python": 2
+      },
+      "gpu_percent": null,
+      "limits": [
+        "Only consecutive observations of matching PID/birth/start identity contribute CPU deltas.",
+        "CPU before first/after last observation and processes shorter than the sampling interval may be missed.",
+        "Memory is a sequential sum of per-process physical footprints, not a coalition or unique physical-page total.",
+        "Reported CPU excludes the supervisor and process-list collection overhead.",
+        "Roles identify observed executable basenames; a helper role does not measure GPU utilization.",
+        "Historical cpu_percent_ps remains ps output; legacy footprint_bytes remains unspecified/null."
+      ]
+    },
+    "sample_retention": {
+      "capacity": 256,
+      "retained": 15,
+      "dropped_oldest": 0
+    },
+    "final_remaining_observed_pids": [],
+    "final_remaining_observed_live_pids": [],
+    "final_cleanup_observed_tree": true
+  },
+  "status": "PASS"
+}

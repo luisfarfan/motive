@@ -1,0 +1,127 @@
+{
+  "created_utc": "2026-11-18T23:59:45.701882+00:00",
+  "baseline": "15ffbad307c5439270130979dae0e9d66d92d700",
+  "branch": "codex/h18-creator-runtime",
+  "source_head_before_report_commit": "81768a5e8732f5a159cb80a07369429e221ee63c",
+  "status": "PASS",
+  "scope": "offline contracts, real reviewed archive bytes, strict simulated owner and inert sidecar",
+  "checks": [
+    {
+      "name": "runtime-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "creator-runtime-lab/Cargo.toml"
+      ],
+      "returncode": 0,
+      "status": "PASS",
+      "log": "creator-runtime-lab/evidence/H18-runtime-tests.log",
+      "log_sha256": "4181361e0264d117f53c40b3ce96ceeb5f21897cdb551aea26887461d4bffe12"
+    },
+    {
+      "name": "runtime-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "creator-runtime-lab/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "returncode": 0,
+      "status": "PASS",
+      "log": "creator-runtime-lab/evidence/H18-runtime-clippy.log",
+      "log_sha256": "59639588a6f1826f129cbcd121edc07279dab94786f5fa5bde6b3439b2e845cc"
+    },
+    {
+      "name": "runtime-format",
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "creator-runtime-lab/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "returncode": 0,
+      "status": "PASS",
+      "log": "creator-runtime-lab/evidence/H18-runtime-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "python",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "creator-runtime-lab/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "returncode": 0,
+      "status": "PASS",
+      "log": "creator-runtime-lab/evidence/H18-python.log",
+      "log_sha256": "efa603fc784a99095f1d97dc8cc2e79411231741fec4164cfe729649d12e3f8e"
+    },
+    {
+      "name": "sdk-examples",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "creator-runtime-lab/sdk/verify_examples.py"
+      ],
+      "returncode": 0,
+      "status": "PASS",
+      "log": "creator-runtime-lab/evidence/H18-sdk-examples.log",
+      "log_sha256": "289f0cc62d4dc1ad8f3c7336f4e4d164b4ae99879c17cfd3701f6ae99304275b"
+    },
+    {
+      "name": "isolated-scope-and-originals",
+      "status": "PASS",
+      "unauthorized_paths": [],
+      "changed_original_paths": []
+    }
+  ],
+  "implementation_sha256": {
+    "creator-runtime-lab/src/lib.rs": "0382a4b8c2258627925b6713bf6456079d3dc78df88a5197c18dc50e5ee6e105",
+    "creator-runtime-lab/src/main.rs": "ad9a75a0bba3c318c188821700cc7477f6f16286e106d4045896bfd1a6670918",
+    "creator-runtime-lab/src/model.rs": "84defc09ba45db0604a7e75abd7a8eaec540398ff7da5cef9ae319e977fff93f",
+    "creator-runtime-lab/src/persistence.rs": "6a0e4d42041c266d5ec2262ae8d5c0a7900bc0d6392d2418c176935df7608b65",
+    "creator-runtime-lab/src/planner.rs": "ad053f35f9b453af45439eaebab18868480498bfe846b442375ca54ad447b69b",
+    "creator-runtime-lab/src/receipts.rs": "4b68293853a34a9e9417f2c68a17caecc92edbdb437efe5d74e604fcd0b32021",
+    "creator-runtime-lab/importer/README.md": "04eb9f72ea932baea0d8b7a52c01fc46e05f2a0d11f777505ec707699b3d1115",
+    "creator-runtime-lab/importer/runtime_importer.py": "68a91a36b4fb6f35afbd6d636dc70f5f6b844882917a76e1acf90e43fc011600",
+    "creator-runtime-lab/importer/verify_examples.py": "10718efaac51bb25e567d774b4d32665bfdebe12b1b975f663b094fad185c824",
+    "creator-runtime-lab/sdk/README.md": "3b72439ba42e056f1acaba6173a9e61a6832128d5bc9f420b9a13499328c8b4a",
+    "creator-runtime-lab/sdk/runtime.py": "a0912157258e4a7ed63db011cea9761c108ca7c31c7188df1606d98be2cd0134",
+    "creator-runtime-lab/sdk/verify_examples.py": "c48628f7cd96b3deebbdf5fcae2337427f88ae5f50fb933c05a226792bee2b20",
+    "creator-runtime-lab/tests/recovery.rs": "960759c5b37f078b7dcb40921f0f13c7087c7d2f507263aa0d46e029bf483457",
+    "creator-runtime-lab/tests/runtime.rs": "19507b2b75100bcaabaab107ced4d8cb624e83d6751f5b18ca4ed42b76e8de10",
+    "creator-runtime-lab/tests/test_importer.py": "b5fddf90ae7808ad853f06f01f9ff168ef3bc274620ed2a4d81ddd54335c72a2",
+    "creator-runtime-lab/tests/test_sdk.py": "ded3093394e37b71548e2b30686a678f510047b2fdfd56b3146e90c3ab8fefa0",
+    "creator-runtime-lab/tools/verify_runtime.py": "8ec38edec0f7af7c072b522c82c12e8c74c903510741e71f04c109a1016d6785",
+    "creator-runtime-lab/Cargo.toml": "24655a56e4f6b19734ba277456273c83b8b35dd5b3e0db5d57711e31495ec7f4",
+    "creator-runtime-lab/Cargo.lock": "2ba637bffc19541ed5ebb20a30b7dd24e633dbe8822b2124075b5d6029763ca3"
+  },
+  "production_connected": false,
+  "native_cef_executed_by_this_tool": false,
+  "native_render_verified_by_this_tool": false,
+  "third_party_execution": "BLOCKED",
+  "h17_handoff_received": false,
+  "owner_authorized_policy_change": {
+    "path": "AGENTS.md",
+    "date": "2026-11-18",
+    "sha256": "4e6c16d0fc00d558e4065edbb15cf1bea4f00bcce961d26afe8ed392d507009a"
+  },
+  "dom_evidence": "creator-runtime-lab/evidence/binding/browser-final-provenance.json",
+  "native_static_evidence": "web-host-lab/evidence/H18-static-summary.json"
+}

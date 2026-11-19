@@ -1,0 +1,628 @@
+{
+  "capabilities_observed_live": false,
+  "changes": {
+    "new_assets": 1,
+    "new_instances": 1,
+    "new_layers": 2,
+    "new_scenes": 0,
+    "new_sources": 2
+  },
+  "final_budget": {
+    "layers": 2,
+    "resource_bytes": 216,
+    "resource_count": 1,
+    "scenes": 1,
+    "sources": 2,
+    "texture_bytes": 17467648,
+    "video_sources": 0
+  },
+  "installed_in_production": false,
+  "limits": {
+    "layers": 32,
+    "scenes": 8,
+    "sources": 16,
+    "texture_bytes": 268435456,
+    "video_sources": 4
+  },
+  "mode": "simulate",
+  "native_render_verified": false,
+  "notes": [
+    "Properties change one instance; shared placements of that instance share its source state.",
+    "Plans append above existing layers and retain both layout orientations; no visual overlap acceptance is claimed.",
+    "Sequential proposals use predicted model revisions; the real owner must review current state before each operation.",
+    "Preview SVG is approximate; neither JS nor modeled receipts demonstrate native frames."
+  ],
+  "owner_authorized": false,
+  "plans": [
+    {
+      "budget": {
+        "layers": 2,
+        "resource_bytes": 216,
+        "resource_count": 1,
+        "scenes": 1,
+        "sources": 2,
+        "texture_bytes": 17467648,
+        "video_sources": 0
+      },
+      "definition": {
+        "package_id": "community-alert",
+        "package_sha256": "fed0683e463b3d1b2ea3f44b344f42762f9b8bba6293e1877407b441f3c74be9",
+        "version": "1.0.0"
+      },
+      "executable_in_production": false,
+      "initial_bindings": {
+        "layers": {},
+        "resources": {},
+        "scenes": {
+          "instance-1-community-alert-placement-0": "fixture-scene"
+        },
+        "sources": {}
+      },
+      "instance_id": "instance-1-community-alert",
+      "layer_symbols": [
+        {
+          "community-alert-content-layer": "instance-1-community-alert-p0-community-alert-content-layer",
+          "community-alert-motif-layer": "instance-1-community-alert-p0-community-alert-motif-layer"
+        }
+      ],
+      "license": "GPL-3.0-or-later",
+      "properties": {
+        "community-alert-description": {
+          "type": "text",
+          "value": "Gracias por ser parte de la comunidad"
+        },
+        "community-alert-title": {
+          "type": "text",
+          "value": "Una nueva voz"
+        }
+      },
+      "resources": {
+        "instance-1-community-alert-community-alert-motif-asset": {
+          "bytes": 216,
+          "duration_ms": null,
+          "file_name": "community-alert-motif.png",
+          "height": 48,
+          "id": "community-alert-motif-asset",
+          "kind": "image",
+          "sha256": "af54683199e28bd4c6b8cc1a9bc07def1ce72f72bcf9dafc530d74b51f4ad37f",
+          "width": 48
+        }
+      },
+      "revision": 1,
+      "rules": {
+        "max_actions_per_event": 32,
+        "queue_capacity": 8,
+        "rate_limit": 20,
+        "rate_window_ms": 1000,
+        "rules": [
+          {
+            "actions": [
+              {
+                "animation": {
+                  "distance": 96.0,
+                  "duration_ms": 450,
+                  "easing": "ease_out",
+                  "kind": "slide_in",
+                  "scale_from": 0.8999999761581421
+                },
+                "layer_id": "instance-1-community-alert-p0-community-alert-content-layer",
+                "scene_id": "instance-1-community-alert-placement-0",
+                "source_id": "instance-1-community-alert-community-alert-content",
+                "type": "trigger_animated_widget"
+              }
+            ],
+            "busy_policy": "reject",
+            "conditions": [
+              {
+                "field": "button_id",
+                "type": "equals",
+                "value": {
+                  "type": "string",
+                  "value": "trigger"
+                }
+              }
+            ],
+            "cooldown_ms": 1000,
+            "debounce_ms": 0,
+            "enabled": false,
+            "event_kind": "manual.button_pressed",
+            "failure_policy": "stop",
+            "id": "instance-1-community-alert-p0-community-alert-trigger",
+            "priority": 5,
+            "timeout_ms": 15000
+          },
+          {
+            "actions": [
+              {
+                "animation": {
+                  "distance": 96.0,
+                  "duration_ms": 450,
+                  "easing": "ease_in",
+                  "kind": "slide_out",
+                  "scale_from": 0.8999999761581421
+                },
+                "layer_id": "instance-1-community-alert-p0-community-alert-content-layer",
+                "scene_id": "instance-1-community-alert-placement-0",
+                "type": "animate"
+              },
+              {
+                "source_id": "instance-1-community-alert-community-alert-content",
+                "type": "hide_overlay"
+              }
+            ],
+            "busy_policy": "reject",
+            "conditions": [
+              {
+                "field": "button_id",
+                "type": "equals",
+                "value": {
+                  "type": "string",
+                  "value": "exit"
+                }
+              }
+            ],
+            "cooldown_ms": 1000,
+            "debounce_ms": 0,
+            "enabled": false,
+            "event_kind": "manual.button_pressed",
+            "failure_policy": "stop",
+            "id": "instance-1-community-alert-p0-community-alert-exit",
+            "priority": 5,
+            "timeout_ms": 15000
+          }
+        ],
+        "schema_version": 1,
+        "variables": {}
+      },
+      "session": "offline-owner-session",
+      "snapshot_sha256": "afb369e66393e4a7c0acc1dba8c6d98cbb5898d1a60b62014fac9440b7bbe864",
+      "source_symbols": {
+        "community-alert-content": "instance-1-community-alert-community-alert-content",
+        "community-alert-motif": "instance-1-community-alert-community-alert-motif"
+      },
+      "source_texture_bytes": {
+        "instance-1-community-alert-community-alert-content": 17449216,
+        "instance-1-community-alert-community-alert-motif": 18432
+      },
+      "steps": [
+        {
+          "file_name": "community-alert-motif.png",
+          "operation": "import_asset_after_local_authorization",
+          "resource_ref": "instance-1-community-alert-community-alert-motif-asset"
+        },
+        {
+          "definition": {
+            "kind": "widget",
+            "widget": {
+              "accent": 16106108,
+              "background": 2237481,
+              "color": 15856372,
+              "duration_ms": 4500,
+              "height": 140,
+              "kind": "alert",
+              "opacity": 1.0,
+              "subtitle": "Gracias por ser parte de la comunidad",
+              "title": "Una nueva voz",
+              "width": 600
+            }
+          },
+          "first_layer_ref": "instance-1-community-alert-p0-community-alert-content-layer",
+          "name": "Community Alert",
+          "operation": "create_overlay",
+          "scene_ref": "instance-1-community-alert-placement-0",
+          "source_ref": "instance-1-community-alert-community-alert-content"
+        },
+        {
+          "layer_ref": "instance-1-community-alert-p0-community-alert-content-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-community-alert-placement-0",
+          "transform": {
+            "height": 140.0,
+            "order": 0,
+            "visible": true,
+            "width": 600.0,
+            "x": 40.0,
+            "y": 170.0
+          },
+          "variant": "horizontal"
+        },
+        {
+          "layer_ref": "instance-1-community-alert-p0-community-alert-content-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-community-alert-placement-0",
+          "transform": {
+            "height": 108.0,
+            "order": 0,
+            "visible": true,
+            "width": 460.0,
+            "x": 40.0,
+            "y": 340.0
+          },
+          "variant": "vertical"
+        },
+        {
+          "definition": {
+            "kind": "image",
+            "opacity": 0.800000011920929,
+            "resource_id": "instance-1-community-alert-community-alert-motif-asset"
+          },
+          "first_layer_ref": "instance-1-community-alert-p0-community-alert-motif-layer",
+          "name": "Original stripe motif",
+          "operation": "create_overlay",
+          "scene_ref": "instance-1-community-alert-placement-0",
+          "source_ref": "instance-1-community-alert-community-alert-motif"
+        },
+        {
+          "layer_ref": "instance-1-community-alert-p0-community-alert-motif-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-community-alert-placement-0",
+          "transform": {
+            "height": 48.0,
+            "order": 1,
+            "visible": true,
+            "width": 48.0,
+            "x": 660.0,
+            "y": 220.0
+          },
+          "variant": "horizontal"
+        },
+        {
+          "layer_ref": "instance-1-community-alert-p0-community-alert-motif-layer",
+          "operation": "set_transform",
+          "scene_ref": "instance-1-community-alert-placement-0",
+          "transform": {
+            "height": 48.0,
+            "order": 1,
+            "visible": true,
+            "width": 48.0,
+            "x": 246.0,
+            "y": 470.0
+          },
+          "variant": "vertical"
+        }
+      ]
+    }
+  ],
+  "production_connected": false,
+  "reviews": [
+    {
+      "content_kind": "declarative_pack",
+      "id": "community-alert",
+      "installed_in_production": false,
+      "instance_id": "instance-1-community-alert",
+      "layouts": [
+        {
+          "authored_scene": "community-alert-scene",
+          "layers": [
+            {
+              "horizontal": {
+                "height": 140,
+                "order": 0,
+                "visible": true,
+                "width": 600,
+                "x": 40,
+                "y": 170
+              },
+              "id": "community-alert-content-layer",
+              "overlay_id": "community-alert-content",
+              "vertical": {
+                "height": 108,
+                "order": 0,
+                "visible": true,
+                "width": 460,
+                "x": 40,
+                "y": 340
+              }
+            },
+            {
+              "horizontal": {
+                "height": 48,
+                "order": 1,
+                "visible": true,
+                "width": 48,
+                "x": 660,
+                "y": 220
+              },
+              "id": "community-alert-motif-layer",
+              "overlay_id": "community-alert-motif",
+              "vertical": {
+                "height": 48,
+                "order": 1,
+                "visible": true,
+                "width": 48,
+                "x": 246,
+                "y": 470
+              }
+            }
+          ]
+        }
+      ],
+      "name": "Community Alert",
+      "preview_paths": [
+        "previews/community-alert-scene-horizontal.svg",
+        "previews/community-alert-scene-vertical.svg"
+      ],
+      "previews_are_approximate": true,
+      "properties": [
+        {
+          "id": "community-alert-title",
+          "label": "Título",
+          "overlay_id": "community-alert-content",
+          "target": "widget_title",
+          "value": {
+            "type": "text",
+            "value": "Una nueva voz"
+          }
+        },
+        {
+          "id": "community-alert-description",
+          "label": "Mensaje",
+          "overlay_id": "community-alert-content",
+          "target": "widget_subtitle",
+          "value": {
+            "type": "text",
+            "value": "Gracias por ser parte de la comunidad"
+          }
+        }
+      ],
+      "review": {
+        "available_capabilities": [
+          "image_asset",
+          "layer_animation",
+          "scene_transition",
+          "shape",
+          "text",
+          "video_asset",
+          "widget"
+        ],
+        "budget": {
+          "counts": {
+            "layers": 2,
+            "scenes": 1,
+            "sources": 2,
+            "texture_bytes": 17467648,
+            "video_sources": 0
+          },
+          "native_texture_estimate_bytes": 17467648,
+          "occupied": {
+            "layers": 0,
+            "scenes": 0,
+            "sources": 0,
+            "texture_bytes": 0,
+            "video_sources": 0
+          },
+          "pack_texture_bytes": 18121216,
+          "remaining": {
+            "layers": 30,
+            "scenes": 7,
+            "sources": 14,
+            "texture_bytes": 250967808,
+            "video_sources": 4
+          },
+          "rss_measured": false,
+          "total": {
+            "layers": 2,
+            "scenes": 1,
+            "sources": 2,
+            "texture_bytes": 17467648,
+            "video_sources": 0
+          }
+        },
+        "bytes": 46231,
+        "cleanup": "only owned staging objects, otherwise reconciliation required",
+        "container": "motive-element-lab-review",
+        "content_kind": "declarative_pack",
+        "contract": {
+          "budget": {
+            "counts": {
+              "layers": 2,
+              "scenes": 1,
+              "sources": 2,
+              "texture_bytes": 17467648,
+              "video_sources": 0
+            },
+            "native_texture_estimate_bytes": 17467648,
+            "occupied": {
+              "layers": 0,
+              "scenes": 0,
+              "sources": 0,
+              "texture_bytes": 0,
+              "video_sources": 0
+            },
+            "pack_texture_bytes": 18121216,
+            "remaining": {
+              "layers": 30,
+              "scenes": 7,
+              "sources": 14,
+              "texture_bytes": 250967808,
+              "video_sources": 4
+            },
+            "rss_measured": false,
+            "total": {
+              "layers": 2,
+              "scenes": 1,
+              "sources": 2,
+              "texture_bytes": 17467648,
+              "video_sources": 0
+            }
+          },
+          "mode": "real_show_control_contract_offline",
+          "native_render_verified": false,
+          "pack_id": "community-alert",
+          "plan": {
+            "estimated_texture_bytes": 18121216,
+            "executable": false,
+            "limitations": [
+              "Offline proposal only; no Production importer or live acceptance has been implemented.",
+              "Resolve scene/source/layer IDs from real replies; verify existing graph plus pack fits global budgets on the owner before applying.",
+              "Resource metadata is untrusted until authorized staging and the existing importer verify actual bytes; no file is read by this validator.",
+              "Properties and rules need explicit binding; no actions, animations, timers or outputs start on import.",
+              "Texture estimate is a planning heuristic, not a verified bound on native memory or decoded asset validation."
+            ],
+            "pack_id": "community-alert",
+            "pack_version": "1.0.0",
+            "requires_idle": true,
+            "schema_version": 1,
+            "steps": [
+              {
+                "file_name": "community-alert-motif.png",
+                "operation": "import_asset_after_local_authorization",
+                "resource_ref": "community-alert-motif-asset"
+              },
+              {
+                "name": "Community Alert",
+                "operation": "create_scene",
+                "scene_ref": "community-alert-scene"
+              },
+              {
+                "definition": {
+                  "kind": "widget",
+                  "widget": {
+                    "accent": 16106108,
+                    "background": 2237481,
+                    "color": 15856372,
+                    "duration_ms": 4500,
+                    "height": 140,
+                    "kind": "alert",
+                    "opacity": 1.0,
+                    "subtitle": "Gracias por ser parte de la comunidad",
+                    "title": "Una nueva voz",
+                    "width": 600
+                  }
+                },
+                "first_layer_ref": "community-alert-content-layer",
+                "name": "Community Alert",
+                "operation": "create_overlay",
+                "scene_ref": "community-alert-scene",
+                "source_ref": "community-alert-content"
+              },
+              {
+                "layer_ref": "community-alert-content-layer",
+                "operation": "set_transform",
+                "scene_ref": "community-alert-scene",
+                "transform": {
+                  "height": 140.0,
+                  "order": 0,
+                  "visible": true,
+                  "width": 600.0,
+                  "x": 40.0,
+                  "y": 170.0
+                },
+                "variant": "horizontal"
+              },
+              {
+                "layer_ref": "community-alert-content-layer",
+                "operation": "set_transform",
+                "scene_ref": "community-alert-scene",
+                "transform": {
+                  "height": 108.0,
+                  "order": 0,
+                  "visible": true,
+                  "width": 460.0,
+                  "x": 40.0,
+                  "y": 340.0
+                },
+                "variant": "vertical"
+              },
+              {
+                "definition": {
+                  "kind": "image",
+                  "opacity": 0.800000011920929,
+                  "resource_id": "community-alert-motif-asset"
+                },
+                "first_layer_ref": "community-alert-motif-layer",
+                "name": "Original stripe motif",
+                "operation": "create_overlay",
+                "scene_ref": "community-alert-scene",
+                "source_ref": "community-alert-motif"
+              },
+              {
+                "layer_ref": "community-alert-motif-layer",
+                "operation": "set_transform",
+                "scene_ref": "community-alert-scene",
+                "transform": {
+                  "height": 48.0,
+                  "order": 1,
+                  "visible": true,
+                  "width": 48.0,
+                  "x": 660.0,
+                  "y": 220.0
+                },
+                "variant": "horizontal"
+              },
+              {
+                "layer_ref": "community-alert-motif-layer",
+                "operation": "set_transform",
+                "scene_ref": "community-alert-scene",
+                "transform": {
+                  "height": 48.0,
+                  "order": 1,
+                  "visible": true,
+                  "width": 48.0,
+                  "x": 246.0,
+                  "y": 470.0
+                },
+                "variant": "vertical"
+              }
+            ],
+            "unavailable": []
+          },
+          "prepared_actions": 3,
+          "production_connected": false,
+          "rehearsal": null,
+          "status": "PASS"
+        },
+        "creator_identity_verified": false,
+        "dependencies": {
+          "downloads": false,
+          "resolution": "embedded_inventory_only",
+          "resources": [
+            "community-alert-motif-asset"
+          ]
+        },
+        "files": 8,
+        "format": "experimental_review_package",
+        "id": "community-alert",
+        "installed": false,
+        "integrity_verified": true,
+        "license": {
+          "declared": "GPL-3.0-or-later",
+          "matches_local_policy": true,
+          "ownership_verified": false,
+          "resource_attribution": "CreatorPack v1 inherits the pack license; per-resource provenance is not carried",
+          "text_sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0"
+        },
+        "native_asset_decoder_verified": false,
+        "official_installation_format": false,
+        "owner_authorized": false,
+        "package_sha256": "fed0683e463b3d1b2ea3f44b344f42762f9b8bba6293e1877407b441f3c74be9",
+        "package_version": 1,
+        "required_capabilities": [
+          "image_asset",
+          "layer_animation",
+          "widget"
+        ],
+        "resource_bytes": 216,
+        "reviewed_for": "offline_installation_proposal",
+        "rules_arming_authorized": false,
+        "sha256": "fed0683e463b3d1b2ea3f44b344f42762f9b8bba6293e1877407b441f3c74be9",
+        "staging_budget_bytes": 269484032,
+        "staging_bytes": 93076,
+        "status": "PASS",
+        "version": "1.0.0"
+      },
+      "sha256": "fed0683e463b3d1b2ea3f44b344f42762f9b8bba6293e1877407b441f3c74be9",
+      "state": "reviewed_candidate",
+      "version": "1.0.0"
+    }
+  ],
+  "scene_ids_preserved": true,
+  "scope": "sequential_strict_offline_owner_model",
+  "show_control_armed": false,
+  "simulated_ids_only": true,
+  "staging_reverified_and_cleaned": true,
+  "status": "PASS",
+  "target_scenes": [
+    "fixture-scene"
+  ]
+}

@@ -1,0 +1,29 @@
+[package]
+name = "motive-frame-bridge"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+motive-browser-contracts = { path = "../browser-host" }
+
+[features]
+creator-bridge = ["dep:motive-creator-binding", "dep:motive-show-control", "dep:serde_json"]
+
+[dependencies.motive-creator-binding]
+path = "../../../creator-runtime-lab/binding"
+optional = true
+
+[dependencies.motive-show-control]
+path = "../../../show-control"
+optional = true
+
+[dependencies.serde_json]
+version = "=1.0.154"
+optional = true

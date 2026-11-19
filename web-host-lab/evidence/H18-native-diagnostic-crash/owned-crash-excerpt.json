@@ -1,0 +1,118 @@
+{
+  "status": "FAIL_RETAINED",
+  "scope": "owned browser host crash during first controlled renderer exit",
+  "source_sha256": "32a7a82bcee493f537fbb465b531ea4e926a2a6b65654ce4bf99c4a65ac7fb4e",
+  "procName": "MotiveBrowserFixture",
+  "pid": 85111,
+  "exception": {
+    "codes": "0x0000000000000001, 0xe974bb8ff06256c1",
+    "rawCodes": [
+      1,
+      -1624467338686212415
+    ],
+    "type": "EXC_BAD_ACCESS",
+    "signal": "SIGSEGV",
+    "subtype": "KERN_INVALID_ADDRESS at 0xe974bb8ff06256c1"
+  },
+  "termination": {
+    "flags": 0,
+    "code": 11,
+    "namespace": "SIGNAL",
+    "indicator": "Segmentation fault: 11",
+    "byProc": "exc handler",
+    "byPid": 85111
+  },
+  "faultingThread": 0,
+  "frames": [
+    {
+      "imageOffset": 70188168,
+      "symbol": "_v8_internal_Node_Print(void*)",
+      "symbolLocation": 32965628,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 55989856,
+      "symbol": "_v8_internal_Node_Print(void*)",
+      "symbolLocation": 18767316,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 50485284,
+      "symbol": "_v8_internal_Node_Print(void*)",
+      "symbolLocation": 13262744,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 50484812,
+      "symbol": "_v8_internal_Node_Print(void*)",
+      "symbolLocation": 13262272,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 85730416,
+      "symbol": "ChromeWebAppShortcutCopierMain",
+      "symbolLocation": 5022264,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 85854424,
+      "symbol": "ChromeWebAppShortcutCopierMain",
+      "symbolLocation": 5146272,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 86168636,
+      "symbol": "ChromeWebAppShortcutCopierMain",
+      "symbolLocation": 5460484,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 2244624,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 86164376,
+      "symbol": "ChromeWebAppShortcutCopierMain",
+      "symbolLocation": 5456224,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 530720,
+      "symbol": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
+      "symbolLocation": 28,
+      "imageIndex": 3
+    },
+    {
+      "imageOffset": 530612,
+      "symbol": "__CFRunLoopDoSource0",
+      "symbolLocation": 224,
+      "imageIndex": 3
+    },
+    {
+      "imageOffset": 529900,
+      "symbol": "__CFRunLoopDoSources0",
+      "symbolLocation": 232,
+      "imageIndex": 3
+    },
+    {
+      "imageOffset": 524732,
+      "symbol": "__CFRunLoopRun",
+      "symbolLocation": 832,
+      "imageIndex": 3
+    },
+    {
+      "imageOffset": 1420304,
+      "symbol": "_CFRunLoopRunSpecificWithOptions",
+      "symbolLocation": 536,
+      "imageIndex": 3
+    },
+    {
+      "imageOffset": 767456,
+      "symbol": "RunCurrentEventLoopInMode",
+      "symbolLocation": 320,
+      "imageIndex": 4
+    }
+  ],
+  "symbol_limit": "CEF nearest exported names are not interpreted as exact internal function names",
+  "hypothesis": "CloseBrowser called reentrantly while CEF render-process-gone callback retains navigation lock; defer close to next UI task"
+}

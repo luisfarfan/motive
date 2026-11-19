@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/tools/build_native.py", line 141, in <module>
+    main()
+    ~~~~^^
+  File "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/tools/build_native.py", line 131, in main
+    inspections.append({'path': str(binary.relative_to(ROOT)), 'sha256': digest(binary), 'file': run(['file', binary]).strip(), 'dependencies': run(['otool', '-L', binary]), 'code_signature': run(['codesign', '-dvv', binary])})
+                                                                                                                                                ~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/tools/build_native.py", line 33, in run
+    raise RuntimeError(json.dumps({'command': [str(a) for a in args], 'returncode': result.returncode, 'output': result.stdout + result.stderr}))
+RuntimeError: {"command": ["otool", "-L", "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/.cache/h18-native/MotiveBrowserFixture.app/Contents/Frameworks/MotiveBrowserFixture Helper (Alerts).app/Contents/MacOS/MotiveBrowserFixture Helper (Alerts)"], "returncode": 1, "output": "error: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/otool-classic: can't open file: /Users/luisfarfan/Developer/products/motive-h18/web-host-lab/.cache/h18-native/MotiveBrowserFixture.app/Contents/Frameworks/MotiveBrowserFixture Helper (Alerts).app/Contents/MacOS/MotiveBrowserFixture Helper  (No such file or directory)\n"}

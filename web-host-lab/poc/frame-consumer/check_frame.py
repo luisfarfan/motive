@@ -6,7 +6,7 @@ from pathlib import Path
 
 def inspect(meta, pixels):
     width,height,stride=meta['width'],meta['height'],meta['stride']
-    if type(width) is not int or type(height) is not int or not(640<=width<=1920 and 360<=height<=1920) or stride!=width*4 or len(pixels)!=stride*height:
+    if type(width) is not int or type(height) is not int or not((width,height) in {(640,360),(960,540),(540,960)}) or stride!=width*4 or len(pixels)!=stride*height:
         raise ValueError('FRAME_LAYOUT')
     if meta.get('native_executed') is not True: raise ValueError('NOT_NATIVE_EVIDENCE')
     def pixel(x,y):return tuple(pixels[y*stride+x*4:y*stride+x*4+4])

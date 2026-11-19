@@ -1,0 +1,50 @@
+{
+  "status": "FAIL",
+  "scope": "Observed native browser-process Keychain access attempt and incomplete shutdown; the agent requested no credentials and logged none",
+  "evidence": "H18-native-close-once-sample.txt.gz",
+  "sample_lines": [
+    234,
+    267
+  ],
+  "observed_chain": [
+    "SecItemCopyMatching",
+    "SecKeychainItemCopyContent",
+    "Security::SecurityServer::ClientSession::decrypt"
+  ],
+  "secret_returned": "NOT_OBSERVED",
+  "causality": "Outstanding Keychain worker is a supported shutdown hypothesis, not yet confirmed by a corrected run",
+  "next_gate": "Use documented ephemeral test configuration to avoid real Keychain access, retain sandbox and global permissions; real OS confinement remains blocked",
+  "native_runs_paused_for_mitigation": true,
+  "third_party_execution": "BLOCKED",
+  "artifacts": {
+    "H18-native-close-once-first.json": {
+      "raw_sha256": "fefff7b0d476ef49a2c5962bb2b3a15ed5d93ad1d7398fed0487e3875c402937",
+      "stored_sha256": "fefff7b0d476ef49a2c5962bb2b3a15ed5d93ad1d7398fed0487e3875c402937"
+    },
+    "H18-native-close-once-latest.json": {
+      "raw_sha256": "463293f8b214093225e1d4e7adac7ceaf0ff239d5bb5d66911fb6328be962e57",
+      "stored_sha256": "463293f8b214093225e1d4e7adac7ceaf0ff239d5bb5d66911fb6328be962e57"
+    },
+    "H18-native-close-once-latest.bgra.gz": {
+      "raw_sha256": "c90b2a62ab856776f6f388c6f04641a8eec3b329e0411688286bb84eeb3090ba",
+      "stored_sha256": "59708319041f162b8506cc6dfcb46f62ceb5dd0dcfa70ad82fa77bb8a16f17c4"
+    },
+    "H18-native-close-once-first.bgra.gz": {
+      "raw_sha256": "6f0ff1230d5b87a459bdd062214a8b2ff41a53172a31fea06958d9b787092f59",
+      "stored_sha256": "3a26c2a988e5064e15cfa2f93f682db5b9c2aed5be835ef3b31283066709c40f"
+    },
+    "H18-native-close-once-lifecycle.jsonl": {
+      "raw_sha256": "ea9dedf287fc4b501e1770b42a2c28473b08a7a6ba969e6de44f11b02220c47f",
+      "stored_sha256": "ea9dedf287fc4b501e1770b42a2c28473b08a7a6ba969e6de44f11b02220c47f"
+    },
+    "H18-native-close-once-frames.json": {
+      "raw_sha256": "6243289994ff8e5c115661984b77882f929ad2477d9df67fbad8e012c5fb61e1",
+      "stored_sha256": "6243289994ff8e5c115661984b77882f929ad2477d9df67fbad8e012c5fb61e1"
+    },
+    "H18-native-close-once-sample.txt.gz": {
+      "raw_sha256": "80d46782a8f6deea1456de32d68038e6c2c84b8c845a87fa01fea745a737e3a2",
+      "stored_sha256": "f3ad04097c82f07531f557be27409b02218394a3ca2a1de45f8401636942bcb9"
+    }
+  },
+  "os_prompt_observation": "NOT_EVALUATED"
+}

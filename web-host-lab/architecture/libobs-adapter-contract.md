@@ -74,3 +74,13 @@ Acceptance after H15: real source upload and decoded composite alpha/cadence,
 same-owner CLI/MCP/GPUI controls, race/resize/cancel/crash tests, resource release,
 offline package operation, 3/5-source performance and full relevant regression
 suites. Buffers or screenshots outside Motive satisfy none of those native gates.
+
+## H18 isolated implementation
+
+`poc/browser-host/src/adapter.rs` implements/test-drives upload/repeat/blank
+admission using existing Frame identities, viewport epochs, age, sequence,
+aggregate visible references and permanent revocation. It never calls OBS.
+`poc/frame-bridge` now connects the compiled CEF callback to the existing Rust
+mailbox and bounded host-side consumer. The C++/Rust ABI is tested with synthetic
+bytes; CEF pixels and actual graphics uploads remain BLOCKED. The native
+process-to-owner transport/manager is still pending H17 handoff and authorization.

@@ -1,0 +1,75 @@
+{
+  "artifact_sha256": "4f77eea5e899f98ad57cb3a4bed047dcb0c87a8b8d784a361ac73606d2fca8f7",
+  "build_report": "evidence/H18-native-ephemeral-build.json",
+  "lifecycle_contract_sha256": "baaa2a22f264923ad14d832949aa105cfce84a49a875c274b35b04e24e81c4b3",
+  "limitations": [
+    "Cold restart does not preserve the JavaScript heap.",
+    "Viewport changes replace the process, not WasResized in place.",
+    "Origins below are constructed by the frozen native generation contract, not independent network observations.",
+    "Cleanup concerns observed owned identities, not an OS sandbox or hostile process escape."
+  ],
+  "native_executed": true,
+  "profile": "owned-smoke",
+  "runtime_contract": "Lifecycle.close(false) -> closed -> Suspended -> restart_after_reap -> new generation",
+  "source_inventory": [
+    {
+      "bytes": 204,
+      "path": "index.html",
+      "sha256": "e418f6b378b327f12b94a131140afe3bdff8e2790f9484a8307b822be84c293d",
+      "widget": false
+    },
+    {
+      "bytes": 103,
+      "path": "fixture.css",
+      "sha256": "58994719a358ec0ae3582c1780f02d8639c609c31044fc20ea6f6a22441d7b48",
+      "widget": false
+    },
+    {
+      "bytes": 788,
+      "path": "fixture.js",
+      "sha256": "3b9c0bd2115430b0891e0f1d1b4cf45db3ddc08b061d792a8a3b8a38184f62c7",
+      "widget": false
+    }
+  ],
+  "source_inventory_unchanged_between_steps": true,
+  "started_utc": "2026-11-19T00:26:28.472044+00:00",
+  "status": "FAIL",
+  "steps": [
+    {
+      "constructed_origin": "motive://i1-g30/",
+      "epoch": 1,
+      "generation": 30,
+      "height": 360,
+      "name": "initial",
+      "observed_tree_reaped": true,
+      "private_root": "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/.cache/owned-fixture-runs/20261119T002628Z-eea80892cb2c",
+      "report": "initial/report.json",
+      "report_sha256": "b93a8c8607b0d7d85f5ebd9a35c93554979f111ec908da6e5edb557d221a8840",
+      "status": "PASS",
+      "width": 640
+    },
+    {
+      "constructed_origin": "motive://i1-g31/",
+      "epoch": 1,
+      "generation": 31,
+      "height": 360,
+      "name": "cold-reload",
+      "observed_tree_reaped": true,
+      "private_root": "/Users/luisfarfan/Developer/products/motive-h18/web-host-lab/.cache/owned-fixture-runs/20261119T002634Z-de6bcd6b24f1",
+      "report": "cold-reload/report.json",
+      "report_sha256": "1dbfc3db47a23198c439291e513f221ccacc047a508c4a3bfb45ad4c93c5a5fc",
+      "status": "PASS",
+      "width": 640
+    }
+  ],
+  "transitions": [
+    {
+      "action": "cold-reload",
+      "fresh_generation_before_launch": true,
+      "from_generation": 30,
+      "prior_state": "Suspended after native close and observed reap",
+      "reuse_old_origin_cache_or_frame_lease": false,
+      "to_generation": 31
+    }
+  ]
+}

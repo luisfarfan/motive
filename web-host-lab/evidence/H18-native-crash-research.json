@@ -1,0 +1,39 @@
+{
+  "status": "OBSERVED_FAILURE_AND_SCOPED_FIX",
+  "cef_revision": "cf60f42d20a8c68c74bc790cf5ade0de8acbbcd3",
+  "chromium_version": "150.0.7871.252",
+  "sources": [
+    {
+      "url": "https://github.com/chromiumembedded/cef/blob/cf60f42d20a8c68c74bc790cf5ade0de8acbbcd3/libcef/browser/browser_contents_delegate.cc",
+      "sha256": "c79c17b01ba1f5cb8fc61739d6fc672dd0d0ab41ca64b982b0dc22050fae89c1",
+      "lines": "400-447",
+      "finding": "CEF creates a navigation lock around OnRenderProcessTerminated; immediate browser destruction from this callback is avoided."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/150.0.7871.252/base/process/kill_posix.cc",
+      "sha256": "e21aae51f885da99fa0181b2f3560ec3e6d19beae5a50eb56b7aa3e7d0a77181",
+      "lines": "21-65",
+      "finding": "Chromium passes raw waitpid status through exit_code; WIFEXITED/WEXITSTATUS decode normal nonzero child exits."
+    }
+  ],
+  "retained_failures": [
+    {
+      "report": "H18-native-diagnostic-crash/report.json",
+      "fact": "host terminated SIGSEGV after synchronous close inside renderer termination callback",
+      "excerpt": "H18-native-diagnostic-crash/owned-crash-excerpt.json"
+    },
+    {
+      "report": "H18-native-diagnostic-crash-deferred/report.json",
+      "fact": "deferred close reaches shutdown_return and cleanup0, but expected error classification failed: raw22016 was compared to86, causing host43"
+    }
+  ],
+  "final_changes": [
+    "Revoke frame admission immediately for every host profile.",
+    "Post browser close to the next CEF UI task, outside termination callback.",
+    "Preserve raw process status and decode through public POSIX macros; renderer86 produces host42 expected-error outcome."
+  ],
+  "limits": [
+    "First failure cause is inferred from callback lifetime and observed fix; stripped nearest-export symbols do not prove the exact failing instruction.",
+    "Controlled renderer _exit86 is not memory corruption, OS sandbox or hostile content acceptance."
+  ]
+}

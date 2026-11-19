@@ -2,25 +2,115 @@
   "version": 1,
   "frozen_on": "2026-11-18",
   "execution_status": "BLOCKED",
-  "reason": "Native CEF execution requires specific repository-policy exception and reviewed process supervisor/bundle",
-  "runtime_matrix": ["cef-obs-7871", "cef-obs-7871-v2"],
-  "viewport_fps_order": [[640,360,30], [960,540,30], [540,960,30], [640,360,60], [960,540,60], [540,960,60]],
+  "reason": "Owner authorized local owned Motive fixtures. Real smoke evidence is separate; the full multi-widget, repeated-scenario and controlled performance matrix has not run. OS confinement, third-party execution and Production integration remain separate gates.",
+  "runtime_matrix": [
+    "cef-obs-7871",
+    "cef-obs-7871-v2"
+  ],
+  "viewport_fps_order": [
+    [
+      640,
+      360,
+      30
+    ],
+    [
+      960,
+      540,
+      30
+    ],
+    [
+      540,
+      960,
+      30
+    ],
+    [
+      640,
+      360,
+      60
+    ],
+    [
+      960,
+      540,
+      60
+    ],
+    [
+      540,
+      960,
+      60
+    ]
+  ],
   "repetitions": 3,
   "warmup_seconds": 10,
   "sample_seconds": 60,
   "soak_seconds": 600,
   "process_sample_interval_ms": 250,
   "scenarios": [
-    {"id":"static-1","instances":1,"animated":false},
-    {"id":"animated-1","instances":1,"animated":true},
-    {"id":"animated-3","instances":3,"animated":true},
-    {"id":"animated-5","instances":5,"animated":true},
-    {"id":"hidden","instances":1,"policy":"cancel + WasHidden; observe JS separately"},
-    {"id":"suspended","instances":1,"policy":"close browser + final close acknowledgment"},
-    {"id":"enter-exit","instances":1,"cycles":100},
-    {"id":"slow-js","instances":1,"controlled_js_block_ms":500},
-    {"id":"message-flood","instances":1,"attempts_per_second":10000,"accepted_per_second":8},
-    {"id":"renderer-crash","instances":1,"policy":"only owned PID; explicit restart; no event replay"}
+    {
+      "id": "static-1",
+      "instances": 1,
+      "animated": false
+    },
+    {
+      "id": "animated-1",
+      "instances": 1,
+      "animated": true
+    },
+    {
+      "id": "animated-3",
+      "instances": 3,
+      "animated": true
+    },
+    {
+      "id": "animated-5",
+      "instances": 5,
+      "animated": true
+    },
+    {
+      "id": "hidden",
+      "instances": 1,
+      "policy": "cancel + WasHidden; observe JS separately"
+    },
+    {
+      "id": "suspended",
+      "instances": 1,
+      "policy": "close browser + final close acknowledgment"
+    },
+    {
+      "id": "enter-exit",
+      "instances": 1,
+      "cycles": 100
+    },
+    {
+      "id": "slow-js",
+      "instances": 1,
+      "controlled_js_block_ms": 500
+    },
+    {
+      "id": "message-flood",
+      "instances": 1,
+      "attempts_per_second": 10000,
+      "accepted_per_second": 8
+    },
+    {
+      "id": "renderer-crash",
+      "instances": 1,
+      "policy": "only owned PID; explicit restart; no event replay"
+    },
+    {
+      "id": "reload",
+      "instances": 1,
+      "policy": "close/final-close; fresh generation; no event replay"
+    },
+    {
+      "id": "resize",
+      "instances": 1,
+      "policy": "recreate with fresh generation/viewport epoch; reject old dimensions and identities"
+    },
+    {
+      "id": "repeated-event",
+      "instances": 1,
+      "policy": "existing authorized projection, dedup and rate limits; do not replay historical events"
+    }
   ],
   "predeclared_gates": {
     "alpha": "transparent corner all zero; red patch premultiplied BGRA 0,0,128,128 +/- 2",

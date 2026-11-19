@@ -1,0 +1,31 @@
+async (page) => {
+  const checks=[];
+  const check=(name,value)=>{checks.push({name,pass:!!value});if(!value)throw Error(name);};
+  const widget=page.frameLocator('#widget');
+  const phase=state=>widget.locator('#goal[data-phase="'+state+'"]').waitFor({state:'attached',timeout:5000});
+  await page.waitForFunction(()=>!document.querySelector('#goal').disabled);
+  await page.getByRole('button',{name:'Activar gol',exact:true}).click();
+  await phase('active');
+  check('real DOM active',await widget.locator('#goal').getAttribute('data-phase')==='active');
+  check('projected team',await widget.locator('#team').innerText()==='Club del Puerto');
+  check('projected score',await widget.locator('#home').innerText()==='2');
+  check('approved testMode',await widget.locator('#goal').getAttribute('data-test')==='false');
+  await page.getByRole('button',{name:'Cancelar',exact:true}).click();await phase('cancelled');
+  check('cancel hides visual',!await widget.locator('#goal').isVisible());
+  await page.getByRole('button',{name:'Reanudar',exact:true}).click();await phase('ready');check('resume',true);
+  await page.getByRole('button',{name:'Vertical',exact:true}).click();
+  check('vertical viewport',await widget.locator('html').evaluate(()=>({w:innerWidth,h:innerHeight})).then(v=>v.w===540&&v.h===960));
+  await page.getByRole('button',{name:'Activar gol',exact:true}).click();await phase('active');await phase('ready');
+  await page.waitForFunction(()=>window.fixtureTest.inspect().observations.some(o=>o.command==='complete'&&o.ok));
+  check('completion remains visual only',await page.evaluate(()=>window.fixtureTest.inspect().lastResult.native_terminal_outcome===false));
+  await page.getByRole('button',{name:'Cerrar elemento',exact:true}).click();await phase('disposed');
+  await page.waitForFunction(()=>window.fixtureTest.inspect().adapter.closed);
+  check('dispose closes port',await page.evaluate(()=>window.fixtureTest.inspect().adapter.closed));
+  const previous=await page.evaluate(()=>window.fixtureTest.inspect().generation);
+  await page.getByRole('button',{name:'Reiniciar generación',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('#goal').disabled);
+  check('restart fresh generation',await page.evaluate(old=>window.fixtureTest.inspect().generation>old,previous));
+  await page.getByRole('button',{name:'Horizontal',exact:true}).click();
+  check('horizontal viewport',await widget.locator('html').evaluate(()=>({w:innerWidth,h:innerHeight})).then(v=>v.w===960&&v.h===540));
+  return {scope:'Owned DOM through proxima-browser plus actual Rust offline owner',checks,cef_executed:false,production_connected:false,native_frames_verified:false,final:await page.evaluate(()=>window.fixtureTest.inspect())};
+}

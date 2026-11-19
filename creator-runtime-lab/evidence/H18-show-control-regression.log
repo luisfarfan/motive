@@ -1,0 +1,226 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.19
+   Compiling syn v3.0.10
+   Compiling serde_derive v1.0.229
+   Compiling motive-show-control v0.1.0 (/Users/luisfarfan/Developer/products/motive-h18/show-control)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.97s
+     Running unittests src/lib.rs (creator-runtime-lab/target/show-control/debug/deps/motive_show_control-af406b9ab1b722c9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (creator-runtime-lab/target/show-control/debug/deps/motive_show-d3c255302b264a7a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/animated_trigger.rs (creator-runtime-lab/target/show-control/debug/deps/animated_trigger-c755f5a807c1e903)
+
+running 11 tests
+test stale_process_or_revision_cannot_prepare_a_composite_trigger ... ok
+test incoming_animations_retain_existing_parameter_limits ... ok
+test structural_work_transition_and_animation_capacity_block_the_trigger ... ok
+test explicit_source_must_match_the_layer_in_the_active_scene ... ok
+test duplicate_source_layers_are_rejected_only_in_the_active_scene ... ok
+test trigger_requires_an_observed_ready_widget_source ... ok
+test only_incoming_animations_are_accepted_for_alerts_and_lower_thirds ... ok
+test existing_widget_and_animation_actions_keep_their_original_contracts ... ok
+test trigger_serializes_as_one_explicit_command_that_requires_completion ... ok
+test all_target_identifiers_are_validated ... ok
+test animated_trigger_schema_requires_explicit_targets_and_rejects_extra_fields ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (creator-runtime-lab/target/show-control/debug/deps/cli-5d7cc3119b831ef6)
+
+running 5 tests
+test definition_and_event_files_load_into_shared_runtime ... ok
+test matchday_pack_plans_and_events_reference_actual_declared_sources ... ok
+test all_scenarios_execute_independently_and_disclose_zero_live_commands ... ok
+test schemas_and_checked_in_rule_example_remain_valid ... ok
+test deck_confirmation_and_every_sample_button_reach_simulator ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/contracts.rs (creator-runtime-lab/target/show-control/debug/deps/contracts-01fb10451d3c4278)
+
+running 17 tests
+test exhaustive_animation_boundary_samples ... ok
+test receipt_does_not_confuse_accepted_with_completed ... ok
+test field_lookup_is_typed_and_closed ... ok
+test event_bounds_are_utf8_and_integer_based ... ok
+test animation_pending_ack_and_global_limit_remain_busy ... ok
+test source_reconnection_requires_a_new_observed_snapshot ... ok
+test unavailable_audio_never_produces_commands ... ok
+test stale_process_and_revision_reject_media_but_not_local_counter ... ok
+test empty_target_rejects_fade_and_live_cut ... ok
+test cancellation_uses_only_known_animation_operation_ids ... ok
+test scene_transition_uses_existing_two_step_contract ... ok
+test sequence_leaf_count_and_depth_are_bounded ... ok
+test widget_compatibility_and_source_visibility_are_explicit ... ok
+test text_update_copies_full_definition_without_mutating_snapshot ... ok
+test action_schema_does_not_accept_arbitrary_commands ... ok
+test malformed_unknown_schema_and_extra_fields_are_rejected ... ok
+test all_initial_payloads_validate_and_roundtrip ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/deck.rs (creator-runtime-lab/target/show-control/debug/deps/deck-fd55e8a016c3a1c5)
+
+running 7 tests
+test scene_fade_uses_h9_limit_not_layer_animation_limit ... ok
+test exhausted_clock_does_not_dispatch ... ok
+test cooldown_and_pending_are_explicit_and_cannot_duplicate_dispatch ... ok
+test sensitive_confirmation_is_local_prototype_only ... ok
+test sample_deck_has_each_typed_target_and_only_simulated_events ... ok
+test history_is_bounded_rejected_requests_are_observable_and_time_is_monotonic ... ok
+test disabled_and_duplicate_shortcuts_and_unknown_fields_fail ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/deck_live.rs (creator-runtime-lab/target/show-control/debug/deps/deck_live-76205a4630ea73f0)
+
+running 3 tests
+test simulation_cannot_be_reported_as_a_live_completion ... ok
+test real_owner_result_is_distinct_from_simulation_and_retains_cooldown ... ok
+test owner_permit_is_consumed_against_exact_deck_and_request_sequence ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/journal.rs (creator-runtime-lab/target/show-control/debug/deps/journal-04fcc85b812115be)
+
+running 6 tests
+test private_paths_are_explicit_and_existing_files_or_links_survive ... ok
+test oversized_result_fails_closed_without_erasing_durable_intent ... ok
+test crash_gap_and_truncated_tail_are_never_replayed_or_repaired ... ok
+test missing_intent_wrong_operation_or_wrong_receipt_never_append ... ok
+test unsupported_header_and_unknown_fields_are_rejected ... ok
+test intent_is_recoverable_before_dispatch_and_acknowledgment_is_separate ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/packs.rs (creator-runtime-lab/target/show-control/debug/deps/packs-8a854f5a3ced1c74)
+
+running 12 tests
+test controlled_boundary_property_sweep ... ok
+test layer_symbols_are_unique_across_the_whole_proposed_graph ... ok
+test unsupported_capabilities_are_visible_never_silently_installed ... ok
+test typed_property_edit_is_transactional_and_reflected_in_plan ... ok
+test geometry_boundaries_and_nonfinite_numbers_are_rejected ... ok
+test all_original_packs_validate_and_propose_only ... ok
+test manifest_roundtrip_preserves_every_layout_and_identifier ... ok
+test all_native_animation_limits_and_text_budget_are_enforced ... ok
+test malformed_unknown_missing_and_oversized_schema_are_rejected ... ok
+test malformed_references_duplicates_and_incomplete_packs_fail ... ok
+test native_names_reject_empty_control_and_overlong_values ... ok
+test untrusted_resources_cannot_become_paths_urls_or_executables ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/providers.rs (creator-runtime-lab/target/show-control/debug/deps/providers-0a2baae8d7016e47)
+
+running 8 tests
+test backoff_honors_provider_rate_limit_and_stops_at_budget ... ok
+test real_providers_are_contracts_only ... ok
+test provider_units_cannot_be_misreported_as_creator_donations ... ok
+test synthetic_donation_normalizes_without_float_or_authority_claims ... ok
+test money_precision_boundaries_never_round ... ok
+test synthetic_gate_cannot_authorize_real_or_spoofed_events ... ok
+test reconnect_checkpoint_cannot_serialize_transport_urls_or_secret_fields ... ok
+test monetary_property_samples_roundtrip_integer_minor_units ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/runtime.rs (creator-runtime-lab/target/show-control/debug/deps/runtime-0d3e48310e9b1f1b)
+
+running 14 tests
+test counter_overflow_fails_without_wrapping_or_changing_value ... ok
+test event_time_order_and_external_dedup_are_independent_of_monotonic_timeout ... ok
+test strict_sequence_failure_stops_later_counter_without_rollback_claim ... ok
+test shared_cooldown_is_reserved_by_priority_inside_one_event ... ok
+test json_event_cannot_inject_origin_trust_or_native_commands ... ok
+test equality_phrase_numeric_variable_counter_production_and_trust_are_anded ... ok
+test disabled_debounce_cooldown_and_rate_boundaries_use_monotonic_clock ... ok
+test unknown_schema_extra_fields_and_invalid_config_limits_fail_closed ... ok
+test cycle_protection_preserves_one_root_budget ... ok
+test confidence_in_payload_does_not_create_verified_provenance ... ok
+test draft_migration_is_distinct_from_motive_project_and_validated ... ok
+test scenarios_are_simulation_with_duplicate_cooldown_and_unsupported_sound_evidence ... ok
+test restart_preserves_consumed_ids_counters_cooldown_and_cancels_unexecuted_jobs ... ok
+test pack_rule_bindings_fail_on_missing_rules_sources_or_event_declarations ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/runtime_adversarial.rs (creator-runtime-lab/target/show-control/debug/deps/runtime_adversarial-ff08ddf1704121f1)
+
+running 30 tests
+test core_restart_cannot_complete_an_old_operation_with_a_reused_token ... ok
+test accepted_is_not_completed_and_sequence_waits_for_observation ... ok
+test explicit_reconciliation_rejects_operation_from_a_previous_process ... ok
+test counter_overflow_is_reported_without_wrapping_or_next_action ... ok
+test accepted_timeout_stays_unresolved_and_is_never_redispatched ... ok
+test failed_sequence_stops_before_later_mutation_and_retains_result ... ok
+test cancellation_never_targets_a_reused_token_in_a_new_process ... ok
+test explicit_reconciliation_observes_old_operation_without_resuming_sequence ... ok
+test local_step_does_not_silently_rebase_a_stale_multimedia_intent ... ok
+test correlated_children_cannot_evade_the_action_budget ... ok
+test asserted_voice_confidence_without_trusted_provenance_does_not_match ... ok
+test cycles_keep_lineage_and_stop_without_expanding_forever ... ok
+test process_identity_change_rejects_even_when_revision_matches ... ok
+test production_busy_obeys_explicit_defer_policy ... ok
+test priorities_and_fifo_are_stable_across_multiple_events ... ok
+test draft_v0_migration_retains_consumed_ids_without_inventing_pending_work ... ok
+test queue_admission_is_atomic_and_full_events_do_not_replay ... ok
+test every_accepted_counter_identifier_can_round_trip_through_checkpoint ... ok
+test repeated_cancel_sends_one_request_without_claiming_native_cancellation ... ok
+test simulated_event_cannot_dispatch_to_live_backend ... ok
+test unknown_and_self_asserted_origin_never_reach_the_backend ... ok
+test source_recovery_requires_new_revision_review_then_fresh_event ... ok
+test cooldown_restores_relative_to_new_monotonic_epoch ... ok
+test unresolved_native_operation_keeps_capacity_reserved ... ok
+test duplicate_layer_references_cannot_overwrite_another_scene_in_simulation ... ok
+test checkpoint_rejects_unknown_fields_versions_and_invalid_resource_bounds ... ok
+test restored_queued_completed_and_uncertain_actions_never_replay ... ok
+test pruning_during_child_event_cannot_invalidate_dispatch_indices ... ok
+test mismatched_manual_deck_rule_is_not_reported_as_successfully_simulated ... ok
+test journal_is_fail_closed_instead_of_silently_forgetting_ids ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/runtime_receipts.rs (creator-runtime-lab/target/show-control/debug/deps/runtime_receipts-3e199dc46b72ea1f)
+
+running 16 tests
+test owner_checks_revision_again_at_dispatch ... ok
+test concurrent_edit_after_acknowledgment_blocks_next_step ... ok
+test explicit_reconciliation_does_not_resume_next_step_even_with_owned_receipt ... ok
+test simulated_animated_trigger_does_not_require_owner_receipts ... ok
+test terminal_observation_with_foreign_revision_does_not_rebase ... ok
+test animated_trigger_with_both_receipts_runs_following_counter_once ... ok
+test bad_terminal_operation_receipt_retains_uncertainty ... ok
+test missing_dispatch_receipt_cannot_be_reconciled_by_a_bare_terminal_observation ... ok
+test synchronous_sequence_advances_only_acknowledged_own_revisions ... ok
+test async_sequence_waits_for_terminal_receipt_then_advances_chain ... ok
+test animated_trigger_without_dispatch_receipt_keeps_uncertain_identity_and_never_retries ... ok
+test animated_trigger_without_terminal_receipt_blocks_counter_and_reconciliation_rebase ... ok
+test legacy_widget_and_animation_keep_receipt_optional_before_local_counter ... ok
+test invalid_receipt_never_retries_or_rebases ... ok
+test animated_trigger_invalid_terminal_receipts_preserve_existing_identity_guards ... ok
+test receipt_checkpoint_is_explicit_v2_and_restore_never_resumes ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests motive_show_control
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

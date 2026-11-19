@@ -3,7 +3,7 @@
 #include "scheme.hpp"
 #include "include/cef_sandbox_mac.h"
 #include "include/wrapper/cef_library_loader.h"
-// Prepared helper entry point; object compilation only. No executable is linked.
+// Linked into each CEF role helper. Sandbox must initialize before framework load.
 int main(int argc, char** argv) {
   CefScopedSandboxContext sandbox;
   if (!sandbox.Initialize(argc, argv)) return 1;

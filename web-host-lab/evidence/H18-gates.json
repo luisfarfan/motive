@@ -1,0 +1,155 @@
+{
+  "status": "PARTIAL",
+  "native_cef_executed": true,
+  "sealed_host_sha256": "38a1f280f8c539b144ea6e0b9e6b28b336efca79e6605011484cd55cf0179d14",
+  "bundle_regular_file_bytes": 325227969,
+  "gates": [
+    {
+      "gate": "matching CEF wrapper/framework build + entry + helpers + local seal",
+      "status": "PASS",
+      "evidence": "H18-native-build.json",
+      "scope": "static only"
+    },
+    {
+      "gate": "existing Rust contracts + future libobs admission",
+      "status": "PASS",
+      "tests": 20,
+      "evidence": "H18-rust-contracts.log"
+    },
+    {
+      "gate": "Rust FFI + C++ linked ABI",
+      "status": "PASS",
+      "tests": 2,
+      "evidence": [
+        "H18-frame-bridge.log",
+        "H18-frame-abi.log"
+      ],
+      "scope": "synthetic data; 100 synthetic lifecycles"
+    },
+    {
+      "gate": "Python broker, layout and external supervisor",
+      "status": "PASS",
+      "tests": 17,
+      "evidence": "H18-python.log",
+      "scope": "six supervisor tests use owned Python processes, no browser"
+    },
+    {
+      "gate": "existing JS runtime interop",
+      "status": "PASS",
+      "tests": 2,
+      "evidence": "H18-node.log"
+    },
+    {
+      "gate": "real native smoke OnPaint and half-alpha",
+      "status": "PASS",
+      "evidence": [
+        "H18-native-smoke-run.json",
+        "H18-native-smoke-pixels.json"
+      ],
+      "scope": "original owned 640x360 at 30 FPS fixture; not lifecycle or sandbox acceptance"
+    },
+    {
+      "gate": "third-party OS/process sandbox",
+      "status": "BLOCKED",
+      "reason": "browser-process confinement and per-role runtime verification absent"
+    },
+    {
+      "gate": "Chromium 1/3/5 widget performance",
+      "status": "BLOCKED",
+      "evidence": "H18-benchmark-status.json"
+    },
+    {
+      "gate": "native Web Element dispatcher/bootstrap",
+      "status": "PASS",
+      "reason": "actual fixed Goal through native browser/renderer IPC; no Production/libobs authority",
+      "evidence": [
+        "H18-native-goal-alpha-smoke/report.json",
+        "H18-native-goal-alpha-smoke/inspection.json"
+      ]
+    },
+    {
+      "gate": "Production/libobs texture upload + MKV/RTMP",
+      "status": "BLOCKED",
+      "reason": "no H17 handoff/integration; own native smoke does not certify libobs"
+    },
+    {
+      "gate": "default Chromium orderly shutdown",
+      "status": "FAIL",
+      "evidence": [
+        "H18-native-diagnostic-run.json",
+        "H18-native-close-once-run.json"
+      ],
+      "reason": "CefShutdown waits while worker blocked in real Keychain operation; ephemeral test-backend candidate separate"
+    },
+    {
+      "gate": "observed native process cleanup after deadline",
+      "status": "PASS",
+      "evidence": "H18-native-close-once-run.json",
+      "scope": "observed own PID+birth identities only; not confinement"
+    },
+    {
+      "gate": "ephemeral mock-Keychain owned smoke orderly close",
+      "status": "PASS",
+      "evidence": "H18-native-ephemeral-smoke/report.json",
+      "scope": "real CEF one 640x360 at 30 FPS run, exit0, shutdown_return, observed tree cleanup; test credential backend only"
+    },
+    {
+      "gate": "original Goal native visual transparency and completed blank",
+      "status": "PASS",
+      "evidence": "H18-native-goal-alpha-smoke/inspection.json",
+      "scope": "one 640x360 at 30 FPS own fixture run; original outer color-scheme failure preserved"
+    },
+    {
+      "gate": "native Goal repeat rejection/cancel/resume/dispose and revocation",
+      "status": "PASS",
+      "evidence": [
+        "H18-native-goal-controls/report.json",
+        "H18-native-goal-controls/inspection.json"
+      ],
+      "scope": "fixed owner-only commands; renderer observations separately checked against actual pixels, browser shutdown and external cleanup; no libobs"
+    },
+    {
+      "gate": "short owned native diagnostic: static",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-static/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "short owned native diagnostic: hidden",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-hidden/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "short owned native diagnostic: slow",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-slow/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "short owned native diagnostic: slow-consumer",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-slow-consumer/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "short owned native diagnostic: crash-posix",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-crash-posix/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "cold suspension/reload/viewport replacement",
+      "status": "PASS",
+      "evidence": "H18-native-replacements/summary.json",
+      "scope": "three fresh processes/generations; native close and observed reap before next start; no hot reload, JS heap preservation or in-process resize"
+    },
+    {
+      "gate": "final common native close positive regression",
+      "status": "PASS",
+      "evidence": "H18-native-final-smoke-repeat/report.json",
+      "retained_partial": "H18-native-final-smoke/report.json"
+    }
+  ],
+  "native_authorization": "owner granted local owned Motive fixture testing; original hash scope preserved in authorization evidence"
+}

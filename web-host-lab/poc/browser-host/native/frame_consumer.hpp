@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 #include "frame_bridge.h"
+#include "fixed_frame_file.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cerrno>
@@ -56,7 +57,9 @@ class FrameConsumer {
     MotiveFrameStatistics stats{};if(!motive_frames_stats(mailbox_,&stats)){close(fd);return false;}
     std::string json="{\"native_executed\":true,\"paints\":"+std::to_string(stats.paints)+",\"coalesced\":"+std::to_string(stats.coalesced)+",\"acquired\":"+std::to_string(stats.acquired)+",\"stale\":"+std::to_string(stats.stale)+",\"samples\":[";
     for(size_t i=0;i<samples_.size();++i){const auto& sample=samples_[i];if(i)json+=',';json+="["+std::to_string(sample.index)+","+std::to_string(sample.observed)+","+std::to_string(sample.acquired)+","+std::to_string(sample.transfer)+"]";}
-    json+="],\"configured_consumer_delay_ms\":"+std::to_string(delay_ms_)+",\"onpaint_callbacks\":"+std::to_string(callbacks)+",\"onpaint_busy\":"+std::to_string(busy)+",\"onpaint_invalid\":"+std::to_string(invalid)+",\"max_publish_callback_ns\":"+std::to_string(max_publish_ns)+",\"samples_truncated\":"+std::string(seen_>samples_.size()?"true":"false")+"}\n";
+    MotiveFrameStatisticsV2 v2{};
+    if(!motive_frames_stats_v2(mailbox_,&v2)){close(fd);return false;}
+    json+="],\"accounting_v2\":{\"paints\":"+std::to_string(v2.paints)+",\"coalesced\":"+std::to_string(v2.coalesced)+",\"acquired\":"+std::to_string(v2.acquired)+",\"stale\":"+std::to_string(v2.stale)+",\"pending\":"+std::to_string(v2.pending)+",\"leased\":"+std::to_string(v2.leased)+",\"consumed\":"+std::to_string(v2.consumed)+",\"released_unconsumed\":"+std::to_string(v2.released_unconsumed)+",\"invalidated_close\":"+std::to_string(v2.invalidated_close)+",\"revoked_generation\":"+std::to_string(v2.revoked_generation)+",\"retained_leases\":"+std::to_string(v2.retained_leases)+",\"retained_bytes\":"+std::to_string(v2.retained_bytes)+",\"copied_bytes\":"+std::to_string(v2.copied_bytes)+",\"copy_ns\":"+std::to_string(v2.copy_ns)+",\"publish_busy\":"+std::to_string(v2.publish_busy)+",\"acquire_busy\":"+std::to_string(v2.acquire_busy)+",\"consumer_busy\":"+std::to_string(v2.consumer_busy)+"},\"configured_consumer_delay_ms\":"+std::to_string(delay_ms_)+",\"onpaint_callbacks\":"+std::to_string(callbacks)+",\"onpaint_busy\":"+std::to_string(busy)+",\"onpaint_invalid\":"+std::to_string(invalid)+",\"max_publish_callback_ns\":"+std::to_string(max_publish_ns)+",\"samples_truncated\":"+std::string(sample_capacity_drops_?"true":"false")+",\"disk_write_attempts\":"+std::to_string(disk_write_attempts_)+",\"successful_disk_writes\":"+std::to_string(successful_disk_writes_)+",\"completion_rejected\":"+std::to_string(completion_rejected_)+",\"sample_capacity_drops\":"+std::to_string(sample_capacity_drops_)+",\"latest_file_full_writes\":"+std::to_string(latest_file_.full_writes())+",\"latest_file_ftruncate_calls\":"+std::to_string(latest_file_.truncate_calls())+",\"latest_file_rejected_geometry_or_descriptor\":"+std::to_string(latest_file_.rejected())+",\"latest_file_fixed_bytes\":"+std::to_string(latest_file_.length())+"}\n";
     const bool ok=WritePixels(fd,reinterpret_cast<const uint8_t*>(json.data()),json.size());close(fd);return ok;
   }
   void Run() {
@@ -71,23 +74,25 @@ class FrameConsumer {
         if(motive_frames_lease_valid(lease)){
           bool ok=true;
           if(!seen_){ok=WritePixels(first_,pixels,size_t(meta.length));first_meta_=meta;}
-          ok=ok&&WritePixels(latest_,pixels,size_t(meta.length));
-          latest_meta_=meta;++seen_;consumed=true;
+          ok=ok&&latest_file_.Write(latest_,pixels,size_t(meta.length));
+          latest_meta_=meta;++disk_write_attempts_;
           const auto threshold=visual_after_?visual_after_->load():0;
           if(!visual_seen_&&threshold&&meta.observed_ns>=threshold){
             visual_=openat(dir_,"visual.bgra",O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
             ok=ok&&visual_>=0&&WritePixels(visual_,pixels,size_t(meta.length));visual_meta_=meta;visual_seen_=true;
           }
           if(!ok)failed_=true;
+          else {++seen_;++successful_disk_writes_;consumed=motive_frames_complete(lease);if(!consumed)++completion_rejected_;}
         }
         motive_frames_release(lease);
         const auto transfer=MonotonicNs()-start;
         max_disk_consumer_ns_=std::max(max_disk_consumer_ns_,transfer);
-        if(consumed&&samples_.size()<1024)samples_.push_back({meta.index,meta.observed_ns,start,transfer});
+        if(consumed){if(samples_.size()<65536)samples_.push_back({meta.index,meta.observed_ns,start,transfer});else ++sample_capacity_drops_;}
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
+  FixedFrameFile latest_file_;
   MotiveFrameBridge* mailbox_;
   std::string root_;
   std::atomic<uint64_t>* visual_after_;
@@ -96,7 +101,7 @@ class FrameConsumer {
   bool valid_=false,failed_=false,visual_seen_=false;
   std::atomic<bool> stop_{false};
   std::thread thread_;
-  uint64_t seen_=0,max_disk_consumer_ns_=0;
+  uint64_t seen_=0,max_disk_consumer_ns_=0,disk_write_attempts_=0,successful_disk_writes_=0,completion_rejected_=0,sample_capacity_drops_=0;
   MotiveFrameMetadata first_meta_{},latest_meta_{},visual_meta_{};
   struct Sample {uint64_t index,observed,acquired,transfer;};
   std::vector<Sample> samples_;

@@ -1,0 +1,1501 @@
+{
+  "build_report": "evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+  "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+  "collector_sha256": {
+    "poc/browser-host/supervisor.py": "7b77ab1a8a58a9d673c481985bcfdac9a38ab33d7b522f1b2fb863e48c72d896",
+    "tools/h19_metrics.py": "8a109877038ea43f173629bf6edfac66a2fcf68e3be2ec4ac58d5e8935486412",
+    "tools/run_h19_multi.py": "ab9b3335070f262bd8d673cc4482b8c113f86bd8f0ff9477a84ae3206f15b474"
+  },
+  "credential_backend": "chromium-use-mock-keychain",
+  "diagnostic_streams": {
+    "per_stream_limit_bytes": 65536,
+    "scope": "bounded streams of the explicitly launched controlled fixture",
+    "status": "PASS",
+    "streams": {
+      "stderr.log": {
+        "file": "supervisor-stderr.log",
+        "saved_bytes": 0,
+        "saved_prefix_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_bytes": 0,
+        "status": "PASS",
+        "truncated": false
+      },
+      "stdout.log": {
+        "file": "supervisor-stdout.log",
+        "saved_bytes": 0,
+        "saved_prefix_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_bytes": 0,
+        "status": "PASS",
+        "truncated": false
+      }
+    }
+  },
+  "expected_executable_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+  "gates": {
+    "frame_identity": "PASS",
+    "instance_pixel_markers": "PASS",
+    "libobs": "NOT_EVALUATED",
+    "native_exit": "PASS",
+    "native_final_close": "PASS",
+    "observed_cleanup": "PASS",
+    "paint_conservation": "PASS",
+    "per_generation_frames": "PASS",
+    "production_keychain": "BLOCKED",
+    "rss_budget": "PASS",
+    "third_party_isolation": "BLOCKED",
+    "unexpected_instance_failure": "PASS"
+  },
+  "instances": [
+    {
+      "frame_delivery": true,
+      "identity": [
+        1,
+        136406148441,
+        1
+      ],
+      "identity_validated": true,
+      "manifest": {
+        "blocked_downloads": 0,
+        "blocked_navigation": 0,
+        "blocked_permissions": 0,
+        "blocked_popups": 0,
+        "blocked_resources": 0,
+        "browser_closed_ns": 191034567510416,
+        "browser_created_ns": 190962556940125,
+        "browser_decoy_errno": -1,
+        "browser_decoy_opened": false,
+        "browser_id": 1,
+        "closed": true,
+        "closed_ns": 191034578200458,
+        "created_ns": 190962556940125,
+        "epoch": 1,
+        "epoch_record": {
+          "accounting_observed": true,
+          "ended_ns": 191034578200458,
+          "epoch": 1,
+          "first_nontransparent_paint_ns": 190962707335083,
+          "first_paint_ns": 190962707335083,
+          "frames_written": true,
+          "height": 360,
+          "leased_after_join": 0,
+          "pending_after_revoke": 0,
+          "retained_bytes_after_join": 0,
+          "revocation": "close",
+          "started_ns": 190962556940125,
+          "width": 640
+        },
+        "epochs": [
+          {
+            "accounting_observed": true,
+            "ended_ns": 191034578200458,
+            "epoch": 1,
+            "first_nontransparent_paint_ns": 190962707335083,
+            "first_paint_ns": 190962707335083,
+            "frames_written": true,
+            "height": 360,
+            "leased_after_join": 0,
+            "pending_after_revoke": 0,
+            "retained_bytes_after_join": 0,
+            "revocation": "close",
+            "started_ns": 190962556940125,
+            "width": 640
+          }
+        ],
+        "events_received": 0,
+        "failed": false,
+        "first_nontransparent_paint_ns": 190962707335083,
+        "first_paint_ns": 190962707335083,
+        "frames_written": true,
+        "generation": 136406148441,
+        "health": "closed",
+        "height": 360,
+        "instance": 1,
+        "inventory_entries": 3,
+        "origin": "motive://i1-g136406148441/",
+        "package": "compiled_owned_inventory",
+        "renderer_decoded_exit_code": -1,
+        "renderer_decoy_errno": -1,
+        "renderer_decoy_observed": false,
+        "renderer_decoy_opened": false,
+        "renderer_exit_code": 0,
+        "renderer_pid_reported": 64581,
+        "renderer_termination_status": 0,
+        "request_context": "distinct_in_memory",
+        "security_phases": [],
+        "timing_scope": "frame_epoch",
+        "width": 640
+      },
+      "native_active_frames": {
+        "acquisition_fps_in_window": 30.012461800837773,
+        "active_acquisition_fps": 29.99854136442752,
+        "clock": "native_steady_clock",
+        "consumer_work_ms": {
+          "max": 2.283792,
+          "median": 0.0972295,
+          "n": 2156,
+          "p95": 0.168542
+        },
+        "end_ns": 191034552712376,
+        "frame_age_ms": {
+          "max": 12.921041,
+          "median": 5.7992705,
+          "n": 2156,
+          "p95": 11.908209
+        },
+        "paint_gap_ms": {
+          "max": 40.265958,
+          "median": 33.324584,
+          "n": 2155,
+          "p95": 35.363333
+        },
+        "retained_acquisitions": 2156,
+        "scope": "native lab consumer acquisitions, not audiovisual output FPS or memcpy-only time",
+        "start_ns": 190962715886250,
+        "telemetry_truncated": false,
+        "window_seconds": 71.836826126
+      },
+      "native_steady_frames": {
+        "acquisition_fps_in_window": 30.0,
+        "active_acquisition_fps": 30.00590206453025,
+        "clock": "native_steady_clock",
+        "consumer_work_ms": {
+          "max": 2.283792,
+          "median": 0.097875,
+          "n": 1800,
+          "p95": 0.170583
+        },
+        "end_ns": 191032556940125,
+        "frame_age_ms": {
+          "max": 12.921041,
+          "median": 5.7241254999999995,
+          "n": 1800,
+          "p95": 11.875292
+        },
+        "paint_gap_ms": {
+          "max": 37.481083,
+          "median": 33.315083,
+          "n": 1799,
+          "p95": 35.362834
+        },
+        "retained_acquisitions": 1800,
+        "scope": "native lab consumer acquisitions, not audiovisual output FPS or memcpy-only time",
+        "start_ns": 190972556940125,
+        "telemetry_truncated": false,
+        "window_seconds": 60.0
+      },
+      "paint_conservation": {
+        "accepted": 2157,
+        "categories": [
+          "pending",
+          "leased",
+          "coalesced",
+          "consumed",
+          "released_unconsumed",
+          "invalidated_close",
+          "revoked_generation",
+          "stale"
+        ],
+        "classified": 2157,
+        "status": "PASS"
+      },
+      "samples": {
+        "first": {
+          "alpha": {
+            "opaque_pixels": 3653,
+            "partial_pixels": 4607,
+            "premultiplied_bound": true,
+            "zero_pixels": 222140
+          },
+          "gzip_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe",
+          "instance_marker": {
+            "expected_bgra": [
+              192,
+              64,
+              32,
+              255
+            ],
+            "observed_bgra": [
+              192,
+              64,
+              32,
+              255
+            ],
+            "status": "PASS"
+          },
+          "metadata": {
+            "acquired": 2156,
+            "alpha_verified": false,
+            "bgra8": true,
+            "epoch": 1,
+            "generation": 136406148441,
+            "height": 360,
+            "helper_cleanup_verified": false,
+            "index": 2,
+            "instance": 1,
+            "max_disk_consumer_ns": 2283792,
+            "native_executed": true,
+            "observed_ns": 190962713570000,
+            "sandbox_verified": false,
+            "stride": 2560,
+            "width": 640
+          },
+          "raw_bytes": 921600,
+          "raw_sha256": "dd67c376089c8a492c32a7e47edf2078c8c0086243042aee4a0ceffd9e62a861"
+        },
+        "latest": {
+          "alpha": {
+            "opaque_pixels": 3821,
+            "partial_pixels": 4844,
+            "premultiplied_bound": true,
+            "zero_pixels": 221735
+          },
+          "gzip_sha256": "8a02867e5b28fde6e1326309b5967a3c568355414752bf555918b436120ca2d8",
+          "instance_marker": {
+            "expected_bgra": [
+              192,
+              64,
+              32,
+              255
+            ],
+            "observed_bgra": [
+              192,
+              64,
+              32,
+              255
+            ],
+            "status": "PASS"
+          },
+          "metadata": {
+            "acquired": 2156,
+            "alpha_verified": false,
+            "bgra8": true,
+            "epoch": 1,
+            "generation": 136406148441,
+            "height": 360,
+            "helper_cleanup_verified": false,
+            "index": 2157,
+            "instance": 1,
+            "max_disk_consumer_ns": 2283792,
+            "native_executed": true,
+            "observed_ns": 191034552467416,
+            "sandbox_verified": false,
+            "stride": 2560,
+            "width": 640
+          },
+          "raw_bytes": 921600,
+          "raw_sha256": "189524d83832e05e5a49f2bc32738b9808b97af92b665b4947acdcddebb2f1be"
+        }
+      },
+      "telemetry": {
+        "accounting_v2": {
+          "acquire_busy": 21,
+          "acquired": 2156,
+          "coalesced": 1,
+          "consumed": 2156,
+          "consumer_busy": 0,
+          "copied_bytes": 1987891200,
+          "copy_ns": 221476156,
+          "invalidated_close": 0,
+          "leased": 0,
+          "paints": 2157,
+          "pending": 0,
+          "publish_busy": 0,
+          "released_unconsumed": 0,
+          "retained_bytes": 0,
+          "retained_leases": 0,
+          "revoked_generation": 0,
+          "stale": 0
+        },
+        "acquired": 2156,
+        "coalesced": 1,
+        "completion_rejected": 0,
+        "configured_consumer_delay_ms": 0,
+        "disk_write_attempts": 2156,
+        "latest_file_fixed_bytes": 921600,
+        "latest_file_ftruncate_calls": 1,
+        "latest_file_full_writes": 2156,
+        "latest_file_rejected_geometry_or_descriptor": 0,
+        "max_publish_callback_ns": 737708,
+        "native_executed": true,
+        "onpaint_busy": 0,
+        "onpaint_callbacks": 2157,
+        "onpaint_invalid": 0,
+        "paints": 2157,
+        "sample_capacity_drops": 0,
+        "samples_truncated": false,
+        "stale": 0,
+        "successful_disk_writes": 2156
+      }
+    },
+    {
+      "frame_delivery": true,
+      "identity": [
+        2,
+        136406148441,
+        1
+      ],
+      "identity_validated": true,
+      "manifest": {
+        "blocked_downloads": 0,
+        "blocked_navigation": 0,
+        "blocked_permissions": 0,
+        "blocked_popups": 0,
+        "blocked_resources": 0,
+        "browser_closed_ns": 191034580205208,
+        "browser_created_ns": 190962558748333,
+        "browser_decoy_errno": -1,
+        "browser_decoy_opened": false,
+        "browser_id": 2,
+        "closed": true,
+        "closed_ns": 191034582690000,
+        "created_ns": 190962558748333,
+        "epoch": 1,
+        "epoch_record": {
+          "accounting_observed": true,
+          "ended_ns": 191034582690000,
+          "epoch": 1,
+          "first_nontransparent_paint_ns": 190962712839541,
+          "first_paint_ns": 190962712839541,
+          "frames_written": true,
+          "height": 360,
+          "leased_after_join": 0,
+          "pending_after_revoke": 0,
+          "retained_bytes_after_join": 0,
+          "revocation": "close",
+          "started_ns": 190962558748333,
+          "width": 640
+        },
+        "epochs": [
+          {
+            "accounting_observed": true,
+            "ended_ns": 191034582690000,
+            "epoch": 1,
+            "first_nontransparent_paint_ns": 190962712839541,
+            "first_paint_ns": 190962712839541,
+            "frames_written": true,
+            "height": 360,
+            "leased_after_join": 0,
+            "pending_after_revoke": 0,
+            "retained_bytes_after_join": 0,
+            "revocation": "close",
+            "started_ns": 190962558748333,
+            "width": 640
+          }
+        ],
+        "events_received": 0,
+        "failed": false,
+        "first_nontransparent_paint_ns": 190962712839541,
+        "first_paint_ns": 190962712839541,
+        "frames_written": true,
+        "generation": 136406148441,
+        "health": "closed",
+        "height": 360,
+        "instance": 2,
+        "inventory_entries": 3,
+        "origin": "motive://i2-g136406148441/",
+        "package": "compiled_owned_inventory",
+        "renderer_decoded_exit_code": -1,
+        "renderer_decoy_errno": -1,
+        "renderer_decoy_observed": false,
+        "renderer_decoy_opened": false,
+        "renderer_exit_code": 0,
+        "renderer_pid_reported": 64583,
+        "renderer_termination_status": 0,
+        "request_context": "distinct_in_memory",
+        "security_phases": [],
+        "timing_scope": "frame_epoch",
+        "width": 640
+      },
+      "native_active_frames": {
+        "acquisition_fps_in_window": 30.02447981611705,
+        "active_acquisition_fps": 30.01056026168262,
+        "clock": "native_steady_clock",
+        "consumer_work_ms": {
+          "max": 0.46,
+          "median": 0.10025,
+          "n": 2157,
+          "p95": 0.168
+        },
+        "end_ns": 191034557201959,
+        "frame_age_ms": {
+          "max": 12.864167,
+          "median": 5.927333,
+          "n": 2157,
+          "p95": 11.965208
+        },
+        "paint_gap_ms": {
+          "max": 38.028084,
+          "median": 33.341958500000004,
+          "n": 2156,
+          "p95": 35.405042
+        },
+        "retained_acquisitions": 2157,
+        "scope": "native lab consumer acquisitions, not audiovisual output FPS or memcpy-only time",
+        "start_ns": 190962715824083,
+        "telemetry_truncated": false,
+        "window_seconds": 71.841377876
+      },
+      "native_steady_frames": {
+        "acquisition_fps_in_window": 30.016666666666666,
+        "active_acquisition_fps": 30.00126263613943,
+        "clock": "native_steady_clock",
+        "consumer_work_ms": {
+          "max": 0.46,
+          "median": 0.100583,
+          "n": 1801,
+          "p95": 0.168
+        },
+        "end_ns": 191032558748333,
+        "frame_age_ms": {
+          "max": 12.864167,
+          "median": 5.884708,
+          "n": 1801,
+          "p95": 11.918667
+        },
+        "paint_gap_ms": {
+          "max": 37.000917,
+          "median": 33.341958500000004,
+          "n": 1800,
+          "p95": 35.431791
+        },
+        "retained_acquisitions": 1801,
+        "scope": "native lab consumer acquisitions, not audiovisual output FPS or memcpy-only time",
+        "start_ns": 190972558748333,
+        "telemetry_truncated": false,
+        "window_seconds": 60.0
+      },
+      "paint_conservation": {
+        "accepted": 2157,
+        "categories": [
+          "pending",
+          "leased",
+          "coalesced",
+          "consumed",
+          "released_unconsumed",
+          "invalidated_close",
+          "revoked_generation",
+          "stale"
+        ],
+        "classified": 2157,
+        "status": "PASS"
+      },
+      "samples": {
+        "first": {
+          "alpha": {
+            "opaque_pixels": 3653,
+            "partial_pixels": 4607,
+            "premultiplied_bound": true,
+            "zero_pixels": 222140
+          },
+          "gzip_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d",
+          "instance_marker": {
+            "expected_bgra": [
+              192,
+              64,
+              64,
+              255
+            ],
+            "observed_bgra": [
+              192,
+              64,
+              64,
+              255
+            ],
+            "status": "PASS"
+          },
+          "metadata": {
+            "acquired": 2157,
+            "alpha_verified": false,
+            "bgra8": true,
+            "epoch": 1,
+            "generation": 136406148441,
+            "height": 360,
+            "helper_cleanup_verified": false,
+            "index": 1,
+            "instance": 2,
+            "max_disk_consumer_ns": 460000,
+            "native_executed": true,
+            "observed_ns": 190962712839541,
+            "sandbox_verified": false,
+            "stride": 2560,
+            "width": 640
+          },
+          "raw_bytes": 921600,
+          "raw_sha256": "17ef526bb53e077d18d21c5faf3ccd1ae6eeb1517a8689f13049de922cd14ef9"
+        },
+        "latest": {
+          "alpha": {
+            "opaque_pixels": 3787,
+            "partial_pixels": 4818,
+            "premultiplied_bound": true,
+            "zero_pixels": 221795
+          },
+          "gzip_sha256": "f51d3f2531d714bb1f54a6e95ccfffdd86a086d2ffe89f011248bbc9a0de8f5a",
+          "instance_marker": {
+            "expected_bgra": [
+              192,
+              64,
+              64,
+              255
+            ],
+            "observed_bgra": [
+              192,
+              64,
+              64,
+              255
+            ],
+            "status": "PASS"
+          },
+          "metadata": {
+            "acquired": 2157,
+            "alpha_verified": false,
+            "bgra8": true,
+            "epoch": 1,
+            "generation": 136406148441,
+            "height": 360,
+            "helper_cleanup_verified": false,
+            "index": 2157,
+            "instance": 2,
+            "max_disk_consumer_ns": 460000,
+            "native_executed": true,
+            "observed_ns": 191034552284583,
+            "sandbox_verified": false,
+            "stride": 2560,
+            "width": 640
+          },
+          "raw_bytes": 921600,
+          "raw_sha256": "1823a9ce3aae95483af697b704d6258c74b8a1a8b1384c29b6aa0ce513cba933"
+        }
+      },
+      "telemetry": {
+        "accounting_v2": {
+          "acquire_busy": 26,
+          "acquired": 2157,
+          "coalesced": 0,
+          "consumed": 2157,
+          "consumer_busy": 0,
+          "copied_bytes": 1987891200,
+          "copy_ns": 221772404,
+          "invalidated_close": 0,
+          "leased": 0,
+          "paints": 2157,
+          "pending": 0,
+          "publish_busy": 0,
+          "released_unconsumed": 0,
+          "retained_bytes": 0,
+          "retained_leases": 0,
+          "revoked_generation": 0,
+          "stale": 0
+        },
+        "acquired": 2157,
+        "coalesced": 0,
+        "completion_rejected": 0,
+        "configured_consumer_delay_ms": 0,
+        "disk_write_attempts": 2157,
+        "latest_file_fixed_bytes": 921600,
+        "latest_file_ftruncate_calls": 1,
+        "latest_file_full_writes": 2157,
+        "latest_file_rejected_geometry_or_descriptor": 0,
+        "max_publish_callback_ns": 986875,
+        "native_executed": true,
+        "onpaint_busy": 0,
+        "onpaint_callbacks": 2157,
+        "onpaint_invalid": 0,
+        "paints": 2157,
+        "sample_capacity_drops": 0,
+        "samples_truncated": false,
+        "stale": 0,
+        "successful_disk_writes": 2157
+      }
+    },
+    {
+      "frame_delivery": true,
+      "identity": [
+        3,
+        136406148441,
+        1
+      ],
+      "identity_validated": true,
+      "manifest": {
+        "blocked_downloads": 0,
+        "blocked_navigation": 0,
+        "blocked_permissions": 0,
+        "blocked_popups": 0,
+        "blocked_resources": 0,
+        "browser_closed_ns": 191034584903708,
+        "browser_created_ns": 190962559853125,
+        "browser_decoy_errno": -1,
+        "browser_decoy_opened": false,
+        "browser_id": 3,
+        "closed": true,
+        "closed_ns": 191034595195708,
+        "created_ns": 190962559853125,
+        "epoch": 1,
+        "epoch_record": {
+          "accounting_observed": true,
+          "ended_ns": 191034595195708,
+          "epoch": 1,
+          "first_nontransparent_paint_ns": 190962709156500,
+          "first_paint_ns": 190962709156500,
+          "frames_written": true,
+          "height": 360,
+          "leased_after_join": 0,
+          "pending_after_revoke": 0,
+          "retained_bytes_after_join": 0,
+          "revocation": "close",
+          "started_ns": 190962559853125,
+          "width": 640
+        },
+        "epochs": [
+          {
+            "accounting_observed": true,
+            "ended_ns": 191034595195708,
+            "epoch": 1,
+            "first_nontransparent_paint_ns": 190962709156500,
+            "first_paint_ns": 190962709156500,
+            "frames_written": true,
+            "height": 360,
+            "leased_after_join": 0,
+            "pending_after_revoke": 0,
+            "retained_bytes_after_join": 0,
+            "revocation": "close",
+            "started_ns": 190962559853125,
+            "width": 640
+          }
+        ],
+        "events_received": 0,
+        "failed": false,
+        "first_nontransparent_paint_ns": 190962709156500,
+        "first_paint_ns": 190962709156500,
+        "frames_written": true,
+        "generation": 136406148441,
+        "health": "closed",
+        "height": 360,
+        "instance": 3,
+        "inventory_entries": 3,
+        "origin": "motive://i3-g136406148441/",
+        "package": "compiled_owned_inventory",
+        "renderer_decoded_exit_code": -1,
+        "renderer_decoy_errno": -1,
+        "renderer_decoy_observed": false,
+        "renderer_decoy_opened": false,
+        "renderer_exit_code": 0,
+        "renderer_pid_reported": 64585,
+        "renderer_termination_status": 0,
+        "request_context": "distinct_in_memory",
+        "security_phases": [],
+        "timing_scope": "frame_epoch",
+        "width": 640
+      },
+      "native_active_frames": {
+        "acquisition_fps_in_window": 30.022048337189666,
+        "active_acquisition_fps": 30.00812991000548,
+        "clock": "native_steady_clock",
+        "consumer_work_ms": {
+          "max": 1.066667,
+          "median": 0.0975,
+          "n": 2157,
+          "p95": 0.1665
+        },
+        "end_ns": 191034558851501,
+        "frame_age_ms": {
+          "max": 17.893417,
+          "median": 6.021834,
+          "n": 2157,
+          "p95": 12.090584
+        },
+        "paint_gap_ms": {
+          "max": 38.412583,
+          "median": 33.336,
+          "n": 2156,
+          "p95": 35.335541
+        },
+        "retained_acquisitions": 2157,
+        "scope": "native lab consumer acquisitions, not audiovisual output FPS or memcpy-only time",
+        "start_ns": 190962711655208,
+        "telemetry_truncated": false,
+        "window_seconds": 71.847196293
+      },
+      "native_steady_frames": {
+        "acquisition_fps_in_window": 30.0,
+        "active_acquisition_fps": 30.000156233442866,
+        "clock": "native_steady_clock",
+        "consumer_work_ms": {
+          "max": 1.066667,
+          "median": 0.098375,
+          "n": 1800,
+          "p95": 0.1665
+        },
+        "end_ns": 191032559853125,
+        "frame_age_ms": {
+          "max": 13.047,
+          "median": 6.0637295,
+          "n": 1800,
+          "p95": 12.09775
+        },
+        "paint_gap_ms": {
+          "max": 36.992167,
+          "median": 33.334875,
+          "n": 1799,
+          "p95": 35.337584
+        },
+        "retained_acquisitions": 1800,
+        "scope": "native lab consumer acquisitions, not audiovisual output FPS or memcpy-only time",
+        "start_ns": 190972559853125,
+        "telemetry_truncated": false,
+        "window_seconds": 60.0
+      },
+      "paint_conservation": {
+        "accepted": 2157,
+        "categories": [
+          "pending",
+          "leased",
+          "coalesced",
+          "consumed",
+          "released_unconsumed",
+          "invalidated_close",
+          "revoked_generation",
+          "stale"
+        ],
+        "classified": 2157,
+        "status": "PASS"
+      },
+      "samples": {
+        "first": {
+          "alpha": {
+            "opaque_pixels": 3652,
+            "partial_pixels": 4619,
+            "premultiplied_bound": true,
+            "zero_pixels": 222129
+          },
+          "gzip_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f",
+          "instance_marker": {
+            "expected_bgra": [
+              192,
+              64,
+              96,
+              255
+            ],
+            "observed_bgra": [
+              192,
+              64,
+              96,
+              255
+            ],
+            "status": "PASS"
+          },
+          "metadata": {
+            "acquired": 2157,
+            "alpha_verified": false,
+            "bgra8": true,
+            "epoch": 1,
+            "generation": 136406148441,
+            "height": 360,
+            "helper_cleanup_verified": false,
+            "index": 1,
+            "instance": 3,
+            "max_disk_consumer_ns": 1066667,
+            "native_executed": true,
+            "observed_ns": 190962709156541,
+            "sandbox_verified": false,
+            "stride": 2560,
+            "width": 640
+          },
+          "raw_bytes": 921600,
+          "raw_sha256": "0a931a8c9f4156c4f3d0be28a32b25433f2c3ca2d30b1afa66927b9a858922c7"
+        },
+        "latest": {
+          "alpha": {
+            "opaque_pixels": 3821,
+            "partial_pixels": 4872,
+            "premultiplied_bound": true,
+            "zero_pixels": 221707
+          },
+          "gzip_sha256": "20327cf3f087e7cada8233e132348299c980a3cd71bc9265c493cf32b8999f79",
+          "instance_marker": {
+            "expected_bgra": [
+              192,
+              64,
+              96,
+              255
+            ],
+            "observed_bgra": [
+              192,
+              64,
+              96,
+              255
+            ],
+            "status": "PASS"
+          },
+          "metadata": {
+            "acquired": 2157,
+            "alpha_verified": false,
+            "bgra8": true,
+            "epoch": 1,
+            "generation": 136406148441,
+            "height": 360,
+            "helper_cleanup_verified": false,
+            "index": 2157,
+            "instance": 3,
+            "max_disk_consumer_ns": 1066667,
+            "native_executed": true,
+            "observed_ns": 191034552390416,
+            "sandbox_verified": false,
+            "stride": 2560,
+            "width": 640
+          },
+          "raw_bytes": 921600,
+          "raw_sha256": "488aa53a81c95f6b0def085ec35240f3f1fd1c113bc1ad8033d9974c75408ffd"
+        }
+      },
+      "telemetry": {
+        "accounting_v2": {
+          "acquire_busy": 40,
+          "acquired": 2157,
+          "coalesced": 0,
+          "consumed": 2157,
+          "consumer_busy": 0,
+          "copied_bytes": 1987891200,
+          "copy_ns": 223491857,
+          "invalidated_close": 0,
+          "leased": 0,
+          "paints": 2157,
+          "pending": 0,
+          "publish_busy": 0,
+          "released_unconsumed": 0,
+          "retained_bytes": 0,
+          "retained_leases": 0,
+          "revoked_generation": 0,
+          "stale": 0
+        },
+        "acquired": 2157,
+        "coalesced": 0,
+        "completion_rejected": 0,
+        "configured_consumer_delay_ms": 0,
+        "disk_write_attempts": 2157,
+        "latest_file_fixed_bytes": 921600,
+        "latest_file_ftruncate_calls": 1,
+        "latest_file_full_writes": 2157,
+        "latest_file_rejected_geometry_or_descriptor": 0,
+        "max_publish_callback_ns": 6814334,
+        "native_executed": true,
+        "onpaint_busy": 0,
+        "onpaint_callbacks": 2157,
+        "onpaint_invalid": 0,
+        "paints": 2157,
+        "sample_capacity_drops": 0,
+        "samples_truncated": false,
+        "stale": 0,
+        "successful_disk_writes": 2157
+      }
+    }
+  ],
+  "limits": [
+    "PASS is the scoped owned native run, never global H19 acceptance.",
+    "Mock Keychain is an explicit Chromium test backend, not a production fix.",
+    "Frame acquisition is not audiovisual output FPS. No CEF timestamp is PTS.",
+    "Python and native clocks are analyzed separately.",
+    "Only observed PID/birth identities are proven cleaned; this is not hostile process confinement."
+  ],
+  "native_generation": 136406148441,
+  "native_host_executed": true,
+  "native_host_execution_attempted": true,
+  "production_connected": false,
+  "raw_evidence_root": "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/.cache/h19-owned-runs/20261119T031248Z-1565fc7fea6e",
+  "requested": {
+    "deadline_seconds": 87.0,
+    "duration_ms": 72000,
+    "fps": 30,
+    "height": 360,
+    "instances": 3,
+    "rss_limit_mib": 2048,
+    "scenario": "steady",
+    "width": 640
+  },
+  "resources": {
+    "last_10_seconds": {
+      "clock": "python_monotonic",
+      "complete_identity_cpu_intervals": 35,
+      "complete_identity_cpu_percent_one_core": 16.546769754610885,
+      "cpu_intervals": 35,
+      "gpu_percent": null,
+      "measured_cpu_wall_seconds": 9.701263333,
+      "memory_note": "Sequential sums; RSS can double-count shared pages. Footprint is not unique physical RAM.",
+      "observed_cpu_percent_one_core": 16.546769754610885,
+      "observed_sample_span_ms": 9701.263999999996,
+      "physical_footprint_mib": {
+        "max": 483.5094528198242,
+        "median": 478.9860153198242,
+        "n": 36,
+        "p95": 483.4782028198242
+      },
+      "process_count": {
+        "max": 8,
+        "median": 8.0,
+        "n": 36,
+        "p95": 8
+      },
+      "requested_end_ms": 72000,
+      "requested_start_ms": 62000,
+      "roles": {
+        "browser_host": {
+          "cpu_delta_ns": 469448667,
+          "cpu_percent_one_core": 4.839046739439745,
+          "footprint_mib": {
+            "max": 61.87616729736328,
+            "median": 58.34491729736328,
+            "n": 36,
+            "p95": 61.87616729736328
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1.0,
+            "n": 36,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 163.234375,
+            "median": 159.34375,
+            "n": 36,
+            "p95": 163.234375
+          }
+        },
+        "gpu": {
+          "cpu_delta_ns": 647397167,
+          "cpu_percent_one_core": 6.673328460199628,
+          "footprint_mib": {
+            "max": 242.3604736328125,
+            "median": 242.3135986328125,
+            "n": 36,
+            "p95": 242.3604736328125
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1.0,
+            "n": 36,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 98.703125,
+            "median": 98.65625,
+            "n": 36,
+            "p95": 98.703125
+          }
+        },
+        "network_service": {
+          "cpu_delta_ns": 8419167,
+          "cpu_percent_one_core": 0.08678423325920041,
+          "footprint_mib": {
+            "max": 26.360336303710938,
+            "median": 24.391586303710938,
+            "n": 36,
+            "p95": 24.391586303710938
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1.0,
+            "n": 36,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 73.375,
+            "median": 71.578125,
+            "n": 36,
+            "p95": 71.59375
+          }
+        },
+        "renderer": {
+          "cpu_delta_ns": 479972623,
+          "cpu_percent_one_core": 4.947527002666922,
+          "footprint_mib": {
+            "max": 134.50528717041016,
+            "median": 133.48184967041016,
+            "n": 36,
+            "p95": 134.47403717041016
+          },
+          "observed_identities": 4,
+          "process_count": {
+            "max": 4,
+            "median": 4.0,
+            "n": 36,
+            "p95": 4
+          },
+          "rss_mib": {
+            "max": 411.53125,
+            "median": 410.5703125,
+            "n": 36,
+            "p95": 411.5
+          }
+        },
+        "storage_service": {
+          "cpu_delta_ns": 8083,
+          "cpu_percent_one_core": 8.33190453917967e-05,
+          "footprint_mib": {
+            "max": 20.375938415527344,
+            "median": 20.375938415527344,
+            "n": 36,
+            "p95": 20.375938415527344
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1.0,
+            "n": 36,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 54.734375,
+            "median": 54.734375,
+            "n": 36,
+            "p95": 54.734375
+          }
+        }
+      },
+      "rss_mib": {
+        "max": 799.78125,
+        "median": 794.6171875,
+        "n": 36,
+        "p95": 799.765625
+      },
+      "sample_count": 36,
+      "unique_physical_mib": null
+    },
+    "startup_warmup": {
+      "clock": "python_monotonic",
+      "complete_identity_cpu_intervals": 33,
+      "complete_identity_cpu_percent_one_core": 16.475176054378718,
+      "cpu_intervals": 35,
+      "gpu_percent": null,
+      "measured_cpu_wall_seconds": 9.740695584,
+      "memory_note": "Sequential sums; RSS can double-count shared pages. Footprint is not unique physical RAM.",
+      "observed_cpu_percent_one_core": 19.38235467599641,
+      "observed_sample_span_ms": 9740.7,
+      "physical_footprint_mib": {
+        "max": 461.14991760253906,
+        "median": 460.58741760253906,
+        "n": 35,
+        "p95": 461.11866760253906
+      },
+      "process_count": {
+        "max": 9,
+        "median": 8.0,
+        "n": 36,
+        "p95": 8
+      },
+      "requested_end_ms": 10000,
+      "requested_start_ms": 0,
+      "roles": {
+        "browser_host": {
+          "cpu_delta_ns": 621040542,
+          "cpu_percent_one_core": 6.375730938764958,
+          "footprint_mib": {
+            "max": 56.20429229736328,
+            "median": 56.14179229736328,
+            "n": 36,
+            "p95": 56.20429229736328
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1.0,
+            "n": 36,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 178.453125,
+            "median": 178.265625,
+            "n": 36,
+            "p95": 178.453125
+          }
+        },
+        "gpu": {
+          "cpu_delta_ns": 739838791,
+          "cpu_percent_one_core": 7.595338388515643,
+          "footprint_mib": {
+            "max": 245.3448028564453,
+            "median": 242.4541778564453,
+            "n": 35,
+            "p95": 245.3291778564453
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1,
+            "n": 35,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 125.34375,
+            "median": 125.03125,
+            "n": 35,
+            "p95": 125.34375
+          }
+        },
+        "network_service": {
+          "cpu_delta_ns": 24721250,
+          "cpu_percent_one_core": 0.2537934769320474,
+          "footprint_mib": {
+            "max": 24.157211303710938,
+            "median": 24.157211303710938,
+            "n": 35,
+            "p95": 24.157211303710938
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1,
+            "n": 35,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 86.125,
+            "median": 86.109375,
+            "n": 35,
+            "p95": 86.125
+          }
+        },
+        "renderer": {
+          "cpu_delta_ns": 502024750,
+          "cpu_percent_one_core": 5.1538901474821,
+          "footprint_mib": {
+            "max": 119.06767272949219,
+            "median": 117.4426040649414,
+            "n": 35,
+            "p95": 119.02079772949219
+          },
+          "observed_identities": 4,
+          "process_count": {
+            "max": 4,
+            "median": 4,
+            "n": 35,
+            "p95": 4
+          },
+          "rss_mib": {
+            "max": 473.078125,
+            "median": 462.9375,
+            "n": 35,
+            "p95": 473.03125
+          }
+        },
+        "storage_service": {
+          "cpu_delta_ns": 350833,
+          "cpu_percent_one_core": 0.0036017243016635884,
+          "footprint_mib": {
+            "max": 20.391563415527344,
+            "median": 20.391563415527344,
+            "n": 35,
+            "p95": 20.391563415527344
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1,
+            "n": 35,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 72.671875,
+            "median": 72.625,
+            "n": 35,
+            "p95": 72.671875
+          }
+        },
+        "utility": {
+          "cpu_delta_ns": 0,
+          "cpu_percent_one_core": 0.0,
+          "footprint_mib": {
+            "max": 23.063438415527344,
+            "median": 23.063438415527344,
+            "n": 1,
+            "p95": 23.063438415527344
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1,
+            "n": 1,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 83.1875,
+            "median": 83.1875,
+            "n": 1,
+            "p95": 83.1875
+          }
+        }
+      },
+      "rss_mib": {
+        "max": 934.640625,
+        "median": 924.78125,
+        "n": 36,
+        "p95": 934.59375
+      },
+      "sample_count": 36,
+      "unique_physical_mib": null
+    },
+    "steady": {
+      "clock": "python_monotonic",
+      "complete_identity_cpu_intervals": 216,
+      "complete_identity_cpu_percent_one_core": 16.042992171615506,
+      "cpu_intervals": 216,
+      "gpu_percent": null,
+      "measured_cpu_wall_seconds": 59.875300625,
+      "memory_note": "Sequential sums; RSS can double-count shared pages. Footprint is not unique physical RAM.",
+      "observed_cpu_percent_one_core": 16.042992171615506,
+      "observed_sample_span_ms": 59875.302,
+      "physical_footprint_mib": {
+        "max": 481.5407028198242,
+        "median": 470.50940704345703,
+        "n": 217,
+        "p95": 479.0563278198242
+      },
+      "process_count": {
+        "max": 8,
+        "median": 8,
+        "n": 217,
+        "p95": 8
+      },
+      "requested_end_ms": 70000,
+      "requested_start_ms": 10000,
+      "roles": {
+        "browser_host": {
+          "cpu_delta_ns": 2179149958,
+          "cpu_percent_one_core": 3.639480612628657,
+          "footprint_mib": {
+            "max": 60.29804229736328,
+            "median": 57.15741729736328,
+            "n": 217,
+            "p95": 58.34491729736328
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1,
+            "n": 217,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 180.5,
+            "median": 178.6875,
+            "n": 217,
+            "p95": 179.671875
+          }
+        },
+        "gpu": {
+          "cpu_delta_ns": 4285001083,
+          "cpu_percent_one_core": 7.156542077069529,
+          "footprint_mib": {
+            "max": 242.3604736328125,
+            "median": 242.0479736328125,
+            "n": 217,
+            "p95": 242.3135986328125
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1,
+            "n": 217,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 125.328125,
+            "median": 124.53125,
+            "n": 217,
+            "p95": 125.3125
+          }
+        },
+        "network_service": {
+          "cpu_delta_ns": 44172583,
+          "cpu_percent_one_core": 0.07377429848186252,
+          "footprint_mib": {
+            "max": 26.360336303710938,
+            "median": 24.204086303710938,
+            "n": 217,
+            "p95": 24.391586303710938
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1,
+            "n": 217,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 86.390625,
+            "median": 86.03125,
+            "n": 217,
+            "p95": 86.390625
+          }
+        },
+        "renderer": {
+          "cpu_delta_ns": 3096792501,
+          "cpu_percent_one_core": 5.172070066746325,
+          "footprint_mib": {
+            "max": 134.11466217041016,
+            "median": 126.70836639404297,
+            "n": 217,
+            "p95": 133.53653717041016
+          },
+          "observed_identities": 4,
+          "process_count": {
+            "max": 4,
+            "median": 4,
+            "n": 217,
+            "p95": 4
+          },
+          "rss_mib": {
+            "max": 481.921875,
+            "median": 474.625,
+            "n": 217,
+            "p95": 481.296875
+          }
+        },
+        "storage_service": {
+          "cpu_delta_ns": 673667,
+          "cpu_percent_one_core": 0.001125116689132281,
+          "footprint_mib": {
+            "max": 20.375938415527344,
+            "median": 20.344688415527344,
+            "n": 217,
+            "p95": 20.375938415527344
+          },
+          "observed_identities": 1,
+          "process_count": {
+            "max": 1,
+            "median": 1,
+            "n": 217,
+            "p95": 1
+          },
+          "rss_mib": {
+            "max": 72.640625,
+            "median": 72.640625,
+            "n": 217,
+            "p95": 72.640625
+          }
+        }
+      },
+      "rss_mib": {
+        "max": 945.859375,
+        "median": 936.515625,
+        "n": 217,
+        "p95": 945.3125
+      },
+      "sample_count": 217,
+      "unique_physical_mib": null
+    }
+  },
+  "run_id": "20261119T031248Z-1565fc7fea6e",
+  "sandbox_verified": false,
+  "scope": "owned_cef_multi_widget_lab",
+  "static_inventory": {
+    "binaries": [
+      {
+        "bytes": 1557072,
+        "path": "MotiveBrowserFixture.app/Contents/MacOS/MotiveBrowserFixture",
+        "sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b"
+      },
+      {
+        "bytes": 854720,
+        "path": "MotiveBrowserFixture.app/Contents/Frameworks/MotiveBrowserFixture Helper.app/Contents/MacOS/MotiveBrowserFixture Helper",
+        "sha256": "d2f3f6b9f1247b57278696fb8b0409cfd2ff9922ed5d3eb086eb8b40404f9b62"
+      },
+      {
+        "bytes": 854736,
+        "path": "MotiveBrowserFixture.app/Contents/Frameworks/MotiveBrowserFixture Helper (Alerts).app/Contents/MacOS/MotiveBrowserFixture Helper (Alerts)",
+        "sha256": "01fd1137901e329bd3bdbe845cfc3b101677fc7a08e77652506a11ed3664a738"
+      },
+      {
+        "bytes": 854736,
+        "path": "MotiveBrowserFixture.app/Contents/Frameworks/MotiveBrowserFixture Helper (GPU).app/Contents/MacOS/MotiveBrowserFixture Helper (GPU)",
+        "sha256": "9597980cc07394c4f6eef7d0c139ad28ac53c0c235ed2ed7a9cddfde7a20d3b6"
+      },
+      {
+        "bytes": 854736,
+        "path": "MotiveBrowserFixture.app/Contents/Frameworks/MotiveBrowserFixture Helper (Plugin).app/Contents/MacOS/MotiveBrowserFixture Helper (Plugin)",
+        "sha256": "107648778568884d3527e9bd76b65c46c31a59805872542898b890059cc4e0f6"
+      },
+      {
+        "bytes": 854736,
+        "path": "MotiveBrowserFixture.app/Contents/Frameworks/MotiveBrowserFixture Helper (Renderer).app/Contents/MacOS/MotiveBrowserFixture Helper (Renderer)",
+        "sha256": "c1e3f325685a9401e4799b5650bcc24acac4147d38a293ef333fa517b454de77"
+      }
+    ],
+    "framework_sha256": "07d22d4991cb578763da69f3f0eb2e019199fe34c7eca223deb7ebb1e2845569",
+    "sandbox_verified": false,
+    "scope": "static artifact identity and local development signature",
+    "signature_verified": true,
+    "status": "PASS"
+  },
+  "status": "PASS",
+  "supervision": {
+    "cleanup_observed_tree": true,
+    "elapsed_ms": 72449.809,
+    "final_cleanup_observed_tree": true,
+    "final_remaining_observed_live_pids": [],
+    "final_remaining_observed_pids": [],
+    "footprint_bytes": null,
+    "generation": 1,
+    "gpu_percent": null,
+    "launch_kind": "trusted_caller_supplied_executable",
+    "observed_processes": 10,
+    "peak_tree_rss_kib": 968560,
+    "reason": "exit",
+    "remaining_observed_live_pids": [],
+    "resource_measurements": {
+      "api": "proc_pid_rusage(RUSAGE_INFO_V0)",
+      "cpu_unit": "nanoseconds; percent 100 equals one fully occupied core",
+      "gpu_percent": null,
+      "limits": [
+        "Only consecutive observations of matching PID/birth/start identity contribute CPU deltas.",
+        "CPU before first/after last observation and processes shorter than the sampling interval may be missed.",
+        "Memory is a sequential sum of per-process physical footprints, not a coalition or unique physical-page total.",
+        "Reported CPU excludes the supervisor and process-list collection overhead.",
+        "Roles parse a finite allowlist of owned helper process arguments, birth checked before/after; no raw command line retained.",
+        "Virtual bytes are address-space reservation; private/shared residency and unique physical pages remain unavailable.",
+        "Historical cpu_percent_ps remains ps output; legacy footprint_bytes remains unspecified/null."
+      ],
+      "mach_timebase": {
+        "denom": 3,
+        "numer": 125
+      },
+      "measured_wall_delta_ns": 72119516875,
+      "observed_cpu_delta_ns": 11943420374,
+      "observed_cpu_mean_percent_one_core": 16.560593985537565,
+      "observed_process_roles": {
+        "browser_host": 1,
+        "gpu": 1,
+        "network_service": 1,
+        "renderer": 4,
+        "storage_service": 1,
+        "utility": 1
+      },
+      "partial_samples": 5,
+      "peak_observed_tree_phys_footprint_bytes": 507094712,
+      "total_samples": 263,
+      "valid_cpu_intervals": 260,
+      "version": 1
+    },
+    "returncode": 0,
+    "rss_budget": {
+      "cleanup_sampled": true,
+      "first_exceedance": null,
+      "limit_kib": 2097152,
+      "observed_overshoot_kib": 0,
+      "scope": "sampled emergency stop, not a hard allocation cap; intersample peaks may be missed"
+    },
+    "sample_retention": {
+      "capacity": 4096,
+      "dropped_oldest": 0,
+      "retained": 263
+    },
+    "scope": "observed owned tree; not proof against unobserved process escape or an OS sandbox",
+    "session_id": "77e5db31af1c4901b9462a6393303355",
+    "shutdown_ms": 36.755
+  },
+  "supervision_gzip_sha256": "f7d0d1a3eb723a386f35d260864d17e58598326c7bdd3590f7cf25e8f172effc",
+  "supervision_sha256": "e0e35a9bc7d420b5d181b95ca099149dce1595477fda454e244fc01291ebb133",
+  "third_party_content_allowed": false
+}

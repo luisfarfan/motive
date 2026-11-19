@@ -1,0 +1,376 @@
+{
+  "status": "PASS",
+  "date_utc": "2026-11-19T03:02:08.568126+00:00",
+  "checks": [
+    {
+      "name": "contracts-rust",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/poc/browser-host/Cargo.toml"
+      ],
+      "log_sha256": "97c8681bc0caae586b6d6e4f0b09f24f5bc01ece9bab17c5be8b80f577e32579"
+    },
+    {
+      "name": "contracts-clippy",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/poc/browser-host/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log_sha256": "08d9f6b5751ff4f40b7de3b9ba0c67a187e02ae097f5ff7050b521d242c2aa11"
+    },
+    {
+      "name": "contracts-fmt",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/poc/browser-host/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bridge-rust",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/poc/frame-bridge/Cargo.toml",
+        "--features",
+        "creator-bridge"
+      ],
+      "log_sha256": "6214f948903c7c8618f1420f282abfaf8509424cd639454a06c2067b13a56f00"
+    },
+    {
+      "name": "bridge-clippy",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/poc/frame-bridge/Cargo.toml",
+        "--features",
+        "creator-bridge",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log_sha256": "55d7439687f46b88d5a6fbcf2976b8abe6af3c4aac25313ffc21d73f302d1872"
+    },
+    {
+      "name": "bridge-fmt",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/poc/frame-bridge/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "python",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "log_sha256": "a08c0aedbe0c8f2106a06f95ce0b88b95ab5edc092b5ddcb998f53ab46033083"
+    },
+    {
+      "name": "security-python",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/tests",
+        "-p",
+        "h19_security*_test.py",
+        "-v"
+      ],
+      "log_sha256": "c0a26831ce7cc91e57949d9cad8cc408b3529086918c8ab84abde8c876d915ee"
+    },
+    {
+      "name": "runtime-node",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "node",
+        "--test",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/tests/runtime-interop.test.mjs"
+      ],
+      "log_sha256": "dceff83bf64392b4f2105cf395e27b5839580c41d5a26f05f8aa82e2b592e1d7"
+    },
+    {
+      "name": "goal-bootstrap-node",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "node",
+        "--test",
+        "/Users/luisfarfan/Developer/products/motive-h19/creator-runtime-lab/binding/tests/native-bootstrap.test.mjs"
+      ],
+      "log_sha256": "6933c1015396abaa315cae3de1eac5ed7d1d46d9fc490c796a6f600d29c96d34"
+    },
+    {
+      "name": "bridge-release",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "cargo",
+        "build",
+        "--offline",
+        "--locked",
+        "--release",
+        "--features",
+        "creator-bridge",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/poc/frame-bridge/Cargo.toml"
+      ],
+      "log_sha256": "a70da5408e7a6da7efe97b23011504833b16a7875bda14543f2504b5b8c7d97a"
+    },
+    {
+      "name": "frame-abi-build",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "clang++",
+        "-std=c++20",
+        "-arch",
+        "arm64",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/tests/frame_bridge.cc",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/poc/frame-bridge/target/release/libmotive_frame_bridge.a",
+        "-framework",
+        "Security",
+        "-framework",
+        "CoreFoundation",
+        "-framework",
+        "SystemConfiguration",
+        "-lresolv",
+        "-lpthread",
+        "-o",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/evidence/H19-final-static/frame-abi"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "frame-abi",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/evidence/H19-final-static/frame-abi"
+      ],
+      "log_sha256": "6fda82e804e19be72cf9b58947f993f614535a5006e5589210c00c633133cf8f"
+    },
+    {
+      "name": "multi-policy-build",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "clang++",
+        "-std=c++20",
+        "-arch",
+        "arm64",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/tests/native_multi_policy.cc",
+        "-o",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/evidence/H19-final-static/multi-policy"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "multi-policy",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/evidence/H19-final-static/multi-policy"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bridge-policy-build",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "clang++",
+        "-std=c++20",
+        "-arch",
+        "arm64",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/tests/native_bridge_policy.cc",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/poc/frame-bridge/target/release/libmotive_frame_bridge.a",
+        "-framework",
+        "Security",
+        "-framework",
+        "CoreFoundation",
+        "-framework",
+        "SystemConfiguration",
+        "-lresolv",
+        "-lpthread",
+        "-o",
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/evidence/H19-final-static/bridge-policy"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bridge-policy",
+      "status": "PASS",
+      "returncode": 0,
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-h19/web-host-lab/evidence/H19-final-static/bridge-policy"
+      ],
+      "log_sha256": "434521fdae88371b6fae8b74b83f7e0f719659de9b20e7b4e5ab831336feaa52"
+    }
+  ],
+  "cef_executed": false,
+  "native_scope": "compiled synthetic C ABI/policy tests only, not Chromium rendering",
+  "third_party_execution": "BLOCKED",
+  "production_modified": false,
+  "source_sha256": {
+    "poc/browser-host/Cargo.lock": "df091ff6a855621c018dabe357966f5498e3919a04b1fb003b904b9cf648550e",
+    "poc/browser-host/Cargo.toml": "9961c20ba1487c43500a417e1f570bd14e2db2f0a48cc6e8fbfde8c1a529d36f",
+    "poc/browser-host/asset_broker.py": "76d79530beaa9688e89e8e167df56db5c1e485182feacf8532cccdc6e146696f",
+    "poc/browser-host/examples/project_goal.rs": "5142522ad41c50d8fd7fe69c88e1ca880a3d75bf795eaa7a2ca4cdf6dcb10de5",
+    "poc/browser-host/native/NOTICE.md": "2f45a6442be004fef306f0f8313f6a7aa86b96bd10b648e78e35e9c07ae74b6c",
+    "poc/browser-host/native/bridge_policy.hpp": "13083014877fc16a3abc2ae5c96e6fb1e9d82fc087d405563e05a873d5af2d15",
+    "poc/browser-host/native/diagnostic_policy.hpp": "d5b81382ceb759ae4869e6fb586803907e4ad0f2978582978c475bed6af850b8",
+    "poc/browser-host/native/diagnostic_renderer.cc": "985df849f33348941d2ef944da669e6245fa85e9e0267e212b248679fca83078",
+    "poc/browser-host/native/diagnostic_renderer.hpp": "10ad9bc9af611fda6cadd2daa0be9c95a40603bfb405b79a0d4d81a7dbe6bd11",
+    "poc/browser-host/native/fixture.hpp": "74cff35e3097ba5eb962a56580c8fcbc8e5acb68be9edb77b910f04b44ba1feb",
+    "poc/browser-host/native/fixture.mm": "887c5d46e61a3cb665b2f3ad85753d42daff9cd0978f2f318af95dba65442a84",
+    "poc/browser-host/native/frame_bridge.h": "12a7b076127e35e333dbeec14a1aa367343bf94fa7f78180633f2d2d07e081f8",
+    "poc/browser-host/native/frame_consumer.hpp": "b3100bf692342094075bb0f33b9af180e4cc0cf35d7e802df8d27815e1dfd2e3",
+    "poc/browser-host/native/goal_binding.h": "87f8d396aa19ecbdd1f17e92a0d1f6a3205b788d3b865fa7c9ece25efa22fd00",
+    "poc/browser-host/native/helper.cc": "4b0557f850a50a22e01c4cd47491e8a2360bcf78d1197537f245f42f778eb1be",
+    "poc/browser-host/native/main.mm": "e836d35d9379acbc035e6d92f9e3116c9183f671f86b6ecfadfc81ef59e01eab",
+    "poc/browser-host/native/multi_policy.hpp": "f296aefb5d22cf04bcd2405e8a8d12c4f44b46cb29a378270109fc1f6af0657a",
+    "poc/browser-host/native/multi_renderer.cc": "ae469d77129e8540a5d5b29ee787c865e0fd22530a881552e6583925406d237e",
+    "poc/browser-host/native/multi_renderer.hpp": "138d3fd0019931aa4364a7926144f767ce13c8b3ac67e12efafc44f68951f6f9",
+    "poc/browser-host/native/renderer_bridge.cc": "9d58e8cd3cb80d57da1c872a89580f8b89177f69f587ae55a925f6a4abe176dc",
+    "poc/browser-host/native/renderer_bridge.hpp": "871336402b9f6685b9d430bc10d39bbace361fd67e8c13090588b14753f53f50",
+    "poc/browser-host/native/scheme.hpp": "aaf5ed877fa8e55b272c2f8406dac3991957aa12072097b98beebf68c1e62ed1",
+    "poc/browser-host/src/adapter.rs": "8f3f0f212a8796966dc450ca40eced86d4f0aa2d8f8800867bbf43148b4c0cc3",
+    "poc/browser-host/src/frame.rs": "3eb7587279bec4571a37e429c19d99cd7079f5c18c552681af1992accfde4267",
+    "poc/browser-host/src/ipc.rs": "5913a20ee699d3164ebad15d8c9339f5652eedb04e210b596d2dd0d305ca4858",
+    "poc/browser-host/src/lib.rs": "3383fd89412b807a12cdf23e51baf06ca1b4dc8ef348782e1b9db970984234f4",
+    "poc/browser-host/src/lifecycle.rs": "baaa2a22f264923ad14d832949aa105cfce84a49a875c274b35b04e24e81c4b3",
+    "poc/browser-host/src/manager.rs": "ae2c21a387b1fccf630e9a3b90a77cd4e2c0c9f094ab29caa7d9376daa1fde12",
+    "poc/browser-host/src/projection.rs": "25758b565f803942f92bea88e497b5216061b884168197b61a99670914a3f24c",
+    "poc/browser-host/supervisor.py": "7b77ab1a8a58a9d673c481985bcfdac9a38ab33d7b522f1b2fb863e48c72d896",
+    "poc/browser-host/tests/ipc.rs": "e933ed43b1ce6dee708a13347305bb2ad41c2b451de37857de4b897534cf4c84",
+    "poc/browser-host/tests/manager.rs": "bf15a409569356ede1e66ef8ec1a78c133fdecfdad23e12c70192fa209afd335",
+    "poc/fixtures/diagnostics/crash.js": "f9219acf753d29f7f4e8bcd7f740d10155076025faa73bfd2be82b08898724c4",
+    "poc/fixtures/diagnostics/hidden.js": "3ddc6997fc0dcf9c4d1b980e684463b2c7302cc3d3647f7e558de7d73efed769",
+    "poc/fixtures/diagnostics/slow-consumer.js": "f9219acf753d29f7f4e8bcd7f740d10155076025faa73bfd2be82b08898724c4",
+    "poc/fixtures/diagnostics/slow.js": "d88bddd4d45578a5c4d6e9ccf29fd6ea5547aa9406eec5cdaa52810b3802e91a",
+    "poc/fixtures/diagnostics/static.js": "f74e88c3836b1c76ead7365a91e80902468615fb20165907c2d673d0b0534d04",
+    "poc/fixtures/fixture.css": "58994719a358ec0ae3582c1780f02d8639c609c31044fc20ea6f6a22441d7b48",
+    "poc/fixtures/fixture.js": "3b9c0bd2115430b0891e0f1d1b4cf45db3ddc08b061d792a8a3b8a38184f62c7",
+    "poc/fixtures/h19/fixture.js": "3f59e8b0784056b119aeed1156ee08669a5bcd52a6858e986eba70dcc2602b11",
+    "poc/fixtures/index.html": "e418f6b378b327f12b94a131140afe3bdff8e2790f9484a8307b822be84c293d",
+    "poc/frame-bridge/Cargo.lock": "1114c4395979463ccdc8e458e1d128719cf2df3edeb0b1f2316ffc88e1f44a6b",
+    "poc/frame-bridge/Cargo.toml": "46923a167970d87b59fea1445309a5e4d11a9ad82b2450a884746b36d267d77b",
+    "poc/frame-bridge/src/goal_binding.rs": "90a9168912f360335581726dd458c6ca25209b10f90936c49e5e48681e232354",
+    "poc/frame-bridge/src/lib.rs": "0a926208418e63a63e7641345aed1f7f265677ccc3f8696f3d8909c8e2e1ea81",
+    "poc/frame-consumer/check_frame.py": "955dc56c5fc7fc2fda958ec5467e85dc29244b25c26aaa25909fe7f9acf3064f",
+    "tools/audit_sources.py": "02cbb59fb37a4873e524a27e2f991b140343670635ed2dec63f625f5f4572d89",
+    "tools/build_native.py": "82a69eddc1797c44f9b747827367060bd19c68863a6aa17fa17de7955e0f5425",
+    "tools/compile_native_api.py": "f8e87017d24f39d62dbf76f867ec51a442cf4dfa8e35880e8c13024eb9fd1dd8",
+    "tools/fetch_sources.py": "8537c8c9e18a144000e9963e09e86828113e0fe3d9f6aa428c80095ae26abe06",
+    "tools/h19_archive_build_sources.py": "dd429f1d0e006b62282baa16dfd6ada143a2c30c8bea6b94fe0ca570b5dc843a",
+    "tools/h19_distribution_audit.py": "5145fa963e1c921dd26412c965213d2112155b6354f44d45e801043961c21460",
+    "tools/h19_goal_check.py": "a33a4d2958d5e609feed880303ffc40ce16b8bc70fafbaaa7fba45f2b103ed70",
+    "tools/h19_lifecycle_check.py": "fa9afd023ef9ffd1066519cc303dbe72c270b220ff06b6899a48785fc99e0a1d",
+    "tools/h19_memory_regions.py": "36cabfd72ea83fa7727cbed1e3f21bb5a9ca87c17b5982283496edc0196c9562",
+    "tools/h19_metrics.py": "8a109877038ea43f173629bf6edfac66a2fcf68e3be2ec4ac58d5e8935486412",
+    "tools/h19_performance_audit.py": "3c96f1e43446f0f1cb483591ee2bcdc4b1e1ce2ed77070416a260bb4c8be9849",
+    "tools/h19_security_check.py": "418af02e8a3e51445fbecb05e1563e21e125ab9939a9e6874cdedcb7cb1cf76a",
+    "tools/h19_security_sources.py": "cdde53e0df49d30c03e23c2e1f584916cd03dea257416c2a5d287b215c660502",
+    "tools/run_h19_matrix.py": "d3cd4d91a0d90d7a29df7af637de9118778c67d32ae21746a1f3d4e3983c05d5",
+    "tools/run_h19_multi.py": "ab9b3335070f262bd8d673cc4482b8c113f86bd8f0ff9477a84ae3206f15b474",
+    "tools/run_native_cycles.py": "c034703f672853afb7b45247f62a68d9398920e4d716dff9294e7bc80e45073b",
+    "tools/run_native_replacements.py": "c2f87a2b2a15e00f7cc18df836974581ca41fc9ffdcd99701eea2ce4c057b8e4",
+    "tools/run_owned_diagnostic.py": "8522da924b9f7878d21ed9ff45882bebc7b6c53ddee239fd12191b2d135a51aa",
+    "tools/run_owned_fixture.py": "c4f2dbe4ae0b72f48589e7b424364c7e7279d15e4270c5adfb34c311081f9346",
+    "tools/run_owned_goal.py": "19f81a54041a71a8ecdd3c6548294e5f58adc8fba83971b3f20cbf15376f7dc2",
+    "tools/run_owned_host_experiment.py": "414955404de73198241c93a7e9ff854682f764eed94a15bac16bed459a783216",
+    "tools/test_lab.py": "9d80eeab8b4c06b90c6a41ae00cda8e367eb2a55e91279481069b7b6bc9c9cf5",
+    "tools/verify_h18.py": "d23828191ea0c17ceef5161599df98fbe82f2786a3864e0bfe0246902520f316",
+    "tools/verify_h19.py": "ebe95060b17db86ccf24347661c42f8ac5078e692551659c11f0f460cde814b5",
+    "tests/frame_bridge.cc": "68898db3c3004fdaef3d59e48005e1b4a5bf95a06caefd755beee018119408ec",
+    "tests/h19_security_check_test.py": "6227c7e012e6cf8c89cda89206309190067b6c6280db0c25639cde9a28cac51e",
+    "tests/h19_security_sources_test.py": "c338dbbc03ab4c069b8c5ae1d21094deb89bca8994c87f80c73d055e1be2c1c5",
+    "tests/native_bridge_policy.cc": "1e60ef767bdfe5104b70200a8387dac4d70d2b25f8159275e5ebcf79bbd9e893",
+    "tests/native_diagnostic_policy.cc": "534078a4ad61a84742ce885e026e19bec9ad03aa3780adc9117222d5853098f9",
+    "tests/native_multi_policy.cc": "7013f06aa6f4709a5115c1b686893c336ebd943936d9c106d1280dc18ce4f39a",
+    "tests/runtime-interop.test.mjs": "93a563a4ddf13d0d95869949a1c37baf8612e41c22fcd844cecc2fc76b03adc9",
+    "tests/test_diagnostic_classification.py": "e27a5841fb31d73b3f1f7a31ffafb4ab4038ad6c0b20097afbe83cf24051cbd2",
+    "tests/test_frame_inspector.py": "f230c0c4bb06f6f88c235255490f98766d6d9df9369b7012a128cce25fd2278d",
+    "tests/test_h19_build_names.py": "491b4abfc35d5e3d7861c5d94c76e626a9c4aa03530833509b8e2c41f59e57e3",
+    "tests/test_h19_goal_check.py": "0f7317a7f7ab80ce5bfb9edb4bf5eb9958c159f937d5239b9547d20c00049fcb",
+    "tests/test_h19_launcher.py": "eebd04eab68f2397ddfd62df8a3d014d32364d1ad6fa97041e5d514a857ddde7",
+    "tests/test_h19_lifecycle_check.py": "e45e6eb0e5ef14baed3d5b6498e9c973d137c8a5d88601811d8e851401622363",
+    "tests/test_h19_memory_regions.py": "93750b164dc4ca1f9dbb1149c3e68562f2dc1d3433ae9555fbd3d55f4964b50c",
+    "tests/test_h19_metrics.py": "4bd5c8b888230eec79bb69176f3b7bb3b0b368841922614ee33b98e1951279e4",
+    "tests/test_h19_performance_audit.py": "b481c780516a74544d7333b042c28a328ce5d4a79a2e69a81bb3c456c8a696d2",
+    "tests/test_h19_supervision.py": "0bd6e8d43238413e5f0b554aa04ac53cce9a8f30765090ab960ccbd1e230d70a",
+    "tests/test_native_cycles.py": "fd02981876dec0c9d13b6dfc2d72698f36449f73add8f5e47ac0247d05d9860a",
+    "tests/test_owned_fixture_launcher.py": "3c5809f06e6793cd692072535f286dc74cc5e1f40b980e1abb8ebea82fbb64ad",
+    "tests/test_owned_host_experiment.py": "4f2e2817f15e54dafa140b91ccbb5c8ab0d7336ecb921c0ec09f872881345c23",
+    "tests/test_resource_sampler.py": "86ac9313609d4ac37e50b23268ecbc5d3a8b335478f9f4cf72de63e982da0f69",
+    "tests/test_security.py": "4872de5e85f83eb59932860450663516c6967025d25d1bfa057a982aed115922",
+    "tests/test_supervisor.py": "9d89ce11ee13e07a0274954bba328ee38ea04706284d2f44d2ad4fedec261fb2"
+  }
+}

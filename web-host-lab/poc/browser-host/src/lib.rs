@@ -26,3 +26,5 @@ pub mod lifecycle;
 pub mod projection;
 
 pub mod adapter;
+
+pub mod manager;

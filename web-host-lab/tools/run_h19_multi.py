@@ -175,6 +175,7 @@ def parser():
     p.add_argument('--generation', type=int)
     p.add_argument('--png', action='store_true')
     p.add_argument('--preflight-only', action='store_true')
+    p.add_argument('--memory-regions', action='store_true', help='One bounded metadata-only diagnostic; not a steady performance trial')
     return p
 
 
@@ -225,7 +226,20 @@ def main(argv=None):
             supervisor = module.Supervisor(supervisor_root, deadline_seconds=args.deadline_seconds,
                 rss_limit_kib=args.rss_limit_mib*1024, interval_seconds=.25, sample_capacity=4096, inspect_roles=True)
             report.update(native_generation=generation, raw_evidence_root=str(private), run_id=run_id)
-            supervision = invoke_supervisor(supervisor, command, report)
+            memory_regions = []
+            def sample_hook(sample):
+                if args.memory_regions and not memory_regions and sample['elapsed_ms'] >= 3000 and sample['phase'] == 'running':
+                    from h19_memory_regions import inspect_owned_regions
+                    probe = {'trigger_elapsed_ms': sample['elapsed_ms'], 'processes': []}
+                    memory_regions.append(probe)
+                    for process in sample['resource_usage']['processes'][:16]:
+                        row = inspect_owned_regions(module, (process['pid'], process['birth']))
+                        row['role'] = process['role']
+                        probe['processes'].append(row)
+            supervision = invoke_supervisor(supervisor, command, report, on_sample=sample_hook)
+            if args.memory_regions:
+                save_json(output / 'memory-regions.json', memory_regions)
+                report['memory_regions_diagnostic'] = True
             if canary:
                 canary.close()
                 report['owned_loopback_canary'] = {'bound': True, 'accepted_connections': canary.connections, 'connections': canary.connections, 'closed': True,
@@ -252,7 +266,20 @@ def main(argv=None):
             identities = [tuple(item[k] for k in ('instance', 'generation', 'epoch')) for item in entries]
             require(len(set(identities)) == len(identities), 'DUPLICATE_INSTANCE_GENERATION')
             goal = 'goal' in build_report.get('profile', '')
-            report['instances'] = [collect_instance(fixture, output, item, args.png, goal) for item in entries]
+            frame_entries = []
+            for item in entries:
+                epochs = item.get('epochs', [])
+                if epochs:
+                    for epoch in epochs:
+                        frame_item = dict(item)
+                        frame_item.update({key: epoch[key] for key in ('epoch', 'width', 'height', 'first_paint_ns', 'first_nontransparent_paint_ns')})
+                        frame_item.update(browser_created_ns=item['created_ns'], browser_closed_ns=item['closed_ns'],
+                                          created_ns=epoch['started_ns'], closed_ns=epoch['ended_ns'],
+                                          timing_scope='frame_epoch', epoch_record=epoch)
+                        frame_entries.append(frame_item)
+                else:
+                    frame_entries.append(item)
+            report['instances'] = [collect_instance(fixture, output, item, args.png, goal) for item in frame_entries]
             healthy_exit = supervision.get('reason') == 'exit' and supervision.get('returncode') == 0
             cleanup = supervision.get('final_cleanup_observed_tree') is True and supervision.get('final_remaining_observed_pids') == []
             memory = supervision.get('peak_tree_rss_kib', 2**63) <= args.rss_limit_mib*1024

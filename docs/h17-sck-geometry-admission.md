@@ -6,7 +6,7 @@ Estado: **PASS** del contrato offline; captura física con este cambio
 ## Evidencia y causa
 
 `var/evidence/h17-capture-b9-owner/owner.log` conserva una selección inicial
-de 680×452 y una sustitución posterior de la misma identidad propia con
+de 680×452 y una ventana sustituta con ID distinto y el mismo PID propio, con
 `SCWindow.frame` de 0×0. La observación del filtro y de la configuración
 también era 0×0; `SCStream` terminó con error -3812. El chequeo de ID/PID
 permitía admitir la ventana aunque macOS todavía no publicaba dimensiones

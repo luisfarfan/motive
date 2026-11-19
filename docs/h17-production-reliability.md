@@ -70,6 +70,28 @@ se marcan como hipótesis. «Prueba» especifica qué falta para cerrar el alcan
 3. Show Control: [causa/contratos](h17-show-control-verification.md).
 4. Output/audio: [auditoría y límites](h17-output-audio-verification.md).
 
+## Regresión del código candidato
+
+`var/evidence/h17-regression-final/` conserva comandos, logs, exit codes,
+duraciones y hashes de src/native/show-control/scripts/Cargo/build. El guard
+de geometría y el protocolo pre-tick estaban incluidos; sus inputs no
+cambiaron durante las comprobaciones. El guard se consolidó después en
+`f702c31`, sin cambiar los bytes ensayados.
+
+| Comprobación | Resultado |
+|---|---|
+| Rust, con ui-profiler habilitado | PASS, 120 tests, ninguno omitido |
+| Python de scripts | PASS, 145 tests |
+| Clippy, all-targets + ui-profiler, warnings como error | PASS |
+| Check release con GPUI Fast opt-in | PASS |
+| Formato Rust y diff | PASS |
+| Admisión OBS previa y geometría | PASS, 8 + 22 casos con libobs real; ASan/UBSan y sintaxis Objective-C |
+
+Los contratos nativos usan condiciones sintéticas y no sustituyen captura
+física. Los tests de la librería Show Control y del ownership de scene items
+se conservan en sus checkpoints anteriores. La candidata de producto se
+empaqueta en release predeterminado, sin ui-profiler ni GPUI Fast.
+
 ## Datos persistentes y cierre de la fase nativa
 
 El recorrido GPUI guardó exclusivamente la composición controlada, su mixer

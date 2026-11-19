@@ -1,0 +1,646 @@
+{
+  "schema_version": 1,
+  "status": "PARTIAL",
+  "scope": "read-only audit of three real short owned CEF resource trials; full frozen protocol not accepted",
+  "reviewed_on": "2026-11-19T00:16:48.750389+00:00",
+  "native_executed_by_this_review": false,
+  "historical_sources_modified": false,
+  "source_path_base": "web-host-lab",
+  "artifact": {
+    "executable_sha256": "4f77eea5e899f98ad57cb3a4bed047dcb0c87a8b8d784a361ac73606d2fca8f7",
+    "build_report": "evidence/H18-native-ephemeral-build.json",
+    "build_report_sha256": "5ae8e25310ee64f259a214e67c24e9b96264f886efa9c6dac3c087eae57d1bf3",
+    "collector_sha256": {
+      "poc/browser-host/supervisor.py": "855e474d9b56ee7aedf36db4a39465573208d88f10580c79cef28ad800b2dd18",
+      "tools/run_owned_fixture.py": "c4f2dbe4ae0b72f48589e7b424364c7e7279d15e4270c5adfb34c311081f9346",
+      "tools/run_owned_host_experiment.py": "414955404de73198241c93a7e9ff854682f764eed94a15bac16bed459a783216"
+    },
+    "credential_backend": "chromium-use-mock-keychain",
+    "topology": "one owned smoke widget per independent CEF host",
+    "viewport_fps": [
+      640,
+      360,
+      30
+    ],
+    "requested_duration_ms": 5000,
+    "cpu_timebase": {
+      "numer": 125,
+      "denom": 3
+    }
+  },
+  "validation": {
+    "status": "PASS",
+    "host_samples_recomputed": 93,
+    "process_rows_recomputed": 476,
+    "checks": [
+      "Every embedded supervision object matches its retained host supervision.json.",
+      "Raw user+system Mach ticks convert to recorded CPU ns with the declared 125/3 timebase.",
+      "Consecutive PID/birth/start-identity differences, per-host CPU deltas/wall intervals and experiment CPU sum/rate recompute.",
+      "Per-process footprint sums, available per-host peaks and aggregate latest-observation sums/peaks recompute.",
+      "Aggregate rows replay against the exact per-host sample sequences without mismatch.",
+      "Reported process/role totals reconcile; four observed processes in N=5 have no successful rusage role.",
+      "No retained host sample was dropped; all final observed PID lists are empty.",
+      "All three trials pin the same native binary, build report and collector hashes."
+    ]
+  },
+  "formulas": {
+    "cpu_ns": "floor((ri_user_time_ticks + ri_system_time_ticks) * timebase.numer / timebase.denom)",
+    "valid_cpu_delta_ns": "cpu_ns_now - cpu_ns_previous only for consecutive matching PID/birth/proc_start_abstime; unavailable intervals remain null",
+    "host_interval_cpu_percent": "100 * sum(valid process CPU deltas) / actual monotonic interval_ns",
+    "experiment_cpu_percent": "100 * sum(all valid host CPU deltas) / (last host join - experiment start)_ns; denominator includes startup, shutdown and diagnostic collection, while numerator excludes collector and unobserved CPU",
+    "latest_tree_rss_kib": "sum(latest observed RSS_kib for each currently tracked host); RSS can double-count shared pages",
+    "latest_tree_footprint_bytes": "sum(latest available host ri_phys_footprint sums) only when every latest tracked host has a complete observed-identity memory sample; otherwise null",
+    "maximum_available": "max(non-null sampled values), not a continuous-time or steady-state bound"
+  },
+  "sources": [
+    {
+      "path": "evidence/H18-perf-owned-1-first/report.json",
+      "sha256": "928193dfd6daa7528c4ed42c05ac96353db6cc645195f16daa75d982b795ceb6",
+      "bytes": 108835
+    },
+    {
+      "path": "evidence/H18-native-ephemeral-build.json",
+      "sha256": "5ae8e25310ee64f259a214e67c24e9b96264f886efa9c6dac3c087eae57d1bf3",
+      "bytes": 16993
+    },
+    {
+      "path": "evidence/H18-perf-owned-1-first/host-1/supervision.json",
+      "sha256": "844d96df7008046ca24b527ed250916c431ca339705fde03c25cf05b82920d5d",
+      "bytes": 76849
+    },
+    {
+      "path": "evidence/H18-perf-owned-3-first/report.json",
+      "sha256": "4db86fe8ef87af0ae289afbafc215f9a8e61ce7238e18e219baa0d6872250c40",
+      "bytes": 302408
+    },
+    {
+      "path": "evidence/H18-perf-owned-3-first/host-1/supervision.json",
+      "sha256": "26e666b2f2b5206e7c4b3e0f017ed41d26f9229de5ecb99929f0e4dc21085a0e",
+      "bytes": 72656
+    },
+    {
+      "path": "evidence/H18-perf-owned-3-first/host-2/supervision.json",
+      "sha256": "e57320789649804cb34bf03fb39c7cc9655cd801a10b620ced360b78f7edf765",
+      "bytes": 72671
+    },
+    {
+      "path": "evidence/H18-perf-owned-3-first/host-3/supervision.json",
+      "sha256": "190a0ea4240b2ed61b8b4c15061f2de626f4e23d57606eeb2decf1ecc922033e",
+      "bytes": 72763
+    },
+    {
+      "path": "evidence/H18-perf-owned-5-first/report.json",
+      "sha256": "f0bdca7eb26d2ed32b526af3eceb3bb7f21146180814c6763d575708a7f35171",
+      "bytes": 104995
+    },
+    {
+      "path": "evidence/H18-perf-owned-5-first/host-1/supervision.json",
+      "sha256": "5283f7663f69080a992d9ad97624eaa041506fd38d8caf22b0248cf5f46027d0",
+      "bytes": 10930
+    },
+    {
+      "path": "evidence/H18-perf-owned-5-first/host-2/supervision.json",
+      "sha256": "120a04be736b1b0bd4881f3db3fc85372f0e479fdab8b78e7ac8bbb6ccaaddd4",
+      "bytes": 9240
+    },
+    {
+      "path": "evidence/H18-perf-owned-5-first/host-3/supervision.json",
+      "sha256": "51bbd8d2cb352ea9e2de1ca81c299a3aa63e96516da08d04396c584349cdbba0",
+      "bytes": 10923
+    },
+    {
+      "path": "evidence/H18-perf-owned-5-first/host-4/supervision.json",
+      "sha256": "bd5f1cfeffdcedef5b164a5a6811c14f820a2fb09402b5cf9ac3d749dc945d47",
+      "bytes": 10348
+    },
+    {
+      "path": "evidence/H18-perf-owned-5-first/host-5/supervision.json",
+      "sha256": "47ee1162fe1946a0dbd58ae26850cbd7e371a85f8755dfe0420ff21986151f48",
+      "bytes": 14999
+    }
+  ],
+  "scenarios": [
+    {
+      "hosts_requested": 1,
+      "source_report": {
+        "path": "evidence/H18-perf-owned-1-first/report.json",
+        "sha256": "928193dfd6daa7528c4ed42c05ac96353db6cc645195f16daa75d982b795ceb6",
+        "bytes": 108835
+      },
+      "reported_status": "PASS",
+      "interpretation": "short cold-start trial completed; no steady-state capacity claim",
+      "requested": {
+        "aggregate_rss_limit_mib": 2048,
+        "deadline_seconds": 10.0,
+        "duration_ms": 5000,
+        "fps": 30,
+        "height": 360,
+        "sample_interval_ms": 250,
+        "width": 640
+      },
+      "execution_wall_seconds": 5.42251125,
+      "observed_unique_processes": 7,
+      "resource_observed_roles": {
+        "alerts_helper": 1,
+        "browser_host": 1,
+        "helper_unspecified": 3,
+        "renderer_helper": 2
+      },
+      "unclassified_or_unsampled_processes": 0,
+      "cpu": {
+        "observed_delta_ns": 659033832,
+        "launch_to_join_wall_ns": 5422511250,
+        "observed_percent_one_core": 12.153664632784302,
+        "valid_host_cpu_intervals": 18,
+        "steady_state_percent": null,
+        "nominal_run_completed": true
+      },
+      "rss": {
+        "peak_latest_observation_kib": 674512,
+        "peak_latest_observation_mib": 658.703125,
+        "limit_kib": 2097152,
+        "headroom_kib": 1422640,
+        "emergency_triggered": false,
+        "peak_row": {
+          "latest_observed_tree_phys_footprint_bytes": 376937192,
+          "latest_observed_tree_rss_kib": 674512,
+          "monotonic_ns": 125292049102291,
+          "observed_hosts": 1,
+          "oldest_observation_age_ns": 0,
+          "reporting_host": 1
+        },
+        "first_limit_crossing_row": null
+      },
+      "physical_footprint": {
+        "maximum_available_latest_observation_bytes": 385473232,
+        "maximum_available_latest_observation_mib": 367.6159210205078,
+        "available_at_rss_peak": 376937192,
+        "peak_row": {
+          "latest_observed_tree_phys_footprint_bytes": 385473232,
+          "latest_observed_tree_rss_kib": 672064,
+          "monotonic_ns": 125288422289750,
+          "observed_hosts": 1,
+          "oldest_observation_age_ns": 0,
+          "reporting_host": 1
+        },
+        "scope": "asynchronous sum of latest available per-host physical footprint, not unique physical pages",
+        "incomplete_at_emergency": false,
+        "steady_state_peak_bytes": null
+      },
+      "sampling": {
+        "aggregate_rows": 20,
+        "host_rows": 20,
+        "process_rows": 108,
+        "partial_host_rows": 4,
+        "aggregate_rows_with_all_requested_hosts": 20,
+        "available_footprint_rows_with_all_requested_hosts": 19,
+        "actual_interval_ms": {
+          "minimum": 273.455375,
+          "median": 279.362125,
+          "maximum": 287.997291
+        },
+        "dropped_rows": 0,
+        "max_latest_host_callback_age_ms": 0.0,
+        "callback_age_limit": "Reported callback receipt age excludes prior process-snapshot collection latency."
+      },
+      "cleanup": {
+        "all_observed_trees_clean": true,
+        "scope": "observed PID/birth identities; not proof against unobserved hostile escape"
+      },
+      "gpu_percent": null,
+      "hosts": [
+        {
+          "host": 1,
+          "native_host_executed": true,
+          "reason": "exit",
+          "returncode": 0,
+          "observed_processes": 7,
+          "roles_with_successful_rusage": {
+            "alerts_helper": 1,
+            "browser_host": 1,
+            "helper_unspecified": 3,
+            "renderer_helper": 2
+          },
+          "samples": 20,
+          "partial_samples": 4,
+          "valid_cpu_intervals": 18,
+          "cpu_observed_delta_ns": 659033832,
+          "cpu_measured_wall_delta_ns": 5030985416,
+          "complete_memory_samples": 19,
+          "final_cleanup_observed_tree": true,
+          "final_remaining_observed_pids": [],
+          "frame_delivery_gate": "PASS",
+          "orderly_shutdown_gate": "PASS",
+          "alpha_gate": "PASS"
+        }
+      ]
+    },
+    {
+      "hosts_requested": 3,
+      "source_report": {
+        "path": "evidence/H18-perf-owned-3-first/report.json",
+        "sha256": "4db86fe8ef87af0ae289afbafc215f9a8e61ce7238e18e219baa0d6872250c40",
+        "bytes": 302408
+      },
+      "reported_status": "PASS",
+      "interpretation": "short cold-start trial completed; no steady-state capacity claim",
+      "requested": {
+        "aggregate_rss_limit_mib": 2048,
+        "deadline_seconds": 10.0,
+        "duration_ms": 5000,
+        "fps": 30,
+        "height": 360,
+        "sample_interval_ms": 250,
+        "width": 640
+      },
+      "execution_wall_seconds": 5.591450958,
+      "observed_unique_processes": 21,
+      "resource_observed_roles": {
+        "alerts_helper": 3,
+        "browser_host": 3,
+        "helper_unspecified": 9,
+        "renderer_helper": 6
+      },
+      "unclassified_or_unsampled_processes": 0,
+      "cpu": {
+        "observed_delta_ns": 1843912124,
+        "launch_to_join_wall_ns": 5591450958,
+        "observed_percent_one_core": 32.977345913439734,
+        "valid_host_cpu_intervals": 51,
+        "steady_state_percent": null,
+        "nominal_run_completed": true
+      },
+      "rss": {
+        "peak_latest_observation_kib": 2041104,
+        "peak_latest_observation_mib": 1993.265625,
+        "limit_kib": 2097152,
+        "headroom_kib": 56048,
+        "emergency_triggered": false,
+        "peak_row": {
+          "latest_observed_tree_phys_footprint_bytes": 1156305224,
+          "latest_observed_tree_rss_kib": 2041104,
+          "monotonic_ns": 125297751173666,
+          "observed_hosts": 3,
+          "oldest_observation_age_ns": 91041,
+          "reporting_host": 3
+        },
+        "first_limit_crossing_row": null
+      },
+      "physical_footprint": {
+        "maximum_available_latest_observation_bytes": 1191334192,
+        "maximum_available_latest_observation_mib": 1136.1448211669922,
+        "available_at_rss_peak": 1156305224,
+        "peak_row": {
+          "latest_observed_tree_phys_footprint_bytes": 1191334192,
+          "latest_observed_tree_rss_kib": 2037184,
+          "monotonic_ns": 125295107510083,
+          "observed_hosts": 3,
+          "oldest_observation_age_ns": 69042,
+          "reporting_host": 2
+        },
+        "scope": "asynchronous sum of latest available per-host physical footprint, not unique physical pages",
+        "incomplete_at_emergency": false,
+        "steady_state_peak_bytes": null
+      },
+      "sampling": {
+        "aggregate_rows": 57,
+        "host_rows": 57,
+        "process_rows": 306,
+        "partial_host_rows": 12,
+        "aggregate_rows_with_all_requested_hosts": 55,
+        "available_footprint_rows_with_all_requested_hosts": 52,
+        "actual_interval_ms": {
+          "minimum": 278.22075,
+          "median": 294.54449999999997,
+          "maximum": 351.765958
+        },
+        "dropped_rows": 0,
+        "max_latest_host_callback_age_ms": 349.89275,
+        "callback_age_limit": "Reported callback receipt age excludes prior process-snapshot collection latency."
+      },
+      "cleanup": {
+        "all_observed_trees_clean": true,
+        "scope": "observed PID/birth identities; not proof against unobserved hostile escape"
+      },
+      "gpu_percent": null,
+      "hosts": [
+        {
+          "host": 1,
+          "native_host_executed": true,
+          "reason": "exit",
+          "returncode": 0,
+          "observed_processes": 7,
+          "roles_with_successful_rusage": {
+            "alerts_helper": 1,
+            "browser_host": 1,
+            "helper_unspecified": 3,
+            "renderer_helper": 2
+          },
+          "samples": 19,
+          "partial_samples": 4,
+          "valid_cpu_intervals": 17,
+          "cpu_observed_delta_ns": 626977876,
+          "cpu_measured_wall_delta_ns": 5032576291,
+          "complete_memory_samples": 18,
+          "final_cleanup_observed_tree": true,
+          "final_remaining_observed_pids": [],
+          "frame_delivery_gate": "PASS",
+          "orderly_shutdown_gate": "PASS",
+          "alpha_gate": "PASS"
+        },
+        {
+          "host": 2,
+          "native_host_executed": true,
+          "reason": "exit",
+          "returncode": 0,
+          "observed_processes": 7,
+          "roles_with_successful_rusage": {
+            "alerts_helper": 1,
+            "browser_host": 1,
+            "helper_unspecified": 3,
+            "renderer_helper": 2
+          },
+          "samples": 19,
+          "partial_samples": 4,
+          "valid_cpu_intervals": 17,
+          "cpu_observed_delta_ns": 624830665,
+          "cpu_measured_wall_delta_ns": 5031936334,
+          "complete_memory_samples": 18,
+          "final_cleanup_observed_tree": true,
+          "final_remaining_observed_pids": [],
+          "frame_delivery_gate": "PASS",
+          "orderly_shutdown_gate": "PASS",
+          "alpha_gate": "PASS"
+        },
+        {
+          "host": 3,
+          "native_host_executed": true,
+          "reason": "exit",
+          "returncode": 0,
+          "observed_processes": 7,
+          "roles_with_successful_rusage": {
+            "alerts_helper": 1,
+            "browser_host": 1,
+            "helper_unspecified": 3,
+            "renderer_helper": 2
+          },
+          "samples": 19,
+          "partial_samples": 4,
+          "valid_cpu_intervals": 17,
+          "cpu_observed_delta_ns": 592103583,
+          "cpu_measured_wall_delta_ns": 5032830209,
+          "complete_memory_samples": 18,
+          "final_cleanup_observed_tree": true,
+          "final_remaining_observed_pids": [],
+          "frame_delivery_gate": "PASS",
+          "orderly_shutdown_gate": "PASS",
+          "alpha_gate": "PASS"
+        }
+      ]
+    },
+    {
+      "hosts_requested": 5,
+      "source_report": {
+        "path": "evidence/H18-perf-owned-5-first/report.json",
+        "sha256": "f0bdca7eb26d2ed32b526af3eceb3bb7f21146180814c6763d575708a7f35171",
+        "bytes": 104995
+      },
+      "reported_status": "FAIL",
+      "interpretation": "aborted during cold startup by aggregate RSS emergency limit; no five-host steady-state result",
+      "requested": {
+        "aggregate_rss_limit_mib": 2048,
+        "deadline_seconds": 10.0,
+        "duration_ms": 5000,
+        "fps": 30,
+        "height": 360,
+        "sample_interval_ms": 250,
+        "width": 640
+      },
+      "execution_wall_seconds": 1.334933334,
+      "observed_unique_processes": 34,
+      "resource_observed_roles": {
+        "alerts_helper": 4,
+        "browser_host": 5,
+        "helper_unspecified": 15,
+        "renderer_helper": 6
+      },
+      "unclassified_or_unsampled_processes": 4,
+      "cpu": {
+        "observed_delta_ns": 1750805579,
+        "launch_to_join_wall_ns": 1334933334,
+        "observed_percent_one_core": 131.15303471776218,
+        "valid_host_cpu_intervals": 11,
+        "steady_state_percent": null,
+        "nominal_run_completed": false
+      },
+      "rss": {
+        "peak_latest_observation_kib": 2949296,
+        "peak_latest_observation_mib": 2880.171875,
+        "limit_kib": 2097152,
+        "headroom_kib": -852144,
+        "emergency_triggered": true,
+        "peak_row": {
+          "latest_observed_tree_phys_footprint_bytes": null,
+          "latest_observed_tree_rss_kib": 2949296,
+          "monotonic_ns": 125299295588000,
+          "observed_hosts": 5,
+          "oldest_observation_age_ns": 74990750,
+          "reporting_host": 1
+        },
+        "first_limit_crossing_row": {
+          "latest_observed_tree_phys_footprint_bytes": null,
+          "latest_observed_tree_rss_kib": 2277616,
+          "monotonic_ns": 125299266518291,
+          "observed_hosts": 5,
+          "oldest_observation_age_ns": 345093708,
+          "reporting_host": 3
+        }
+      },
+      "physical_footprint": {
+        "maximum_available_latest_observation_bytes": 852354368,
+        "maximum_available_latest_observation_mib": 812.8684692382812,
+        "available_at_rss_peak": null,
+        "peak_row": {
+          "latest_observed_tree_phys_footprint_bytes": 852354368,
+          "latest_observed_tree_rss_kib": 1848624,
+          "monotonic_ns": 125299220597250,
+          "observed_hosts": 5,
+          "oldest_observation_age_ns": 314176709,
+          "reporting_host": 5
+        },
+        "scope": "asynchronous sum of latest available per-host physical footprint, not unique physical pages",
+        "incomplete_at_emergency": true,
+        "steady_state_peak_bytes": null
+      },
+      "sampling": {
+        "aggregate_rows": 16,
+        "host_rows": 16,
+        "process_rows": 62,
+        "partial_host_rows": 14,
+        "aggregate_rows_with_all_requested_hosts": 12,
+        "available_footprint_rows_with_all_requested_hosts": 7,
+        "actual_interval_ms": {
+          "minimum": 300.969334,
+          "median": 343.153458,
+          "maximum": 362.556167
+        },
+        "dropped_rows": 0,
+        "max_latest_host_callback_age_ms": 357.072917,
+        "callback_age_limit": "Reported callback receipt age excludes prior process-snapshot collection latency."
+      },
+      "cleanup": {
+        "all_observed_trees_clean": true,
+        "scope": "observed PID/birth identities; not proof against unobserved hostile escape"
+      },
+      "gpu_percent": null,
+      "hosts": [
+        {
+          "host": 1,
+          "native_host_executed": true,
+          "reason": "cancelled",
+          "returncode": 0,
+          "observed_processes": 7,
+          "roles_with_successful_rusage": {
+            "alerts_helper": 1,
+            "browser_host": 1,
+            "helper_unspecified": 3,
+            "renderer_helper": 2
+          },
+          "samples": 3,
+          "partial_samples": 3,
+          "valid_cpu_intervals": 2,
+          "cpu_observed_delta_ns": 345073832,
+          "cpu_measured_wall_delta_ns": 705709625,
+          "complete_memory_samples": 3,
+          "final_cleanup_observed_tree": true,
+          "final_remaining_observed_pids": [],
+          "frame_delivery_gate": "PASS",
+          "orderly_shutdown_gate": "FAIL",
+          "alpha_gate": "PASS"
+        },
+        {
+          "host": 2,
+          "native_host_executed": true,
+          "reason": "cancelled",
+          "returncode": 5,
+          "observed_processes": 6,
+          "roles_with_successful_rusage": {
+            "browser_host": 1,
+            "helper_unspecified": 3
+          },
+          "samples": 3,
+          "partial_samples": 2,
+          "valid_cpu_intervals": 2,
+          "cpu_observed_delta_ns": 287115917,
+          "cpu_measured_wall_delta_ns": 707365375,
+          "complete_memory_samples": 3,
+          "final_cleanup_observed_tree": true,
+          "final_remaining_observed_pids": [],
+          "frame_delivery_gate": "FAIL",
+          "orderly_shutdown_gate": "FAIL",
+          "alpha_gate": "NOT_EVALUATED"
+        },
+        {
+          "host": 3,
+          "native_host_executed": true,
+          "reason": "cancelled",
+          "returncode": 0,
+          "observed_processes": 7,
+          "roles_with_successful_rusage": {
+            "alerts_helper": 1,
+            "browser_host": 1,
+            "helper_unspecified": 3,
+            "renderer_helper": 2
+          },
+          "samples": 3,
+          "partial_samples": 3,
+          "valid_cpu_intervals": 2,
+          "cpu_observed_delta_ns": 356593499,
+          "cpu_measured_wall_delta_ns": 680778875,
+          "complete_memory_samples": 2,
+          "final_cleanup_observed_tree": true,
+          "final_remaining_observed_pids": [],
+          "frame_delivery_gate": "PASS",
+          "orderly_shutdown_gate": "FAIL",
+          "alpha_gate": "PASS"
+        },
+        {
+          "host": 4,
+          "native_host_executed": true,
+          "reason": "cancelled",
+          "returncode": 5,
+          "observed_processes": 7,
+          "roles_with_successful_rusage": {
+            "alerts_helper": 1,
+            "browser_host": 1,
+            "helper_unspecified": 3
+          },
+          "samples": 3,
+          "partial_samples": 2,
+          "valid_cpu_intervals": 2,
+          "cpu_observed_delta_ns": 363748915,
+          "cpu_measured_wall_delta_ns": 683953584,
+          "complete_memory_samples": 3,
+          "final_cleanup_observed_tree": true,
+          "final_remaining_observed_pids": [],
+          "frame_delivery_gate": "FAIL",
+          "orderly_shutdown_gate": "FAIL",
+          "alpha_gate": "NOT_EVALUATED"
+        },
+        {
+          "host": 5,
+          "native_host_executed": true,
+          "reason": "cancelled",
+          "returncode": 0,
+          "observed_processes": 7,
+          "roles_with_successful_rusage": {
+            "alerts_helper": 1,
+            "browser_host": 1,
+            "helper_unspecified": 3,
+            "renderer_helper": 2
+          },
+          "samples": 4,
+          "partial_samples": 4,
+          "valid_cpu_intervals": 3,
+          "cpu_observed_delta_ns": 398273416,
+          "cpu_measured_wall_delta_ns": 952469875,
+          "complete_memory_samples": 4,
+          "final_cleanup_observed_tree": true,
+          "final_remaining_observed_pids": [],
+          "frame_delivery_gate": "PASS",
+          "orderly_shutdown_gate": "FAIL",
+          "alpha_gate": "PASS"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    "Three hosts passed the short trial with only 54.734375 MiB RSS headroom (2.672576904296875%); this is not a supported capacity limit.",
+    "Five hosts crossed the RSS emergency policy and all five were cancelled. The 131.15% CPU value describes truncated startup, not steady-state scaling.",
+    "Five-host footprint was unavailable at the RSS peak. Its 812.87 MiB available maximum cannot establish lower memory than the completed three-host run.",
+    "Five hosts yielded 34 observed processes, 30 successfully resource-classified identities; GPU-helper absence is not proof of no GPU activity.",
+    "Nominal 250 ms is the sleep target, not observed cadence; real intervals reached 362.56 ms, and asynchronous observation ages reached 357.07 ms.",
+    "shutdown_ms is the supervisor cleanup phase, not native browser close latency or a guarantee about unobserved processes.",
+    "Native C++ observation clocks and Python monotonic clocks have different origins here. No cross-clock TTFF/frame-age is derived.",
+    "oldest_observation_age_ns is measured from callback receipt, after the process snapshot; it does not bound the full age of RSS data."
+  ],
+  "limits": [
+    "One trial per topology, sequential order 1/3/5, fresh private profiles but no OS-cache flush, 10-second warmup, 60-second sampling window, repeated trials or soak.",
+    "CPU may omit process work before first/after last samples and very short processes. Collector overhead is excluded.",
+    "Memory snapshots are asynchronous; physical footprint is not coalition accounting or unique physical RAM, and RSS shared pages may be counted repeatedly.",
+    "No synchronized Python/native clock calibration, GPU metric, OBS comparison, libobs integration, third-party isolation or shared-host topology acceptance."
+  ],
+  "recommendation": {
+    "raise_memory_limit": false,
+    "repeat_same_five_host_topology_now": false,
+    "next_steps": [
+      "Keep the frozen 2 GiB aggregate RSS emergency policy.",
+      "Measure controlled one-host profiles to identify browser/helper overhead before considering more concurrent hosts.",
+      "Treat three-host data as a narrow-headroom diagnostic; repeat only under the same guard and retain every failure.",
+      "Evaluate a controlled multi-widget single-host design separately after the applicable isolation and lifecycle gates; do not infer its cost from these independent-host runs.",
+      "Complete frozen warmup/repetition/scenario requirements before a performance or capacity acceptance claim."
+    ]
+  },
+  "frozen_protocol_status": "NOT_EVALUATED",
+  "gpu_percent": null
+}

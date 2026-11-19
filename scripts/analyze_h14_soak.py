@@ -92,19 +92,31 @@ class Passes:
         return value
 
 
-def probe_media(tools, passes, path, directory, fps):
-    probe = passes.run('streams', [tools['ffprobe'], '-v', 'error', '-show_streams', '-show_format',
-        '-of', 'json', path], lambda stdout: json.load(stdout))
-    save(directory / 'streams.json', probe)
+def validate_streams(probe, expected_plan):
+    dimensions = {'1920x1080': (1920, 1080), '1280x720': (1280, 720)}
+    resolution = expected_plan.get('resolution')
+    if resolution not in dimensions:
+        raise ValueError('Unknown controlled-soak plan resolution')
+    width, height = dimensions[resolution]
+    fps = expected_plan['fps']
     video = [stream for stream in probe['streams'] if stream['codec_type'] == 'video']
     audio = [stream for stream in probe['streams'] if stream['codec_type'] == 'audio']
     if len(video) != 1 or len(audio) != 1 or len(probe['streams']) != 2:
         raise ValueError('Expected exactly one video and one audio stream')
     video, audio = video[0], audio[0]
-    if (video['codec_name'], video['width'], video['height'], Fraction(video['avg_frame_rate'])) != ('h264', 1920, 1080, Fraction(fps)):
+    if (video['codec_name'], video['width'], video['height'], Fraction(video['avg_frame_rate'])) != ('h264', width, height, Fraction(fps)):
         raise ValueError('Video format differs from the controlled soak')
     if (audio['codec_name'], int(audio['sample_rate']), audio['channels']) != ('aac', 48000, 2):
         raise ValueError('Expected AAC 48 kHz stereo')
+    return {'codec': 'h264', 'width': width, 'height': height, 'fps': fps}
+
+
+def probe_media(tools, passes, path, directory, expected_plan):
+    probe = passes.run('streams', [tools['ffprobe'], '-v', 'error', '-show_streams', '-show_format',
+        '-of', 'json', path], lambda stdout: json.load(stdout))
+    save(directory / 'streams.json', probe)
+    expected_video = validate_streams(probe, expected_plan)
+    fps = expected_plan['fps']
     frames_path = directory / 'frames.jsonl'
     frames = Timeline(1.5 / fps)
     frame_types = {}
@@ -143,7 +155,8 @@ def probe_media(tools, passes, path, directory, fps):
     passes.run('packets', [tools['ffprobe'], '-v', 'error', '-show_packets', '-show_entries',
         'packet=codec_type,stream_index,pts_time,dts_time,duration_time,size,flags',
         '-of', 'compact=p=0:nk=0', path], packet_consumer)
-    return {'probe': probe, 'frames': frames.result(), 'frame_types': frame_types,
+    return {'probe': probe, 'expected_video': expected_video,
+            'frames': frames.result(), 'frame_types': frame_types,
             'packet_timelines': {kind: {field: value.result() for field, value in fields.items()}
                                  for kind, fields in timelines.items()},
             'artifacts': {str(p.name): sha(p) for p in (frames_path, packets_path)}}, first, pts
@@ -359,7 +372,7 @@ def main():
                     raise ValueError('Finalized media hash/size changed')
                 passes = Passes(directory, args.timeout_per_pass, row)
                 fps = original['plan']['fps']
-                row['metadata'], first, pts = probe_media(tools, passes, path, directory, fps)
+                row['metadata'], first, pts = probe_media(tools, passes, path, directory, original['plan'])
                 row['pixels'] = video_pixels(tools, passes, path, directory, fps,
                     row['metadata']['frames']['count'], args.freeze_seconds)
                 duration = float(row['metadata']['probe']['format']['duration'])

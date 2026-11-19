@@ -1,14 +1,61 @@
 """Pure streaming math checks; synthetic bytes do not certify Motive media."""
 from array import array
+import copy
 import math
 import sys
 import unittest
 
+from analyze_h14_soak import validate_streams
 from h14_soak_helpers import (HashRuns, PCMStats, QuadrantFreshness, Timeline,
                               packet_origin_proof, tail_candidates, tail_status_with_ambiguity)
 
 
 class SoakAnalysisTests(unittest.TestCase):
+    @staticmethod
+    def streams(width=1920, height=1080):
+        return {'streams': [
+            {'codec_type': 'video', 'codec_name': 'h264', 'width': width,
+             'height': height, 'avg_frame_rate': '60/1'},
+            {'codec_type': 'audio', 'codec_name': 'aac', 'sample_rate': '48000',
+             'channels': 2}]}
+
+    def test_video_dimensions_match_explicit_plan_at_both_resolutions(self):
+        for width, height in ((1920, 1080), (1280, 720)):
+            for fps in (30, 60):
+                with self.subTest(width=width, height=height, fps=fps):
+                    probe = self.streams(width, height)
+                    probe['streams'][0]['avg_frame_rate'] = f'{fps}/1'
+                    result = validate_streams(probe,
+                        {'resolution': f'{width}x{height}', 'fps': fps})
+                    self.assertEqual((result['width'], result['height']), (width, height))
+
+    def test_other_supported_resolution_is_still_a_mismatch(self):
+        for actual, expected in (((1920, 1080), '1280x720'), ((1280, 720), '1920x1080')):
+            with self.subTest(actual=actual, expected=expected):
+                with self.assertRaisesRegex(ValueError, 'Video format differs'):
+                    validate_streams(self.streams(*actual), {'resolution': expected, 'fps': 60})
+
+    def test_unknown_or_missing_plan_resolution_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'Unknown controlled-soak'):
+            validate_streams(self.streams(), {'fps': 60})
+        for resolution in (None, 'full_hd1080', '640x360'):
+            with self.subTest(resolution=resolution):
+                with self.assertRaisesRegex(ValueError, 'Unknown controlled-soak'):
+                    validate_streams(self.streams(), {'resolution': resolution, 'fps': 60})
+
+    def test_format_guards_still_reject_codec_cadence_audio_and_extra_streams(self):
+        baseline = self.streams()
+        for index, field, value in ((0, 'codec_name', 'hevc'), (0, 'avg_frame_rate', '30/1'),
+                                   (1, 'sample_rate', '44100'), (1, 'channels', 1)):
+            with self.subTest(field=field, value=value):
+                changed = copy.deepcopy(baseline)
+                changed['streams'][index][field] = value
+                with self.assertRaises(ValueError):
+                    validate_streams(changed, {'resolution': '1920x1080', 'fps': 60})
+        baseline['streams'].append(copy.deepcopy(baseline['streams'][1]))
+        with self.assertRaisesRegex(ValueError, 'exactly one'):
+            validate_streams(baseline, {'resolution': '1920x1080', 'fps': 60})
+
     def test_legitimate_30_to_60_duplicates_keep_duration_and_frame_count(self):
         runs = HashRuns()
         for index in range(120):

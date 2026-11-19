@@ -65,6 +65,10 @@ struct State {
   std::string widget_entry;
   MotiveGoalBinding* goal=nullptr;
   std::atomic<uint64_t> visual_capture_after_ns{0};
+#ifdef MOTIVE_GOAL_CONTROLS
+  unsigned control_stage=0;
+  bool controls_complete=false;
+#endif
   bool bootstrap_sent=false;
   std::optional<int> primary_browser;
   const uint64_t clock_origin_ms=MonotonicNs()/1000000;
@@ -97,6 +101,19 @@ class Later final : public CefTask {
   std::function<void()> fn_;
   IMPLEMENT_REFCOUNTING(Later);
 };
+
+#ifdef MOTIVE_GOAL_CONTROLS
+bool FixedControl(std::shared_ptr<State> state,CefRefPtr<CefFrame> frame,uint32_t action,const char* phase){
+  if(state->stopping)return false;
+  std::array<uint8_t,16384> output{};const uint64_t now=MonotonicNs()/1000000-state->clock_origin_ms;
+  const auto count=motive_goal_control(state->goal,action,now,output.data(),output.size());
+  if(action==1&&count==0){state->Trace("repeated_event_rejected");return true;}
+  if(count<=0){state->Trace("fixed_control_failed");state->CloseAll();return false;}
+  state->Trace(phase);auto message=CefProcessMessage::Create(motive_bridge::DispatchMessage);
+  message->GetArgumentList()->SetString(0,std::string(reinterpret_cast<const char*>(output.data()),size_t(count)));
+  message->GetArgumentList()->SetDouble(1,double(now));frame->SendProcessMessage(PID_RENDERER,message);return true;
+}
+#endif
 
 class Client final : public CefClient, public CefRenderHandler, public CefLifeSpanHandler,
   public CefRequestHandler, public CefResourceRequestHandler, public CefPermissionHandler,
@@ -229,9 +246,33 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
     if(kind=="visual_state"){
       if(status->GetString("state")=="active"){
         s_->Trace("visual_active");uint64_t empty=0;s_->visual_capture_after_ns.compare_exchange_strong(empty,MonotonicNs()+600000000);
+#ifdef MOTIVE_GOAL_CONTROLS
+        if(s_->control_stage==0){
+          s_->control_stage=1;auto state=s_;
+          CefPostDelayedTask(TID_UI,new Later([state,frame](){FixedControl(state,frame,1,"unused_repeat_dispatch");}),100);
+          CefPostDelayedTask(TID_UI,new Later([state,frame](){if(state->stopping)return;state->control_stage=2;FixedControl(state,frame,2,"cancel_dispatched");}),800);
+        }
+#endif
       }
       if(status->GetString("state")=="ready"&&status->GetType("sequence")!=VTYPE_NULL)s_->Trace("visual_complete");
     }
+#ifdef MOTIVE_GOAL_CONTROLS
+    if(kind=="visual_state"){
+      if(status->GetString("state")=="cancelled")s_->Trace("visual_cancelled");
+      if(status->GetString("state")=="disposed")s_->Trace("visual_disposed");
+      if(status->GetString("state")=="ready"&&s_->control_stage==3)s_->Trace("visual_resumed_ready");
+    }
+    if(kind=="visual_ack"&&status->GetBool("accepted")){
+      const auto seq=status->GetInt("seq");
+      if(s_->control_stage==2&&seq==3){s_->Trace("cancel_acknowledged");s_->control_stage=3;FixedControl(s_,frame,3,"resume_dispatched");}
+      else if(s_->control_stage==3&&seq==4){s_->Trace("resume_acknowledged");s_->control_stage=4;FixedControl(s_,frame,4,"dispose_dispatched");}
+      else if(s_->control_stage==4&&seq==5){
+        s_->Trace("dispose_acknowledged");s_->control_stage=5;s_->controls_complete=true;auto state=s_;
+        // Allow the final hidden document paint to reach the independent consumer.
+        CefPostDelayedTask(TID_UI,new Later([state](){state->Trace("controls_close_task");state->CloseAll();}),250);
+      }
+    }
+#endif
     if(count>0){s_->Trace(kind=="renderer_ready"?"properties_dispatched":"goal_dispatched");auto dispatch=CefProcessMessage::Create(motive_bridge::DispatchMessage);dispatch->GetArgumentList()->SetString(0,std::string(reinterpret_cast<const char*>(output.data()),size_t(count)));dispatch->GetArgumentList()->SetDouble(1,double(now));frame->SendProcessMessage(PID_RENDERER,dispatch);}
     return true;
 #else
@@ -320,6 +361,9 @@ int RunOwnedFixture(const FixtureConfig& config,int argc,char** argv) {
     const bool frames_written=consumer.WriteReport(state->callbacks,state->busy,state->invalid,state->max_publish_ns);
     state->Trace(frames_written?"frame_report_written":"frame_report_failed");
     state->browsers.clear();app=nullptr;h16::active_state.reset();state->Trace("shutdown_enter");CefShutdown();state->Trace("shutdown_return");
+#ifdef MOTIVE_GOAL_CONTROLS
+    if(!state->controls_complete)return 10;
+#endif
     return frames_written?0:5;
   }
 }

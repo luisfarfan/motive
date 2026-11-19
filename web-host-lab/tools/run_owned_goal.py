@@ -20,7 +20,9 @@ from run_owned_fixture import (LAB, PIN, canonical_directory, collect_process_lo
 
 
 def main(argv=None):
-    args = parser().parse_args(argv)
+    options = parser()
+    options.add_argument('--control-scenario', action='store_true', help='Require the separate fixed cancel/resume/dispose build profile')
+    args = options.parse_args(argv)
     validate_options(args)
     require(args.generation is not None and args.generation <= 9007199254740991, 'EXPLICIT_SAFE_GENERATION')
     require(re.fullmatch(r'[0-9a-f]{64}', args.expected_sha256) is not None, 'EXPECTED_SHA256')
@@ -34,7 +36,8 @@ def main(argv=None):
             matches.append((report_path, report))
     require(len(matches) == 1, 'ONE_MATCHING_BUILD_REPORT')
     report_path, build = matches[0]
-    require(build.get('profile') == 'owned-goal-bridge' and build.get('status') == 'PASS' and
+    expected_profile = 'owned-goal-controls' if args.control_scenario else 'owned-goal-bridge'
+    require(build.get('profile') == expected_profile and build.get('status') == 'PASS' and
             build.get('credential_backend') == 'chromium-use-mock-keychain' and build.get('cef', {}).get('sha256') == PIN,
             'PINNED_EPHEMERAL_GOAL_ONLY')
     inventory = verify_inventory(root, build, args.expected_sha256)
@@ -42,7 +45,7 @@ def main(argv=None):
     output = Path(os.path.abspath(args.output_dir or LAB / 'evidence' / ('H18-native-' + name)))
     canonical_directory(output.parent)
     output.mkdir(mode=0o700)
-    report = {'started_utc': datetime.now(timezone.utc).isoformat(), 'launcher_sha256': sha(regular_bytes(Path(__file__), 65536)), 'status': 'FAIL', 'scope': 'fixed_owned_goal_fixture', 'native_host_executed': False,
+    report = {'started_utc': datetime.now(timezone.utc).isoformat(), 'launcher_sha256': sha(regular_bytes(Path(__file__), 65536)), 'status': 'FAIL', 'scope': 'fixed_owned_goal_controls' if args.control_scenario else 'fixed_owned_goal_fixture', 'native_host_executed': False,
               'native_host_execution_attempted': False, 'expected_executable_sha256': args.expected_sha256,
               'build_report': str(report_path.relative_to(LAB)), 'static_inventory': inventory,
               'credential_backend': build['credential_backend'], 'native_generation': args.generation,
@@ -109,6 +112,8 @@ def main(argv=None):
                     samples[sample]['derived_png_sha256'] = sha(data)
             report['samples'] = samples
             required_phases = ['bootstrap_loaded', 'renderer_ready', 'properties_dispatched', 'goal_dispatched', 'visual_active', 'visual_complete']
+            if args.control_scenario:
+                required_phases = ['bootstrap_loaded', 'renderer_ready', 'properties_dispatched', 'goal_dispatched', 'visual_active', 'repeated_event_rejected', 'cancel_dispatched', 'visual_cancelled', 'cancel_acknowledged', 'resume_dispatched', 'visual_resumed_ready', 'resume_acknowledged', 'dispose_dispatched', 'visual_disposed', 'dispose_acknowledged', 'controls_close_task']
             ipc = all(phase in phases for phase in required_phases)
             if ipc:
                 ipc = [phases.index(p) for p in required_phases] == sorted(phases.index(p) for p in required_phases)

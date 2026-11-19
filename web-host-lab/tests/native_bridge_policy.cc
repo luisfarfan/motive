@@ -21,6 +21,14 @@ int main(){
  auto n=send(R"({"kind":"renderer_ready","identity":{"instance":1,"generation":7},"native_terminal_outcome":false})",2);assert(n>0);assert(std::string(reinterpret_cast<char*>(output.data()),n).find("properties")!=std::string::npos);
  n=send(R"({"kind":"visual_ack","protocol":1,"instance":1,"generation":7,"seq":1,"accepted":true})",3);assert(n>0);const std::string goal(reinterpret_cast<char*>(output.data()),n);assert(goal.find("goal.scored")!=std::string::npos);assert(goal.find("simulation.h18")==std::string::npos);
  assert(send(R"({"kind":"visual_ack","protocol":1,"instance":1,"generation":7,"seq":1,"accepted":true})",4)<0);
+ assert(send(R"({"kind":"visual_ack","protocol":1,"instance":1,"generation":7,"seq":2,"accepted":true})",5)==0);
+ assert(motive_goal_control(binding,1,6,output.data(),output.size())==0);
+ for(uint32_t action=2;action<=4;++action){
+  assert(motive_goal_control(binding,action,7+(action-2)*2,output.data(),output.size())>0);
+  const auto ack=std::string("{\"kind\":\"visual_ack\",\"protocol\":1,\"instance\":1,\"generation\":7,\"seq\":")+std::to_string(action+1)+",\"accepted\":true}";
+  assert(send(ack,8+(action-2)*2)==0);
+ }
+ assert(motive_goal_control(binding,3,13,output.data(),output.size())<0);
  motive_goal_destroy(binding);
  std::puts("PASS pure native boundary and linked offline owner-binding FFI; no CEF transport/runtime execution");
 }

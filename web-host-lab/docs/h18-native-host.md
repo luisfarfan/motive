@@ -128,3 +128,19 @@ The first native Goal run delivered the original event through the fixed bridge 
 [The second real run](../evidence/H18-native-goal-alpha-smoke/report.json), generation 11 at 640×360, 30 FPS, for 5 seconds, passed native bootstrap/properties/event/ack/completion, exit0 and observed process cleanup. [Visual inspection](../evidence/H18-native-goal-alpha-smoke/inspection.json) confirms GOOOOL, Club del Puerto and 2:1 from actual BGRA. Its active sample has transparent and partially transparent pixels with the premultiplication bound; first/latest samples are fully transparent. These are native pixels and IPC observations, still not libobs draw, Production integration, OS confinement or a benchmark.
 
 The reproducible launcher is `tools/run_owned_goal.py`; it verifies an explicit artifact hash, profile, matching pin, helpers/framework and development signature, then uses the external supervisor with fresh private roots. Its Goal checks never apply the original smoke's red-patch/counter test. Native execution is deliberately separate from `verify_h18.py`.
+
+## Fixed native lifecycle controls
+
+The separately compiled `owned-goal-controls` profile uses a native-only enum to
+request exactly one repeat-rejection probe, cancel, resume and dispose through
+the existing Binding. JavaScript has no route to that C ABI. The repeat is
+rejected while active, without a backlog. Cancel/resume progress only after the
+expected acknowledgement; dispose revokes admission immediately. Its final
+acknowledgement is a bounded observation of the expected sequence and cannot
+reopen the binding or certify process cleanup.
+
+Five Rust tests, Clippy and the linked C++ FFI test pass without loading CEF.
+The separate artifact in `H18-native-bridge-controls-ephemeral-build.json` has
+not been executed by those checks. Its fixed native scenario requires all
+observations and independently verifies final pixels, real browser shutdown and
+external cleanup when run with `run_owned_goal.py --control-scenario`.

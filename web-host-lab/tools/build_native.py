@@ -55,9 +55,14 @@ def main():
     parser.add_argument('--jobs', type=int, default=3)
     parser.add_argument('--build-name', default='h18-native-ephemeral')
     parser.add_argument('--bridge', action='store_true')
+    parser.add_argument('--controls', action='store_true')
     parser.add_argument('--mock-keychain', action='store_true')
     args = parser.parse_args()
-    if args.bridge and args.build_name not in {'h18-native-bridge','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral'}:
+    if args.controls != (args.build_name == 'h18-native-bridge-controls-ephemeral') or (args.controls and not args.bridge):
+        raise ValueError('CONTROLS_REQUIRE_SEPARATE_BRIDGE_PROFILE')
+    if args.bridge != args.build_name.startswith('h18-native-bridge'):
+        raise ValueError('BUILD_ROOT_AND_BRIDGE_PROFILE_MUST_MATCH')
+    if args.bridge and args.build_name not in {'h18-native-bridge','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral','h18-native-bridge-controls-ephemeral'}:
         raise ValueError('BRIDGE_NEEDS_SEPARATE_BUILD_ROOT')
     if args.mock_keychain != args.build_name.endswith('-ephemeral'):
         raise ValueError('EPHEMERAL_PROFILE_AND_KEYCHAIN_BACKEND_MUST_MATCH')
@@ -66,7 +71,7 @@ def main():
     entry = next(e for e in json.loads((ROOT / 'research/sources.lock.json').read_text())['sources'] if e['id'] == 'cef-obs-7871')
     verified = verify_tree(entry, ('include/', 'libcef_dll/', 'Release/'))
     sdk = ROOT / entry['source']
-    if args.build_name not in {'h18-native-diagnostic','h18-native-close-once','h18-native-bridge','h18-native-ephemeral','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral'}:
+    if args.build_name not in {'h18-native-diagnostic','h18-native-close-once','h18-native-bridge','h18-native-ephemeral','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral','h18-native-bridge-controls-ephemeral'}:
         raise ValueError('ISOLATED_BUILD_NAME_REQUIRED')
     build = ROOT / '.cache' / args.build_name
     report_name = 'H18-native-' + args.build_name.removeprefix('h18-native-') + '-build'
@@ -77,6 +82,8 @@ def main():
         flags.append('-DMOTIVE_GOAL_BRIDGE')
     if args.mock_keychain:
         flags.append('-DMOTIVE_EPHEMERAL_KEYCHAIN')
+    if args.controls:
+        flags.append('-DMOTIVE_GOAL_CONTROLS')
     fingerprint = hashlib.sha256(json.dumps([entry['sha256'], compiler, flags]).encode()).hexdigest()[:16]
     objects = build / ('wrapper-' + fingerprint)
     if not objects.exists():
@@ -209,7 +216,7 @@ def main():
         assert digest(binary) == digest(inspection_copy)
         inspections.append({'path': str(binary.relative_to(ROOT)), 'sha256': digest(binary), 'file': run(['file', binary]).strip(), 'dependencies': run(['otool', '-L', inspection_copy]), 'dependency_inspection_sha256': digest(inspection_copy), 'code_signature': run(['codesign', '-dvv', binary])})
     # No executable is loaded to inspect its architecture or linkage.
-    report = {'status': 'PASS', 'profile': 'owned-goal-bridge' if args.bridge else 'owned-smoke', 'credential_backend': 'chromium-use-mock-keychain' if args.mock_keychain else 'chromium-default', 'native_executed': False, 'native_execution_gate': 'NOT_EVALUATED_CANDIDATE' if args.bridge else 'AUTHORIZED_OWNED_DIAGNOSTIC_NOT_RUN_BY_BUILD', 'sandbox_verified': False, 'bundle_signed_for_distribution': False, 'development_ad_hoc_sealed': True, 'signature_verification': signature_verification, 'pre_sign_framework_sha256': pre_sign_framework_sha256, 'cef': entry, 'verified_upstream_files': verified, 'wrapper_translation_units': len(sources), 'compiler': compiler, 'build_seconds': round(time.monotonic() - started, 3), 'framework_sha256': digest(framework / 'Chromium Embedded Framework'), 'binaries': inspections, 'fixture_inventory': inventory, 'broker_report': broker_report, 'source_sha256': {str(p.relative_to(ROOT)): digest(p) for p in sorted(native.iterdir()) if p.is_file()}, 'frame_bridge_sha256': digest(ROOT / 'poc/frame-bridge/src/lib.rs')}
+    report = {'status': 'PASS', 'profile': 'owned-goal-controls' if args.controls else 'owned-goal-bridge' if args.bridge else 'owned-smoke', 'credential_backend': 'chromium-use-mock-keychain' if args.mock_keychain else 'chromium-default', 'native_executed': False, 'native_execution_gate': 'NOT_EVALUATED_CANDIDATE' if args.bridge else 'AUTHORIZED_OWNED_DIAGNOSTIC_NOT_RUN_BY_BUILD', 'sandbox_verified': False, 'bundle_signed_for_distribution': False, 'development_ad_hoc_sealed': True, 'signature_verification': signature_verification, 'pre_sign_framework_sha256': pre_sign_framework_sha256, 'cef': entry, 'verified_upstream_files': verified, 'wrapper_translation_units': len(sources), 'compiler': compiler, 'build_seconds': round(time.monotonic() - started, 3), 'framework_sha256': digest(framework / 'Chromium Embedded Framework'), 'binaries': inspections, 'fixture_inventory': inventory, 'broker_report': broker_report, 'source_sha256': {str(p.relative_to(ROOT)): digest(p) for p in sorted(native.iterdir()) if p.is_file()}, 'frame_bridge_sha256': digest(ROOT / 'poc/frame-bridge/src/lib.rs')}
     (ROOT / 'evidence' / (report_name + '.json')).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ['status', 'native_executed', 'native_execution_gate', 'verified_upstream_files', 'wrapper_translation_units', 'build_seconds']}))
     print(bundle)

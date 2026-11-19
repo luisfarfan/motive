@@ -1,5 +1,5 @@
 //! Owned Goal fixture adapter. No Production authority and no package constructor.
-use motive_browser_contracts::{Identity, ipc::strict_json};
+use motive_browser_contracts::{Identity, ipc::strict_json, lifecycle::State};
 use motive_creator_binding::{Binding, FixtureReview, OfflineOwner};
 use motive_show_control::{
     model::Event,
@@ -14,6 +14,8 @@ pub struct GoalBinding {
     event: AcceptedEvent,
     goal_sent: bool,
     last_ms: u64,
+    dispose_sequence: Option<u64>,
+    dispose_acknowledged: bool,
 }
 impl GoalBinding {
     fn create(generation: u64, definition_sha256: &str) -> Result<Self, &'static str> {
@@ -46,6 +48,8 @@ impl GoalBinding {
             event,
             goal_sent: false,
             last_ms: 0,
+            dispose_sequence: None,
+            dispose_acknowledged: false,
         })
     }
     fn status(&mut self, data: &[u8], now: u64) -> Result<Option<Value>, &'static str> {
@@ -71,6 +75,22 @@ impl GoalBinding {
                 Some(self.binding.initial_properties(&self.owner, now)?)
             }
             Some("visual_ack") => {
+                if let Some(sequence) = self.dispose_sequence {
+                    if self.dispose_acknowledged
+                        || obj.len() != 6
+                        || v["protocol"] != 1
+                        || v["instance"].as_u64() != Some(id.instance)
+                        || v["generation"].as_u64() != Some(id.generation)
+                        || v["seq"].as_u64() != Some(sequence)
+                        || v["accepted"] != true
+                    {
+                        return Err("DISPOSE_ACK");
+                    }
+                    // Disposal already revoked owner admission. This final
+                    // bounded observation cannot reopen the binding or prove reap.
+                    self.dispose_acknowledged = true;
+                    return Ok(None);
+                }
                 self.binding.acknowledge(&self.owner, data)?;
                 if v["seq"] == 1 && v["accepted"] == true && !self.goal_sent {
                     self.goal_sent = true;
@@ -101,6 +121,33 @@ impl GoalBinding {
             _ => return Err("STATUS_SCHEMA"),
         };
         Ok(output.map(|d| d.envelope().clone()))
+    }
+    fn control(&mut self, action: u32, now: u64) -> Result<Option<Value>, &'static str> {
+        if now < self.last_ms {
+            return Err("CLOCK_REGRESSION");
+        }
+        self.last_ms = now;
+        let dispatch = match action {
+            1 => {
+                // Deliberately try one repeat while active; never queue it.
+                if self.binding.state() != State::Active {
+                    return Err("REPEAT_PROBE_STATE");
+                }
+                match self.binding.goal(&self.owner, &self.event, now) {
+                    Err("NOT_READY") => return Ok(None),
+                    _ => return Err("REPEAT_PROBE_UNEXPECTED"),
+                }
+            }
+            2 => self.binding.cancel(&self.owner, now)?,
+            3 => self.binding.resume(&self.owner, now)?,
+            4 => {
+                let dispatch = self.binding.dispose(&self.owner, now)?;
+                self.dispose_sequence = dispatch.envelope()["message"]["seq"].as_u64();
+                dispatch
+            }
+            _ => return Err("CONTROL_ENUM"),
+        };
+        Ok(Some(dispatch.envelope().clone()))
     }
 }
 
@@ -156,6 +203,36 @@ pub unsafe extern "C" fn motive_goal_status(
     }
 }
 /// # Safety
+/// Native owner only: live exclusive handle and output spanning capacity bytes.
+/// Fixed fixture enum: 1 repeat-rejection probe, 2 cancel, 3 resume, 4 dispose.
+/// No renderer message routes here. Zero is the expected repeat rejection.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn motive_goal_control(
+    handle: *mut GoalBinding,
+    action: u32,
+    now_ms: u64,
+    output: *mut u8,
+    capacity: usize,
+) -> isize {
+    if handle.is_null() || output.is_null() || capacity < 16384 {
+        return -1;
+    }
+    match unsafe { &mut *handle }.control(action, now_ms) {
+        Ok(Some(value)) => {
+            let Ok(bytes) = serde_json::to_vec(&value) else {
+                return -2;
+            };
+            if bytes.len() > capacity {
+                return -3;
+            }
+            unsafe { ptr::copy_nonoverlapping(bytes.as_ptr(), output, bytes.len()) };
+            bytes.len() as isize
+        }
+        Ok(None) => 0,
+        Err(_) => -4,
+    }
+}
+/// # Safety
 /// Handle is live, exclusive, and destroyed once after native callbacks stop.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn motive_goal_destroy(handle: *mut GoalBinding) {
@@ -202,5 +279,40 @@ mod tests {
         );
         assert!(s.status(&vec![b' '; 513], 3).is_err());
         assert!(s.status(b"{}", 2).is_err());
+    }
+    #[test]
+    fn fixed_native_controls_reject_repeat_cancel_resume_and_revoke_dispose() {
+        let mut s = GoalBinding::create(7, &"a".repeat(64)).unwrap();
+        let ready = status(
+            json!({"kind":"renderer_ready","identity":{"instance":1,"generation":7},"native_terminal_outcome":false}),
+        );
+        let ack = |seq| {
+            status(
+                json!({"kind":"visual_ack","protocol":1,"instance":1,"generation":7,"seq":seq,"accepted":true}),
+            )
+        };
+        s.status(&ready, 1).unwrap();
+        s.status(&ack(1), 2).unwrap();
+        s.status(&ack(2), 3).unwrap();
+        assert!(s.control(1, 4).unwrap().is_none());
+        assert_eq!(
+            s.control(2, 5).unwrap().unwrap()["message"]["kind"],
+            "cancel"
+        );
+        s.status(&ack(3), 6).unwrap();
+        assert_eq!(
+            s.control(3, 7).unwrap().unwrap()["message"]["kind"],
+            "resume"
+        );
+        s.status(&ack(4), 8).unwrap();
+        assert_eq!(
+            s.control(4, 9).unwrap().unwrap()["message"]["kind"],
+            "dispose"
+        );
+        assert!(s.control(3, 10).is_err());
+        assert!(s.status(&ack(5), 11).unwrap().is_none());
+        assert!(s.status(&ack(5), 12).is_err());
+        assert!(s.control(99, 13).is_err());
+        assert!(s.status(&ready, 14).is_err());
     }
 }

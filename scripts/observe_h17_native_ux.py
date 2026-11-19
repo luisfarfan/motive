@@ -8,6 +8,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import subprocess
 import time
 
 from verify_h14_collection import Client, default_owner, digest, lock, save
@@ -38,25 +39,45 @@ def main():
                              'lock': owner_lock, 'initial': initial})
     print('READY_FOR_NATIVE_UI', pid, flush=True)
     previous = None
+    state = initial
+    observed_exit = False
     deadline = time.monotonic() + args.seconds
     with (out / 'changes.jsonl').open('x') as events:
         while time.monotonic() < deadline and not (out / 'FINISH').exists():
             assert lock() == owner_lock, 'Canonical owner changed'
-            state = client.state()
+            try:
+                state = client.state()
+            except (OSError, ValueError):
+                # EXPECT_CLOSE declares the forthcoming real UI gesture. A
+                # failed socket alone never proves that the owner terminated.
+                if (out / 'EXPECT_CLOSE').exists():
+                    reap_deadline = time.monotonic() + 1
+                    while time.monotonic() < reap_deadline:
+                        exited = subprocess.run(['ps', '-p', str(pid), '-o', 'comm='],
+                                                capture_output=True, text=True, timeout=5)
+                        if exited.returncode == 1 and not exited.stdout.strip():
+                            observed_exit = True
+                            break
+                        time.sleep(.05)
+                    if observed_exit:
+                        break
+                raise
             assert state['pid'] == pid
             # Preserve real state only when behavior/receipts change, not every meter tick.
             key = json.dumps([state.get(k) for k in ('revision', 'last_action')]
                 + [[v.get('phase') for v in state['outputs'].values()]]
-                + [state.get('show_control', {}).get('saved_configuration')], sort_keys=True)
+                + [state.get('show_control', {}).get('last_save'),
+                   state.get('show_control', {}).get('last_save_error')], sort_keys=True)
             if key != previous:
                 events.write(json.dumps({'monotonic': time.monotonic(), 'state': state}) + '\n')
                 events.flush()
                 previous = key
             save(out / 'latest.json', state)
             time.sleep(.5)
-    final = client.state()
-    save(out / 'observer-report.json', {'status': 'PASS' if (out / 'FINISH').exists() else 'PARTIAL',
-        'scope': 'read-only observer completion, not UX acceptance', 'pid': pid, 'final': final})
+    final = state if observed_exit else client.state()
+    save(out / 'observer-report.json', {'status': 'PASS' if observed_exit or (out / 'FINISH').exists() else 'PARTIAL',
+        'scope': 'read-only observer completion, not UX acceptance', 'pid': pid,
+        'observed_owner_exit': observed_exit, 'final_observation': final})
     return 0
 
 

@@ -18,6 +18,28 @@ from verify_h13_outputs import Client, Receiver, check, profile, sha, slots, wri
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
+def select_replacement(client, window, owner_pid, attempts, retry_not_ready=False):
+    """One selection, with at most one explicitly requested retry of that identity.
+
+    Preserve rejected admission as evidence. No name matching, delay, retry of
+    other errors, or implicit retry in the product is introduced here.
+    """
+    for attempt in range(2 if retry_not_ready else 1):
+        if attempt:
+            matches = [w for w in client.call('devices')['devices']['windows']
+                       if w.get('id') == window and w.get('pid') == owner_pid and w.get('test')]
+            check(len(matches) == 1, 'same owned replacement identity before explicit retry')
+        result = client.rpc('tools/call', {'name': 'select_source', 'arguments': {'window_id': window}})
+        value = json.loads(result['content'][0]['text'])
+        check(type(value.get('ok')) is bool and result.get('isError') == (not value['ok']),
+              'selection protocol agrees with native result')
+        attempts.append({'attempt': attempt + 1, 'window_id': window, 'owner_pid': owner_pid,
+                         'monotonic': time.monotonic(), 'response': value})
+        if value['ok'] or value.get('error', {}).get('code') != 'CAPTURE_NOT_READY':
+            break
+    return value
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--lock-held', action='store_true', required=True)
@@ -25,6 +47,8 @@ def main():
     parser.add_argument('--seconds', type=int, default=30)
     parser.add_argument('--record-recovery', action='store_true',
                         help='Record a second bounded dual trial after explicit replacement; retain both media pairs.')
+    parser.add_argument('--retry-not-ready-once', action='store_true',
+                        help='Explicit test action: reselect the same owned replacement once after CAPTURE_NOT_READY; no delay or other retries.')
     parser.add_argument('--app', type=pathlib.Path, default=support.APP)
     args = parser.parse_args()
     check(10 <= args.seconds <= 120, 'bounded observation interval')
@@ -115,7 +139,16 @@ def main():
         replacement = owned_window()
         report['replacement_window_id'] = replacement
         check(replacement != window, 'new native window identity')
-        report['explicit_selection'] = client.call('select_source', window_id=replacement)
+        report['replacement_attempts'] = []
+        report['explicit_selection'] = select_replacement(client, replacement, initial['pid'],
+            report['replacement_attempts'], args.retry_not_ready_once)
+        save()
+        selection = report['explicit_selection']
+        if not selection['ok']:
+            if selection.get('error', {}).get('code') == 'CAPTURE_NOT_READY':
+                report['status'] = 'BLOCKED'
+                report['recovery'] = 'BLOCKED'
+            check(False, 'replacement admission rejected', response=selection)
         for target in ('recording', 'streaming'):
             if slots(client.state())[target]['recovery_required']:
                 client.call('recover_output_target', target=target)
@@ -166,7 +199,7 @@ def main():
                 medium.update(sha256=sha(path), bytes=path.stat().st_size)
         save()
     print(json.dumps({'output': str(directory), 'status': report['status'], 'error': report.get('error')}))
-    return int(report['status'] == 'FAIL')
+    return int(report['status'] in ('FAIL', 'BLOCKED'))
 
 
 if __name__ == '__main__':

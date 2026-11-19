@@ -7,7 +7,39 @@
 #include <cstdio>
 #include <thread>
 
+bool Conserved(const MotiveFrameStatisticsV2& s) {
+  return s.paints==s.pending+s.leased+s.coalesced+s.stale+s.consumed+
+      s.released_unconsumed+s.invalidated_close+s.revoked_generation;
+}
 int main() {
+  // Multiple real Rust mailboxes, deliberately cross-routed controlled bytes.
+  for(uint64_t instance=1;instance<=5;++instance) {
+    auto* box=motive_frames_create(instance,10,1,2,1);assert(box);
+    std::array<uint8_t,8> bytes{uint8_t(instance),0,128,128,0,0,0,0};
+    assert(motive_frames_publish(box,9,1,1,bytes.data(),bytes.size())==-2);
+    assert(motive_frames_publish(box,10,2,1,bytes.data(),bytes.size())==-2);
+    assert(motive_frames_publish(box,10,1,1,bytes.data(),bytes.size())==0);
+    MotiveFrameMetadata meta{};const uint8_t* pixels=nullptr;
+    auto* lease=motive_frames_acquire(box,1,0,&meta,&pixels);assert(lease);
+    assert(meta.instance==instance&&pixels[0]==instance);
+    assert(motive_frames_complete(lease));assert(!motive_frames_complete(lease));
+    motive_frames_release(lease);
+    assert(motive_frames_publish(box,10,1,2,bytes.data(),bytes.size())==0);
+    lease=motive_frames_acquire(box,2,0,&meta,&pixels);assert(lease);
+    assert(motive_frames_publish(box,10,1,3,bytes.data(),bytes.size())==0);
+    MotiveFrameStatisticsV2 stats{};assert(motive_frames_stats_v2(box,&stats));
+    assert(Conserved(stats)&&stats.paints==3&&stats.consumed==1&&stats.leased==1&&stats.pending==1);
+    assert(stats.retained_bytes==16&&stats.copied_bytes==24);
+    assert(!motive_frames_revoke_reason(box,99));assert(motive_frames_live(box));
+    assert(motive_frames_revoke_reason(box,1));assert(!motive_frames_lease_valid(lease));
+    assert(!motive_frames_complete(lease));
+    assert(motive_frames_stats_v2(box,&stats));
+    assert(Conserved(stats)&&stats.revoked_generation==2&&stats.invalidated_close==0);
+    assert(stats.retained_bytes==8&&stats.retained_leases==1&&stats.leased==0);
+    motive_frames_release(lease);
+    assert(motive_frames_stats_v2(box,&stats));assert(Conserved(stats)&&stats.retained_bytes==0);
+    motive_frames_destroy(box);
+  }
   for(uint64_t generation=1;generation<=100;++generation) {
     auto* box=motive_frames_create(1,generation,1,2,1);assert(box);
     std::array<uint8_t,8> pixels{0,0,128,128,0,0,0,0};
@@ -23,6 +55,8 @@ int main() {
     assert(!motive_frames_acquire(box,100,100,&other,&ignored));
     MotiveFrameStatistics stats{};assert(motive_frames_stats(box,&stats));assert(stats.coalesced==98);
     motive_frames_revoke(box);assert(!motive_frames_live(box));assert(!motive_frames_lease_valid(lease));
+    MotiveFrameStatisticsV2 final{};assert(motive_frames_stats_v2(box,&final));
+    assert(Conserved(final)&&final.invalidated_close==2&&final.paints==100);
     motive_frames_destroy(box);assert(data[2]==128);motive_frames_release(lease);
   }
   auto* box=motive_frames_create(1,101,1,2,1);assert(box);
@@ -32,8 +66,11 @@ int main() {
   while(!done.load()){
     MotiveFrameMetadata m{};const uint8_t* p=nullptr;
     auto* lease=motive_frames_acquire(box,10000,10000,&m,&p);
-    if(lease){assert(m.index>last);last=m.index;assert(motive_frames_lease_valid(lease));motive_frames_release(lease);}
+    if(lease){assert(m.index>last);last=m.index;assert(motive_frames_lease_valid(lease));assert(motive_frames_complete(lease));motive_frames_release(lease);}
   }
-  producer.join();motive_frames_destroy(box);
-  std::puts("PASS C++/Rust ABI, copied input, generation, lease/revocation, coalescing, 100 synthetic lifecycles, concurrent bounded producer/consumer; CEF NOT EXECUTED");
+  producer.join();
+  motive_frames_revoke(box);
+  MotiveFrameStatisticsV2 final{};assert(motive_frames_stats_v2(box,&final));assert(Conserved(final));
+  motive_frames_destroy(box);
+  std::puts("PASS C++/Rust ABI, copied input, generation, lease/revocation, coalescing, 100 synthetic lifecycles, five identities, exact V2 terminal accounting, concurrent bounded producer/consumer; CEF NOT EXECUTED");
 }

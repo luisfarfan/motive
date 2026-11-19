@@ -18,7 +18,11 @@ pub struct GoalBinding {
     dispose_acknowledged: bool,
 }
 impl GoalBinding {
-    fn create(generation: u64, definition_sha256: &str) -> Result<Self, &'static str> {
+    fn create(
+        instance: u64,
+        generation: u64,
+        definition_sha256: &str,
+    ) -> Result<Self, &'static str> {
         let manifest: Value = serde_json::from_str(include_str!(
             "../../../../element-lab/web-elements/goal-celebration/web-element.json"
         ))
@@ -27,7 +31,7 @@ impl GoalBinding {
         let binding = owner.review_goal_fixture(FixtureReview {
             binding_id: "goal-fixture".into(),
             definition_sha256: definition_sha256.into(),
-            identity: Identity::new(1, generation)?,
+            identity: Identity::new(instance, generation)?,
             origin: "simulation.h18-goal".into(),
             manifest,
             properties: json!({"testMode":false,"holdMs":1000}),
@@ -159,13 +163,25 @@ pub unsafe extern "C" fn motive_goal_create(
     hash: *const u8,
     length: usize,
 ) -> *mut GoalBinding {
+    unsafe { motive_goal_create_for_instance(1, generation, hash, length) }
+}
+/// # Safety
+/// Trusted native owner supplies the immutable instance and generation. `hash`
+/// spans `length` inventory bytes. Each returned binding is an independent owner.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn motive_goal_create_for_instance(
+    instance: u64,
+    generation: u64,
+    hash: *const u8,
+    length: usize,
+) -> *mut GoalBinding {
     if hash.is_null() || length != 64 {
         return ptr::null_mut();
     };
     let Ok(hash) = std::str::from_utf8(unsafe { slice::from_raw_parts(hash, length) }) else {
         return ptr::null_mut();
     };
-    match GoalBinding::create(generation, hash) {
+    match GoalBinding::create(instance, generation, hash) {
         Ok(s) => Box::into_raw(Box::new(s)),
         Err(_) => ptr::null_mut(),
     }
@@ -250,7 +266,7 @@ mod tests {
     }
     #[test]
     fn native_fixture_uses_existing_owner_grant_properties_and_event_projection() {
-        let mut s = GoalBinding::create(7, &"a".repeat(64)).unwrap();
+        let mut s = GoalBinding::create(1, 7, &"a".repeat(64)).unwrap();
         let properties=s.status(&status(json!({"kind":"renderer_ready","identity":{"instance":1,"generation":7},"native_terminal_outcome":false})),10).unwrap().unwrap();
         assert_eq!(properties["message"]["kind"], "properties");
         let goal=s.status(&status(json!({"kind":"visual_ack","protocol":1,"instance":1,"generation":7,"seq":1,"accepted":true})),11).unwrap().unwrap();
@@ -264,7 +280,7 @@ mod tests {
     }
     #[test]
     fn forged_stale_secret_and_replayed_statuses_do_not_mint_commands() {
-        let mut s = GoalBinding::create(7, &"a".repeat(64)).unwrap();
+        let mut s = GoalBinding::create(1, 7, &"a".repeat(64)).unwrap();
         for value in [
             json!({"kind":"start_recording"}),
             json!({"kind":"renderer_ready","identity":{"instance":1,"generation":6},"native_terminal_outcome":false}),
@@ -282,7 +298,7 @@ mod tests {
     }
     #[test]
     fn fixed_native_controls_reject_repeat_cancel_resume_and_revoke_dispose() {
-        let mut s = GoalBinding::create(7, &"a".repeat(64)).unwrap();
+        let mut s = GoalBinding::create(1, 7, &"a".repeat(64)).unwrap();
         let ready = status(
             json!({"kind":"renderer_ready","identity":{"instance":1,"generation":7},"native_terminal_outcome":false}),
         );
@@ -314,5 +330,27 @@ mod tests {
         assert!(s.status(&ack(5), 12).is_err());
         assert!(s.control(99, 13).is_err());
         assert!(s.status(&ready, 14).is_err());
+    }
+    #[test]
+    fn separate_instances_reject_each_others_bootstrap_and_ack() {
+        let mut a = GoalBinding::create(1, 7, &"a".repeat(64)).unwrap();
+        let mut b = GoalBinding::create(2, 7, &"a".repeat(64)).unwrap();
+        let ready = |instance| {
+            status(
+                json!({"kind":"renderer_ready","identity":{"instance":instance,"generation":7},"native_terminal_outcome":false}),
+            )
+        };
+        assert!(a.status(&ready(2), 1).is_err());
+        assert!(b.status(&ready(1), 1).is_err());
+        assert_eq!(a.status(&ready(1), 2).unwrap().unwrap()["instance"], 1);
+        assert_eq!(b.status(&ready(2), 2).unwrap().unwrap()["instance"], 2);
+        let ack = |instance| {
+            status(
+                json!({"kind":"visual_ack","protocol":1,"instance":instance,"generation":7,"seq":1,"accepted":true}),
+            )
+        };
+        assert!(b.status(&ack(1), 3).is_err());
+        assert_eq!(b.status(&ack(2), 4).unwrap().unwrap()["instance"], 2);
+        assert_eq!(a.status(&ack(1), 4).unwrap().unwrap()["instance"], 1);
     }
 }

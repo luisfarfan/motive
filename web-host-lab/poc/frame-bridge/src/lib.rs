@@ -3,7 +3,7 @@
 //! copied before publish returns. At most one lease, one pending and one copy.
 use motive_browser_contracts::{
     Identity,
-    frame::{Lease, Mailbox, Rect, Viewport},
+    frame::{Lease, Mailbox, Rect, Revocation, Viewport},
 };
 use std::{
     ptr, slice,
@@ -46,6 +46,30 @@ pub struct Statistics {
     pub coalesced: u64,
     pub acquired: u64,
     pub stale: u64,
+}
+
+/// Versioned exact terminal accounting. All fields are 64-bit host ABI integers.
+/// Acquired overlaps transitions; coalesced is replacement, not a second count.
+#[repr(C)]
+#[derive(Default, Debug, Copy, Clone)]
+pub struct StatisticsV2 {
+    pub paints: u64,
+    pub coalesced: u64,
+    pub acquired: u64,
+    pub stale: u64,
+    pub pending: u64,
+    pub leased: u64,
+    pub consumed: u64,
+    pub released_unconsumed: u64,
+    pub invalidated_close: u64,
+    pub revoked_generation: u64,
+    pub retained_leases: u64,
+    pub retained_bytes: u64,
+    pub copied_bytes: u64,
+    pub copy_ns: u64,
+    pub publish_busy: u64,
+    pub acquire_busy: u64,
+    pub consumer_busy: u64,
 }
 
 #[unsafe(no_mangle)]
@@ -161,10 +185,15 @@ pub unsafe extern "C" fn motive_frames_acquire(
 /// `lease` must be a live, unreleased lease returned by acquire.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn motive_frames_lease_valid(lease: *const FrameLease) -> bool {
-    unsafe { lease.as_ref() }.is_some_and(|l| {
-        let _ = l.lease.frame();
-        l.live.load(Ordering::Acquire)
-    })
+    unsafe { lease.as_ref() }.is_some_and(|l| l.live.load(Ordering::Acquire) && l.lease.is_valid())
+}
+/// # Safety
+/// `lease` is live and exclusively held by its sink. Call only after successful
+/// sink use; this records an observation, never audiovisual time or OS cleanup.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn motive_frames_complete(lease: *mut FrameLease) -> bool {
+    unsafe { lease.as_ref() }
+        .is_some_and(|l| l.live.load(Ordering::Acquire) && l.lease.mark_consumed())
 }
 /// # Safety
 /// `lease` must be null or one live lease, released exactly once without concurrent use.
@@ -202,14 +231,66 @@ pub unsafe extern "C" fn motive_frames_stats(
     true
 }
 /// # Safety
+/// `bridge` must be live and `stats` writable for StatisticsV2. Telemetry only.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn motive_frames_stats_v2(
+    bridge: *const Bridge,
+    stats: *mut StatisticsV2,
+) -> bool {
+    let Some(b) = (unsafe { bridge.as_ref() }) else {
+        return false;
+    };
+    if stats.is_null() {
+        return false;
+    }
+    let Ok(s) = b.mailbox.stats() else {
+        return false;
+    };
+    unsafe {
+        *stats = StatisticsV2 {
+            paints: s.paints,
+            coalesced: s.coalesced,
+            acquired: s.acquired,
+            stale: s.stale,
+            pending: s.pending,
+            leased: s.leased,
+            consumed: s.consumed,
+            released_unconsumed: s.released_unconsumed,
+            invalidated_close: s.invalidated_close,
+            revoked_generation: s.revoked_generation,
+            retained_leases: s.retained_leases,
+            retained_bytes: s.retained_bytes,
+            copied_bytes: s.copied_bytes,
+            copy_ns: s.copy_ns,
+            publish_busy: s.publish_busy,
+            acquire_busy: s.acquire_busy,
+            consumer_busy: s.consumer_busy,
+        };
+    }
+    true
+}
+/// # Safety
+/// `bridge` must be live. reason=0 is close; reason=1 is generation/viewport
+/// replacement. Any other reason fails without changing the mailbox.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn motive_frames_revoke_reason(bridge: *const Bridge, reason: u32) -> bool {
+    let reason = match reason {
+        0 => Revocation::Close,
+        1 => Revocation::Generation,
+        _ => return false,
+    };
+    let Some(b) = (unsafe { bridge.as_ref() }) else {
+        return false;
+    };
+    b.live.store(false, Ordering::Release);
+    b.mailbox.invalidate_reason(reason).is_ok()
+}
+/// # Safety
 /// `bridge` is live. Revocation invalidates leases, but their bytes remain owned
 /// until release so cancellation never becomes a use-after-free.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn motive_frames_revoke(bridge: *const Bridge) {
-    if let Some(b) = unsafe { bridge.as_ref() } {
-        b.live.store(false, Ordering::Release);
-        let _ = b.mailbox.invalidate();
-    }
+    let _ = unsafe { motive_frames_revoke_reason(bridge, 0) };
 }
 /// # Safety
 /// `bridge` must be null or a live handle, destroyed exactly once after all calls

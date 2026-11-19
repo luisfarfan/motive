@@ -1,0 +1,63 @@
+[
+  {
+    "name": "host-rust",
+    "command": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "web-host-lab/poc/browser-host/Cargo.toml"
+    ],
+    "returncode": 0,
+    "status": "PASS",
+    "log": "web-host-lab/evidence/H18-final-host-rust.log",
+    "log_sha256": "c500057a02b4c737b9200b44ef353685723edb0309788730eee998a590f4fb6e"
+  },
+  {
+    "name": "host-clippy",
+    "command": [
+      "cargo",
+      "clippy",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "web-host-lab/poc/browser-host/Cargo.toml",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "returncode": 0,
+    "status": "PASS",
+    "log": "web-host-lab/evidence/H18-final-host-clippy.log",
+    "log_sha256": "8c233a54790c4800d3dd585436af679aa838da259bfdb129412e2d51cdb75cdc"
+  },
+  {
+    "name": "host-format",
+    "command": [
+      "cargo",
+      "fmt",
+      "--manifest-path",
+      "web-host-lab/poc/browser-host/Cargo.toml",
+      "--",
+      "--check"
+    ],
+    "returncode": 0,
+    "status": "PASS",
+    "log": "web-host-lab/evidence/H18-final-host-format.log",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "host-node",
+    "command": [
+      "node",
+      "--test",
+      "web-host-lab/tests/runtime-interop.test.mjs"
+    ],
+    "returncode": 0,
+    "status": "PASS",
+    "log": "web-host-lab/evidence/H18-final-host-node.log",
+    "log_sha256": "0e16a5d2091f061eaa7024ca169388204289f603933579667a329ee5e7d33b99"
+  }
+]

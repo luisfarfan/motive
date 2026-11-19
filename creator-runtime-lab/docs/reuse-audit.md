@@ -1,8 +1,9 @@
 # H18 reuse audit — 2026-11-18
 
 Fetched `origin/main` at `15ffbad307c5439270130979dae0e9d66d92d700` before creating
-`codex/h18-creator-runtime` in `motive-h18`. No H17 handoff was received. Only
-Element Lab, Browser Host Lab and this isolated lab are writable in H18.
+`codex/h18-creator-runtime` in `motive-h18`. No H17 handoff was received. At this
+initial audit, only Element Lab, Browser Host Lab and this isolated lab were
+writable in H18. The table preserves that starting state.
 
 | Existing component | Actual capability | Reuse / required delta | H17 dependency | Test / status at start |
 |---|---|---|---|---|
@@ -25,3 +26,9 @@ integration, QA, schema/SDK/web sources; Creator Experience; Show Control packs 
 owner installer; H16 final decision, integration, build, upstream reuse, security
 and libobs adapter contracts. Native browser execution is specifically gated by
 the request and AGENTS; build/link/static inspection and non-browser tests are allowed.
+
+The owner subsequently authorized the native fixture and explicitly requested
+updating AGENTS.md to allow supervised owned-content CEF tests. That local policy
+change is the only addition outside the two implementation labs. Actual native
+results and remaining security/Production gates are in [acceptance](acceptance.md);
+the earlier BLOCKED entries above are not the current execution status.

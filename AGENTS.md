@@ -10,10 +10,13 @@ núcleo. MCP nunca transporta video ni marca el reloj multimedia. Mantener REA
 fuera del producto; investigar primero documentación oficial y código abierto.
 No copiar código, recursos ni diseños propietarios de Meld.
 
-Para automatización e inspección de páginas usar proxima-browser MCP.
-Nunca conectar a Dia ni usar CDP, DevToolsActivePort, puerto 9222,
-connectOverCDP o chrome-devtools-mcp. Si proxima-browser falla, informar y
-detener ese trabajo, sin otro navegador. Dia solo lo maneja el propietario.
+La automatización de Motive debe usar herramientas propias del proyecto, con
+procesos y perfiles aislados, contenido controlado y supervisión externa. No
+depender de servicios ni sesiones de otro proyecto. Una herramienta que falle
+no autoriza recurrir a un navegador personal: informar y detener ese recorrido.
+Nunca conectar a Dia ni a otros navegadores personales, ni usar CDP,
+DevToolsActivePort, puerto 9222, connectOverCDP o chrome-devtools-mcp.
+Dia solo lo maneja el propietario cuando pide mirar algo juntos.
 
 El desarrollo del Browser Host de Motive puede compilar y ejecutar su propio
 CEF nativo cuando la tarea requiera verificarlo, sin pedir otra excepción por

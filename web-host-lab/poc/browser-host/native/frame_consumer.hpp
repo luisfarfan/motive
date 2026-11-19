@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 #include "frame_bridge.h"
+#include "fixed_frame_file.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cerrno>
@@ -58,7 +59,7 @@ class FrameConsumer {
     for(size_t i=0;i<samples_.size();++i){const auto& sample=samples_[i];if(i)json+=',';json+="["+std::to_string(sample.index)+","+std::to_string(sample.observed)+","+std::to_string(sample.acquired)+","+std::to_string(sample.transfer)+"]";}
     MotiveFrameStatisticsV2 v2{};
     if(!motive_frames_stats_v2(mailbox_,&v2)){close(fd);return false;}
-    json+="],\"accounting_v2\":{\"paints\":"+std::to_string(v2.paints)+",\"coalesced\":"+std::to_string(v2.coalesced)+",\"acquired\":"+std::to_string(v2.acquired)+",\"stale\":"+std::to_string(v2.stale)+",\"pending\":"+std::to_string(v2.pending)+",\"leased\":"+std::to_string(v2.leased)+",\"consumed\":"+std::to_string(v2.consumed)+",\"released_unconsumed\":"+std::to_string(v2.released_unconsumed)+",\"invalidated_close\":"+std::to_string(v2.invalidated_close)+",\"revoked_generation\":"+std::to_string(v2.revoked_generation)+",\"retained_leases\":"+std::to_string(v2.retained_leases)+",\"retained_bytes\":"+std::to_string(v2.retained_bytes)+",\"copied_bytes\":"+std::to_string(v2.copied_bytes)+",\"copy_ns\":"+std::to_string(v2.copy_ns)+",\"publish_busy\":"+std::to_string(v2.publish_busy)+",\"acquire_busy\":"+std::to_string(v2.acquire_busy)+",\"consumer_busy\":"+std::to_string(v2.consumer_busy)+"},\"configured_consumer_delay_ms\":"+std::to_string(delay_ms_)+",\"onpaint_callbacks\":"+std::to_string(callbacks)+",\"onpaint_busy\":"+std::to_string(busy)+",\"onpaint_invalid\":"+std::to_string(invalid)+",\"max_publish_callback_ns\":"+std::to_string(max_publish_ns)+",\"samples_truncated\":"+std::string(sample_capacity_drops_?"true":"false")+",\"disk_write_attempts\":"+std::to_string(disk_write_attempts_)+",\"successful_disk_writes\":"+std::to_string(successful_disk_writes_)+",\"completion_rejected\":"+std::to_string(completion_rejected_)+",\"sample_capacity_drops\":"+std::to_string(sample_capacity_drops_)+"}\n";
+    json+="],\"accounting_v2\":{\"paints\":"+std::to_string(v2.paints)+",\"coalesced\":"+std::to_string(v2.coalesced)+",\"acquired\":"+std::to_string(v2.acquired)+",\"stale\":"+std::to_string(v2.stale)+",\"pending\":"+std::to_string(v2.pending)+",\"leased\":"+std::to_string(v2.leased)+",\"consumed\":"+std::to_string(v2.consumed)+",\"released_unconsumed\":"+std::to_string(v2.released_unconsumed)+",\"invalidated_close\":"+std::to_string(v2.invalidated_close)+",\"revoked_generation\":"+std::to_string(v2.revoked_generation)+",\"retained_leases\":"+std::to_string(v2.retained_leases)+",\"retained_bytes\":"+std::to_string(v2.retained_bytes)+",\"copied_bytes\":"+std::to_string(v2.copied_bytes)+",\"copy_ns\":"+std::to_string(v2.copy_ns)+",\"publish_busy\":"+std::to_string(v2.publish_busy)+",\"acquire_busy\":"+std::to_string(v2.acquire_busy)+",\"consumer_busy\":"+std::to_string(v2.consumer_busy)+"},\"configured_consumer_delay_ms\":"+std::to_string(delay_ms_)+",\"onpaint_callbacks\":"+std::to_string(callbacks)+",\"onpaint_busy\":"+std::to_string(busy)+",\"onpaint_invalid\":"+std::to_string(invalid)+",\"max_publish_callback_ns\":"+std::to_string(max_publish_ns)+",\"samples_truncated\":"+std::string(sample_capacity_drops_?"true":"false")+",\"disk_write_attempts\":"+std::to_string(disk_write_attempts_)+",\"successful_disk_writes\":"+std::to_string(successful_disk_writes_)+",\"completion_rejected\":"+std::to_string(completion_rejected_)+",\"sample_capacity_drops\":"+std::to_string(sample_capacity_drops_)+",\"latest_file_full_writes\":"+std::to_string(latest_file_.full_writes())+",\"latest_file_ftruncate_calls\":"+std::to_string(latest_file_.truncate_calls())+",\"latest_file_rejected_geometry_or_descriptor\":"+std::to_string(latest_file_.rejected())+",\"latest_file_fixed_bytes\":"+std::to_string(latest_file_.length())+"}\n";
     const bool ok=WritePixels(fd,reinterpret_cast<const uint8_t*>(json.data()),json.size());close(fd);return ok;
   }
   void Run() {
@@ -73,7 +74,7 @@ class FrameConsumer {
         if(motive_frames_lease_valid(lease)){
           bool ok=true;
           if(!seen_){ok=WritePixels(first_,pixels,size_t(meta.length));first_meta_=meta;}
-          ok=ok&&WritePixels(latest_,pixels,size_t(meta.length));
+          ok=ok&&latest_file_.Write(latest_,pixels,size_t(meta.length));
           latest_meta_=meta;++disk_write_attempts_;
           const auto threshold=visual_after_?visual_after_->load():0;
           if(!visual_seen_&&threshold&&meta.observed_ns>=threshold){
@@ -91,6 +92,7 @@ class FrameConsumer {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
+  FixedFrameFile latest_file_;
   MotiveFrameBridge* mailbox_;
   std::string root_;
   std::atomic<uint64_t>* visual_after_;

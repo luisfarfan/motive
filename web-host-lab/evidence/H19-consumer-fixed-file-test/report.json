@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "cef_executed": false,
+  "native_scope": "Synthetic C++ tempfile writer plus existing Rust mailbox and FrameConsumer; no Chromium",
+  "compile_command": [
+    "clang++",
+    "-std=c++20",
+    "-arch",
+    "arm64",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "web-host-lab/tests/native_frame_consumer.cc",
+    "web-host-lab/poc/frame-bridge/target/release/libmotive_frame_bridge.a",
+    "-framework",
+    "Security",
+    "-framework",
+    "CoreFoundation",
+    "-framework",
+    "SystemConfiguration",
+    "-lresolv",
+    "-lpthread",
+    "-o",
+    "web-host-lab/.cache/h19-consumer-fixed-file-test"
+  ],
+  "compile_returncode": 0,
+  "run_returncode": 0,
+  "source_sha256": {
+    "tests/native_frame_consumer.cc": "a8d9b9f3b7a2ffed34840633de1bbe5ae06aeb1038c9148a82fa0808ee2cec73",
+    "poc/browser-host/native/fixed_frame_file.hpp": "cd8c8f61fc094b6c727ac9e11b24873698e3dbedae9a9898663b27f2de349e5e",
+    "poc/browser-host/native/frame_consumer.hpp": "3ff332ea63649a2de5e095686ae28fdc495767a7781d8f37d05b1f234a61d5a5"
+  },
+  "cases": [
+    "initial file truncation removes old trailing bytes",
+    "every subsequent frame fully overwrites bytes",
+    "exact fixed byte length retained",
+    "shorter/longer length and changed descriptor rejected without writes",
+    "real mailbox consumes two frames; first image remains first and latest image becomes second",
+    "latest file telemetry two full writes/one ftruncate/zero geometry mismatch",
+    "pending and leased empty after revoke/join"
+  ]
+}

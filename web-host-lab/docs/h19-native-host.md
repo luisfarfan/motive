@@ -168,3 +168,50 @@ python3 web-host-lab/tools/h19_archive_build_sources.py --verify-only
 The archive tool never compiles or executes a host. It refuses changed existing
 archives, validates path/size limits and source hashes, and never fabricates
 missing source bytes.
+
+
+## Fixed-length disk consumer candidate
+
+The immutable `h19-native-multi-repro-r1-ephemeral` artifact changes only the
+laboratory latest-frame file writer: the first complete write establishes its
+length with one `ftruncate`; every later accepted write must match that byte
+length and borrowed descriptor and still performs a complete `pwrite` loop.
+There is no reduced disk sampling, skipped frame, changed consumer sleep or new
+mailbox completion rule. The first/visual file paths keep their earlier behavior.
+The helper's byte-length check is not a width/height or generation authority;
+those remain the immutable mailbox layout and native epoch admission checks.
+
+Per-epoch telemetry adds `latest_file_full_writes`,
+`latest_file_ftruncate_calls`, `latest_file_rejected_geometry_or_descriptor` and
+`latest_file_fixed_bytes`. The rejection counter name includes geometry, but its
+specific check is byte length/descriptor; it cannot independently distinguish
+same-byte-length viewports. The expected successful epoch has one length-setting
+call and a full latest-file write for every successful disk sink operation.
+Completion rejected by concurrent revocation remains separately classified.
+
+[The synthetic test](../evidence/H19-consumer-fixed-file-test/report.json) uses
+real temporary files and the actual Rust mailbox/FrameConsumer: old trailing bytes
+are removed on the first write, subsequent full writes replace every byte,
+shorter/longer writes and descriptor changes are refused without changing data,
+and two consumed frames preserve different `first.bgra`/`latest.bgra` values.
+The reusable H19 verifier now includes that C++ test, without loading Chromium.
+
+[Candidate source provenance](../evidence/H19-candidate-build-sources/index.json)
+retains the new exact source archive separately from the original eight-build
+index. The candidate executable hash is
+`8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b`.
+The code change removes redundant length-setting syscalls; it does **not** establish
+that those calls caused the measured consumer stalls, nor does it establish a
+performance improvement. The controlled old/new A/B and subsequent native evidence
+must decide that claim. Earlier Goal functional results identify their original
+immutable builds and do not automatically accept this candidate's Goal profile.
+
+To archive only a new build, use a fresh output directory and its exact report:
+
+```sh
+python3 web-host-lab/tools/h19_archive_build_sources.py \
+  --build-report evidence/H19-native-multi-repro-r1-ephemeral-build.json \
+  --output evidence/H19-candidate-build-sources
+python3 web-host-lab/tools/h19_archive_build_sources.py \
+  --output evidence/H19-candidate-build-sources --verify-only
+```

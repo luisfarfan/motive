@@ -198,6 +198,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', default='evidence/H19-build-sources')
     parser.add_argument('--verify-only', action='store_true')
+    parser.add_argument('--build-report', action='append', help='Select an H19 build report path relative to the lab; repeat for multiple artifacts.')
     args = parser.parse_args()
     output = lab_path(args.output)
     if args.verify_only:
@@ -211,7 +212,10 @@ def main():
                           'recorded_hash_coverage': index['recorded_hash_coverage']}))
         return
     output.mkdir(parents=True, exist_ok=True)
-    reports = sorted((LAB / 'evidence').glob('H19-native-*-build.json'))
+    reports = sorted({lab_path(path) for path in args.build_report}) if args.build_report else sorted((LAB / 'evidence').glob('H19-native-*-build.json'))
+    for report in reports:
+        if report.parent != LAB / 'evidence' or not report.match('H19-native-*-build.json'):
+            raise ValueError('H19_BUILD_REPORT_REQUIRED')
     rows = [preserve(path, output) for path in reports]
     index = {'format': 1, 'native_executed': False, 'archive_integrity': 'PASS',
              'recorded_hash_coverage': 'PASS' if all(r['recorded_hash_coverage'] == 'PASS' for r in rows) else 'PARTIAL',

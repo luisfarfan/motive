@@ -241,7 +241,7 @@ fn admission_is_bounded_and_context_browser_identity_are_not_reused() {
     );
     assert_eq!(
         manager.get(a).unwrap().descriptor().origin(),
-        "motive-asset://i1-g1"
+        "motive://i1-g1/"
     );
 }
 

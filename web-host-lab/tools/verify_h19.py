@@ -49,7 +49,7 @@ def main():
     manifest=LAB/'poc/frame-bridge/Cargo.toml'
     if check('bridge-release',['cargo','build','--offline','--locked','--release','--features','creator-bridge','--manifest-path',manifest]):
         lib=LAB/'poc/frame-bridge/target/release/libmotive_frame_bridge.a'
-        for name,file,link in [('frame-abi','frame_bridge.cc',True),('multi-policy','native_multi_policy.cc',False),('bridge-policy','native_bridge_policy.cc',True)]:
+        for name,file,link in [('frame-abi','frame_bridge.cc',True),('frame-consumer','native_frame_consumer.cc',True),('multi-policy','native_multi_policy.cc',False),('bridge-policy','native_bridge_policy.cc',True)]:
             binary=output/name
             command=['clang++','-std=c++20','-arch','arm64','-O2','-Wall','-Wextra','-Werror',LAB/'tests'/file]
             if link:command += [lib,'-framework','Security','-framework','CoreFoundation','-framework','SystemConfiguration','-lresolv','-lpthread']

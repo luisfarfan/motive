@@ -64,3 +64,43 @@ non-browser tests. Read [the artifact and scoped execution gate](docs/h18-native
 [per-surface security matrix](docs/h18-security-checkpoint.md) and
 [H18 static results](evidence/H18-static-summary.json). H16 documents above are
 historical; H18 does not rewrite their earlier unlinked state or acceptance.
+
+
+## H19 continuation
+
+**H19 remains PARTIAL; third-party execution and production Keychain remain
+BLOCKED.** Read the [Spanish executive report and acceptance matrix](docs/h19-results.md).
+The H16/H18 sections above remain historical records.
+
+H19 implements one native AppKit/CEF host with multiple owned browsers, separate
+contexts/origins, instance/generation/epoch routing, complete frame accounting,
+bounded lifecycle and a compiled owner-side manager contract. No Production,
+GPUI, integrated libobs or Show Control code changed.
+
+- The selected candidate passed nine sustained animated runs: 1/3/5 owned smoke
+  widgets, 640×360 at 30 FPS, 10 s warmup plus 60 s measured, three repetitions.
+  Five reached 1251.91 MiB sampled peak RSS under the unchanged 2048 MiB limit.
+  Six static/mixed runs and six candidate Goal regressions also passed their
+  scoped checks. These are native disk-consumer observations, not AV output FPS.
+- A redundant per-frame `ftruncate` was removed while retaining every full pixel
+  write. The original three-widget cadence failure is preserved. The candidate's
+  measured improvement is kept separate from causal CPU/RAM claims.
+- The 600 s host session passed stable-window cadence, frame accounting and
+  observed cleanup, but its combined lifecycle **failed peer continuity**:
+  resizing C coincided with a 458.98 ms gap in D, above the 250 ms gate.
+  Aggregate footprint increased 77.12 MiB while RSS fell. This is not evidence
+  of flat memory or leak freedom; hot resize is not accepted for Production.
+- [Security](docs/h19-security.md) includes real owned renderer file-open denials
+  and the pinned Chromium Keychain startup path. Neither the narrow denial nor
+  the explicit mock Keychain backend accepts arbitrary third-party HTML/JS.
+- [Memory analysis](docs/h19-memory-analysis.md), [architecture](docs/h19-architecture.md),
+  [future Browser/OBS contract](docs/h19-h20-contract.md) and
+  [distribution audit](docs/h19-distribution.md) retain each remaining gate.
+
+Run `python3 web-host-lab/tools/verify_h19.py` for isolated static/synthetic
+verification; it does not launch CEF. Native reproduction uses immutable hashes,
+fresh build names and owned fixtures described in [the native-host guide](docs/h19-native-host.md).
+Before any build or physical/native trial on the shared Mac, acquire the common
+`motive/var/run/physical-test.lock` directory via exclusive `mkdir`, then write
+the `OWNER` file inside it. Release only your own lock after cleanup. Coordination with the separate H20
+capture worktree is not authorization to integrate this Browser Host.

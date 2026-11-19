@@ -1,0 +1,58 @@
+{
+  "repository": "apple-oss-distributions/xnu",
+  "commit": "f6217f891ac0bb64f3d375211650a4c1ff8ca1ea",
+  "scope": "Public source unit contract; not a binary-to-source attestation of the running kernel. No runtime probe.",
+  "files": [
+    {
+      "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/osfmk/kern/task.c",
+      "path": "web-host-lab/.cache/h19-xnu-cpu-source/osfmk/kern/task.c",
+      "sha256": "f5ea4822b15aca636c4d940679e878904729b88acf312821d2ebacbf69312f71",
+      "bytes": 306978
+    },
+    {
+      "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/osfmk/kern/recount.c",
+      "path": "web-host-lab/.cache/h19-xnu-cpu-source/osfmk/kern/recount.c",
+      "sha256": "312663003ce4f751846e4307fc62e9b7794d3807e891168466899291204dd2db",
+      "bytes": 43117
+    },
+    {
+      "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/osfmk/kern/recount.h",
+      "path": "web-host-lab/.cache/h19-xnu-cpu-source/osfmk/kern/recount.h",
+      "sha256": "c3650c0f1ece4595e4ef7b3ec2c39f8ddd03f7bb3e2321f13c7f6e9c63ae6f72",
+      "bytes": 17376
+    },
+    {
+      "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/proc_info.c",
+      "path": "web-host-lab/.cache/h19-xnu-cpu-source/bsd/kern/proc_info.c",
+      "sha256": "557092f14fbad3341100f59e0391d2e812c54b79a7404c89b2af97471ad67082",
+      "bytes": 105375
+    },
+    {
+      "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/kern_resource.c",
+      "path": "web-host-lab/.cache/h19-xnu-cpu-source/bsd/kern/kern_resource.c",
+      "sha256": "ffd547faab964b7860476a3b1e1c82525389666450b08eda19f9f5229eddd054",
+      "bytes": 89401
+    },
+    {
+      "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/osfmk/kern/bsd_kern.c",
+      "path": "web-host-lab/.cache/h19-xnu-cpu-source/osfmk/kern/bsd_kern.c",
+      "sha256": "670dcdf6feb73845b102965c8dfab6175f87893bf0b7ca9fa450f38cc83ba19c",
+      "bytes": 34376
+    }
+  ],
+  "local_sdk_headers": [
+    {
+      "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libproc.h",
+      "resolved_path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk/usr/include/libproc.h",
+      "sha256": "246d87709fc6b9157ce5cf3c475656ac48e0e1ae8bbdc46cf45acd34294448cd",
+      "bytes": 7575
+    },
+    {
+      "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/resource.h",
+      "resolved_path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk/usr/include/sys/resource.h",
+      "sha256": "1067178025c5fd88c9a1b8206a07c2695ef94dd471fe2783f06c512995382961",
+      "bytes": 20410
+    }
+  ],
+  "finding": "RUSAGE_INFO_V0 reaches fill_task_rusage -> task_power_info_locked -> rm_time_mach. Recount explicitly declares Mach timebase units; the copied struct is not converted to nanoseconds by the syscall. Local libproc.h labels interfaces private."
+}

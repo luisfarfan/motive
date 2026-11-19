@@ -13,6 +13,11 @@ its reviewed package capabilities and its graphics context. It must not introduc
 another Production, renderer, event schema, audiovisual clock or video-over-MCP
 transport. Web audio remains disabled.
 
+Coordination update: the separate `codex/h20-capture-reliability` worktree is
+working on ScreenCaptureKit/Production capture. That work and its shared-Mac
+test window do not authorize Browser Host integration. This future handoff
+remains separate and requires explicit approval from the Production owner.
+
 ## Identity and responsibilities
 
 | Value | Implemented contract | Native integration responsibility |
@@ -155,6 +160,11 @@ uses `WasResized` with fresh mailbox epochs and rejects previously used geometry
 within the same browser generation. That constrained A→B path does not establish
 a generic A→B→A ordering guarantee. H20 should retain cold browser replacement
 until its supported dynamic transition has explicit ordering/ownership evidence.
+The final H19 soak also observed a 458.98 ms gap in an unaffected peer while
+another browser resized, failing the unchanged 250 ms continuity gate. This
+is a separate reason not to admit hot resize for Production yet. The existing
+cold-replacement contract does not itself prove peer cadence; H20 must validate
+that execution path with real composition before accepting it.
 
 ## Gates before final integration
 

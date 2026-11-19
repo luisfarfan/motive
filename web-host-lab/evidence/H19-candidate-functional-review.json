@@ -1,0 +1,4869 @@
+{
+  "actions": {
+    "cef_launched": false,
+    "compiled": false,
+    "new_analysis_files": 9,
+    "original_reports_overwritten": false,
+    "source_or_checker_edited": false,
+    "threshold_changed": false
+  },
+  "candidate_diagnostics_status": "PASS",
+  "cases": [
+    {
+      "analysis": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/analysis.json",
+      "analysis_sha256": "53269182689642987edd5a7d76deccb3428ff50534e4a1e578a1ed6519dce1dc",
+      "command": [
+        "python3",
+        "web-host-lab/tools/h19_lifecycle_check.py",
+        "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s"
+      ],
+      "exit_code": 1,
+      "gates": {
+        "controlled_renderer_exit_and_recovery": {
+          "closed_before_create": true,
+          "decoded_exit_code": 86,
+          "distinct_reported_renderer_pid": true,
+          "new_browser_id": 6,
+          "new_first_paint_ns": 193438862747416,
+          "new_generation": 138862770680,
+          "old_browser_id": 3,
+          "old_generation": 138862770679,
+          "raw_wait_status": 22016,
+          "status": "PASS"
+        },
+        "dynamic_resize_epoch_and_latency": {
+          "first_new_paint_ns": 193429257254750,
+          "from": [
+            640,
+            360,
+            1
+          ],
+          "latency_ms": 447.490875,
+          "maximum_latency_ms_exclusive": 1000,
+          "request_ns": 193428809763875,
+          "scope": "one never-reused geometry transition; generic A-B-A resize NOT_EVALUATED",
+          "status": "PASS",
+          "to": [
+            540,
+            960,
+            2
+          ]
+        },
+        "epoch_instance-1-g138862770679-e1": {
+          "accepted": 505,
+          "consumed": 504,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 505
+        },
+        "epoch_instance-1-g138862770680-e1": {
+          "accepted": 17310,
+          "consumed": 17307,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 17310
+        },
+        "epoch_instance-2-g138862770679-e1": {
+          "accepted": 84,
+          "consumed": 84,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 84
+        },
+        "epoch_instance-3-g138862770679-e1": {
+          "accepted": 264,
+          "consumed": 263,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 264
+        },
+        "epoch_instance-3-g138862770679-e2": {
+          "accepted": 228,
+          "consumed": 227,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 228
+        },
+        "epoch_instance-3-g138862770680-e1": {
+          "accepted": 17430,
+          "consumed": 17429,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 17430
+        },
+        "epoch_instance-4-g138862770679-e1": {
+          "accepted": 228,
+          "consumed": 226,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 228
+        },
+        "epoch_instance-4-g138862770680-e1": {
+          "accepted": 17548,
+          "consumed": 17546,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 17548
+        },
+        "hidden_observed_gap_and_peer_continuity": {
+          "reason": "PEER_OBSERVATION_GAP",
+          "status": "FAIL"
+        },
+        "long_lived_instance_sequence": {
+          "peers_after_removal": {
+            "1": {
+              "end_ns": 193423910055583,
+              "max_gap_ms": 35.505208,
+              "observations": 30,
+              "start_ns": 193422910055583
+            },
+            "3": {
+              "end_ns": 193423910055583,
+              "max_gap_ms": 35.185958,
+              "observations": 30,
+              "start_ns": 193422910055583
+            }
+          },
+          "removed_instance": 2,
+          "replacement_instance_created": 4,
+          "restart_4": {
+            "closed_before_create": true,
+            "new_browser_id": 5,
+            "new_first_paint_ns": 193434880276541,
+            "new_generation": 138862770680,
+            "old_browser_id": 4,
+            "old_generation": 138862770679
+          },
+          "status": "PASS",
+          "suspend_resume_1": {
+            "closed_before_create": true,
+            "new_browser_id": 7,
+            "new_first_paint_ns": 193442861473500,
+            "new_generation": 138862770680,
+            "old_browser_id": 1,
+            "old_generation": 138862770679
+          }
+        },
+        "native_lifecycle_and_observed_cleanup": {
+          "host_close_to_shutdown_return_ms": 157.153666,
+          "host_process_identities": 1,
+          "native_shutdown_ms": 61.052208,
+          "observed_owned_tree_cleanup": true,
+          "peak_sampled_rss_mib": 925.15625,
+          "rss_limit_mib": 2048,
+          "scope": "sampled owned tree only; unobserved escape and shared-page unique RAM not established",
+          "status": "PASS"
+        },
+        "only_expected_instance_failures": {
+          "expected": [
+            [
+              3,
+              138862770679
+            ]
+          ],
+          "observed": [
+            [
+              3,
+              138862770679
+            ]
+          ],
+          "status": "PASS"
+        }
+      },
+      "run": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s",
+      "status": "FAIL"
+    },
+    {
+      "analysis": "web-host-lab/evidence/H19-candidate-diagnostics/security-3/analysis.json",
+      "analysis_sha256": "e2bab438ce4a794769ac553090995b3fc98575200342e201cd7fc99541090f40",
+      "command": [
+        "python3",
+        "web-host-lab/tools/h19_security_check.py",
+        "--instances",
+        "web-host-lab/evidence/H19-candidate-diagnostics/security-3/instances.json",
+        "--supervision",
+        "web-host-lab/evidence/H19-candidate-diagnostics/security-3/supervision.json.gz",
+        "--count",
+        "3",
+        "--generation",
+        "139533708125",
+        "--canary",
+        "web-host-lab/evidence/H19-candidate-diagnostics/security-3/report.json",
+        "--output",
+        "web-host-lab/evidence/H19-candidate-diagnostics/security-3/analysis.json"
+      ],
+      "complete_os_sandbox_matrix": "BLOCKED",
+      "errors": [],
+      "exit_code": 0,
+      "owned_loopback_canary": {
+        "accepted_connections": 0,
+        "observation": "NO_ACCEPTED_CONNECTIONS",
+        "scope": "listener observation only; does not distinguish CSP, callback, API rejection, DNS or OS egress policies"
+      },
+      "run": "web-host-lab/evidence/H19-candidate-diagnostics/security-3",
+      "scope": "fixed owned native decoy experiment only",
+      "status": "PASS",
+      "third_party_execution": "BLOCKED"
+    },
+    {
+      "analysis": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3/analysis.json",
+      "analysis_sha256": "1d53a18336422cd904919a7503eae0b9a4419b35ec656a685745d188cb54064b",
+      "command": [
+        "python3",
+        "web-host-lab/tools/h19_lifecycle_check.py",
+        "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3"
+      ],
+      "exit_code": 0,
+      "gates": {
+        "controlled_renderer_exit_and_recovery": {
+          "closed_before_create": true,
+          "decoded_exit_code": 86,
+          "distinct_reported_renderer_pid": true,
+          "new_browser_id": 6,
+          "new_first_paint_ns": 194118262779125,
+          "new_generation": 139542832228,
+          "old_browser_id": 3,
+          "old_generation": 139542832227,
+          "raw_wait_status": 22016,
+          "status": "PASS"
+        },
+        "dynamic_resize_epoch_and_latency": {
+          "first_new_paint_ns": 194108259643541,
+          "from": [
+            640,
+            360,
+            1
+          ],
+          "latency_ms": 47.90375,
+          "maximum_latency_ms_exclusive": 1000,
+          "request_ns": 194108211739791,
+          "scope": "one never-reused geometry transition; generic A-B-A resize NOT_EVALUATED",
+          "status": "PASS",
+          "to": [
+            540,
+            960,
+            2
+          ]
+        },
+        "epoch_instance-1-g139542832227-e1": {
+          "accepted": 508,
+          "consumed": 508,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 508
+        },
+        "epoch_instance-1-g139542832228-e1": {
+          "accepted": 210,
+          "consumed": 210,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 210
+        },
+        "epoch_instance-2-g139542832227-e1": {
+          "accepted": 87,
+          "consumed": 85,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 87
+        },
+        "epoch_instance-3-g139542832227-e1": {
+          "accepted": 267,
+          "consumed": 266,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 267
+        },
+        "epoch_instance-3-g139542832227-e2": {
+          "accepted": 239,
+          "consumed": 239,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 239
+        },
+        "epoch_instance-3-g139542832228-e1": {
+          "accepted": 330,
+          "consumed": 330,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 330
+        },
+        "epoch_instance-4-g139542832227-e1": {
+          "accepted": 239,
+          "consumed": 239,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 239
+        },
+        "epoch_instance-4-g139542832228-e1": {
+          "accepted": 450,
+          "consumed": 449,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 450
+        },
+        "hidden_observed_gap_and_peer_continuity": {
+          "observed_phase_ms": 4002.701959,
+          "peers": {
+            "3": {
+              "end_ns": 194110111720875,
+              "max_gap_ms": 67.871,
+              "observations": 113,
+              "start_ns": 194106309018916
+            },
+            "4": {
+              "end_ns": 194110111720875,
+              "max_gap_ms": 35.543958,
+              "observations": 114,
+              "start_ns": 194106309018916
+            }
+          },
+          "resume_to_next_observed_paint_ms": 3.140333,
+          "scope": "retained completed-consumer paint observations; not proof of JS suspension or AV cadence",
+          "settling_margin_ms_each_end": 100.0,
+          "status": "PASS",
+          "target_paint_gap_ms": 4022.9175
+        },
+        "long_lived_instance_sequence": {
+          "peers_after_removal": {
+            "1": {
+              "end_ns": 194103313242500,
+              "max_gap_ms": 33.693542,
+              "observations": 30,
+              "start_ns": 194102313242500
+            },
+            "3": {
+              "end_ns": 194103313242500,
+              "max_gap_ms": 33.682333,
+              "observations": 30,
+              "start_ns": 194102313242500
+            }
+          },
+          "removed_instance": 2,
+          "replacement_instance_created": 4,
+          "restart_4": {
+            "closed_before_create": true,
+            "new_browser_id": 5,
+            "new_first_paint_ns": 194114259139250,
+            "new_generation": 139542832228,
+            "old_browser_id": 4,
+            "old_generation": 139542832227
+          },
+          "status": "PASS",
+          "suspend_resume_1": {
+            "closed_before_create": true,
+            "new_browser_id": 7,
+            "new_first_paint_ns": 194122261109416,
+            "new_generation": 139542832228,
+            "old_browser_id": 1,
+            "old_generation": 139542832227
+          }
+        },
+        "native_lifecycle_and_observed_cleanup": {
+          "host_close_to_shutdown_return_ms": 64.080042,
+          "host_process_identities": 1,
+          "native_shutdown_ms": 21.555167,
+          "observed_owned_tree_cleanup": true,
+          "peak_sampled_rss_mib": 951.796875,
+          "rss_limit_mib": 2048,
+          "scope": "sampled owned tree only; unobserved escape and shared-page unique RAM not established",
+          "status": "PASS"
+        },
+        "only_expected_instance_failures": {
+          "expected": [
+            [
+              3,
+              139542832227
+            ]
+          ],
+          "observed": [
+            [
+              3,
+              139542832227
+            ]
+          ],
+          "status": "PASS"
+        }
+      },
+      "run": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3",
+      "status": "PASS"
+    },
+    {
+      "analysis": "web-host-lab/evidence/H19-candidate-diagnostics/resize-3/analysis.json",
+      "analysis_sha256": "3902365665ed6d2a36d092839534149b9550b86d5e4b8339b405436e4cf5019e",
+      "command": [
+        "python3",
+        "web-host-lab/tools/h19_lifecycle_check.py",
+        "web-host-lab/evidence/H19-candidate-diagnostics/resize-3"
+      ],
+      "exit_code": 0,
+      "gates": {
+        "dynamic_resize_epoch_and_latency": {
+          "first_new_paint_ns": 194133590263083,
+          "from": [
+            640,
+            360,
+            1
+          ],
+          "latency_ms": 59.867875,
+          "maximum_latency_ms_exclusive": 1000,
+          "request_ns": 194133530395208,
+          "scope": "one never-reused geometry transition; generic A-B-A resize NOT_EVALUATED",
+          "status": "PASS",
+          "to": [
+            540,
+            960,
+            2
+          ]
+        },
+        "epoch_instance-1-g139574095804-e1": {
+          "accepted": 86,
+          "consumed": 85,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 86
+        },
+        "epoch_instance-1-g139574095804-e2": {
+          "accepted": 149,
+          "consumed": 148,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 149
+        },
+        "epoch_instance-2-g139574095804-e1": {
+          "accepted": 236,
+          "consumed": 235,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 236
+        },
+        "epoch_instance-3-g139574095804-e1": {
+          "accepted": 236,
+          "consumed": 234,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 236
+        },
+        "native_lifecycle_and_observed_cleanup": {
+          "host_close_to_shutdown_return_ms": 91.014875,
+          "host_process_identities": 1,
+          "native_shutdown_ms": 62.902,
+          "observed_owned_tree_cleanup": true,
+          "peak_sampled_rss_mib": 933.421875,
+          "rss_limit_mib": 2048,
+          "scope": "sampled owned tree only; unobserved escape and shared-page unique RAM not established",
+          "status": "PASS"
+        },
+        "only_expected_instance_failures": {
+          "expected": [],
+          "observed": [],
+          "status": "PASS"
+        }
+      },
+      "run": "web-host-lab/evidence/H19-candidate-diagnostics/resize-3",
+      "status": "PASS"
+    },
+    {
+      "analysis": "web-host-lab/evidence/H19-candidate-diagnostics/hidden-3/analysis.json",
+      "analysis_sha256": "6d0d232c9a7fce7423d647b23394fa312065f9a5d2e976b5c904be515ccfb98f",
+      "command": [
+        "python3",
+        "web-host-lab/tools/h19_lifecycle_check.py",
+        "web-host-lab/evidence/H19-candidate-diagnostics/hidden-3"
+      ],
+      "exit_code": 0,
+      "gates": {
+        "epoch_instance-1-g139583105811-e1": {
+          "accepted": 177,
+          "consumed": 177,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 177
+        },
+        "epoch_instance-2-g139583105811-e1": {
+          "accepted": 296,
+          "consumed": 295,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 296
+        },
+        "epoch_instance-3-g139583105811-e1": {
+          "accepted": 296,
+          "consumed": 295,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 296
+        },
+        "hidden_observed_gap_and_peer_continuity": {
+          "observed_phase_ms": 3995.759542,
+          "peers": {
+            "2": {
+              "end_ns": 194146527135958,
+              "max_gap_ms": 36.049375,
+              "observations": 114,
+              "start_ns": 194142731376416
+            },
+            "3": {
+              "end_ns": 194146527135958,
+              "max_gap_ms": 35.809917,
+              "observations": 114,
+              "start_ns": 194142731376416
+            }
+          },
+          "resume_to_next_observed_paint_ms": 4.047167,
+          "scope": "retained completed-consumer paint observations; not proof of JS suspension or AV cadence",
+          "settling_margin_ms_each_end": 100.0,
+          "status": "PASS",
+          "target_paint_gap_ms": 4020.526667
+        },
+        "native_lifecycle_and_observed_cleanup": {
+          "host_close_to_shutdown_return_ms": 58.965667,
+          "host_process_identities": 1,
+          "native_shutdown_ms": 26.231625,
+          "observed_owned_tree_cleanup": true,
+          "peak_sampled_rss_mib": 932.609375,
+          "rss_limit_mib": 2048,
+          "scope": "sampled owned tree only; unobserved escape and shared-page unique RAM not established",
+          "status": "PASS"
+        },
+        "only_expected_instance_failures": {
+          "expected": [],
+          "observed": [],
+          "status": "PASS"
+        }
+      },
+      "run": "web-host-lab/evidence/H19-candidate-diagnostics/hidden-3",
+      "status": "PASS"
+    },
+    {
+      "analysis": "web-host-lab/evidence/H19-candidate-diagnostics/events-3/analysis.json",
+      "analysis_sha256": "0c23dd02e56152847b2585703ec8507ceafb190b30dc4786c9892653e22d4227",
+      "command": [
+        "python3",
+        "web-host-lab/tools/h19_lifecycle_check.py",
+        "web-host-lab/evidence/H19-candidate-diagnostics/events-3"
+      ],
+      "exit_code": 0,
+      "gates": {
+        "epoch_instance-1-g139594093665-e1": {
+          "accepted": 236,
+          "consumed": 235,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 236
+        },
+        "epoch_instance-2-g139594093665-e1": {
+          "accepted": 236,
+          "consumed": 235,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 236
+        },
+        "epoch_instance-3-g139594093665-e1": {
+          "accepted": 236,
+          "consumed": 236,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 236
+        },
+        "native_lifecycle_and_observed_cleanup": {
+          "host_close_to_shutdown_return_ms": 58.267667,
+          "host_process_identities": 1,
+          "native_shutdown_ms": 28.398584,
+          "observed_owned_tree_cleanup": true,
+          "peak_sampled_rss_mib": 931.09375,
+          "rss_limit_mib": 2048,
+          "scope": "sampled owned tree only; unobserved escape and shared-page unique RAM not established",
+          "status": "PASS"
+        },
+        "only_expected_instance_failures": {
+          "expected": [],
+          "observed": [],
+          "status": "PASS"
+        },
+        "targeted_events_exactly_24_only_instance_1": {
+          "instances": {
+            "1": {
+              "dispatched": 24,
+              "received": 24
+            },
+            "2": {
+              "dispatched": 0,
+              "received": 0
+            },
+            "3": {
+              "dispatched": 0,
+              "received": 0
+            }
+          },
+          "scope": "fixed native fixture events only; no Production authority",
+          "status": "PASS"
+        }
+      },
+      "run": "web-host-lab/evidence/H19-candidate-diagnostics/events-3",
+      "status": "PASS"
+    },
+    {
+      "analysis": "web-host-lab/evidence/H19-candidate-diagnostics/slow-3/analysis.json",
+      "analysis_sha256": "2600d74774b62585ee1b26dcdbca1fc607ad2484a3d14850401ff663d71198ee",
+      "command": [
+        "python3",
+        "web-host-lab/tools/h19_lifecycle_check.py",
+        "web-host-lab/evidence/H19-candidate-diagnostics/slow-3"
+      ],
+      "exit_code": 0,
+      "gates": {
+        "epoch_instance-1-g139603009813-e1": {
+          "accepted": 224,
+          "consumed": 224,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 224
+        },
+        "epoch_instance-2-g139603009813-e1": {
+          "accepted": 238,
+          "consumed": 237,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 238
+        },
+        "epoch_instance-3-g139603009813-e1": {
+          "accepted": 238,
+          "consumed": 237,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 238
+        },
+        "native_lifecycle_and_observed_cleanup": {
+          "host_close_to_shutdown_return_ms": 41.350916,
+          "host_process_identities": 1,
+          "native_shutdown_ms": 19.679791,
+          "observed_owned_tree_cleanup": true,
+          "peak_sampled_rss_mib": 940.390625,
+          "rss_limit_mib": 2048,
+          "scope": "sampled owned tree only; unobserved escape and shared-page unique RAM not established",
+          "status": "PASS"
+        },
+        "only_expected_instance_failures": {
+          "expected": [],
+          "observed": [],
+          "status": "PASS"
+        },
+        "slow_script_observed_stall_with_live_peers": {
+          "observed_phase_ms": 499.981625,
+          "peers": {
+            "2": {
+              "end_ns": 194161844921250,
+              "max_gap_ms": 34.154875,
+              "observations": 9,
+              "start_ns": 194161544939625
+            },
+            "3": {
+              "end_ns": 194161844921250,
+              "max_gap_ms": 34.353833,
+              "observations": 9,
+              "start_ns": 194161544939625
+            }
+          },
+          "resume_to_next_observed_paint_ms": 2.327833,
+          "scope": "retained completed-consumer paint observations; not proof of JS suspension or AV cadence",
+          "settling_margin_ms_each_end": 100.0,
+          "status": "PASS",
+          "target_paint_gap_ms": 499.496792
+        }
+      },
+      "run": "web-host-lab/evidence/H19-candidate-diagnostics/slow-3",
+      "status": "PASS"
+    },
+    {
+      "analysis": "web-host-lab/evidence/H19-candidate-diagnostics/slow-consumer-3/analysis.json",
+      "analysis_sha256": "6b8807510da868f000e9fad5ec4f0a4b92c6b8f4ff0d1a17539673ac7a76524b",
+      "command": [
+        "python3",
+        "web-host-lab/tools/h19_lifecycle_check.py",
+        "web-host-lab/evidence/H19-candidate-diagnostics/slow-consumer-3"
+      ],
+      "exit_code": 0,
+      "gates": {
+        "epoch_instance-1-g139611804638-e1": {
+          "accepted": 238,
+          "consumed": 68,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 238
+        },
+        "epoch_instance-2-g139611804638-e1": {
+          "accepted": 238,
+          "consumed": 69,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 238
+        },
+        "epoch_instance-3-g139611804638-e1": {
+          "accepted": 238,
+          "consumed": 69,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 238
+        },
+        "native_lifecycle_and_observed_cleanup": {
+          "host_close_to_shutdown_return_ms": 223.76225,
+          "host_process_identities": 1,
+          "native_shutdown_ms": 19.690917,
+          "observed_owned_tree_cleanup": true,
+          "peak_sampled_rss_mib": 942.546875,
+          "rss_limit_mib": 2048,
+          "scope": "sampled owned tree only; unobserved escape and shared-page unique RAM not established",
+          "status": "PASS"
+        },
+        "only_expected_instance_failures": {
+          "expected": [],
+          "observed": [],
+          "status": "PASS"
+        },
+        "slow_consumer_backpressure_and_coalescing": {
+          "instances": {
+            "1": {
+              "accepted": 238,
+              "acquired": 69,
+              "coalesced": 168,
+              "consumed": 68
+            },
+            "2": {
+              "accepted": 238,
+              "acquired": 70,
+              "coalesced": 168,
+              "consumed": 69
+            },
+            "3": {
+              "accepted": 238,
+              "acquired": 69,
+              "coalesced": 169,
+              "consumed": 69
+            }
+          },
+          "scope": "bounded coalescing; not output frame drops",
+          "status": "PASS"
+        }
+      },
+      "run": "web-host-lab/evidence/H19-candidate-diagnostics/slow-consumer-3",
+      "status": "PASS"
+    },
+    {
+      "analysis": "web-host-lab/evidence/H19-candidate-diagnostics/crash-3/analysis.json",
+      "analysis_sha256": "a066753d24b91cd004e1d03d7bffe9a3491645914493e293e323ed80eceaf828",
+      "command": [
+        "python3",
+        "web-host-lab/tools/h19_lifecycle_check.py",
+        "web-host-lab/evidence/H19-candidate-diagnostics/crash-3"
+      ],
+      "exit_code": 0,
+      "gates": {
+        "controlled_renderer_exit_and_recovery": {
+          "closed_before_create": true,
+          "decoded_exit_code": 86,
+          "distinct_reported_renderer_pid": true,
+          "new_browser_id": 4,
+          "new_first_paint_ns": 194182264057250,
+          "new_generation": 139620879644,
+          "old_browser_id": 1,
+          "old_generation": 139620879643,
+          "raw_wait_status": 22016,
+          "status": "PASS"
+        },
+        "epoch_instance-1-g139620879643-e1": {
+          "accepted": 88,
+          "consumed": 87,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 88
+        },
+        "epoch_instance-1-g139620879644-e1": {
+          "accepted": 90,
+          "consumed": 90,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 90
+        },
+        "epoch_instance-2-g139620879643-e1": {
+          "accepted": 238,
+          "consumed": 237,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 238
+        },
+        "epoch_instance-3-g139620879643-e1": {
+          "accepted": 238,
+          "consumed": 238,
+          "retained_bytes": 0,
+          "status": "PASS",
+          "terminal_sum": 238
+        },
+        "native_lifecycle_and_observed_cleanup": {
+          "host_close_to_shutdown_return_ms": 43.187708,
+          "host_process_identities": 1,
+          "native_shutdown_ms": 19.319375,
+          "observed_owned_tree_cleanup": true,
+          "peak_sampled_rss_mib": 931.203125,
+          "rss_limit_mib": 2048,
+          "scope": "sampled owned tree only; unobserved escape and shared-page unique RAM not established",
+          "status": "PASS"
+        },
+        "only_expected_instance_failures": {
+          "expected": [
+            [
+              1,
+              139620879643
+            ]
+          ],
+          "observed": [
+            [
+              1,
+              139620879643
+            ]
+          ],
+          "status": "PASS"
+        }
+      },
+      "run": "web-host-lab/evidence/H19-candidate-diagnostics/crash-3",
+      "status": "PASS"
+    }
+  ],
+  "created_at_utc": "2026-11-19T04:09:40.015261+00:00",
+  "fixed_writer_review": {
+    "accepted_paints": 125940,
+    "candidate_runtime_runs": 30,
+    "checks": [
+      "Every latest_file_full_writes equals successful_disk_writes.",
+      "Every epoch makes exactly one latest-file ftruncate and zero descriptor/length rejects.",
+      "Fixed bytes and retained first/latest/optional visual dimensions, stride, identity, epoch and decompressed byte length exactly match epoch manifest.",
+      "Every epoch has exact terminal paint conservation, complete consumed sample rows and zero pending/leased/retained bytes after join.",
+      "Retained build reports match their hashes and compile the same frame_consumer.hpp and fixed_frame_file.hpp hashes as the reviewed source."
+    ],
+    "consumed": 125367,
+    "descriptor_or_length_rejects": 0,
+    "epoch_results": [
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "1ff044dd8cdc4a38af8d76b7ceb3601df468682eeac81209af4557011c00e425",
+            "name": "first",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "016e45de98fd0ae882c7a48e1e57d832ddabfbe55675de9725381ca70250b76e",
+            "name": "latest",
+            "pixels_file_sha256": "179e342c4bdfbcb32a2fa0fbe7129c05b39ba305ea1a1edfc60c764206e1fae4"
+          }
+        ],
+        "consumed": 2157,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "47bca850ae52d03b2c418e9b94eec404fa3e29e82b14776cdb7cb502ff1ec722",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2157,
+        "generation": 136333099810,
+        "height": 360,
+        "instance": 1,
+        "paints": 2158,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-1-r1/instance-1-g136333099810-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2157,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "844cd7c082105d12af71495323e3a401eca8eca26f30505d6ddc6f9ff9170331",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "0c82edff566b5ab23d0f17ffa0d5a3087ec083a41714c59ba6c0b05005cabc46",
+            "name": "latest",
+            "pixels_file_sha256": "cd461c33ae0fd1d403cd7cacaf5f55f414f69e20b1c3028a1e16a9ab0172aa31"
+          }
+        ],
+        "consumed": 2157,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "1376595c0318a7b602c8aecd2d3f47ebcc80e03c72e0dd18afc2c35aabd7b2dd",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2157,
+        "generation": 136698258423,
+        "height": 360,
+        "instance": 1,
+        "paints": 2158,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-1-r2/instance-1-g136698258423-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2157,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "caddae676e33c865ec1acb4ea11afd1378504811f19a8edaa98c9093354b9ecc",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "dd4dcc5428c35fef8ed68a719ae186485f050b772ad76d35f49eb464a3cc5157",
+            "name": "latest",
+            "pixels_file_sha256": "8a02867e5b28fde6e1326309b5967a3c568355414752bf555918b436120ca2d8"
+          }
+        ],
+        "consumed": 2156,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "cd666d6b28d29055b9c00a28d664d29d6c2d4e33574c70327a0824cb80675eab",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2156,
+        "generation": 136844391377,
+        "height": 360,
+        "instance": 1,
+        "paints": 2157,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-1-r3/instance-1-g136844391377-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2156,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "2f9be99d516fcc7472626b401253b4da970e17a184558285b7b34604daef5bee",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "26acc9df9842f24fc4af95777fe810d31064bf6dd912af6129136faceb08eba9",
+            "name": "latest",
+            "pixels_file_sha256": "8a02867e5b28fde6e1326309b5967a3c568355414752bf555918b436120ca2d8"
+          }
+        ],
+        "consumed": 2156,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "06d809c5db388225967bde587117beb25a3d0e93a3e276891d7b82656863f94c",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2156,
+        "generation": 136406148441,
+        "height": 360,
+        "instance": 1,
+        "paints": 2157,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r1/instance-1-g136406148441-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2156,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "33e393bd6ce9feef74f05942efb63682763eb9b2f84aa7b9be200b71cbe6afed",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "13130e8ce45e2cd8945f19446f6eac666fe90b4ccf7b030604d7f3eff0c0bc5f",
+            "name": "latest",
+            "pixels_file_sha256": "f51d3f2531d714bb1f54a6e95ccfffdd86a086d2ffe89f011248bbc9a0de8f5a"
+          }
+        ],
+        "consumed": 2157,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "3315d8c1fc9854a2d0f156d116c051b29d5a9e6201e1e086120bc91ef0c0b3a3",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2157,
+        "generation": 136406148441,
+        "height": 360,
+        "instance": 2,
+        "paints": 2157,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r1/instance-2-g136406148441-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2157,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "fb81bf66e70d1a44e7a4ffa1f3ab084d67948d1a458be39fcbb03ab4dbe172b7",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "f5f947ab8adc87d655fc71324f0a616d4c58416605d5273dbc41c9ce7bc80326",
+            "name": "latest",
+            "pixels_file_sha256": "20327cf3f087e7cada8233e132348299c980a3cd71bc9265c493cf32b8999f79"
+          }
+        ],
+        "consumed": 2157,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "6fcc1596f2e8271cf609b7ed8067a267914c56ed790c0518578b1313a95e569f",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2157,
+        "generation": 136406148441,
+        "height": 360,
+        "instance": 3,
+        "paints": 2157,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r1/instance-3-g136406148441-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2157,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "caf6962e9381c9afe043ba3b579c77729f30f61ee78edc73b871df9ab0016c94",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "3f0f7edfd10c0d062a488b6bdc02983e846eeb389621588c9b68159b7753be98",
+            "name": "latest",
+            "pixels_file_sha256": "8a02867e5b28fde6e1326309b5967a3c568355414752bf555918b436120ca2d8"
+          }
+        ],
+        "consumed": 2156,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "ef79ec6c29309b4a77d95b6c52ac457141c0917b29b0c99908fddb21b9dadd2e",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2156,
+        "generation": 136552101092,
+        "height": 360,
+        "instance": 1,
+        "paints": 2157,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r2/instance-1-g136552101092-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2156,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "fd5c587cde9aa6ef9516ec57034e7068f540f9605f4e1b6587a75b0a19178920",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "0cfda1cd8ee84ce973a3d97879919662d04dbae41429ef2c118760eb5e1325fe",
+            "name": "latest",
+            "pixels_file_sha256": "f51d3f2531d714bb1f54a6e95ccfffdd86a086d2ffe89f011248bbc9a0de8f5a"
+          }
+        ],
+        "consumed": 2157,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "060b15f07b88f491286b7538feaacbac59527e990ef395e1f6ed698093b31d8e",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2157,
+        "generation": 136552101092,
+        "height": 360,
+        "instance": 2,
+        "paints": 2157,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r2/instance-2-g136552101092-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2157,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "bb56c5e50852d8f5d437f8a4375f1f232ded678e43be559d5d0d5349c9dd8ad4",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "7447f55694fd13426c54967f7671251b6c8aa101f4aa161e8578b74248285c44",
+            "name": "latest",
+            "pixels_file_sha256": "e06d1d3003f22f130255e025dc045ac9a9fa1842ac4561264d8baec143c32e5a"
+          }
+        ],
+        "consumed": 2157,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "bb9fa6fda62f9195253cb46a6269e5078f3688b0ad9aa5393e067e7adc32b3ec",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2157,
+        "generation": 136552101092,
+        "height": 360,
+        "instance": 3,
+        "paints": 2157,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r2/instance-3-g136552101092-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2157,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "d2bf1cb3a27868110393a91cde2311a7b11203f90e7d3243eee2e79be452353c",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "3d9c7252b883bd8504e544006bfb989ff18600d6f637408bc26f6011753915ea",
+            "name": "latest",
+            "pixels_file_sha256": "179e342c4bdfbcb32a2fa0fbe7129c05b39ba305ea1a1edfc60c764206e1fae4"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "f6481b43aad85fdc8e40e861bde2ad7af6ecba0a3617a796c26c1ee7f677ac6a",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 136917392597,
+        "height": 360,
+        "instance": 1,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r3/instance-1-g136917392597-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "57931d038d3fc70a5206a98592e4e3bed5e9607064c570f4e94f36c27e71ee29",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "016a30b9ae0e6647c0e6d6a9819a54469fb5fee3651afe6447c99915eaf408e1",
+            "name": "latest",
+            "pixels_file_sha256": "7db7a634ca77349746a1e1860e1d0b54cd54dba6347b2c938d2fa9689ed40d9e"
+          }
+        ],
+        "consumed": 2156,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "ce3829f551b19853af7012f1ad47f0bd16a9d6bd1e86382f14745daaa57f2697",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2156,
+        "generation": 136917392597,
+        "height": 360,
+        "instance": 2,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r3/instance-2-g136917392597-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2156,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "9313a603bada15f38fb9dd71c4a3ad381c1b826b590ba9a53b336f4896686d80",
+            "name": "first",
+            "pixels_file_sha256": "e7852591764aa0ee6e16c5f20f1d314dec57c8b47f56452ace4fe83e595d8b94"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ab0248872e37d412d18b146c14fd3c2a6ef963efaca03954f05780d079e57fd0",
+            "name": "latest",
+            "pixels_file_sha256": "e06d1d3003f22f130255e025dc045ac9a9fa1842ac4561264d8baec143c32e5a"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "bf51a2bc54ad657031fbfce36403877474ac2c00a206faa925d00005db576da5",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 136917392597,
+        "height": 360,
+        "instance": 3,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r3/instance-3-g136917392597-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "3029f811ea7cc67822e8e5248b83db4e1d078f08505cf732744dfc9bc0a9e510",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "9297a6655584fd5d847e5b84b203e5eddc8bcccfef7dd2c06efd65397d27f3cf",
+            "name": "latest",
+            "pixels_file_sha256": "71b5157fddebe2dbd16df2d025a2959dc49e306625b614b9c8363415216cfa1f"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "2cafd07630b33e84e7d876075f5360bc58ffcfb4af0abe8f49fe486a52fe3407",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 136479065786,
+        "height": 360,
+        "instance": 1,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r1/instance-1-g136479065786-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e592c1d6a687b39e241582e63311812d211b114b993c16e9584d9e95f712360e",
+            "name": "first",
+            "pixels_file_sha256": "c5c4e65718d73c6392de3ebf35b62c9a5dc35343d13dde5c7605f1b6a6488998"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e1a1a7cf8e48b46d554349025d0bcc5a0d97cca245b63ebc361c15b5c5de93b7",
+            "name": "latest",
+            "pixels_file_sha256": "7db7a634ca77349746a1e1860e1d0b54cd54dba6347b2c938d2fa9689ed40d9e"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "4602feadc9923e728e00f5fbbbe48365e8bbec38008ee65b25e00036b1c4622c",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 136479065786,
+        "height": 360,
+        "instance": 2,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r1/instance-2-g136479065786-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "951c96b376c7f6415f66c9992337f14aa924a2d62f76aabf5944e4efb1c17f40",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "9a051ce09764c293139afbadd49d226b4fdc940394c9063f55a98ee42a28dbce",
+            "name": "latest",
+            "pixels_file_sha256": "1b632607c70d7f41af9246ddac40eabdef74291d9f1bba609409da6c4a3897b1"
+          }
+        ],
+        "consumed": 2156,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "7e91eaa81d8f006f4ef93742ad19886ab5ef669974d5ee6cb9c8183e3b1ed038",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2156,
+        "generation": 136479065786,
+        "height": 360,
+        "instance": 3,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r1/instance-3-g136479065786-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2156,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b95666f329bba908cb653a9b6d38060d997fd0bf3954f84dc4b3a5416cbc9fc4",
+            "name": "first",
+            "pixels_file_sha256": "35bac60a9e243c56b38922db3c19efcf0695272dd9cebcf7e50fcc7b76155840"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "468789ef751872324a598e3cdc3cf9397568747538ef7ad518791b911576e43a",
+            "name": "latest",
+            "pixels_file_sha256": "aca7c6ee3db371ac48ccd8bf42abb6ee12a61de1d28460f4f8ab82fd3311daaa"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "e702e6900aeb69f8c2311e6b157d3cea673ef55d2f868b04dc820460ff04a447",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 136479065786,
+        "height": 360,
+        "instance": 4,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r1/instance-4-g136479065786-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "2a2abf0690ca54e45158378da80541daec0200cebc406a098e9e1e377632ef1a",
+            "name": "first",
+            "pixels_file_sha256": "8b59da1d821e5f987779259e892bccde19c8406bc554a206642430111eae8825"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "32447912e304a76a0b02af501cf47aef20d07f899edb73f5cee10ce1d063db72",
+            "name": "latest",
+            "pixels_file_sha256": "c311fbfdbcb1b09325c2cc32eb50dcc8c657c8d345de888347189fcbf3091854"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "05e2f4259995213c278f50f324e4835b1b81c7ad5670197f44aad701cef68196",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 136479065786,
+        "height": 360,
+        "instance": 5,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r1/instance-5-g136479065786-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "6c41fe60a4dd56832a6f9c3dc29c7f4ba068934bc85ad2ba51c2c4429f1b2b2c",
+            "name": "first",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "8c3630afc4508978234c3d5636ad3dd47f9c76fe20ac0205350cad8f92fe2816",
+            "name": "latest",
+            "pixels_file_sha256": "71b5157fddebe2dbd16df2d025a2959dc49e306625b614b9c8363415216cfa1f"
+          }
+        ],
+        "consumed": 2156,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "daa558afebccfa7fc92fe456fddb634e20af10e2dfb33836784fef71f49ebe48",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2156,
+        "generation": 136625085087,
+        "height": 360,
+        "instance": 1,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r2/instance-1-g136625085087-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2156,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "db85d57bba050ae67d7ccb2969aca80215d70bf780deccee12e11d6b325cb3b8",
+            "name": "first",
+            "pixels_file_sha256": "c5c4e65718d73c6392de3ebf35b62c9a5dc35343d13dde5c7605f1b6a6488998"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "8749c1b8816510168299679027989a361fd90c56083d1d703b24f6b09ff83cd3",
+            "name": "latest",
+            "pixels_file_sha256": "7db7a634ca77349746a1e1860e1d0b54cd54dba6347b2c938d2fa9689ed40d9e"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "b318c01af25f21a93f6285f7565c99b57cee77480b760cdd2accedee8a66a52e",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 136625085087,
+        "height": 360,
+        "instance": 2,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r2/instance-2-g136625085087-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "61b8e1b454e578fce3ce056cd1b7f4acc8082d15b127f4e255a5d6eb0de61601",
+            "name": "first",
+            "pixels_file_sha256": "e7852591764aa0ee6e16c5f20f1d314dec57c8b47f56452ace4fe83e595d8b94"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "d4ac262a13bba083b79627d9a008ae9694e503933283da1e6ef7831faf10ba8f",
+            "name": "latest",
+            "pixels_file_sha256": "1b632607c70d7f41af9246ddac40eabdef74291d9f1bba609409da6c4a3897b1"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "1f9246c6e0c58ea98497e4a95f882a66a09d63fb201febaa1fa28cd81991b943",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 136625085087,
+        "height": 360,
+        "instance": 3,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r2/instance-3-g136625085087-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "74ae2953c56fad8d5ac659d775822485ef368d4755112bda7d06242d15e3986c",
+            "name": "first",
+            "pixels_file_sha256": "35bac60a9e243c56b38922db3c19efcf0695272dd9cebcf7e50fcc7b76155840"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ed91254424b00044200f336a44cb65e4795d65195aee9c396c05f971ecb5d95f",
+            "name": "latest",
+            "pixels_file_sha256": "aca7c6ee3db371ac48ccd8bf42abb6ee12a61de1d28460f4f8ab82fd3311daaa"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "8b3c5ca9f2a654fc58558efac163489c2a20480933609a7c5c30d81eb3519ace",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 136625085087,
+        "height": 360,
+        "instance": 4,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r2/instance-4-g136625085087-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e98a9f8d68963593028914839ae92892fb8e7ea277e842ff7ba586dc84dfc3bb",
+            "name": "first",
+            "pixels_file_sha256": "9fde7599d961fab2c80703148fffd8a2f6c8d49e00aee4d7106da3a27033a2e7"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c273a392db957ee6acc281b413fe2ebbf17c29e2b61232ee07838a2475078c3c",
+            "name": "latest",
+            "pixels_file_sha256": "c311fbfdbcb1b09325c2cc32eb50dcc8c657c8d345de888347189fcbf3091854"
+          }
+        ],
+        "consumed": 2156,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "59dadd0b65f9b9411099987cc34f2ef38ee3555c3d80010e938d4167aa2d0c8e",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2156,
+        "generation": 136625085087,
+        "height": 360,
+        "instance": 5,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r2/instance-5-g136625085087-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2156,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b41aa96ed0f8a44c5376dcaa4b53088ef6229967973cb49497bf622bc80dbc85",
+            "name": "first",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c386bce70b5c5c5caa572661db72b200474d93027fd9d6caad3976706d4fa630",
+            "name": "latest",
+            "pixels_file_sha256": "efed256d3d765f31c94a93455f81c45c28522193eb53ce2647e75258407f5280"
+          }
+        ],
+        "consumed": 2154,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "cb515fdd3e99214d1f152d768053317a89bb95db5cefee7edacf7aa12a80c723",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2154,
+        "generation": 136771148394,
+        "height": 360,
+        "instance": 1,
+        "paints": 2154,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r3/instance-1-g136771148394-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2154,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "0ebc2fcde36307c2fedf94d2e058e4fab58e3954b6375d291e8f73907d07d474",
+            "name": "first",
+            "pixels_file_sha256": "c5c4e65718d73c6392de3ebf35b62c9a5dc35343d13dde5c7605f1b6a6488998"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "4610264035ce426787ec2346a0d1db974d519e361b9fa9b87aab8c0868e6875f",
+            "name": "latest",
+            "pixels_file_sha256": "cdc013e23febaf42cb5adb9ea268adb6d32d544a03f27e1dc4487f657ea67bbe"
+          }
+        ],
+        "consumed": 2153,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "9e7d1d838334fc4327031e26f5982fdde122bb0789f901b46db5aadb85456361",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2153,
+        "generation": 136771148394,
+        "height": 360,
+        "instance": 2,
+        "paints": 2154,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r3/instance-2-g136771148394-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2153,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ab1f24766ee6c1281e2fbe4f6e51baccedd1c110c7ba2f10b605be39d4861f2f",
+            "name": "first",
+            "pixels_file_sha256": "e7852591764aa0ee6e16c5f20f1d314dec57c8b47f56452ace4fe83e595d8b94"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c3079f9be6f2e930845278c0cac58efba9eac3841701bb465d3a866c46695536",
+            "name": "latest",
+            "pixels_file_sha256": "423ebc0e80ba5b57b668033af60f6c40d3f908b8d1e9eb31f2b9fa85952885e1"
+          }
+        ],
+        "consumed": 2153,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "3ea600817cca6a888b463183decf13e5ab0432eb60e6d6a432e152f280702fed",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2153,
+        "generation": 136771148394,
+        "height": 360,
+        "instance": 3,
+        "paints": 2154,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r3/instance-3-g136771148394-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2153,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "61096630b1d1adc6dffa4225772b11e2d1adbad5e4c609c05a44b2d37017ea37",
+            "name": "first",
+            "pixels_file_sha256": "35bac60a9e243c56b38922db3c19efcf0695272dd9cebcf7e50fcc7b76155840"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "67dc6e7611d9bd1b15efbe5d5127844d820390bdf5f2b5bf05043cc4ea4b99f6",
+            "name": "latest",
+            "pixels_file_sha256": "12729608b346ed82571ee1792d77a03699320e32621cc2ae44539478d0112ff6"
+          }
+        ],
+        "consumed": 2153,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "ca0ce31b834bf826898564bd43f033573b0518132e1076ffd470890376181dc5",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2153,
+        "generation": 136771148394,
+        "height": 360,
+        "instance": 4,
+        "paints": 2154,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r3/instance-4-g136771148394-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2153,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "2540e508f85a005e3e3306f1ed8a310724031578983e0da4a7d18c3949c7b42e",
+            "name": "first",
+            "pixels_file_sha256": "8b59da1d821e5f987779259e892bccde19c8406bc554a206642430111eae8825"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "589107037a4decbfc169b990e9df3c9d238b97a5317d21b2b684d63795911038",
+            "name": "latest",
+            "pixels_file_sha256": "c5796c7ed7d588f233981dc2ab7cc79d2c0e41152024312e353f8c147137e29c"
+          }
+        ],
+        "consumed": 2153,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "9e6918b62d3aa1b9d126498a250a0c742dbf881ada241e6c832912c34067469c",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2153,
+        "generation": 136771148394,
+        "height": 360,
+        "instance": 5,
+        "paints": 2154,
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r3/instance-5-g136771148394-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2153,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e19850ffece784f210a0df13e1377d1024999d42fe95985de1aec11585f4d6d2",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e2bc75498190e794532f540a7f35cf05de44fb0c27b7e2d7113e8c59e20f046c",
+            "name": "latest",
+            "pixels_file_sha256": "bbab96a4b15784072f525bf151e6ed3eb7a12b04385c409ceab88f3e10bc8aac"
+          }
+        ],
+        "consumed": 87,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "4e4e0e0c3756593238c02eb4beca0c4b6874c77fc3acab42eca64718f618aa24",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 87,
+        "generation": 139620879643,
+        "height": 360,
+        "instance": 1,
+        "paints": 88,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/crash-3/instance-1-g139620879643-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 87,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "21514d32c8da92f4ab87e8a1d841168d9248caec4bf26090d6e77c1600a516db",
+            "name": "first",
+            "pixels_file_sha256": "c5c4e65718d73c6392de3ebf35b62c9a5dc35343d13dde5c7605f1b6a6488998"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "5ea22702c3734f95299ba550d369cb821f3c7505ee9ee522c416b2f35237f31b",
+            "name": "latest",
+            "pixels_file_sha256": "df8ee04e5ff1bde16d4d16574fb7694daf5a5d4ea3cfd6999a5f071f30a956c1"
+          }
+        ],
+        "consumed": 237,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "b74c1ad7143046adcd4f9712df6d3bcb05e7e9f9f3b6096113b8e04e30c4de00",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 237,
+        "generation": 139620879643,
+        "height": 360,
+        "instance": 2,
+        "paints": 238,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/crash-3/instance-2-g139620879643-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 237,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a319dbfb17293c283a38633240250800bc1b64e864802975a13fa3141016eb25",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e89fcf38a5296cdb403e0170cc02985993899cbbf6055b6e8971693a309fcd5b",
+            "name": "latest",
+            "pixels_file_sha256": "61a1b1cca189caddb0c79515fe803f8ce9e473b692d0ff59179bfc973f06537a"
+          }
+        ],
+        "consumed": 238,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "39cd3ea3857488836b7d540d42d75c7451c2c6384a6007d5c6ebbb7355443fbf",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 238,
+        "generation": 139620879643,
+        "height": 360,
+        "instance": 3,
+        "paints": 238,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/crash-3/instance-3-g139620879643-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 238,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "186c856191338b563a2bd3eeed8da40350c4ea5a53dd9c072faebd97ecc14876",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c1baa1eb21be9074aa278ee701b78139c743163989008ee1bb04783a3eb25bbf",
+            "name": "latest",
+            "pixels_file_sha256": "bbab96a4b15784072f525bf151e6ed3eb7a12b04385c409ceab88f3e10bc8aac"
+          }
+        ],
+        "consumed": 90,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "751636dc031c75ee00d74ac30b146e6ec6a93618dc6daa379663765e1ecd2611",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 90,
+        "generation": 139620879644,
+        "height": 360,
+        "instance": 1,
+        "paints": 90,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/crash-3/instance-1-g139620879644-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 90,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "4813fffba23d8d65833a238df49fa3df9e83fe261ed08bc5c65d7d337dc116a5",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "00c170d6eecaa8c82073fe0cbc1a214001b374289af1d889a8b0b930a57aa0e9",
+            "name": "latest",
+            "pixels_file_sha256": "222ab055816a0dff34722ad0a2031ec23bfac2713b97879b11c4eb45e98fdef1"
+          }
+        ],
+        "consumed": 235,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "ae0f335a12b8a75ea1b3cff41d2457d8f9ee8455b2e33d4d4c5e16cd9032fd0e",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 235,
+        "generation": 139594093665,
+        "height": 360,
+        "instance": 1,
+        "paints": 236,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/events-3/instance-1-g139594093665-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 235,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "72a65ea40be8b5eb1e7e58dfe377be1d89a624aa572dc3357fa196e6712eba73",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ad2f5a5d95e6faf4321aa3434878237b3b00d2f9a995de9b623045ae0c15ed87",
+            "name": "latest",
+            "pixels_file_sha256": "2c8b712e84695e4069b4f53ca9d68b7ba33f84b79cfa70af01773dcda2fb800c"
+          }
+        ],
+        "consumed": 235,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "4e625e88e51b84237fb35b74f9fbd8e587029bc6b82d98f177c8ac9fb971f989",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 235,
+        "generation": 139594093665,
+        "height": 360,
+        "instance": 2,
+        "paints": 236,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/events-3/instance-2-g139594093665-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 235,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ba7cd722b1c24d13324d34927d97cf6dd79524e4815322ea40f996f2e9076d37",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "218a9d790ff824ebbe7556bb0cd8dd0ce9187009f712fb076224af8db2864de4",
+            "name": "latest",
+            "pixels_file_sha256": "9d667c95c5a1b382cc029bf35123df57e41cc165ac2547d40e1998cd8b23c480"
+          }
+        ],
+        "consumed": 236,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "6d24d417a9ba615ef4eb149f904b8100a4ecf00b33cc285f738038ddee99709b",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 236,
+        "generation": 139594093665,
+        "height": 360,
+        "instance": 3,
+        "paints": 236,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/events-3/instance-3-g139594093665-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 236,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "8739be753f0e12edec7a48ccef26dbd40c36b387e5e6b886a93aa966aa567ff5",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "aa89fbc38da40c2986a2a95d811e7e98f71957feb1ea030b4c34b6a0daf9920a",
+            "name": "latest",
+            "pixels_file_sha256": "e0976e6ae299ffeb108e714a1b5709b9b75c30bab9594a4244cdf67254b38768"
+          }
+        ],
+        "consumed": 177,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "a76c4b5d158f06cea20f94f368499c5d09856792b7979af1614c8a420e3c3608",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 177,
+        "generation": 139583105811,
+        "height": 360,
+        "instance": 1,
+        "paints": 177,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/hidden-3/instance-1-g139583105811-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 177,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b663cf47aa785fe7a70b0b3689b67ab12b22aafe18b7fadff7f9d52dbe78abf4",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "328d8138b4847a192c6053e3b2292c02a36fbe1c1ad9497243eaddd01f5038de",
+            "name": "latest",
+            "pixels_file_sha256": "b61152be174223e0fa0f663cc1ec3afb30812587adbe40dde643811285963c08"
+          }
+        ],
+        "consumed": 295,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "0e48ac31c0bd6e41592d1c6b4eab2bc03165909bf45e0276566c6e096c07397f",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 295,
+        "generation": 139583105811,
+        "height": 360,
+        "instance": 2,
+        "paints": 296,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/hidden-3/instance-2-g139583105811-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 295,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "df0ce5f49c67d45e67619408a3fc63e2d3af9e1fe4e020d17c5b078f90cfaaab",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "6520a74acf790af02ae32ea23fd3170319c98a53073d8ec20424cb18cba6c49c",
+            "name": "latest",
+            "pixels_file_sha256": "25a03494c20926b3d380002eb16ef75d01e805a2a6ee0c19e7a7b3fab669aae3"
+          }
+        ],
+        "consumed": 295,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "29950122d160759a12d9b70362cdec72987b5e173c3c6c856beeed26e2e412b4",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 295,
+        "generation": 139583105811,
+        "height": 360,
+        "instance": 3,
+        "paints": 296,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/hidden-3/instance-3-g139583105811-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 295,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "d2b187ade979c6fd6f238e6d58eec7e7b37b0a0725680123a1e763b68a7fc974",
+            "name": "first",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "44c03eb1e907d00ff9cd2fe2ad1e7e944d75f1f34370dceb2843903f30f3d14f",
+            "name": "latest",
+            "pixels_file_sha256": "53bd4f8e19eec2f9538951cb2bb6e5240f49b1032237fd4fb8377eb584bd851a"
+          }
+        ],
+        "consumed": 508,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "aecac5e4cae89be6a5d82ca8cd294c323013088afcee7809c9d093960bf28166",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 508,
+        "generation": 139542832227,
+        "height": 360,
+        "instance": 1,
+        "paints": 508,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3/instance-1-g139542832227-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 508,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b67cc16dab489f9d91352eb4bde171afda41f8aaa10fcfa7bb6dc54c1dfab97a",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "2207232cb982928cda50acc65d34e60dde0710314f6a6bc239473b18e1af2cb3",
+            "name": "latest",
+            "pixels_file_sha256": "b14e7944dd3d6c43654b68a34aef358c5828bf1b614eb394ea6d5fb7be075b7f"
+          }
+        ],
+        "consumed": 85,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "e6a99a9d02531cdcc12bfe44e6047a55f41eabe372b1d51424624fe216cf8e7c",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 85,
+        "generation": 139542832227,
+        "height": 360,
+        "instance": 2,
+        "paints": 87,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3/instance-2-g139542832227-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 85,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "6da43b68d307d71a35a43f11953b1a37265c085db70ab6a90d791d39f4f8b592",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b86c9ac0af619eee00771872ec2a4ba283ff275355f737e32e40e58ff2d9206b",
+            "name": "latest",
+            "pixels_file_sha256": "1dd2e795021d5fcbef86577b9101c35ef9cf7de7167a1004bd3597fab80b799e"
+          }
+        ],
+        "consumed": 266,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "664e9dfb25b29d8593cb0b4d412896c55694322f02ad7e4c9262e30d45d50b24",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 266,
+        "generation": 139542832227,
+        "height": 360,
+        "instance": 3,
+        "paints": 267,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3/instance-3-g139542832227-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 266,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ab26f84daaf43c03ed0767e7e108979e9a80b725391a01346870964919c8215f",
+            "name": "first",
+            "pixels_file_sha256": "24e45172553f205bee213433f8b16a657922a6a183bcde79a0d370aa06fccf8e"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "7162d6c8ec0483bdf09016198c5a95d281e111cab0b557ae5c112bd074279423",
+            "name": "latest",
+            "pixels_file_sha256": "f9d0af57a73d4f20d427eff73f959ebb7e58c27ec6b4779761484bc81fd97b53"
+          }
+        ],
+        "consumed": 239,
+        "epoch": 2,
+        "errors": [],
+        "expected_bytes": 2073600,
+        "frames_sha256": "ab6238206681e37501d3cc3fe36c1b545f8cfbb4af98b4d2cdfe3d6635ac14d8",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 239,
+        "generation": 139542832227,
+        "height": 960,
+        "instance": 3,
+        "paints": 239,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3/instance-3-g139542832227-e2",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 239,
+        "width": 540
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ffde47fb27ab6351a87e6c5516b15c5742e299badd0ab6c0fbc68605217f2a90",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "7b12afa785a71375470771730302b2aefbbbaaf9508328374f56f7100e2746d0",
+            "name": "latest",
+            "pixels_file_sha256": "ae821a9ef36483b21b317ad50dc0ec428e6528d42638503795608208baa6e554"
+          }
+        ],
+        "consumed": 239,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "feac513ade28f4515c2633cae846003cf4d9bac740421e411f88e9ecb28d0235",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 239,
+        "generation": 139542832227,
+        "height": 360,
+        "instance": 4,
+        "paints": 239,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3/instance-4-g139542832227-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 239,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "67d5eb54817958c13c73f2ad9cb420e0dcccc981b7bf3bece1708216e6c5cc38",
+            "name": "first",
+            "pixels_file_sha256": "f187701bb5135879a8bb06f8232e840df27752955c12ac258c606f40ec456ffc"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "863be813c8c96ce7f91968515a786313754631307af17fbaba6850e3c2fac58d",
+            "name": "latest",
+            "pixels_file_sha256": "fd21f1443ac210e2d97c9d2b6f2fb5c72bbf99063e62456f261a0d8ca46b5aa4"
+          }
+        ],
+        "consumed": 449,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "47ce10f749dc9342817e2da3491cdff26dc296c0d277f33c35263b90cdf9cf6b",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 449,
+        "generation": 139542832228,
+        "height": 360,
+        "instance": 4,
+        "paints": 450,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3/instance-4-g139542832228-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 449,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "19e1ceb3f27a998b85422963a47fb148566ccec450bf6fa7b571e1d0b9c4faa7",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "152ff59bd4733ccd53b49e06106a8aaf1a99935269029ef3078bfd25efbc3d20",
+            "name": "latest",
+            "pixels_file_sha256": "2896275859ea52c61528e20d9ab68edc46ab7b105e99f2a9c1586df606af605c"
+          }
+        ],
+        "consumed": 330,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "54b01ec393eef556f5d657b711a261587d944081edd724d46ee6ba7137658b2e",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 330,
+        "generation": 139542832228,
+        "height": 360,
+        "instance": 3,
+        "paints": 330,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3/instance-3-g139542832228-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 330,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "6faa0825ffb8bfab04bf462847d8fe3ae31830f45e1a096e003935f54474a680",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e5b65f23730fbbd2cf60fd7936beb648797d7c5c417132318bb5c63cf2514b70",
+            "name": "latest",
+            "pixels_file_sha256": "68ad0325c99e303ee741613571d1435e24f9527575bf3a6a2c4b184f11d284be"
+          }
+        ],
+        "consumed": 210,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "dd2552cdc8d1fa69628dcc34b2d089ed7998a6305fdd72acb1eef855d17d50ca",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 210,
+        "generation": 139542832228,
+        "height": 360,
+        "instance": 1,
+        "paints": 210,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3/instance-1-g139542832228-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 210,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "18e855341b9a4ef4d843c24fd01d48cc7d4d25f44836b15f9b91348e2ccf4eb4",
+            "name": "first",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "9a320a631681a50b4354d4ef2ffe0b65a84f3cd3d459b235a2912f72b1ffbce9",
+            "name": "latest",
+            "pixels_file_sha256": "e612abf4285a6f3cd0e17b0830a8a8d394a529d7d8ee5b5fe0b3813cc02b2ba3"
+          }
+        ],
+        "consumed": 85,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "a52c3edaf9f1d4cc4336347d5be99e23500e8181563d51a06322980c43cd15c2",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 85,
+        "generation": 139574095804,
+        "height": 360,
+        "instance": 1,
+        "paints": 86,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/resize-3/instance-1-g139574095804-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 85,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "8a5f96cc5773da44e122ac409cbb5d860524e4ad8d0392acd479deadef4f83c6",
+            "name": "first",
+            "pixels_file_sha256": "1560cde33d09a53186495b1adb1f6ee0353bbaa73fda9232e741dc74d9c97910"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "3f5b68c7f528c65806988363c92068619fbb75e5a59e20972086cba4f24b78b2",
+            "name": "latest",
+            "pixels_file_sha256": "6706f10135d2ec0661cf9cf13e30b7f3a46cc86c49ce86cc70248ba958c72134"
+          }
+        ],
+        "consumed": 148,
+        "epoch": 2,
+        "errors": [],
+        "expected_bytes": 2073600,
+        "frames_sha256": "6d344a226e6006ff7ddc5acf2d8ecec61bac735a27512c55513badb737ad96c9",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 148,
+        "generation": 139574095804,
+        "height": 960,
+        "instance": 1,
+        "paints": 149,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/resize-3/instance-1-g139574095804-e2",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 148,
+        "width": 540
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "7e7713fd6e614363d43c0f3fbafe206b280c03ebe1521492bfa28bc77fad14c4",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "426aa808b0726054d73c797ccbf7ed1ecc2c01de758ff6d3b39a0ceeb37aa5f6",
+            "name": "latest",
+            "pixels_file_sha256": "5fb6cd05f2ec4a481bda125b2013177c1770e45c376f33b3d20bcb8a31f63d6d"
+          }
+        ],
+        "consumed": 235,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "0c49dcbbbe784accbf41bee6f0dfcea9d294aad37be32073e22209bd5b4ece0b",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 235,
+        "generation": 139574095804,
+        "height": 360,
+        "instance": 2,
+        "paints": 236,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/resize-3/instance-2-g139574095804-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 235,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "8c132c362c0de4fd47353b955d323f4aa3d61ca7a2c493774896debe769f797e",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "2f0c360b687e62f44e8c8dd696dee50a6961744f78d68ee8fb045f627419b6e0",
+            "name": "latest",
+            "pixels_file_sha256": "9d667c95c5a1b382cc029bf35123df57e41cc165ac2547d40e1998cd8b23c480"
+          }
+        ],
+        "consumed": 234,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "4f7d4afa5efa93eecec1bcd0a0983d1d3fe6f65640abd370c78d6fdb81b8ae4d",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 234,
+        "generation": 139574095804,
+        "height": 360,
+        "instance": 3,
+        "paints": 236,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/resize-3/instance-3-g139574095804-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 234,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "562d9206d09b7710c4101153b2eae3e446f6f43c852ece964af6855ec1bb4578",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "704b9fc78f2464e0214022f0af8f4a39e6af6d5cc337235fe86490ea7fdaeb93",
+            "name": "latest",
+            "pixels_file_sha256": "5381e5b256cebb68bcba45c07ac641e4640f774b440263992f904b4c39c70e4c"
+          }
+        ],
+        "consumed": 235,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "c80f2eab3aeb89b4b62a831523cd24da3e09d4e2583cc9eb38bc9288e67593ed",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 235,
+        "generation": 139533708125,
+        "height": 360,
+        "instance": 1,
+        "paints": 236,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/security-3/instance-1-g139533708125-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 235,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b1f12b73d59899168d477e1feb397e7875e4ccf863dcc85dcc4a7b64b0bbba30",
+            "name": "first",
+            "pixels_file_sha256": "c5c4e65718d73c6392de3ebf35b62c9a5dc35343d13dde5c7605f1b6a6488998"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "5b5da19df5345090c128e3e30978c6ed0adb2bcc8ef9fd7095ecb48f6034029b",
+            "name": "latest",
+            "pixels_file_sha256": "5fb6cd05f2ec4a481bda125b2013177c1770e45c376f33b3d20bcb8a31f63d6d"
+          }
+        ],
+        "consumed": 235,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "03ef720052b12f8f8b5537ba65ad61a6ddda4c0b9223270ec744861829571a74",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 235,
+        "generation": 139533708125,
+        "height": 360,
+        "instance": 2,
+        "paints": 236,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/security-3/instance-2-g139533708125-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 235,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "91a8a66228ad902dbb8ba5c76d3e43afedf28ec8b01690069b4b089eaf6f79ff",
+            "name": "first",
+            "pixels_file_sha256": "e7852591764aa0ee6e16c5f20f1d314dec57c8b47f56452ace4fe83e595d8b94"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c3ac82995e2be151383b41684fb6003b3809f652d1148f5e1d70a5bb718894de",
+            "name": "latest",
+            "pixels_file_sha256": "9d667c95c5a1b382cc029bf35123df57e41cc165ac2547d40e1998cd8b23c480"
+          }
+        ],
+        "consumed": 235,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "83c45b25bab65e5b96d3a2f535a5811cdcfe670089fe2d7265746576322cadb5",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 235,
+        "generation": 139533708125,
+        "height": 360,
+        "instance": 3,
+        "paints": 236,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/security-3/instance-3-g139533708125-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 235,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "93892f4d7681595c4764d95c919e2b8f35004695cc314f99920a8a8022316ab6",
+            "name": "first",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c15fd1d8e27608992fc5728b30b949833151b7645cc8d45ec1e1249a45ccfcee",
+            "name": "latest",
+            "pixels_file_sha256": "934e687774e3af2efdfa9f1ffecb1dad35326b211d3100a4859be7561e6445b4"
+          }
+        ],
+        "consumed": 224,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "6f9f1d9529c43c487b0e98c614ba77f1bc7e33da7281eb67b72585f56c633a62",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 224,
+        "generation": 139603009813,
+        "height": 360,
+        "instance": 1,
+        "paints": 224,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/slow-3/instance-1-g139603009813-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 224,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "9d85b3e1583dd4f87d93feb346e6d6fb0b62849df04f16143bd4e22d06f08e88",
+            "name": "first",
+            "pixels_file_sha256": "c5c4e65718d73c6392de3ebf35b62c9a5dc35343d13dde5c7605f1b6a6488998"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a512054dcea377bd70b659d176746bc57c0c4dd1cd6cc14355b0776238c8b4a6",
+            "name": "latest",
+            "pixels_file_sha256": "df8ee04e5ff1bde16d4d16574fb7694daf5a5d4ea3cfd6999a5f071f30a956c1"
+          }
+        ],
+        "consumed": 237,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "e1b315d9eabb32b760c330969306cb0d86bb6b3e9eb447e91994682e27b4c405",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 237,
+        "generation": 139603009813,
+        "height": 360,
+        "instance": 2,
+        "paints": 238,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/slow-3/instance-2-g139603009813-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 237,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "72e150a2c443892f921a2a67a1bea2bbdd6c60b21089466678f80ed92178142a",
+            "name": "first",
+            "pixels_file_sha256": "e7852591764aa0ee6e16c5f20f1d314dec57c8b47f56452ace4fe83e595d8b94"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "055c055015ec7e3cf31639ac9716a4a7c27e0bc2d9074c86eff15f6cc5df3c8b",
+            "name": "latest",
+            "pixels_file_sha256": "ad0f22b68ce764f5b349a2970d231048b49f520916dc4a4ab50a838facef035f"
+          }
+        ],
+        "consumed": 237,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "82f642beae506323a041020322fc6f998c1393205bc8e13d569178a802d4342b",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 237,
+        "generation": 139603009813,
+        "height": 360,
+        "instance": 3,
+        "paints": 238,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/slow-3/instance-3-g139603009813-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 237,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c494d831834b7d2883a0ae8d4b756946fd1fc9b5b11e0db318fc9eb309140ea8",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "4921a18cf777e0409ccbb557627739e540fb9cc50415b28c1f61e94d34290078",
+            "name": "latest",
+            "pixels_file_sha256": "e97864ce1eb13aed3233d29cee274d86ed035f80e7e859640cbbff4a22501aa7"
+          }
+        ],
+        "consumed": 68,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "527bc6e10b3428134f2c3857fb4e987314f82f6aed12a4c9c7ba2d0de3ec0df8",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 68,
+        "generation": 139611804638,
+        "height": 360,
+        "instance": 1,
+        "paints": 238,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/slow-consumer-3/instance-1-g139611804638-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 68,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "48ebbb464d9d69aaa6ff292c7dd9a313cca2d716edcdf0a5d97d3aee706f0630",
+            "name": "first",
+            "pixels_file_sha256": "c5c4e65718d73c6392de3ebf35b62c9a5dc35343d13dde5c7605f1b6a6488998"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e4a0b4f869864471fc1a057fa3a0afebbd0ac5e53010954c64d8e376b238cd24",
+            "name": "latest",
+            "pixels_file_sha256": "d3231b6d1ae0b17294c0b6c94ad4294911ad7c98319491e79f4d24067b1e6b59"
+          }
+        ],
+        "consumed": 69,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "57fa4bb73ca95d627f45c1d11b8536319a53510e1041bfbf9d9aa783c605d5f2",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 69,
+        "generation": 139611804638,
+        "height": 360,
+        "instance": 2,
+        "paints": 238,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/slow-consumer-3/instance-2-g139611804638-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 69,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "d815767245a414bc6de2291a29414f55197b54027413bef963a2895780eb052d",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a4b5b17732b8ee04f85bf5ab74663db684ca3725a3212677d942717dc01207f1",
+            "name": "latest",
+            "pixels_file_sha256": "61a1b1cca189caddb0c79515fe803f8ce9e473b692d0ff59179bfc973f06537a"
+          }
+        ],
+        "consumed": 69,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "97557845285c64c80a54c85a506a9208232a7e127e5c58bb4c989e88e87db048",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 69,
+        "generation": 139611804638,
+        "height": 360,
+        "instance": 3,
+        "paints": 238,
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/slow-consumer-3/instance-3-g139611804638-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 69,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "65836c3c0e5e16964e1739d70d60e08c4239fcbf6ce70b6b132b3829e2a82b39",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "babc4aa352f1d2bf6b58991e32b63a2007fe2c0991e2502953cfcbe651fe9e1f",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "58adcfe801f26986447115ca902334f02a947d682bfdb12ccd2aaaa728a6818f",
+            "name": "visual",
+            "pixels_file_sha256": "bd1e4c689582ac20a9c5a7f56927c2f6ec0d4bcb783e2a1ac79b12132319fafa"
+          }
+        ],
+        "consumed": 18,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "5ca9eeced15f4e075d3bf95ff958294479cbdc04c4ce60460ab28a8d57783320",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 18,
+        "generation": 195004,
+        "height": 360,
+        "instance": 1,
+        "paints": 21,
+        "path": "web-host-lab/evidence/H19-candidate-goal-controls/instance-1-g195004-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 18,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "034a607b12204d41c6ecf3c9e7436f12d8bcf999e28f91f31190a6b035a3c716",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "76fc8d13180d563d7b501e4c9986be997f84c29c4b015a254f3991a6934f8f34",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          }
+        ],
+        "consumed": 3,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "b2e1dcb031383a75cf81452ab0ea4addfbff35510a4d60b98fa014ff304c1e5f",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 3,
+        "generation": 195004,
+        "height": 360,
+        "instance": 2,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-controls/instance-2-g195004-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 3,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ba09580721610c436005556c3e253c39c1c80612ce80041d490b6adac0d0abef",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "06ec87a3da2ba8ccc174bbfbc6e9ece675ec2a7065d36124bce8326b7002c7bd",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          }
+        ],
+        "consumed": 2,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "2c32d2aa8c921df6e74a6bb863178cd461d39f4b35ece6546f69536e584e4400",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2,
+        "generation": 195004,
+        "height": 360,
+        "instance": 3,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-controls/instance-3-g195004-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "8bff5e3b8cd9d9f1a9b12e4e13e6a5d6ee773fc5462dd32c9cf33f61c2f7346d",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "4fd315596f474ca514436ce67a1b55aab8267bd78d1cbe6c8d5f3f496b2dc644",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "0f14c08aa4cad8bd71dcca717518095ebcf2ab98042a95f4f5b5b6ac083d9e86",
+            "name": "visual",
+            "pixels_file_sha256": "59639a56a540040c810b6c26408b93d52af220c76fbe1ffa692a59828afc453c"
+          }
+        ],
+        "consumed": 58,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "792ecba9dc7dc225e3c3402a4b54cb2c46788383b80d2f57a3a9df2f5e1ef0d2",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 58,
+        "generation": 195006,
+        "height": 360,
+        "instance": 1,
+        "paints": 59,
+        "path": "web-host-lab/evidence/H19-candidate-goal-crash/instance-1-g195006-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 58,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "12410702774555c1ee1b425a88d147acfb0034b27b8592245af1a1b98c0d4aad",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ced9388f8c2cf9dd6c8dad94528e59ca6c12e3bddfafbf56db9f22f96aba6a8a",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          }
+        ],
+        "consumed": 2,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "a0abf3718bc1ffa1f6633822b0e8ef9a300bc7367f933532382fb2586ebec25f",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2,
+        "generation": 195006,
+        "height": 360,
+        "instance": 2,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-crash/instance-2-g195006-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "0a82302c15c6f55173f7e1dcbcd6b4aefea6b6633e6fd72ba5f4a698c0c61393",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "4a1f416355cc0d2f8f94f908ce3557ead0a63a87d1c85b7af80c95888076be5a",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          }
+        ],
+        "consumed": 3,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "a9f11c942dd0dbb3785922374fc26fb72d9d151ba0bae2704a35a215c7b61080",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 3,
+        "generation": 195006,
+        "height": 360,
+        "instance": 3,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-crash/instance-3-g195006-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 3,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "2454c49bbe3d86228e71792770d32fc3d2b600ff8d63d835c49273ae07eb996b",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "15bc8f5198fe65cd56f467abb21f76b5b32c0d9e6619b749861179742776c489",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "366d61bb555a4298f338482bcb2694498117ec5cf89373fbe71d223c1079fb5c",
+            "name": "visual",
+            "pixels_file_sha256": "26367f901c60935188b34cdee047e678616d6d56cae22dfe5e965e3fd3237487"
+          }
+        ],
+        "consumed": 58,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "efaa0f6df31ef5c881fd1f117e2e81a7c325b7c281a794737084ad0428fd932f",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 58,
+        "generation": 195007,
+        "height": 360,
+        "instance": 1,
+        "paints": 58,
+        "path": "web-host-lab/evidence/H19-candidate-goal-crash/instance-1-g195007-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 58,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "dd4c5a6d546445ac57571b007c48c89cef1c024868d20d367011911ce63436da",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "f82ced87a2316065c434836940d5a8c3bc293ade39e9f4bf9037a2ba30eb1aab",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a62fb316e263d8b4f01f0275f10f5f3e0ce88e45aca4b3a631160ac3bf72c6c7",
+            "name": "visual",
+            "pixels_file_sha256": "b2be8f2296937ba26b9100775046015fbe07a38a267150f4b936d18634ffdb98"
+          }
+        ],
+        "consumed": 19,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "7ee84fbdc1f683404cb1c655436a19a856af5e562beab59d3960253d81dbe79c",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 19,
+        "generation": 195005,
+        "height": 360,
+        "instance": 1,
+        "paints": 20,
+        "path": "web-host-lab/evidence/H19-candidate-goal-hidden/instance-1-g195005-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 19,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a45c126c59e1df97d1f7ba2f652105b052baf4c7aa9284c01d1c1d858cae65f8",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "18f3d1278c0016ef136162cbde5d83e4420956de0c02a5661607d85fa75f1f3f",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          }
+        ],
+        "consumed": 3,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "8730a3f37ee152ccce5a5adea9f4522ec80284754ae4614d3f75c17812b94bca",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 3,
+        "generation": 195005,
+        "height": 360,
+        "instance": 2,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-hidden/instance-2-g195005-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 3,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "602e093132463892ef350778515826da888b223aca1090a8ffcd934a3bbd6014",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a3ccb29e3b4b9fa1bcd099c8b23364df52e10c220218f3a22cd0c250390b543e",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          }
+        ],
+        "consumed": 2,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "227f82112cc8212946407e558f0dceec086fb26658558a636ddb2b6313b6e234",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2,
+        "generation": 195005,
+        "height": 360,
+        "instance": 3,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-hidden/instance-3-g195005-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b7e4aa2addaa4b2bdeb8c3b3bb99588557f8b433eb9d5dc688794fa166b019af",
+            "name": "first",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ff552bafd45ee951067342b392db17e439ae5013f179756b4f44a2ddb78d5045",
+            "name": "latest",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "2529de0760c53acc45b1f0a9d138562859078c8df5d4d9552e507c490df46613",
+            "name": "visual",
+            "pixels_file_sha256": "93242fc680fe77b70808101e4dccb467cb8928549c12ea05e720817b383c855f"
+          }
+        ],
+        "consumed": 50,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 2073600,
+        "frames_sha256": "35067a998fac2c9f64da4ba6be59a156d7fd5c60e3198a83dce965692996d721",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 50,
+        "generation": 195002,
+        "height": 540,
+        "instance": 1,
+        "paints": 52,
+        "path": "web-host-lab/evidence/H19-candidate-goal-horizontal/instance-1-g195002-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 50,
+        "width": 960
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "98501fbe6e70bd9e8d65831afa33fed9b1d0cdc9d75299058356d3671ffaf8c5",
+            "name": "first",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "7023cb591dbb15cf8192dba8bf296ba02251a9ad5cb5e0da279a2cf6e9aa0952",
+            "name": "latest",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          }
+        ],
+        "consumed": 2,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 2073600,
+        "frames_sha256": "7400da4e1ca0fa5853c4ba0642bd56d46e6e35ad35c6608bcb098ca85d707fd2",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2,
+        "generation": 195002,
+        "height": 540,
+        "instance": 2,
+        "paints": 2,
+        "path": "web-host-lab/evidence/H19-candidate-goal-horizontal/instance-2-g195002-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2,
+        "width": 960
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b15e0c8e9ade5e184838997569f5356f36caf96d454f3e72c7feb1363ee5f59a",
+            "name": "first",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "3070b3b98b40b7d5d6b29df12a29a2819e3767d15468428a0f99c595a46d3c4c",
+            "name": "latest",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          }
+        ],
+        "consumed": 3,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 2073600,
+        "frames_sha256": "9415d22f5ecbe73ce1dc15bd96034d6dd5301ef0d5d466d3058bcd6c05aa215a",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 3,
+        "generation": 195002,
+        "height": 540,
+        "instance": 3,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-horizontal/instance-3-g195002-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 3,
+        "width": 960
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a2c1af5d0fe4e7c64e5c668f70a967822d0cf82ec4232e337ffec0f6cd57e0c3",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "f2e36c8eedf61637550742af139d7305bc88fa67ed7b997574e2466d594fcffc",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "0451596310023aa5429366b3b0a6acdd81c97a31f31e88f8078636aef754e66f",
+            "name": "visual",
+            "pixels_file_sha256": "bd1e4c689582ac20a9c5a7f56927c2f6ec0d4bcb783e2a1ac79b12132319fafa"
+          }
+        ],
+        "consumed": 50,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "c413da921a12211f49459cc586737d08fd4ecf630fdf7294bec3674a484a02b7",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 50,
+        "generation": 195001,
+        "height": 360,
+        "instance": 1,
+        "paints": 53,
+        "path": "web-host-lab/evidence/H19-candidate-goal-standard/instance-1-g195001-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 50,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "421718e3c9e3759461d20a6c6d540e016cdb17fe8ebdd0700401deae11c2f947",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "4856ce3252a7ea90be0777a4fb0fa0a25cd80a722ad26e0cb088b1e01c30916b",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          }
+        ],
+        "consumed": 2,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "e9ea4bf7885985389ee7ab0d1ba8ab4bf59eb8e618d155c7175a2ae3f1aff748",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2,
+        "generation": 195001,
+        "height": 360,
+        "instance": 2,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-standard/instance-2-g195001-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "6716fe5d772f1e1141fb3c771c2c3725d51e97e1647e2f61c91baa13b7b8350b",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "8efba7ee89548a0d25142c8e46522e957e2f879d5182f859ecb1d3714579e79c",
+            "name": "latest",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          }
+        ],
+        "consumed": 2,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "a13c7b209b809a270640f9c4bbc6e48ae336684cecf63091dae61439e3b704fc",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2,
+        "generation": 195001,
+        "height": 360,
+        "instance": 3,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-standard/instance-3-g195001-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "d99095ca14b2053c6462894fd4cc186753f9bd1de308c9f24ff1475b6adad152",
+            "name": "first",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "313258f8fb9e92568c8fb540407a1911c152265fea8ac05b37e175dc3bc05b65",
+            "name": "latest",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ad9ef7f2b5e8e2b757b823b30c38b07cbd6d74b99cb47979ba27fdfff9124f86",
+            "name": "visual",
+            "pixels_file_sha256": "f818513eb575c528538b01da21fe5383c1720b123058178029645ee78936b73a"
+          }
+        ],
+        "consumed": 58,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 2073600,
+        "frames_sha256": "c7a76b27598eac67528c295fdc141858c45b13e9e967b51b5dfe6c8bddc563de",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 58,
+        "generation": 195003,
+        "height": 960,
+        "instance": 1,
+        "paints": 58,
+        "path": "web-host-lab/evidence/H19-candidate-goal-vertical/instance-1-g195003-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 58,
+        "width": 540
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "47d96fa46f47aa18e581829b0bc328bfe63ba99425d9292a5ce6b33989170a17",
+            "name": "first",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "f1b4722881c59f6790d7fabd4ba44f00320241e7801b9890b55508da65b014b0",
+            "name": "latest",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          }
+        ],
+        "consumed": 2,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 2073600,
+        "frames_sha256": "a270e4b0611b3ae04215b188cc8c951d3d3414291fc4764f110f046a7d1a4dc0",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2,
+        "generation": 195003,
+        "height": 960,
+        "instance": 2,
+        "paints": 2,
+        "path": "web-host-lab/evidence/H19-candidate-goal-vertical/instance-2-g195003-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2,
+        "width": 540
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "783e02f803b5a35bedb47db8c0e2fb58b301b2803c01118f67784fa9a26d0105",
+            "name": "first",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b59ce3635fe0be22ee96417d00c9bb13ae27bf4dc5f0c73e3fdf091a076b076e",
+            "name": "latest",
+            "pixels_file_sha256": "4254547a001a3673049c09f3aafca64ef462419e36eedf0bc60f51f12c8dd6ed"
+          }
+        ],
+        "consumed": 3,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 2073600,
+        "frames_sha256": "07d42012ce47cb65c68cb3da3b74071981c0695c4585b7bc2dc715d50650e7e9",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 3,
+        "generation": 195003,
+        "height": 960,
+        "instance": 3,
+        "paints": 3,
+        "path": "web-host-lab/evidence/H19-candidate-goal-vertical/instance-3-g195003-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 3,
+        "width": 540
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "d7126fdf91cb6a548f7a6e65e471fd4f675252031908fb606f77ae6d8e5742e5",
+            "name": "first",
+            "pixels_file_sha256": "379bd6b55e9e086b52a6c74652a351a89aea56f46d7d292b4110b98a42299a72"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "0013cbee281e3a3b1bebc7d8a1b884e92e426b1c4388af5a2a7455c0a7c6a0d5",
+            "name": "latest",
+            "pixels_file_sha256": "584ed7a62f8dc230f9eaf51dd1dc115f4228119a1f5c1f0565c149057a3b4c94"
+          }
+        ],
+        "consumed": 504,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "9826ab7d91f4989142d6b6e3feaecf56acbc4f6906c1582563ddaeae366d62d7",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 504,
+        "generation": 138862770679,
+        "height": 360,
+        "instance": 1,
+        "paints": 505,
+        "path": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-1-g138862770679-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 504,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "1c6d9362fc83f9b04269f057aedb7b8e547929808566b7aabfe791600d5ffdfa",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "98488a99fe6b39c968a647c25abf52cb4b19e106aabc25d7fad817a27c250ebe",
+            "name": "latest",
+            "pixels_file_sha256": "d5a45e6b028719b772fa86a64fabd661f292898c81b0aac4d18e0ee3e9365912"
+          }
+        ],
+        "consumed": 84,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "5c4a3227a936d442a6f80081deec50d59d25b16347e9c42ac58bec7cb8568281",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 84,
+        "generation": 138862770679,
+        "height": 360,
+        "instance": 2,
+        "paints": 84,
+        "path": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-2-g138862770679-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 84,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "ee97812812ed7a839e6c586a69887e80103301588ba417e60fae18b4eb5da193",
+            "name": "first",
+            "pixels_file_sha256": "043891260029efc4a8d676c9436e7beb8d2866d6d4da7f7c4339f6c99ba2a30e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "6cabde80bb27bff087e634e427929da0d75c7d95f339ffeb274b3fc6bd8d3a43",
+            "name": "latest",
+            "pixels_file_sha256": "9122ee95fe59fedf8b73b4ca5bed72fa92fab18a26fa109351384d13fb9dfbb8"
+          }
+        ],
+        "consumed": 263,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "9564799b043b9b6b25a9530eb70d990324c3d64e2549819d978de440c5ca2c08",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 263,
+        "generation": 138862770679,
+        "height": 360,
+        "instance": 3,
+        "paints": 264,
+        "path": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-3-g138862770679-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 263,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "6d1b0e64921fd242b6a2282c9609b2cca84ee1fe0db294aacfcee62d1311a0a3",
+            "name": "first",
+            "pixels_file_sha256": "80bcf2f36626e1f9ed2d584fd2757adb0ac5d0d3fc86cfa6603cda7947921ee3"
+          },
+          {
+            "decoded_bytes": 2073600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "8d715951318e853ebf2d6547b7727aa874831a7c2ec48bf4a79d34925f99d287",
+            "name": "latest",
+            "pixels_file_sha256": "194f8814c34ec0866d87830e8ca36a5028fea5857dae8d3e25ef3a0bb1d6db44"
+          }
+        ],
+        "consumed": 227,
+        "epoch": 2,
+        "errors": [],
+        "expected_bytes": 2073600,
+        "frames_sha256": "b9616f64a0aa4c093160a1e1d357bae8de66464ef589becc082b3878beb9d6a0",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 227,
+        "generation": 138862770679,
+        "height": 960,
+        "instance": 3,
+        "paints": 228,
+        "path": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-3-g138862770679-e2",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 227,
+        "width": 540
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "3e6b39978ed43b89a7dafaf55da07fcfe91ffa5ae73a5b022e5a21f1b30b486e",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e6f4cefb6a0805a0d30cc5b8dfa433a6e17dafe96289a9c298a3578f9ff57343",
+            "name": "latest",
+            "pixels_file_sha256": "5663acb732a3520a80da80b3b2f24529278a8dfc6fbc1876e123a4d12af402ad"
+          }
+        ],
+        "consumed": 226,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "89bd27baef6fdc035a2bf44ebfda5519420c2969baaf5203a8fc553a734fd0bc",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 226,
+        "generation": 138862770679,
+        "height": 360,
+        "instance": 4,
+        "paints": 228,
+        "path": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-4-g138862770679-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 226,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "af8d0994f93846c42ea628d7d8fb83d5e5112e78a274d0fcf69592ba1ea1ab6a",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "89d1c16e50a79233070ec6245ee143e8b0d8ddb3613a5a0ff87fcaf3d800d532",
+            "name": "latest",
+            "pixels_file_sha256": "cbfbaca8c81408bfc9d348f628fd463cab0860bf3c546e30bac854bdaa2fbbd8"
+          }
+        ],
+        "consumed": 17546,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "0d707720036a1034b0f08eb9e899c2668eb25038bbe42c04cda628876c46d411",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 17546,
+        "generation": 138862770680,
+        "height": 360,
+        "instance": 4,
+        "paints": 17548,
+        "path": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-4-g138862770680-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 17546,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "425c897b2874690f2d401496b12cf94ad58da435219fa7adb3d8d459a8b287de",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e2e54cb558917edf52968c51ab617e7fbaadabb010efa378238928a0875d2296",
+            "name": "latest",
+            "pixels_file_sha256": "2b325303ab1936729f390858c0a9e2c2a89d7d1be5dbf25c4d58f37aaebd61ea"
+          }
+        ],
+        "consumed": 17429,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "3cdcb4ac22923c3f3a39dad6e663da022ccfd2397c7d24c5da36fb9d0fd497ac",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 17429,
+        "generation": 138862770680,
+        "height": 360,
+        "instance": 3,
+        "paints": 17430,
+        "path": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-3-g138862770680-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 17429,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a1d8b752e7b5a970add3f7819afa5e901fc3036df82072927fab173366dd9c42",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "4f1abf53f3276132e684ed1472ea4ac96d69775e1755ce6d1f94f412fdd219eb",
+            "name": "latest",
+            "pixels_file_sha256": "9647f64acc4ec1dcb06c856d5063f14203faacb387b6bb56ca604c5652ff3964"
+          }
+        ],
+        "consumed": 17307,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "a55031a983f041d12467c965b4c7be2d1af34a7d3d98ce4ff97403bdcd1b707c",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 17307,
+        "generation": 138862770680,
+        "height": 360,
+        "instance": 1,
+        "paints": 17310,
+        "path": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-1-g138862770680-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 17307,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "71ab9f650cacbbfbdc7c6e14e860d6d542311751cf0c671765ed49ffec3f991c",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "5f77f89494ddf221bd211b615ed8dff5fc06303252e79620b32584c3e90379cf",
+            "name": "latest",
+            "pixels_file_sha256": "71b5157fddebe2dbd16df2d025a2959dc49e306625b614b9c8363415216cfa1f"
+          }
+        ],
+        "consumed": 2155,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "59a8cd38f590c758ee8eea15ba8d850e218d4478b3afe37591dbf1d4c9f6b532",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2155,
+        "generation": 137219077028,
+        "height": 360,
+        "instance": 1,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r1/instance-1-g137219077028-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2155,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b558f8d48bd472a49e2b180c878391d31dc359d93d31c07fb67f675d24808fdc",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b558f8d48bd472a49e2b180c878391d31dc359d93d31c07fb67f675d24808fdc",
+            "name": "latest",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "9efa90150cca9e8528b387eb8021ac66772cf99518cd946f503c1bea7d32aae1",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137219077028,
+        "height": 360,
+        "instance": 2,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r1/instance-2-g137219077028-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c6b743740d393d7aaa97b92068194698a2f597f69453a0e27799c4091a5efd9c",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c6b743740d393d7aaa97b92068194698a2f597f69453a0e27799c4091a5efd9c",
+            "name": "latest",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "0f7243e222a575ec6154ecab489bd307b9f59b7408d0cb2db31c1257a846e20c",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137219077028,
+        "height": 360,
+        "instance": 3,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r1/instance-3-g137219077028-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "249b604d5a5a88e1981ef97fb641bd24345412c8ef06ef94efade4a08331d949",
+            "name": "first",
+            "pixels_file_sha256": "f187701bb5135879a8bb06f8232e840df27752955c12ac258c606f40ec456ffc"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "249b604d5a5a88e1981ef97fb641bd24345412c8ef06ef94efade4a08331d949",
+            "name": "latest",
+            "pixels_file_sha256": "f187701bb5135879a8bb06f8232e840df27752955c12ac258c606f40ec456ffc"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "cdf470b4b553986802e7e560489d1086e4b0b075eb4101e324d6dc2177419ab4",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137219077028,
+        "height": 360,
+        "instance": 4,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r1/instance-4-g137219077028-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "99d3b0f4334d8fe03838f1d47c5b5c7e0bfd9ecb84089d2c9b28f068f835c295",
+            "name": "first",
+            "pixels_file_sha256": "9fde7599d961fab2c80703148fffd8a2f6c8d49e00aee4d7106da3a27033a2e7"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "99d3b0f4334d8fe03838f1d47c5b5c7e0bfd9ecb84089d2c9b28f068f835c295",
+            "name": "latest",
+            "pixels_file_sha256": "9fde7599d961fab2c80703148fffd8a2f6c8d49e00aee4d7106da3a27033a2e7"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "b78623c9050c5e59e02935e42b0c04df63b90365b9665c5a00d7330f2e82be6b",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137219077028,
+        "height": 360,
+        "instance": 5,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r1/instance-5-g137219077028-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "407e79f8a09630079e4f878ac55a19ee5fdb1d1d57a89bdda5ea0e956667ae69",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "eb13936494453d71dc9ebcf1b1f77c367599e9908a3de34f4e7bcf1f0e1dcfc6",
+            "name": "latest",
+            "pixels_file_sha256": "179e342c4bdfbcb32a2fa0fbe7129c05b39ba305ea1a1edfc60c764206e1fae4"
+          }
+        ],
+        "consumed": 2156,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "5c0f1a71583b9b69d50491a9721b0b8f96a951d1d41d5ac13acbb3839315cab7",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2156,
+        "generation": 137364982887,
+        "height": 360,
+        "instance": 1,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r2/instance-1-g137364982887-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2156,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "d54dd4d99f67d5b0e244e1492c9d0ae9beb638dc47cb029c99e11ca770419cda",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "d54dd4d99f67d5b0e244e1492c9d0ae9beb638dc47cb029c99e11ca770419cda",
+            "name": "latest",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "e2638067e8c01d03cfd0a91f7351106ed01a62088888fde8721056f190132d40",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137364982887,
+        "height": 360,
+        "instance": 2,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r2/instance-2-g137364982887-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b96d8c31bbb3e86da763c6f23512880dcb7c8e1bf8ffead675a11f1bec59a3b3",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "b96d8c31bbb3e86da763c6f23512880dcb7c8e1bf8ffead675a11f1bec59a3b3",
+            "name": "latest",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "3a201145a05c35b032a914bae94ea2445dae66f3a16a6adc2aebce29b0ba8318",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137364982887,
+        "height": 360,
+        "instance": 3,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r2/instance-3-g137364982887-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "81f88bff4773cafff49b68546a553e5747c47569bf58cfe48080cc1d9d8b8cea",
+            "name": "first",
+            "pixels_file_sha256": "f187701bb5135879a8bb06f8232e840df27752955c12ac258c606f40ec456ffc"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "81f88bff4773cafff49b68546a553e5747c47569bf58cfe48080cc1d9d8b8cea",
+            "name": "latest",
+            "pixels_file_sha256": "f187701bb5135879a8bb06f8232e840df27752955c12ac258c606f40ec456ffc"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "36a2384bcdae94a10d1f5521dc1409239ebbadd9d6e77f44cbbe8ae145e7da1e",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137364982887,
+        "height": 360,
+        "instance": 4,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r2/instance-4-g137364982887-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "cb38802d44b0d08a818611f7f169cc431ff2343237be7a29d2ddf43d1aa5b35f",
+            "name": "first",
+            "pixels_file_sha256": "9fde7599d961fab2c80703148fffd8a2f6c8d49e00aee4d7106da3a27033a2e7"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "cb38802d44b0d08a818611f7f169cc431ff2343237be7a29d2ddf43d1aa5b35f",
+            "name": "latest",
+            "pixels_file_sha256": "9fde7599d961fab2c80703148fffd8a2f6c8d49e00aee4d7106da3a27033a2e7"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "2847fe786b3dee4f4267e4c3eb7072a08120151a76935a91bc1eef07bad99bc1",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137364982887,
+        "height": 360,
+        "instance": 5,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r2/instance-5-g137364982887-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "415d8ca71ef09e1d303107bd2ae6be633431f6e10d36fc1e44324cbc413cfb56",
+            "name": "first",
+            "pixels_file_sha256": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "9dc4d2fe968f084d04cf22eb14abd7ad98ebf750f369406f68f995fd38b552bb",
+            "name": "latest",
+            "pixels_file_sha256": "179e342c4bdfbcb32a2fa0fbe7129c05b39ba305ea1a1edfc60c764206e1fae4"
+          }
+        ],
+        "consumed": 2156,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "f9a64ebd70dbce55d400220c20c19b14bbde0195e9df9c233ca74a9d3e515184",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2156,
+        "generation": 137729665622,
+        "height": 360,
+        "instance": 1,
+        "paints": 2156,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r3/instance-1-g137729665622-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2156,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c7fba60756f6682bec3f42125ab4261802da480b8a25e82af175afe6d92408ea",
+            "name": "first",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c7fba60756f6682bec3f42125ab4261802da480b8a25e82af175afe6d92408ea",
+            "name": "latest",
+            "pixels_file_sha256": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "fc467cd1408aeabe8f56613598fcc24255e4927b0142d928065301741bd2e0a7",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137729665622,
+        "height": 360,
+        "instance": 2,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r3/instance-2-g137729665622-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "2becf21bec0a170b6a8caa9d170dffa8c38cf290816e342e00200b0ad1d9588c",
+            "name": "first",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "2becf21bec0a170b6a8caa9d170dffa8c38cf290816e342e00200b0ad1d9588c",
+            "name": "latest",
+            "pixels_file_sha256": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "99c910a8d82077d4915e8d87d16d90f5bbd4c0151227c2b71ee0b7acd800ecbc",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137729665622,
+        "height": 360,
+        "instance": 3,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r3/instance-3-g137729665622-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "16e9b32bd1af36b44a3a2c0292aacb6db9a5927db17ecbf8bba847d50e75e449",
+            "name": "first",
+            "pixels_file_sha256": "f187701bb5135879a8bb06f8232e840df27752955c12ac258c606f40ec456ffc"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "16e9b32bd1af36b44a3a2c0292aacb6db9a5927db17ecbf8bba847d50e75e449",
+            "name": "latest",
+            "pixels_file_sha256": "f187701bb5135879a8bb06f8232e840df27752955c12ac258c606f40ec456ffc"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "5b2a93c6a49beb0a457f674e2f090e8abd87955358f381fc567f47ca66cf3a29",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137729665622,
+        "height": 360,
+        "instance": 4,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r3/instance-4-g137729665622-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "525cdd5a34ffda31c425b1e73f1671edc05f4ce9efddb0b148fab755203f0e60",
+            "name": "first",
+            "pixels_file_sha256": "9fde7599d961fab2c80703148fffd8a2f6c8d49e00aee4d7106da3a27033a2e7"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "525cdd5a34ffda31c425b1e73f1671edc05f4ce9efddb0b148fab755203f0e60",
+            "name": "latest",
+            "pixels_file_sha256": "9fde7599d961fab2c80703148fffd8a2f6c8d49e00aee4d7106da3a27033a2e7"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "b6419c61c298d8b62cdcc2ee2a04b058e5f06466fbe2c65a0bc0d5c0452e3132",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137729665622,
+        "height": 360,
+        "instance": 5,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r3/instance-5-g137729665622-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "498654c9b52c28e532c3cfa92fb2baead0f7ef6bd5eb8c6a4b7949eef83f1167",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "c72a6388364865104a0cd262b6b0f03d7ecfbefafa96864f760cca584c9f79ff",
+            "name": "latest",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          }
+        ],
+        "consumed": 2,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "1984e0b63a59d54397bc632faafcc264578181c756ac989e80c78b7dae5419de",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2,
+        "generation": 137146215752,
+        "height": 360,
+        "instance": 1,
+        "paints": 2,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/static-1-r1/instance-1-g137146215752-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a05eb2f03f4936ba97e63449f87efa21fa02ad7ae9b1841428bd195248aaea78",
+            "name": "first",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "a05eb2f03f4936ba97e63449f87efa21fa02ad7ae9b1841428bd195248aaea78",
+            "name": "latest",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          }
+        ],
+        "consumed": 1,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "bb1767fca94d4dcf514d117402e098c66ecc8f2a9941919c99406ca8c688316b",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 1,
+        "generation": 137292132404,
+        "height": 360,
+        "instance": 1,
+        "paints": 1,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/static-1-r2/instance-1-g137292132404-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 1,
+        "width": 640
+      },
+      {
+        "captures": [
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "22b931f6b4e7ffb1314d4fb686d23b6a3de3edc6d171588d7d9ca8d076626fae",
+            "name": "first",
+            "pixels_file_sha256": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e"
+          },
+          {
+            "decoded_bytes": 921600,
+            "identity_and_geometry_exact": true,
+            "metadata_sha256": "e28e5bff91312a01c8ff6408f49fb33fd139eddc17ab0d3a006bbe64820642dc",
+            "name": "latest",
+            "pixels_file_sha256": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361"
+          }
+        ],
+        "consumed": 2,
+        "epoch": 1,
+        "errors": [],
+        "expected_bytes": 921600,
+        "frames_sha256": "39d24020b02541c56d1db53fac6b3125d9653c650edbb4166ac5cedffd6cf721",
+        "ftruncate_calls": 1,
+        "full_latest_writes": 2,
+        "generation": 137656921302,
+        "height": 360,
+        "instance": 1,
+        "paints": 2,
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/static-1-r3/instance-1-g137656921302-e1",
+        "rejected_geometry_or_descriptor": 0,
+        "status": "PASS",
+        "successful_disk_writes": 2,
+        "width": 640
+      }
+    ],
+    "epochs": 103,
+    "errors": [],
+    "full_latest_writes": 125367,
+    "per_epoch_ftruncate_calls": 1,
+    "runs": [
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 1,
+        "errors": [],
+        "instances_sha256": "3378ca6f0c1ee5fae216bc28a4e11fdaccc8697088a7c6e8e4c8c810b9b05d8f",
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-1-r1",
+        "report_sha256": "e50aebc477de8807b8b5ffcf3bd3d27f7e7e32ee8a8a0622abfc48bd82f34319",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 1,
+        "errors": [],
+        "instances_sha256": "6e7c3e7bc1ba1dc590bbf0fb71ca0792a00000c429291d55798415d9a62bcd05",
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-1-r2",
+        "report_sha256": "9b217fc01aa07d04cc39eed357bcabc4c5757290b30216752f6f92009e69d8cf",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 1,
+        "errors": [],
+        "instances_sha256": "307b073c76751cdf4141105593345c40a27621f3daaf63c1df1972d610736915",
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-1-r3",
+        "report_sha256": "e4237f8f2cd756ec9567c609efc862e2fce75afe71e1d9c28ab420d2b92aa6c0",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "68430dc3817233b26f439ad769b22390ab216565049cbe7e408517bb435109ea",
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r1",
+        "report_sha256": "bc67260885970d11bc216868230e34d5ffd64c6a38dfe5967b53d74a6ef93b28",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "703c9c6764b29fd3f9d8fce53ba26ce5a32b3d3dc7d3b7c28e776ef84ba390af",
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r2",
+        "report_sha256": "528b777132aa551c63873ac94b7c9d26b7a4889a6b973c1cc33a88366aaec29c",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "4bdcc8a2f5bbacfeadb386aa4d3fecb807d56105a3e61d5b147f9540d2f1ad40",
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-3-r3",
+        "report_sha256": "051e2397603b5fc88ada5c692c79f3586ab5c6ce58216e935f29dc43a02ab734",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 5,
+        "errors": [],
+        "instances_sha256": "8f9e7b6f437d57894a84a130e88b47bc748c0c40536a4d408642518733ef5784",
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r1",
+        "report_sha256": "87b31cd3a171229b96b4cc466d60348d6bb8e77876ba04b38dafb0dd5fe70ea7",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 5,
+        "errors": [],
+        "instances_sha256": "de57d288e1e6c403b1b43fc94e4639df4b0f930caccc1e375daefee3b3e83e4f",
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r2",
+        "report_sha256": "10cf3d7cbc079d3973553d8fff00a5edbd6e2976fc42821efd3f506ba4f0434b",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 5,
+        "errors": [],
+        "instances_sha256": "ca5b8e634ae741e77070689325b69e62434839740d4247dd8ef489200b149b8e",
+        "path": "web-host-lab/evidence/H19-candidate-capacity/animated-5-r3",
+        "report_sha256": "a084e30fb42603b4cf98ba6e19805d85d15b068ce5e0091b70c5cac6c6af2eb4",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 4,
+        "errors": [],
+        "instances_sha256": "37ea87cdf88a57e02ad3255470c268a9471aaa632108585a20bc56fb5830ddd0",
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/crash-3",
+        "report_sha256": "88218d5f8226d5808d394ae9decbc8afe6732f4ab304bdf2ae7f4b8a3326df8f",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "98d17d197766237f4d453687829c614e9e3c8e5a56189a0739293c89acc542e1",
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/events-3",
+        "report_sha256": "aedd97e8a3469d12dd5ea84f6f6d2698ee3a99bbac563644df1417a4b2b92b62",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "5f429e19014451124cf404909203d8c79f7e74e125f35ffb1aa9f880309c8f81",
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/hidden-3",
+        "report_sha256": "182e2324227ab7a05511a7b82aa6fba63b5b3ebe993bef5210e15a37125a60cc",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 8,
+        "errors": [],
+        "instances_sha256": "dad1883b325f3b49a61e3ded8c6fa9a78b7c343bb5d114dd83f2b7a88f63aea7",
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/lifecycle-3",
+        "report_sha256": "bb4007e68e5264c1752fbc6e4927b14cef4311cdd6a7391e2ca738e85f704d35",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 4,
+        "errors": [],
+        "instances_sha256": "afceadca7b4333a4fcf03dc64aa1a3cd4fbdc04d1505bd56055e3f2cf8a2ce9c",
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/resize-3",
+        "report_sha256": "6c1a667d8338b8f0ee2a6743a688e8da88af3246d935a68bba1cb4b6c1f6cc0d",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "d635f1184a24d1f0e76b5df80d0d92faca8be2a85f633b826b8d2cdb862f3da9",
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/security-3",
+        "report_sha256": "535a62d2a07ef208f1f1258ce5ff52812ad3a3c58d627619b162ac5c5fa0a2f3",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "0b9df6e252ce1be3eebf2b623b7176aa5be37077c05190b74301fc5135d787d7",
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/slow-3",
+        "report_sha256": "6973c59bf773f549e38f6a90b40b976c6c0eb220f5adddfd08e351d03dbb72fb",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "0f4f02154d9a604385f59be6973b6fe7e68ac858c3b8a657edf58b2623d353fa",
+        "path": "web-host-lab/evidence/H19-candidate-diagnostics/slow-consumer-3",
+        "report_sha256": "e88f43606a5a9fa56f7966b4a1447c43f43ff6cea7490737322128e947a0b245",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "c4ea8c25a3986b1ee9bd7ff16c115af53beb96386b1d67d7b723c1193f14b868",
+        "build_report": "web-host-lab/evidence/H19-native-multi-goal-controls-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "6caa24590233ffb2e100bc6bdc66655ebb1821de3b064cd5dd63ec411eefecee",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "34363f9c36e5973ac4d319ad418d2516cc92fdf1b6a56c5f4c009d568c910fed",
+        "path": "web-host-lab/evidence/H19-candidate-goal-controls",
+        "report_sha256": "d314c81119aa83f0ea5e23d964a9100867e3dcc8b5243948c6b70231780e8484",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "4c857f226ec460f902e7906e2e702ba5e67972a54d03a217ec7f6a1db1511add",
+        "build_report": "web-host-lab/evidence/H19-native-multi-goal-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "82b1cc82dd5156ad6fbd9bc7d031277edefce8b3ce8a9ac2717fdf815c93034e",
+        "epochs": 4,
+        "errors": [],
+        "instances_sha256": "879a4e7066176ae7ba051640746a39604cc826c9afe85f8db3cc5a2324b3dbf9",
+        "path": "web-host-lab/evidence/H19-candidate-goal-crash",
+        "report_sha256": "45e775010e27b61a5ac49a5a199fc310792e0b69352cdb86160e388aff3177ed",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "4c857f226ec460f902e7906e2e702ba5e67972a54d03a217ec7f6a1db1511add",
+        "build_report": "web-host-lab/evidence/H19-native-multi-goal-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "82b1cc82dd5156ad6fbd9bc7d031277edefce8b3ce8a9ac2717fdf815c93034e",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "00cbc754350d8bd189076fcff2dcccfad834519a2114f195ce1b4ad2c742d940",
+        "path": "web-host-lab/evidence/H19-candidate-goal-hidden",
+        "report_sha256": "df98f8eacd300b83b7793fd859c925f26dfe3e16c810641b7b4f49153c845d45",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "4c857f226ec460f902e7906e2e702ba5e67972a54d03a217ec7f6a1db1511add",
+        "build_report": "web-host-lab/evidence/H19-native-multi-goal-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "82b1cc82dd5156ad6fbd9bc7d031277edefce8b3ce8a9ac2717fdf815c93034e",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "40314b477b6ea1cb092d36aae854f8aceb29a650d89342b398cf6cfd9e48a5a7",
+        "path": "web-host-lab/evidence/H19-candidate-goal-horizontal",
+        "report_sha256": "bef99d93c48709338e78103945e86de1679d234f9a003406b48fd2792e2d3521",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "4c857f226ec460f902e7906e2e702ba5e67972a54d03a217ec7f6a1db1511add",
+        "build_report": "web-host-lab/evidence/H19-native-multi-goal-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "82b1cc82dd5156ad6fbd9bc7d031277edefce8b3ce8a9ac2717fdf815c93034e",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "9176a3cb1cc3f7a02a7254d3eff75e429a142774c89d3750b7b4126650b1f93b",
+        "path": "web-host-lab/evidence/H19-candidate-goal-standard",
+        "report_sha256": "51c3c048150bf4bb707bbdb1c3759898adfa91a79c903adc7582ad5cdd6e2ff6",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "4c857f226ec460f902e7906e2e702ba5e67972a54d03a217ec7f6a1db1511add",
+        "build_report": "web-host-lab/evidence/H19-native-multi-goal-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "82b1cc82dd5156ad6fbd9bc7d031277edefce8b3ce8a9ac2717fdf815c93034e",
+        "epochs": 3,
+        "errors": [],
+        "instances_sha256": "bd87767f9cd03bbe72a1d492c326bbdf9700c169b4ec96c91891192457a44f12",
+        "path": "web-host-lab/evidence/H19-candidate-goal-vertical",
+        "report_sha256": "138eb0b438bc52e37c68a2d90c3e37833295d21bb0ce5fd58a9c20ae9297c149",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 8,
+        "errors": [],
+        "instances_sha256": "720377cdaa345248300f81b8cee2568f9b0dc73500661a7b9a06ca464f7751a2",
+        "path": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s",
+        "report_sha256": "cbbb3337bf583ff84ad820315d3a674dbfa21143ceba280986085225550fe70a",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 5,
+        "errors": [],
+        "instances_sha256": "450e213f3ae08b597da512f1620b315b48a2879d9ca1fa1f8b8025356b74d40c",
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r1",
+        "report_sha256": "f1ce36c903b1f41016dd9bfb54e7eb5f2e8c9020ab8515fc7f09247a59c5cbf4",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 5,
+        "errors": [],
+        "instances_sha256": "f2ce41ec2feb8dab289a5903ecc3e5d416387b824e3512f1a1ae4da928be4fd2",
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r2",
+        "report_sha256": "80591d9ba6401a29aec7e4786b3bbaa274890b45941d71f7a67fd4bfc752b54e",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 5,
+        "errors": [],
+        "instances_sha256": "9b4896013de4d39884a2824607dcc2fd6f47bea54a6872d145181e90835bfa02",
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/mixed-5-r3",
+        "report_sha256": "e392358ddc0c7407a289fbf1d460d910ac76445acb5aea1d2431abb2c714f20a",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 1,
+        "errors": [],
+        "instances_sha256": "82c228b0debc59f5cfa4623255157c65ef555a17101d148504c1ff605b10e417",
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/static-1-r1",
+        "report_sha256": "1b27d864dbe4d39d9cebac7824f1cc7bbccff3ccfb949200a8220767ee5ba784",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 1,
+        "errors": [],
+        "instances_sha256": "eef804f289bbfbcee1d5f2a975f31cb1f7528b59721936351b257b40b97b99e7",
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/static-1-r2",
+        "report_sha256": "4d2a2fae63bde017881b06632db3993c21e3fc3329abe3dc1337ea5600b900eb",
+        "source_hashes_match": true
+      },
+      {
+        "binary_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+        "build_report": "web-host-lab/evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+        "build_report_sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037",
+        "epochs": 1,
+        "errors": [],
+        "instances_sha256": "2698e297006693f8b0a6dac583588c880c64d5bda2d5bb1a6dd820305bd70b0f",
+        "path": "web-host-lab/evidence/H19-candidate-static-mixed/static-1-r3",
+        "report_sha256": "2ca229bcdde5b5378fafeecbdd5b9cbc81cef00de054a5ee820dac0bd68e215c",
+        "source_hashes_match": true
+      }
+    ],
+    "status": "PASS"
+  },
+  "limits": [
+    "Stable performance and memory analysis are independently reported by the performance auditor, not recomputed here.",
+    "A stable-window cadence pass does not cancel the early functional continuity failure.",
+    "The observed ten-minute footprint increase is not evidence of leak freedom.",
+    "Security result is only the fixed owned-file decoy/probe observation; separate RequestContexts and normal process cleanup are not whole-host confinement.",
+    "All analysis.json files were created exclusively; original failed soak analysis remains unchanged."
+  ],
+  "schema_version": 1,
+  "scope": "Read-only candidate functional and fixed-file evidence review. No global H19, third-party security, audiovisual output, capacity or leak-freedom acceptance.",
+  "security_acceptance": {
+    "browser_process_filesystem_confinement": "BLOCKED",
+    "complete_os_sandbox_matrix": "BLOCKED",
+    "fixed_owned_decoy_experiment": "PASS",
+    "keychain_production_configuration": "BLOCKED",
+    "network_os_confinement": "NOT_EVALUATED",
+    "third_party_execution": "BLOCKED"
+  },
+  "soak_functional_status": "FAIL",
+  "soak_peer_interference": {
+    "acceptance": "Do not relax thresholds, rewrite original FAIL, or rerun solely to obtain PASS. H20 manager retains cold browser replacement; this constrained native hot-resize remains a lab experiment without accepted continuous-peer behavior.",
+    "cause": "UNRESOLVED. Resize request to new epoch start is only 5.464458 ms; most of the ~459 ms D gap occurs after epoch start immediately before WasResized/Invalidate. Raw timing cannot isolate CEF, GPU or scheduling. It does not substantiate old per-frame ftruncate as the cause.",
+    "central_observation_window_ns": [
+      193426905323500,
+      193430708493625
+    ],
+    "conclusion": "C own resize overlaps A hidden phase and passes its separate 1000 ms resize gate. Unaffected D independently exceeds the unchanged 250 ms continuity gate with no own lifecycle transition: real functional interference FAIL/PARTIAL.",
+    "epoch_started_to_first_new_paint_ms": 442.026417,
+    "first_new_native_paint_ns": 193429257254750,
+    "hidden_begin_ns": 193426805323500,
+    "hidden_end_ns": 193430808493625,
+    "host_started_ns": 193419458628708,
+    "original_generation": 138862770679,
+    "peers": [
+      {
+        "after": {
+          "acquired_ns": 193429262143208,
+          "consumer_work_ns": 334042,
+          "frame_index": 2,
+          "observed_ns": 193429259968208,
+          "offset_from_host_start_ms": 9801.3395,
+          "offset_from_resize_request_ms": 450.204333,
+          "source": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-3-g138862770679-e2/frames.json"
+        },
+        "before": {
+          "acquired_ns": 193428803553750,
+          "consumer_work_ns": 63083,
+          "frame_index": 264,
+          "observed_ns": 193428792406833,
+          "offset_from_host_start_ms": 9333.778125,
+          "offset_from_resize_request_ms": -17.357042,
+          "source": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-3-g138862770679-e1/frames.json"
+        },
+        "continuity_gate_max_ms_exclusive": 250,
+        "continuity_status": "FAIL",
+        "instance": 3,
+        "largest_retained_paint_gap_ms": 467.561375,
+        "observations_in_hidden_central_window": 101,
+        "own_lifecycle_phases_in_gap": [
+          {
+            "epoch": 1,
+            "generation": 138862770679,
+            "instance": 3,
+            "observed_ns": 193428809763875,
+            "phase": "resize_requested"
+          },
+          {
+            "epoch": 2,
+            "generation": 138862770679,
+            "instance": 3,
+            "observed_ns": 193428815228333,
+            "phase": "resize_epoch_started"
+          },
+          {
+            "epoch": 2,
+            "generation": 138862770679,
+            "instance": 3,
+            "observed_ns": 193429257500916,
+            "phase": "first_accepted_paint"
+          },
+          {
+            "epoch": 2,
+            "generation": 138862770679,
+            "instance": 3,
+            "observed_ns": 193429257560833,
+            "phase": "first_nontransparent_paint"
+          }
+        ]
+      },
+      {
+        "after": {
+          "acquired_ns": 193429263145041,
+          "consumer_work_ns": 121875,
+          "frame_index": 121,
+          "observed_ns": 193429257641875,
+          "offset_from_host_start_ms": 9799.013167,
+          "offset_from_resize_request_ms": 447.878,
+          "source": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-4-g138862770679-e1/frames.json"
+        },
+        "before": {
+          "acquired_ns": 193428798988500,
+          "consumer_work_ns": 60041,
+          "frame_index": 119,
+          "observed_ns": 193428798664625,
+          "offset_from_host_start_ms": 9340.035917,
+          "offset_from_resize_request_ms": -11.09925,
+          "source": "web-host-lab/evidence/H19-candidate-soak/lifecycle-3-600s/instance-4-g138862770679-e1/frames.json"
+        },
+        "continuity_gate_max_ms_exclusive": 250,
+        "continuity_status": "FAIL",
+        "instance": 4,
+        "largest_retained_paint_gap_ms": 458.97725,
+        "observations_in_hidden_central_window": 102,
+        "own_lifecycle_phases_in_gap": []
+      }
+    ],
+    "resize_epoch_started_ns": 193428815228333,
+    "resize_first_new_paint_latency_ms": 447.490875,
+    "resize_gate_max_ms_exclusive": 1000,
+    "resize_request_ns": 193428809763875,
+    "resize_request_offset_from_host_start_ms": 9351.135167,
+    "resize_request_to_epoch_started_ms": 5.464458,
+    "resize_status": "PASS",
+    "scope": "Native observation domain; completed-consumer observations, not audiovisual output frames."
+  },
+  "source_sha256": {
+    "web-host-lab/poc/browser-host/native/fixed_frame_file.hpp": "cd8c8f61fc094b6c727ac9e11b24873698e3dbedae9a9898663b27f2de349e5e",
+    "web-host-lab/poc/browser-host/native/fixture.mm": "887c5d46e61a3cb665b2f3ad85753d42daff9cd0978f2f318af95dba65442a84",
+    "web-host-lab/poc/browser-host/native/frame_consumer.hpp": "3ff332ea63649a2de5e095686ae28fdc495767a7781d8f37d05b1f234a61d5a5",
+    "web-host-lab/poc/browser-host/src/frame.rs": "3eb7587279bec4571a37e429c19d99cd7079f5c18c552681af1992accfde4267",
+    "web-host-lab/poc/browser-host/src/manager.rs": "ae2c21a387b1fccf630e9a3b90a77cd4e2c0c9f094ab29caa7d9376daa1fde12",
+    "web-host-lab/tools/h19_lifecycle_check.py": "fa9afd023ef9ffd1066519cc303dbe72c270b220ff06b6899a48785fc99e0a1d",
+    "web-host-lab/tools/h19_security_check.py": "418af02e8a3e51445fbecb05e1563e21e125ab9939a9e6874cdedcb7cb1cf76a"
+  },
+  "status": "PARTIAL"
+}

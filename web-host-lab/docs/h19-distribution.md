@@ -20,8 +20,9 @@ allocation, archive sizes, RSS or memory footprint**.
 | Frozen H18 smoke copied into H19 cache | `4f77eea5e899f98ad57cb3a4bed047dcb0c87a8b8d784a361ac73606d2fca8f7` | 325,245,233 | 310.178 |
 | Initial H19 multi build | `de8dfb72560700ee124705b6859459b3cc49b1acd2ae8fa62ccde290fa640cd7` | 325,657,473 | 310.571 |
 | Final H19 multi build, Chromium credits preserved | `edccc2eef22cd2f7ef336c4256023b42555da97a8b1b9f18498a6ed715a07bd6` | 345,381,375 | 329.381 |
+| Selected H19 fixed-file candidate (`repro-r1`) | `8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b` | 345,381,423 | 329.381 |
 
-All three inspected bundles contain the same sealed CEF framework file payload:
+All four inspected bundles contain the same sealed CEF framework file payload:
 **319,837,842 bytes / 305.021 MiB**. Total resources are 78,148,643 bytes; locale
 files account for 50,540,214 bytes / 48.199 MiB. These values are from actual
 inventories, not the older H16 installed-OBS measurement. Initial H19 grows by
@@ -30,6 +31,11 @@ is shared by instances; it is not copied into one install per widget.
 [Frozen H18 audit](../research/h19-distribution-baseline.json),
 [initial H19 audit](../research/h19-distribution-multi.json),
 [final H19 audit](../research/h19-distribution-final.json).
+The [selected candidate audit](../research/h19-distribution-candidate.json)
+separately verifies its exact artifact, ARM64 executables, ad-hoc seals, notices
+and complete resource inventory. It adds 48 file bytes to the preceding final
+build; the distribution gate remains BLOCKED. No inventory was run concurrently
+with the sustained trials.
 Final H19 additionally carries the full 19,690,678-byte Chromium credits file;
 its total resources are 97,839,321 bytes. Final total growth from H18 is
 20,136,142 bytes; the notices account for most of that increase. This is a

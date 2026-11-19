@@ -51,6 +51,17 @@ browser original. A→B→A se rechaza: exige reemplazar browser con generación
 nueva. No se presenta esta restricción como una barrera CEF general. El contrato
 H20 conserva reemplazo frío hasta resolver esa ambigüedad de forma general.
 
+La candidata final además registró un fallo de continuidad durante el ensayo
+de 600 s: al redimensionar C, el par D tuvo un hueco observado de 458.98 ms,
+superior al gate de 250 ms. La preparación propia del cambio de epoch duró
+5.46 ms; el hueco mayor ocurrió después, alrededor de `WasResized`/composición,
+sin causa interna CEF/GPU/planificación demostrada. El resize de C tardó
+447.49 ms y pasó su límite de 1000 ms, pero eso no hace pasar la continuidad de
+D. Hot resize queda como experimento de laboratorio, no una ruta aceptada para
+continuidad de producción. El manager sigue exigiendo reemplazo frío, cuya
+cadencia de pares deberá verificarse también al integrarlo.
+[Fallo conservado](../evidence/H19-candidate-soak/lifecycle-3-600s/analysis.json).
+
 ## Coste de memoria y pipeline
 
 OnPaint copia BGRA completo dentro de su lifetime. Alpha/stride/dimensiones e

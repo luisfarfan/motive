@@ -7,6 +7,15 @@ configuration are **BLOCKED**; the executed development profiles explicitly use
 Chromium's test Keychain backend. See [security](h19-security.md) and
 [distribution](h19-distribution.md) for the independent gates.
 
+On the shared Mac, builds and physical/native trials also require the common
+`/Users/luisfarfan/Developer/products/motive/var/run/physical-test.lock` directory.
+Acquire it with an exclusive `mkdir`, then write an `OWNER` file recording the
+worktree, task, process identity and intended bounded window. An existing lock
+means wait or coordinate with its owner; never remove a foreign lock. Release
+only a matching own lock after observed native cleanup and build completion.
+Read-only evidence audits do not need this physical-test slot. The H20 capture
+worktree uses the same slot; coordination is not a Browser/OBS integration handoff.
+
 ## Ownership and fault domains
 
 One `Host` owns the CEF loop and the UI-thread collection of browser instances.
@@ -50,6 +59,13 @@ prevents a delayed A-sized paint from being accepted after A→B→A: that trans
 is rejected and requires cold browser replacement. Matching dimensions alone is
 not a general CEF synchronization barrier. Each completed epoch has its own
 retained directory and `instances.json` history entry.
+
+The final 600 s candidate run retained correct epoch accounting but failed the
+independent peer-continuity gate: resizing C coincided with a 458.98 ms gap in D
+against the unchanged 250 ms limit. Hot resize remains a constrained experiment,
+not an accepted Production transition. The owner-side manager retains cold
+replacement, whose integrated execution and peer cadence still require proof.
+See the [final results](h19-results.md) for this failure and footprint growth.
 
 The smoke hidden scenario uses `WasHidden` and observes suppression/resumption;
 it does not claim JavaScript suspension. Suspension closes a browser; explicit

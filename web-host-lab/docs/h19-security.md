@@ -179,6 +179,19 @@ python3 web-host-lab/tools/h19_security_check.py \
   --output web-host-lab/research/h19-security-new-classification.json
 ```
 
+### Final selected candidate confirmation
+
+The selected `repro-r1` artifact
+`8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b`
+repeated the same fixed experiment with generation **139533708125**. All three
+browser positive controls passed; all three owned renderers returned `EPERM`
+and had independently corroborated PID/birth identities. The five web rejections
+were observed again, callback block counters stayed zero, the owned listener
+accepted zero connections and native cleanup passed. This confirms the same
+narrow result for the selected artifact without expanding its security scope.
+[Candidate classification](../evidence/H19-candidate-diagnostics/security-3/analysis.json),
+[candidate run and artifact provenance](../evidence/H19-candidate-diagnostics/security-3/report.json).
+
 ## Required boundary matrix
 
 | Surface | Implemented or scoped evidence | Remaining acceptance |

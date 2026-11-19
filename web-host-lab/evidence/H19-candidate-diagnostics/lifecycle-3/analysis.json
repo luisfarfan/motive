@@ -1,0 +1,291 @@
+{
+  "build_report": {
+    "path": "evidence/H19-native-multi-repro-r1-ephemeral-build.json",
+    "sha256": "0289520769f790a7b497f0b94c2feeb2e8c23b01ec1b049eab9af862cac31037"
+  },
+  "checker_sha256": "fa9afd023ef9ffd1066519cc303dbe72c270b220ff06b6899a48785fc99e0a1d",
+  "credential_backend": "chromium-use-mock-keychain",
+  "epochs_observed": 8,
+  "executable_sha256": "8a76e3ce6409d911cf04bd4815c5c8065d13aa21a8c620cdf839f0d7b44c311b",
+  "gates": {
+    "controlled_renderer_exit_and_recovery": {
+      "closed_before_create": true,
+      "decoded_exit_code": 86,
+      "distinct_reported_renderer_pid": true,
+      "new_browser_id": 6,
+      "new_first_paint_ns": 194118262779125,
+      "new_generation": 139542832228,
+      "old_browser_id": 3,
+      "old_generation": 139542832227,
+      "raw_wait_status": 22016,
+      "status": "PASS"
+    },
+    "dynamic_resize_epoch_and_latency": {
+      "first_new_paint_ns": 194108259643541,
+      "from": [
+        640,
+        360,
+        1
+      ],
+      "latency_ms": 47.90375,
+      "maximum_latency_ms_exclusive": 1000,
+      "request_ns": 194108211739791,
+      "scope": "one never-reused geometry transition; generic A-B-A resize NOT_EVALUATED",
+      "status": "PASS",
+      "to": [
+        540,
+        960,
+        2
+      ]
+    },
+    "epoch_instance-1-g139542832227-e1": {
+      "accepted": 508,
+      "consumed": 508,
+      "retained_bytes": 0,
+      "status": "PASS",
+      "terminal_sum": 508
+    },
+    "epoch_instance-1-g139542832228-e1": {
+      "accepted": 210,
+      "consumed": 210,
+      "retained_bytes": 0,
+      "status": "PASS",
+      "terminal_sum": 210
+    },
+    "epoch_instance-2-g139542832227-e1": {
+      "accepted": 87,
+      "consumed": 85,
+      "retained_bytes": 0,
+      "status": "PASS",
+      "terminal_sum": 87
+    },
+    "epoch_instance-3-g139542832227-e1": {
+      "accepted": 267,
+      "consumed": 266,
+      "retained_bytes": 0,
+      "status": "PASS",
+      "terminal_sum": 267
+    },
+    "epoch_instance-3-g139542832227-e2": {
+      "accepted": 239,
+      "consumed": 239,
+      "retained_bytes": 0,
+      "status": "PASS",
+      "terminal_sum": 239
+    },
+    "epoch_instance-3-g139542832228-e1": {
+      "accepted": 330,
+      "consumed": 330,
+      "retained_bytes": 0,
+      "status": "PASS",
+      "terminal_sum": 330
+    },
+    "epoch_instance-4-g139542832227-e1": {
+      "accepted": 239,
+      "consumed": 239,
+      "retained_bytes": 0,
+      "status": "PASS",
+      "terminal_sum": 239
+    },
+    "epoch_instance-4-g139542832228-e1": {
+      "accepted": 450,
+      "consumed": 449,
+      "retained_bytes": 0,
+      "status": "PASS",
+      "terminal_sum": 450
+    },
+    "hidden_observed_gap_and_peer_continuity": {
+      "observed_phase_ms": 4002.701959,
+      "peers": {
+        "3": {
+          "end_ns": 194110111720875,
+          "max_gap_ms": 67.871,
+          "observations": 113,
+          "start_ns": 194106309018916
+        },
+        "4": {
+          "end_ns": 194110111720875,
+          "max_gap_ms": 35.543958,
+          "observations": 114,
+          "start_ns": 194106309018916
+        }
+      },
+      "resume_to_next_observed_paint_ms": 3.140333,
+      "scope": "retained completed-consumer paint observations; not proof of JS suspension or AV cadence",
+      "settling_margin_ms_each_end": 100.0,
+      "status": "PASS",
+      "target_paint_gap_ms": 4022.9175
+    },
+    "long_lived_instance_sequence": {
+      "peers_after_removal": {
+        "1": {
+          "end_ns": 194103313242500,
+          "max_gap_ms": 33.693542,
+          "observations": 30,
+          "start_ns": 194102313242500
+        },
+        "3": {
+          "end_ns": 194103313242500,
+          "max_gap_ms": 33.682333,
+          "observations": 30,
+          "start_ns": 194102313242500
+        }
+      },
+      "removed_instance": 2,
+      "replacement_instance_created": 4,
+      "restart_4": {
+        "closed_before_create": true,
+        "new_browser_id": 5,
+        "new_first_paint_ns": 194114259139250,
+        "new_generation": 139542832228,
+        "old_browser_id": 4,
+        "old_generation": 139542832227
+      },
+      "status": "PASS",
+      "suspend_resume_1": {
+        "closed_before_create": true,
+        "new_browser_id": 7,
+        "new_first_paint_ns": 194122261109416,
+        "new_generation": 139542832228,
+        "old_browser_id": 1,
+        "old_generation": 139542832227
+      }
+    },
+    "native_lifecycle_and_observed_cleanup": {
+      "host_close_to_shutdown_return_ms": 64.080042,
+      "host_process_identities": 1,
+      "native_shutdown_ms": 21.555167,
+      "observed_owned_tree_cleanup": true,
+      "peak_sampled_rss_mib": 951.796875,
+      "rss_limit_mib": 2048,
+      "scope": "sampled owned tree only; unobserved escape and shared-page unique RAM not established",
+      "status": "PASS"
+    },
+    "only_expected_instance_failures": {
+      "expected": [
+        [
+          3,
+          139542832227
+        ]
+      ],
+      "observed": [
+        [
+          3,
+          139542832227
+        ]
+      ],
+      "status": "PASS"
+    }
+  },
+  "host_pid": 70298,
+  "input_sha256": {
+    "instance-1-g139542832227-e1/first.bgra.gz": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361",
+    "instance-1-g139542832227-e1/first.json": "d2b187ade979c6fd6f238e6d58eec7e7b37b0a0725680123a1e763b68a7fc974",
+    "instance-1-g139542832227-e1/frames.json": "aecac5e4cae89be6a5d82ca8cd294c323013088afcee7809c9d093960bf28166",
+    "instance-1-g139542832227-e1/latest.bgra.gz": "53bd4f8e19eec2f9538951cb2bb6e5240f49b1032237fd4fb8377eb584bd851a",
+    "instance-1-g139542832227-e1/latest.json": "44c03eb1e907d00ff9cd2fe2ad1e7e944d75f1f34370dceb2843903f30f3d14f",
+    "instance-1-g139542832227-e1/lifecycle.jsonl": "5247366330315f119d16a69a4e8ef85767b4e4998b065454a7b77a7292e07f19",
+    "instance-1-g139542832228-e1/first.bgra.gz": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e",
+    "instance-1-g139542832228-e1/first.json": "6faa0825ffb8bfab04bf462847d8fe3ae31830f45e1a096e003935f54474a680",
+    "instance-1-g139542832228-e1/frames.json": "dd2552cdc8d1fa69628dcc34b2d089ed7998a6305fdd72acb1eef855d17d50ca",
+    "instance-1-g139542832228-e1/latest.bgra.gz": "68ad0325c99e303ee741613571d1435e24f9527575bf3a6a2c4b184f11d284be",
+    "instance-1-g139542832228-e1/latest.json": "e5b65f23730fbbd2cf60fd7936beb648797d7c5c417132318bb5c63cf2514b70",
+    "instance-1-g139542832228-e1/lifecycle.jsonl": "c234ce27c331cf3eb494c1f5c64f7843cebbb181364b1f898d14eced304df940",
+    "instance-2-g139542832227-e1/first.bgra.gz": "611ef990ffd2474470bec1103d68d5a6d8227e00d9bf2ab893ebd03e087d176d",
+    "instance-2-g139542832227-e1/first.json": "b67cc16dab489f9d91352eb4bde171afda41f8aaa10fcfa7bb6dc54c1dfab97a",
+    "instance-2-g139542832227-e1/frames.json": "e6a99a9d02531cdcc12bfe44e6047a55f41eabe372b1d51424624fe216cf8e7c",
+    "instance-2-g139542832227-e1/latest.bgra.gz": "b14e7944dd3d6c43654b68a34aef358c5828bf1b614eb394ea6d5fb7be075b7f",
+    "instance-2-g139542832227-e1/latest.json": "2207232cb982928cda50acc65d34e60dde0710314f6a6bc239473b18e1af2cb3",
+    "instance-2-g139542832227-e1/lifecycle.jsonl": "82b816ccf525e10fef26133773cfce8135414b108d84b64ffc305a418f35e0fe",
+    "instance-3-g139542832227-e1/first.bgra.gz": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f",
+    "instance-3-g139542832227-e1/first.json": "6da43b68d307d71a35a43f11953b1a37265c085db70ab6a90d791d39f4f8b592",
+    "instance-3-g139542832227-e1/frames.json": "664e9dfb25b29d8593cb0b4d412896c55694322f02ad7e4c9262e30d45d50b24",
+    "instance-3-g139542832227-e1/latest.bgra.gz": "1dd2e795021d5fcbef86577b9101c35ef9cf7de7167a1004bd3597fab80b799e",
+    "instance-3-g139542832227-e1/latest.json": "b86c9ac0af619eee00771872ec2a4ba283ff275355f737e32e40e58ff2d9206b",
+    "instance-3-g139542832227-e1/lifecycle.jsonl": "8355e8b84e7e1ebeac0a70c2bcc02a37a510a9ca4321c70e4eb26afb6d0b778d",
+    "instance-3-g139542832227-e2/first.bgra.gz": "24e45172553f205bee213433f8b16a657922a6a183bcde79a0d370aa06fccf8e",
+    "instance-3-g139542832227-e2/first.json": "ab26f84daaf43c03ed0767e7e108979e9a80b725391a01346870964919c8215f",
+    "instance-3-g139542832227-e2/frames.json": "ab6238206681e37501d3cc3fe36c1b545f8cfbb4af98b4d2cdfe3d6635ac14d8",
+    "instance-3-g139542832227-e2/latest.bgra.gz": "f9d0af57a73d4f20d427eff73f959ebb7e58c27ec6b4779761484bc81fd97b53",
+    "instance-3-g139542832227-e2/latest.json": "7162d6c8ec0483bdf09016198c5a95d281e111cab0b557ae5c112bd074279423",
+    "instance-3-g139542832227-e2/lifecycle.jsonl": "f7bc0f2fd29d31531f54e17ec9a485554635716f938ced5fef27e2d08709811d",
+    "instance-3-g139542832228-e1/first.bgra.gz": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e",
+    "instance-3-g139542832228-e1/first.json": "19e1ceb3f27a998b85422963a47fb148566ccec450bf6fa7b571e1d0b9c4faa7",
+    "instance-3-g139542832228-e1/frames.json": "54b01ec393eef556f5d657b711a261587d944081edd724d46ee6ba7137658b2e",
+    "instance-3-g139542832228-e1/latest.bgra.gz": "2896275859ea52c61528e20d9ab68edc46ab7b105e99f2a9c1586df606af605c",
+    "instance-3-g139542832228-e1/latest.json": "152ff59bd4733ccd53b49e06106a8aaf1a99935269029ef3078bfd25efbc3d20",
+    "instance-3-g139542832228-e1/lifecycle.jsonl": "937070730853be47eed22a7a53a649150dd22cd88b41d369dd7eeb5efc9e125d",
+    "instance-4-g139542832227-e1/first.bgra.gz": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e",
+    "instance-4-g139542832227-e1/first.json": "ffde47fb27ab6351a87e6c5516b15c5742e299badd0ab6c0fbc68605217f2a90",
+    "instance-4-g139542832227-e1/frames.json": "feac513ade28f4515c2633cae846003cf4d9bac740421e411f88e9ecb28d0235",
+    "instance-4-g139542832227-e1/latest.bgra.gz": "ae821a9ef36483b21b317ad50dc0ec428e6528d42638503795608208baa6e554",
+    "instance-4-g139542832227-e1/latest.json": "7b12afa785a71375470771730302b2aefbbbaaf9508328374f56f7100e2746d0",
+    "instance-4-g139542832227-e1/lifecycle.jsonl": "5bb8202c19e9f7513855630884c6653565291291b1fa1488c1d6057ea9a71ea0",
+    "instance-4-g139542832228-e1/first.bgra.gz": "f187701bb5135879a8bb06f8232e840df27752955c12ac258c606f40ec456ffc",
+    "instance-4-g139542832228-e1/first.json": "67d5eb54817958c13c73f2ad9cb420e0dcccc981b7bf3bece1708216e6c5cc38",
+    "instance-4-g139542832228-e1/frames.json": "47ce10f749dc9342817e2da3491cdff26dc296c0d277f33c35263b90cdf9cf6b",
+    "instance-4-g139542832228-e1/latest.bgra.gz": "fd21f1443ac210e2d97c9d2b6f2fb5c72bbf99063e62456f261a0d8ca46b5aa4",
+    "instance-4-g139542832228-e1/latest.json": "863be813c8c96ce7f91968515a786313754631307af17fbaba6850e3c2fac58d",
+    "instance-4-g139542832228-e1/lifecycle.jsonl": "31f7c924d834630623142b0396337c82128129548a89b4f900bd1d7333a6747a",
+    "instances.json": "dad1883b325f3b49a61e3ded8c6fa9a78b7c343bb5d114dd83f2b7a88f63aea7",
+    "lifecycle.jsonl": "27a91153079ea2c5d90b35c7c1a1c5e44e30f8a7c3abe90845b5d5c0d6eca8b6",
+    "report.json": "bb4007e68e5264c1752fbc6e4927b14cef4311cdd6a7391e2ca738e85f704d35",
+    "supervision.json.gz": "658b7c6489ea20aceae02e09d75d082d249ace66a04e3ab11ee8c0eb7376bf90"
+  },
+  "instances_observed": 7,
+  "not_claimed": {
+    "leak_freedom": "NOT_EVALUATED",
+    "libobs_or_audiovisual_fps": "NOT_EVALUATED",
+    "production_keychain": "BLOCKED",
+    "shared_renderer_crash": "NOT_EVALUATED",
+    "third_party_isolation": "BLOCKED"
+  },
+  "reported_renderer_groups": {
+    "70315": [
+      [
+        1,
+        139542832227
+      ]
+    ],
+    "70317": [
+      [
+        2,
+        139542832227
+      ]
+    ],
+    "70319": [
+      [
+        3,
+        139542832227
+      ]
+    ],
+    "70379": [
+      [
+        4,
+        139542832227
+      ]
+    ],
+    "70497": [
+      [
+        4,
+        139542832228
+      ]
+    ],
+    "70555": [
+      [
+        3,
+        139542832228
+      ]
+    ],
+    "70605": [
+      [
+        1,
+        139542832228
+      ]
+    ]
+  },
+  "scenario": "lifecycle",
+  "scope": "retained owned H19 native scenario only",
+  "status": "PASS",
+  "version": 1
+}

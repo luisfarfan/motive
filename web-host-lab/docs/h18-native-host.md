@@ -2,7 +2,7 @@
 
 H18 links the existing H16 fixture into an ARM64 AppKit development app with the
 matching upstream wrapper, framework and five helper roles. There is no Qt,
-Production, libobs, or second audiovisual clock in this process. **The owner authorized local Motive fixture execution. Real OnPaint/BGRA and half-alpha pixels passed; orderly shutdown initially failed in Chromium Keychain work. The subsequent ephemeral test-backend smoke exits cleanly. OS confinement, third-party execution and performance acceptance remain separate unopened gates.**
+Production, libobs, or second audiovisual clock in this process. **The owner authorized local Motive fixture execution. Real OnPaint/BGRA, alpha, 100 new-process cycles and the four fixed Goal closures passed their scoped gates.** Orderly shutdown initially failed in Chromium Keychain work; those failures remain retained. Later runs use the explicit test Keychain backend. CPU/RSS/footprint trials now exist, with a five-host RSS failure; full performance acceptance, OS confinement and third-party execution remain unaccepted.
 
 ## Reproduce only authorized work
 
@@ -60,19 +60,21 @@ telemetry rows. Callback busy/invalid counts and maximum publish duration are se
 private launch directory. There is no unbounded frame queue and no zero-copy
 claim. FFI tests prove copying, ABI fields, generation/epoch rejection, stale and
 future times, one consumer, revocation lifetime and 100 synthetic create/destroy
-cycles. They do not prove even one CEF create/destroy cycle.
+cycles. Those synthetic tests do not prove CEF lifecycle; the independent real
+100-cycle evidence below does so only for fresh processes.
 
 The native UI thread owns all CEF browser references. Close revokes the mailbox,
 hides/closes owned browsers, waits for `OnBeforeClose`, then exits the CEF loop.
 The consumer is joined before state destruction; `CefShutdown` runs after browser
 references are cleared. An early initialization failure also joins the consumer.
-The five-second close task is cooperative; the external supervisor is the hard
-stop. Default-backend real runs reached final browser close and loop return, then stalled at CefShutdown; the subsequent ephemeral test-backend smoke closed cleanly. The supervisor removed every observed owned process after its deadline. Resize, repeated restart and crash acceptance remain untested.
+The configured-duration close task is cooperative; the external supervisor is the hard
+stop. Default-backend real runs reached final browser close and loop return, then stalled at CefShutdown; the subsequent ephemeral test-backend smoke and 100 fresh-process cycles closed cleanly. The supervisor removed every observed owned process after the failed runs' deadline. These cycles do not test hot reload, in-process browser recreation, OS suspend/resume or live resize.
 
 A viewport change/restart currently means a **new process/generation**, with a new
 origin and cache directory. There is no unproved `WasResized` ordering shortcut.
 The executable accepts only the three reviewed dimensions, 30/60 FPS and a short
-bounded duration, with an explicit build profile: original three-file smoke or the fixed owned Goal inventory. It
+bounded duration, with an explicit build profile: original three-file smoke,
+fixed owned Goal inventory or separately reviewed fixed diagnostics. It
 accepts no URL, package, script, device or IPC endpoint. It removes inherited
 environment data before loading CEF. The trusted launcher also closes inherited
 file descriptors and passes a minimal environment. This is not OS confinement.
@@ -80,17 +82,21 @@ file descriptors and passes a minimal environment. This is not OS confinement.
 ## External supervision and future libobs boundary
 
 `poc/browser-host/supervisor.py` assigns a session and increasing generations,
-starts a new process group, samples tree RSS/ps CPU, enforces deadline/cancel/RSS,
+starts a new process group, samples tree RSS and public per-process resource data, enforces deadline/cancel/RSS,
 handles root crashes and terminates observed children, including previously observed children that changed sessions when a supervisor callback fails. PID identity uses public
 macOS `proc_pidinfo` start seconds/microseconds plus current user. Signals are
 preceded by identity rechecks; they never target process names. Cleanup (including disappearance of observed zombies) is verified
 for the observed owned tree, including parent-crash tests. Kernel signal delivery
 is not atomic with identity sampling; unobserved process escape is not prevented.
-This supervisor is therefore **not a sandbox for hostile processes**.
+This supervisor is therefore **not a sandbox for hostile processes**. Public
+`proc_pid_rusage` provides cumulative CPU ticks converted with the measured Mach
+timebase and `ri_phys_footprint`; consecutive identity-matched deltas supply CPU
+observations. Missing samples remain unavailable. Historical ps CPU and legacy
+null footprint fields are retained; they do not erase the new measured fields.
 
 The existing broker is reused unchanged and continues denying third-party
 execution. Native fixture bytes are generated from a fixed three-file inventory;
-there is no path resolver or network fallback. The separate Goal candidate now generates its immutable inventory through the existing broker, with exact host/widget asset separation. It links the typed native dispatcher described below; its live transport result must be assessed separately.
+there is no path resolver or network fallback. The separate Goal profile generates its immutable inventory through the existing broker, with exact host/widget asset separation. Its real typed transport and pixels are assessed separately below.
 
 `src/adapter.rs` supplies tested admission decisions for future libobs upload,
 repeat or blank: exact source generation/epoch, sequence, monotonic age, aggregate
@@ -117,9 +123,9 @@ The separate `.cache/h18-native-bridge-alpha-ephemeral` profile embeds the uncha
 
 A trusted shared monotonic origin lets the renderer recheck expiry at arrival; queued IPC cannot freeze the browser's sent time. Context release invalidates the capability. Rust tests and a linked C++ boundary/FFI test cover stale generation, role/frame/URL mismatch, excess size, delayed expiry, duplicate acknowledgements and the original event projection without loading CEF. The compiled bridge is separately reviewed; static success does not prove delivery.
 
-For a future live Goal run, fixed lifecycle markers retain bootstrap, ready, dispatch, acknowledgements and visual completion, without raw renderer diagnostics. An optional third bounded `visual.bgra` sample is acquired about 600 ms after the validated active observation using the same owned lease, with no extra callback copy. Its pixels must be inspected independently of those observations. No original smoke alpha patch is assumed for the Goal profile.
+The real Goal runs retain fixed lifecycle markers for bootstrap, ready, dispatch, acknowledgements and visual completion, without raw renderer diagnostics. A third bounded `visual.bgra` sample is acquired about 600 ms after the validated active observation using the same owned lease, with no extra callback copy. Its pixels are inspected independently of those observations. No original smoke alpha patch is assumed for the Goal profile.
 
-Developer ID, hardened runtime/JIT release entitlements, notarization, Apple App Sandbox, per-role confinement and third-party execution remain separate gates. No repeated lifecycle, benchmark matrix, Production/libobs integration or recordings are certified here.
+Developer ID, hardened runtime/JIT release entitlements, notarization, Apple App Sandbox, per-role confinement and third-party execution remain separate gates. The scoped lifecycle/resource observations below do not accept the full benchmark matrix, Production/libobs integration or recordings.
 
 ## Real Goal execution
 
@@ -150,5 +156,105 @@ passed at 640×360, 30 FPS, generation 14: repeat rejected, cancel/resume/dispos
 observed in order, retained active pixels, final transparent pixels, exit 0 and
 zero observed remaining processes. [Independent source and pixel inspection](../evidence/H18-native-goal-controls/inspection.json)
 keeps the final ACK distinct from native shutdown and cleanup. Horizontal
-960×540 and vertical 540×960 normal Goal runs also passed their own native
+[960×540](../evidence/H18-native-goal-horizontal/report.json) and vertical
+[540×960](../evidence/H18-native-goal-vertical/report.json) normal Goal runs also passed their own native
 IPC, visible content, alpha, completed transparency and cleanup checks.
+
+## Real serial lifecycle cycles
+
+[100 cycles](../evidence/H18-native-cycles-100/summary.json) passed with the same
+`4f77eea5e899…` ephemeral smoke binary, fresh generations and one new process/browser
+per cycle: 640×360, requested 30 FPS, 1000 ms duration, 6 s external deadline and
+2 GiB RSS limit. Total elapsed time was 160.241 s. Every cycle retained real frame
+and alpha checks, orderly exit 0 and zero remaining observed processes. The
+visible counter changed in 92 cycles; eight remain NOT_EVALUATED and were not
+used to fabricate lifecycle success. `run_native_cycles.py` preserves individual
+reports and incremental summaries and stops at the first required-gate failure.
+
+This demonstrates 100 fresh host lifecycles, not 100 browser recreations within
+one host, hot reload, dynamic resize, contamination freedom or long-lived leak
+freedom. Rust generation/revocation tests and native process observations retain
+their separate scopes.
+
+[The replacement sequence](../evidence/H18-native-replacements/summary.json)
+separately passed generations 30→31→32 using the unchanged `4f77eea5e899…` smoke
+artifact: 640×360 initial, 640×360 cold reload, then 540×960 replacement. Each
+prior native tree was observed reaped before the next launch, with a fresh root,
+generation and admission. This is cold suspend/resume in the lifecycle contract
+and reload/resize by process replacement. It is not system sleep/wake, hot
+reload, in-place `WasResized`, or JavaScript heap restoration. Origin strings in
+the summary are constructed from the contract, not independent network probes.
+
+[The retained timing audit](../evidence/H18-native-timing-summary.json) checks 115
+host runs and 351 source-file hashes across the viewport, resource and cycle
+evidence. Native same-clock observations support frame age, retained-sample rate
+and close/shutdown intervals. The first retained paint may be blank or follow
+coalesced callbacks; it is not actual first paint or content-ready latency.
+Consumer work includes file writes and lease release, not an isolated copy or
+libobs upload. The exact retained frame-consumer header matches the build; the
+whole fixture source snapshot was not recovered byte-for-byte. No Python/native
+clock calibration or displayed-output FPS is inferred.
+
+## Audited short resource trials
+
+[The read-only audit](../evidence/H18-owned-resource-summary.json) recomputed 93
+host samples and 476 process rows from three real 1/3/5-host trials using the same
+ephemeral smoke artifact. Each independent host requested one 640×360 widget at
+30 FPS for five seconds. This is an independent-host topology, not multiple
+widgets inside one Chromium host.
+
+| Hosts | Trial result | Observed CPU, one core = 100% | Peak sampled RSS | Maximum available sampled footprint |
+|---|---|---|---|---|
+| 1 | Completed | 12.15% | 658.70 MiB | 367.62 MiB |
+| 3 | Completed | 32.98% | 1993.27 MiB | 1136.14 MiB |
+| 5 | Cancelled by 2 GiB aggregate RSS limit | 131.15%, truncated startup | 2880.17 MiB | 812.87 MiB; unavailable at RSS peak |
+
+CPU divides observed identity-matched CPU deltas by launch-to-join wall time;
+it omits unsampled process work and collector overhead. Memory totals combine
+asynchronous latest observations; RSS can double-count shared pages and footprint
+is not unique physical RAM or coalition accounting. Three hosts left only
+54.73 MiB RSS headroom. Five hosts did not complete nominal duration, and its
+incomplete footprint cannot support a lower-memory claim. Every observed tree
+was cleaned up; that does not convert the five-host failure into a pass.
+
+There was one short cold-start trial per topology, without the frozen warmup,
+repetition or soak protocol. Actual sampling intervals reached 362.56 ms despite
+the nominal 250 ms target. GPU remains null, and there is no OBS comparison,
+synchronized cross-clock latency, steady-state capacity or full benchmark PASS.
+
+## Fixed native diagnostics
+
+Separate immutable owned profiles exercise narrow failure/lifecycle paths with
+fresh generations, 640×360, requested 30 FPS, five-second duration, ten-second
+supervision and the explicit test Keychain backend. These are real CEF trials;
+they do not complete the frozen benchmark protocol or execute creator-supplied
+scripts.
+
+| Profile / exact report | Observed result |
+|---|---|
+| [Static](../evidence/H18-native-diagnostic-static/report.json), gen 20 | PASS: one JS paint marker, two native paints; alpha, revocation, native close and observed cleanup |
+| [Hidden](../evidence/H18-native-diagnostic-hidden/report.json), gen 21 | PASS: settled hidden callback count remained 31→31, no accepted samples during that window; document hidden/visible events and resumed OSR; maximum observed paint gap 2013.11 ms |
+| [Slow JS](../evidence/H18-native-diagnostic-slow/report.json), gen 22 | PASS: fixed blocking phase observed for 500.122 ms, maximum retained paint gap 455.20 ms; native close and cleanup |
+| [Slow consumer](../evidence/H18-native-diagnostic-slow-consumer/report.json), gen 24 | PASS: deliberate 100 ms consumer delay, 140 accepted paints, 41 acquisitions and 98 coalesced frames; bounded mailbox and clean close |
+| [Controlled renderer exit](../evidence/H18-native-diagnostic-crash-posix/report.json), gen 26 | PASS of expected-error handling: renderer raw status 22016 decodes to exit 86, admission revoked, CefShutdown returned, host exits 42 as specified, zero observed remaining processes |
+
+Host exit 42 is not a healthy render completion. It records the deliberate child
+failure, and retained pixels remain offline evidence after revocation. The first
+[crash attempt](../evidence/H18-native-diagnostic-crash/report.json) terminated
+the host with SIGSEGV; the [deferred-close attempt](../evidence/H18-native-diagnostic-crash-deferred/report.json)
+closed and cleaned up but misclassified the raw POSIX status and exited 43. Both
+failures remain unchanged. [Pinned-source research](../evidence/H18-native-crash-research.json)
+records immediate admission revocation, close deferred outside the CEF renderer
+termination callback, and public POSIX status decoding.
+
+The final positive smoke regression uses a separate `59ebe9378186…` artifact
+containing those shutdown changes. Its [first run](../evidence/H18-native-final-smoke/report.json)
+remains PARTIAL because the initial counter sample was blank, while frames,
+alpha, orderly close and cleanup passed. [The same-artifact repeat](../evidence/H18-native-final-smoke-repeat/report.json)
+passed all those gates including counter progression; it does not rewrite the
+earlier observation or substitute its hash for the 100-cycle artifact.
+
+Hidden/resumed OSR does not test system suspend/resume or dynamic resize. A
+controlled `_exit(86)` does not test memory corruption, hostile process escape
+or the OS sandbox. The slow-consumer counters demonstrate bounded coalescing in
+this run; they do not measure all Chromium memory or prove in-process leak freedom.

@@ -2,7 +2,10 @@
 
 Adaptador independiente ejecutado con el **owner de prueba offline**, el contrato
 real de Show Control y Goal Celebration original. No crea autoridad de Production,
-no instala contenido de terceros y no ejecuta CEF. El dispatcher CEF queda pendiente.
+ni instala contenido de terceros. El dispatcher fijo de `web-host-lab` ya ejecutó
+Goal en CEF propio: bootstrap, datos tipados, píxeles transparentes, controles y
+cierre real. Ese PASS de fixture no integra el owner de Production, libobs ni un
+sandbox OS.
 
 ## Componentes reutilizados
 
@@ -64,7 +67,8 @@ y espera el proceso anterior, con terminación acotada si fuera necesaria. Los
 tests prueban reap real de ese proceso Rust propio. No prueban procesos Chromium.
 La comprobación de expiración del adaptador web usa el tiempo de admisión devuelto
 por el fixture; **no certifica latencia/deadline extremo a extremo de IPC CEF**.
-El host nativo debe usar un origen monotónico común y medir edad al recibir.
+El dispatcher nativo separado usa un origen monotónico común entregado por el
+browser y calcula la hora de llegada en el renderer para rechazar IPC vencido.
 
 ## Reproducir
 
@@ -76,6 +80,7 @@ cargo clippy --offline --locked --manifest-path creator-runtime-lab/binding/Carg
 cargo fmt --manifest-path creator-runtime-lab/binding/Cargo.toml -- --check
 cargo build --offline --locked --manifest-path creator-runtime-lab/binding/Cargo.toml --example fixture_host
 node --test creator-runtime-lab/binding/tests/port-adapter.test.mjs
+node --test creator-runtime-lab/binding/tests/native-bootstrap.test.mjs
 python3 -m unittest discover -s creator-runtime-lab/binding/tests -p 'test_*.py' -v
 python3 creator-runtime-lab/binding/serve_fixture.py 8788
 ```
@@ -85,7 +90,8 @@ los botones. `tests/browser-checks.js` contiene el procedimiento de 11 checks.
 En esta Mac el MCP permite archivos bajo el checkout principal y su caché, pero
 no el worktree hermano; se suministró el mismo procedimiento con el argumento
 `code` soportado por `browser_run_code_unsafe`. No se cambiaron raíces, permisos,
-AGENTS ni archivos de main. Detener el servidor con Ctrl-C al terminar.
+AGENTS ni archivos de main durante ese recorrido DOM. La autorización CEF posterior
+se registra por separado en `web-host-lab`. Detener el servidor con Ctrl-C al terminar.
 
 ## Evidencia y gates
 
@@ -93,7 +99,9 @@ Ver [checks](../evidence/binding/checks.json), [recorrido](../evidence/binding/b
 [trace](../evidence/binding/browser-trace.json), [consola](../evidence/binding/browser-console.json)
 y [red](../evidence/binding/browser-network.json).
 
-- **PASS:** 12 Rust, 5 Node, 5 Python; Clippy y formato. Son contratos/transportes offline.
+- **PASS:** 12 Rust, 5 Node del puerto + 5 Node del bootstrap nativo, 5 Python;
+  Clippy y formato. Son contratos/transportes offline. El ajuste de CSS no añadió
+  un test Node: su resultado de transparencia se comprobó con píxeles CEF reales.
 - **PASS:** 11 comprobaciones DOM reales; H/V, evento proyectado, propiedades,
   cancel/resume, finalización visual, dispose y restart. Check adicional de
   movimiento reducido observado; capturas [H](../evidence/binding/goal-horizontal.png)
@@ -104,18 +112,23 @@ y [red](../evidence/binding/browser-network.json).
   Se conserva también el rechazo de lectura del archivo fuera de raíces MCP.
 - **PARTIAL:** integración Show Control. Se usa su tipo/ingress/proyección real,
   pero el owner es de prueba y los eventos son sintéticos, no el scheduler vivo.
-- **BLOCKED:** dispatcher CEF, peer/main-frame authentication, aislamiento OS,
-  cualquier tercero y prueba de píxeles CEF/libobs/stream. Un ACK nunca acredita esos gates.
+- **PASS, fixture CEF propia:** dispatcher `CefProcessMessage`, frontera de
+  proceso/browser/main-frame/URL/generación, inicialización, propiedades y evento,
+  H/V, OnPaint → mailbox Rust → consumer, transparencia, cancel/resume/dispose y
+  cierre. Ver las cuatro ejecuciones nativas más abajo; el contenido sigue siendo
+  propio y el owner offline.
+- **BLOCKED / NOT_EVALUATED:** aislamiento OS, cualquier tercero, owner de
+  Production y píxeles consumidos por libobs/MKV/stream. Un ACK nunca acredita esos gates.
 
 ## Handoff mínimo
 
 1. Tras handoff H17, implementar la construcción de autoridad desde la aprobación
    local real del owner, vinculada a definición, hash, source/instance, revisión,
    sesión y binding; no exportar el constructor de QA a MCP.
-2. Integrar el módulo fijo en un documento externo controlado y enlazar la
-   frontera de datos con `CefProcessMessage`, comprobando browser/frame/proceso,
-   generación y peer, y usando Gate antes del renderer. No eval/ExecuteJavaScript
-   con strings de payload. La fixture nativa H16 sigue con su inventario propio.
+2. Llevar la frontera nativa ya probada al host de producto después del handoff:
+   conservar `CefProcessMessage`, comprobación de browser/frame/proceso/URL y
+   generación, Gate antes del renderer y datos CefV8Value sin JavaScript de payload.
+   El inventario propio de QA no concede permiso para cargar paquetes de terceros.
 3. Registrar por separado admission, respuesta JS, paint y consumo libobs. Conservar
    incertidumbre/reconciliación; no inferir un resultado terminal de la respuesta visual.
 4. Restablecer solo configuración revisada, desarmada, con generación nueva y sin
@@ -137,10 +150,10 @@ con capturas [horizontal](../evidence/binding/goal-final-horizontal.png) y
 Se observó `disposed`, MessagePort cerrado y ausencia de los dos procesos propios
 servidor/fixture después del cierre. Los resultados anteriores se conservan.
 
-### Documento fijo para el candidato CEF — etapa separada
+### Documento fijo CEF — evidencia nativa separada
 
 `web/native-bootstrap.html`, `.css` y `.mjs` preparan el documento externo
-controlado del candidato CEF. El host sirve el HTML en `/host/index.html` y sus
+controlado de la fixture CEF. El host sirve el HTML en `/host/index.html` y sus
 módulos bajo `/host/`; los bytes originales del widget se autorizan como inventario
 exacto bajo `/widget/`. El módulo no carga URLs suministradas por el creador.
 Comprueba que identidad/generación, ubicación del host y entrada coincidan.
@@ -150,25 +163,53 @@ El renderer principal recibe del adaptador CEF una única función nativa
 inmutable `MotiveNativeVisual` y envía `{kind:'bootstrap_loaded'}`. El browser
 puede entonces invocar `initialize({identity,contract,entry})`,
 `deliver(envelope, nowMs)` y `revoke()` mediante **valores CefV8Value**, sin eval ni
-strings de JavaScript interpolados. La implementación C++ debe verificar
+strings de JavaScript interpolados. La implementación C++ verifica
 browser/frame/proceso emisor y generación antes de invocar esos métodos. Todas
 las respuestas posteriores conservan los tipos existentes `renderer_ready`,
 `visual_ack` y `visual_state`; no prueban un resultado terminal nativo.
 
-[Cinco tests Node](../evidence/binding/native-bootstrap.json) pasan con
+[Cinco tests Node](../evidence/binding/native-bootstrap.json) pasaron con
 MessageChannel real y el runtime MotiveElement original: datos tipados incluyendo
 texto con delimitadores de script, finalización visual/secuencia, cancelación,
 reanudación, disposición, supresión de completion tardía, rechazo de generación
-antigua y URLs/configuraciones ajenas. Son pruebas del adaptador y del contrato;
-**no se ejecutó este nuevo documento en CEF ni en otro navegador**. El candidato
-nativo separado requiere su propia evidencia de compile/link en `web-host-lab/`
-y una autorización específica para cualquier ejecución de Goal Celebration.
-Una excepción concedida para la fixture H16 original no lo cubre.
+antigua y URLs/configuraciones ajenas. Ese registro histórico es de Node y precede
+a CEF. Después de la autorización propia se ejecutaron y retuvieron estas pruebas
+nativas, cada una con report, BGRA original comprimido, metadatos, PNG derivado,
+trace de lifecycle, supervisión e inspección semántica separada:
+
+| Ejecución CEF propia | Configuración / generación | Resultado observado |
+|---|---|---|
+| [Alpha smoke](../../web-host-lab/evidence/H18-native-goal-alpha-smoke/report.json) | 640×360, 30 FPS solicitados, gen 11 | Goal visible, alpha activo y final transparente, exit 0, árbol observado vacío |
+| [Horizontal](../../web-host-lab/evidence/H18-native-goal-horizontal/report.json) | 960×540, 30 FPS solicitados, gen 12 | Mismo contenido y gates, orientación H |
+| [Vertical](../../web-host-lab/evidence/H18-native-goal-vertical/report.json) | 540×960, 30 FPS solicitados, gen 13 | Mismo contenido y gates, orientación V |
+| [Controles](../../web-host-lab/evidence/H18-native-goal-controls/report.json) | 640×360, 30 FPS solicitados, gen 14 | Repeat rechazado en Active; cancel → resume → dispose y ACK en orden; píxeles finales transparentes y cierre |
+
+Las inspecciones confirman `GOOOOL`, `Club del Puerto`, `2 : 1`.
+`semantic_visual_inspection` queda `NOT_EVALUATED` en el reporte automático;
+cada `inspection.json` conserva el PASS semántico independiente. Los FPS de la
+tabla son configuración, no una medición de rendimiento. Las tres primeras
+ejecuciones usan el binario `07c0a5eee696…`; controles usa `fda3ddaedeb4…`.
+Los hashes completos y comprobaciones documentales están en
+[native-binding-closure.json](../evidence/binding/native-binding-closure.json).
+
+Se conserva el primer [defecto de alpha](../../web-host-lab/evidence/H18-native-goal-smoke/inspection.json).
+El contenedor fijo ahora declara `color-scheme:dark` como el widget original:
+evita el Canvas opaco exigido cuando los esquemas no coinciden. Se conservan
+también los cierres fallidos por acceso real al Llavero y su
+[investigación](../evidence/binding/native-keychain-research.json).
+Las ejecuciones posteriores usan `use-mock-keychain` de Chromium, un backend
+de prueba en memoria que **no demuestra confinamiento OS ni aislamiento del Llavero real**.
+
+El ACK final de dispose es una observación acotada aceptada una vez; no revive el
+binding revocado ni prueba reap. El resultado nativo exige además OnPaint real,
+transparencia, retorno de CefShutdown y limpieza del árbol observado. No hay draw
+libobs, integración Production, prueba de terceros ni aceptación de stream.
 
 La fixture DOM anterior, su binario y sus 46 archivos registrados no cambiaron
 al añadir este módulo; su evidencia final permanece acotada al recorrido de
-`fixture.mjs`. No se extrapola a este documento, a OnPaint, sandbox, libobs o
-Production. Reproducir el nuevo contrato sin navegador:
+`fixture.mjs`. Las afirmaciones OnPaint anteriores provienen de la nueva evidencia
+CEF, no de aquel DOM. Los históricos y sus hashes no se reescriben. Reproducir el
+contrato del bootstrap sin navegador:
 
 ```sh
 node --test creator-runtime-lab/binding/tests/native-bootstrap.test.mjs

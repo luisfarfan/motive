@@ -20,7 +20,7 @@ inline uint64_t MonotonicNs() {
 // Files live in a fresh 0700 directory owned by this launch. No package paths.
 class FrameConsumer {
  public:
-  FrameConsumer(MotiveFrameBridge* mailbox,const std::string& root,std::atomic<uint64_t>* visual_after=nullptr):mailbox_(mailbox),root_(root),visual_after_(visual_after) {
+  FrameConsumer(MotiveFrameBridge* mailbox,const std::string& root,std::atomic<uint64_t>* visual_after=nullptr,unsigned delay_ms=0):mailbox_(mailbox),root_(root),visual_after_(visual_after),delay_ms_(delay_ms) {
     dir_=open(root.c_str(),O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);
     if(dir_<0)return;
     first_=openat(dir_,"first.bgra",O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
@@ -56,7 +56,7 @@ class FrameConsumer {
     MotiveFrameStatistics stats{};if(!motive_frames_stats(mailbox_,&stats)){close(fd);return false;}
     std::string json="{\"native_executed\":true,\"paints\":"+std::to_string(stats.paints)+",\"coalesced\":"+std::to_string(stats.coalesced)+",\"acquired\":"+std::to_string(stats.acquired)+",\"stale\":"+std::to_string(stats.stale)+",\"samples\":[";
     for(size_t i=0;i<samples_.size();++i){const auto& sample=samples_[i];if(i)json+=',';json+="["+std::to_string(sample.index)+","+std::to_string(sample.observed)+","+std::to_string(sample.acquired)+","+std::to_string(sample.transfer)+"]";}
-    json+="],\"onpaint_callbacks\":"+std::to_string(callbacks)+",\"onpaint_busy\":"+std::to_string(busy)+",\"onpaint_invalid\":"+std::to_string(invalid)+",\"max_publish_callback_ns\":"+std::to_string(max_publish_ns)+",\"samples_truncated\":"+std::string(seen_>samples_.size()?"true":"false")+"}\n";
+    json+="],\"configured_consumer_delay_ms\":"+std::to_string(delay_ms_)+",\"onpaint_callbacks\":"+std::to_string(callbacks)+",\"onpaint_busy\":"+std::to_string(busy)+",\"onpaint_invalid\":"+std::to_string(invalid)+",\"max_publish_callback_ns\":"+std::to_string(max_publish_ns)+",\"samples_truncated\":"+std::string(seen_>samples_.size()?"true":"false")+"}\n";
     const bool ok=WritePixels(fd,reinterpret_cast<const uint8_t*>(json.data()),json.size());close(fd);return ok;
   }
   void Run() {
@@ -65,6 +65,8 @@ class FrameConsumer {
       auto* lease=motive_frames_acquire(mailbox_,MonotonicNs(),1000000000,&meta,&pixels);
       if(lease){
         const auto start=MonotonicNs();
+        // Diagnostic-only bounded work delay while this owned lease remains live.
+        if(delay_ms_)std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms_));
         bool consumed=false;
         if(motive_frames_lease_valid(lease)){
           bool ok=true;
@@ -89,6 +91,7 @@ class FrameConsumer {
   MotiveFrameBridge* mailbox_;
   std::string root_;
   std::atomic<uint64_t>* visual_after_;
+  unsigned delay_ms_;
   int dir_=-1,first_=-1,latest_=-1,visual_=-1;
   bool valid_=false,failed_=false,visual_seen_=false;
   std::atomic<bool> stop_{false};

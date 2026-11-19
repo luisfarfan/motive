@@ -75,6 +75,12 @@ pub extern "C" fn motive_frames_create(
     }))
 }
 /// # Safety
+/// `bridge` is a live handle for this read, or null. No owner authority is granted.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn motive_frames_live(bridge: *const Bridge) -> bool {
+    unsafe { bridge.as_ref() }.is_some_and(|b| b.live.load(Ordering::Acquire))
+}
+/// # Safety
 /// `bridge` is live until all concurrent calls finish; `bytes` spans `length` bytes.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn motive_frames_publish(

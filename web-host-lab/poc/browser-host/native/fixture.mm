@@ -73,6 +73,19 @@ struct State {
   std::optional<int> primary_browser;
   const uint64_t clock_origin_ms=MonotonicNs()/1000000;
 #endif
+#ifdef MOTIVE_DIAGNOSTIC_MODE
+  std::optional<int> diagnostic_browser;
+  bool fixture_ready=false,static_painted=false,slow_started=false,slow_finished=false,revocation_confirmed=false;
+  bool hidden_settled=false,hidden_finished=false,crash_requested=false,renderer_terminated=false;
+  int renderer_status=0,renderer_exit_code=0,renderer_decoded_exit_code=-1;
+  uint64_t hidden_baseline=0,hidden_end=0,slow_begin_ns=0,slow_end_ns=0;
+  void WriteDiagnostic(){
+    const int fd=open((config.private_root+"/diagnostic.json").c_str(),O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
+    if(fd<0)return;
+    const std::string data="{\"native_executed\":true,\"mode\":"+std::to_string(MOTIVE_DIAGNOSTIC_MODE)+",\"fixture_ready\":"+(fixture_ready?"true":"false")+",\"static_painted\":"+(static_painted?"true":"false")+",\"hidden_settled\":"+(hidden_settled?"true":"false")+",\"hidden_finished\":"+(hidden_finished?"true":"false")+",\"hidden_baseline_callbacks\":"+std::to_string(hidden_baseline)+",\"hidden_end_callbacks\":"+std::to_string(hidden_end)+",\"slow_begin_ns\":"+std::to_string(slow_begin_ns)+",\"slow_end_ns\":"+std::to_string(slow_end_ns)+",\"crash_requested\":"+(crash_requested?"true":"false")+",\"renderer_terminated\":"+(renderer_terminated?"true":"false")+",\"revocation_confirmed\":"+(revocation_confirmed?"true":"false")+",\"renderer_status\":"+std::to_string(renderer_status)+",\"renderer_exit_code\":"+std::to_string(renderer_exit_code)+",\"renderer_decoded_exit_code\":"+std::to_string(renderer_decoded_exit_code)+"}\n";
+    (void)write(fd,data.data(),data.size());close(fd);
+  }
+#endif
   std::map<std::string,Asset> inventory;
   std::atomic<uint64_t> invalid{0},busy{0},callbacks{0},max_publish_ns{0};
   // Only accessed on CEF UI thread. Not a cross-process supervisor.
@@ -81,12 +94,15 @@ struct State {
   unsigned pending_creates=0;
   bool quit_requested=false;
   void MaybeQuit(){
-    if(stopping&&browsers.empty()&&pending_creates==0&&!quit_requested){quit_requested=true;Trace("quit_requested_once");CefQuitMessageLoop();}
+    if(stopping&&browsers.empty()&&pending_creates==0&&!quit_requested){quit_requested=true;Trace("quit_requested_once");CefQuitMessageLoop();Trace("quit_request_returned");}
   }
   void CloseAll() {
     if(stopping.exchange(true))return;
     Trace("close_requested");
     motive_frames_revoke(mailbox);
+#ifdef MOTIVE_DIAGNOSTIC_MODE
+    revocation_confirmed=!motive_frames_live(mailbox);Trace("frame_generation_revoked");
+#endif
     auto copy=browsers;
     for(auto& [id,browser]:copy) { browser->GetHost()->WasHidden(true); browser->GetHost()->CloseBrowser(true); }
     MaybeQuit();
@@ -151,6 +167,8 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
     s_->Trace("after_created");
 #ifdef MOTIVE_GOAL_BRIDGE
     if(primary_)s_->primary_browser=browser->GetIdentifier();
+#elif defined(MOTIVE_DIAGNOSTIC_MODE)
+    if(primary_)s_->diagnostic_browser=browser->GetIdentifier();
 #endif
     if(primary_&&s_->pending_creates)--s_->pending_creates;
     s_->browsers.emplace(browser->GetIdentifier(),browser);
@@ -275,11 +293,45 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
 #endif
     if(count>0){s_->Trace(kind=="renderer_ready"?"properties_dispatched":"goal_dispatched");auto dispatch=CefProcessMessage::Create(motive_bridge::DispatchMessage);dispatch->GetArgumentList()->SetString(0,std::string(reinterpret_cast<const char*>(output.data()),size_t(count)));dispatch->GetArgumentList()->SetDouble(1,double(now));frame->SendProcessMessage(PID_RENDERER,dispatch);}
     return true;
+#elif defined(MOTIVE_DIAGNOSTIC_MODE)
+    if(!primary_||s_->stopping||!frame||message->GetName()!=motive_diagnostic::PhaseMessage)return false;
+    auto args=message->GetArgumentList();
+    const motive_bridge::Identity id{1,s_->config.generation,s_->diagnostic_browser.value_or(-1),s_->entry};
+    if(!motive_bridge::Boundary(id,browser->GetIdentifier(),frame->IsMain(),source==PID_RENDERER,frame->GetURL().ToString(),args->GetSize(),1,1,1)||args->GetType(0)!=VTYPE_INT)return false;
+    const int phase=args->GetInt(0);if(!motive_diagnostic::PhaseAllowed(MOTIVE_DIAGNOSTIC_MODE,phase))return false;
+    if(phase==1){
+      if(s_->fixture_ready)return false;s_->fixture_ready=true;s_->Trace("fixture_ready");[[maybe_unused]] auto state=s_;
+#if MOTIVE_DIAGNOSTIC_MODE == 2
+      CefPostDelayedTask(TID_UI,new Later([state,browser](){if(state->stopping)return;state->Trace("hidden_begin");browser->GetHost()->WasHidden(true);}),1000);
+      CefPostDelayedTask(TID_UI,new Later([state](){if(state->stopping)return;state->hidden_settled=true;state->hidden_baseline=state->callbacks;state->Trace("hidden_settled");}),1100);
+      CefPostDelayedTask(TID_UI,new Later([state,browser](){if(state->stopping)return;state->hidden_end=state->callbacks;state->hidden_finished=true;state->Trace("hidden_end");browser->GetHost()->WasHidden(false);browser->GetHost()->Invalidate(PET_VIEW);}),3000);
+#elif MOTIVE_DIAGNOSTIC_MODE == 4
+      CefPostDelayedTask(TID_UI,new Later([state,frame](){if(state->stopping)return;state->crash_requested=true;state->Trace("renderer_exit_requested");frame->SendProcessMessage(PID_RENDERER,CefProcessMessage::Create(motive_diagnostic::ExitMessage));}),1000);
+#endif
+    } else if(phase==2){if(!s_->fixture_ready||s_->static_painted)return false;s_->static_painted=true;s_->Trace("static_painted_once");}
+    else if(phase==3)s_->Trace("document_hidden");
+    else if(phase==4)s_->Trace("document_visible");
+    else if(phase==5){if(!s_->fixture_ready||s_->slow_started)return false;s_->slow_started=true;s_->slow_begin_ns=MonotonicNs();s_->Trace("slow_begin");}
+    else if(phase==6){if(!s_->slow_started||s_->slow_finished)return false;s_->slow_finished=true;s_->slow_end_ns=MonotonicNs();s_->Trace("slow_end");}
+    return true;
 #else
     return false;
 #endif
   }
-  void OnRenderProcessTerminated(CefRefPtr<CefBrowser>,TerminationStatus,int,const CefString&) override {s_->CloseAll();}
+  void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,TerminationStatus status,int exit_code,const CefString&) override {
+    // All profiles invalidate frame admission immediately, before deferred close.
+    motive_frames_revoke(s_->mailbox);
+#ifdef MOTIVE_DIAGNOSTIC_MODE
+    if(primary_&&s_->diagnostic_browser==browser->GetIdentifier()){
+      s_->renderer_terminated=true;s_->renderer_status=int(status);s_->renderer_exit_code=exit_code;s_->renderer_decoded_exit_code=motive_diagnostic::PosixExitCode(exit_code);s_->Trace("renderer_error_observed");
+      // Revoke immediately, but do not destroy browser/web-contents while CEF's
+      // PrimaryMainFrameRenderProcessGone still owns its navigation lock.
+      s_->revocation_confirmed=!motive_frames_live(s_->mailbox);
+      s_->Trace("frame_generation_revoked");s_->WriteDiagnostic();
+    }
+#endif
+    auto state=s_;CefPostTask(TID_UI,new Later([state](){state->Trace("renderer_error_close_task");state->CloseAll();}));
+  }
  private:
   std::shared_ptr<State> s_;
   bool primary_,navigated_=false;
@@ -303,6 +355,8 @@ class App final : public SchemeApp, public CefBrowserProcessHandler {
     CefRefPtr<CefDictionaryValue> extra;
 #ifdef MOTIVE_GOAL_BRIDGE
     extra=CefDictionaryValue::Create();extra->SetDouble("instance",1);extra->SetDouble("generation",double(s_->config.generation));extra->SetString("entry",s_->entry);extra->SetDouble("clock_origin_ms",double(s_->clock_origin_ms));
+#elif defined(MOTIVE_DIAGNOSTIC_MODE)
+    extra=CefDictionaryValue::Create();extra->SetDouble("generation",double(s_->config.generation));extra->SetString("entry",s_->entry);extra->SetInt("mode",MOTIVE_DIAGNOSTIC_MODE);
 #endif
     if(!CefBrowserHost::CreateBrowser(window,new Client(s_,true),s_->entry,settings,extra,context)){s_->pending_creates=0;s_->CloseAll();return;}
     auto state=s_;
@@ -344,6 +398,8 @@ int RunOwnedFixture(const FixtureConfig& config,int argc,char** argv) {
     FrameConsumer consumer(state->mailbox,config.private_root
 #ifdef MOTIVE_GOAL_BRIDGE
       ,&state->visual_capture_after_ns
+#elif defined(MOTIVE_DIAGNOSTIC_MODE) && MOTIVE_DIAGNOSTIC_MODE == 5
+      ,nullptr,100
 #endif
     );
     if(!consumer.valid())return 8;
@@ -360,9 +416,17 @@ int RunOwnedFixture(const FixtureConfig& config,int argc,char** argv) {
     // Preserve actual acquired frame evidence even if CEF shutdown later stalls.
     const bool frames_written=consumer.WriteReport(state->callbacks,state->busy,state->invalid,state->max_publish_ns);
     state->Trace(frames_written?"frame_report_written":"frame_report_failed");
+#ifdef MOTIVE_DIAGNOSTIC_MODE
+    state->WriteDiagnostic();
+#endif
     state->browsers.clear();app=nullptr;h16::active_state.reset();state->Trace("shutdown_enter");CefShutdown();state->Trace("shutdown_return");
 #ifdef MOTIVE_GOAL_CONTROLS
     if(!state->controls_complete)return 10;
+#endif
+#ifdef MOTIVE_DIAGNOSTIC_MODE
+    if(state->renderer_terminated)return state->crash_requested&&state->renderer_decoded_exit_code==86&&state->revocation_confirmed&&frames_written?42:43;
+    if(MOTIVE_DIAGNOSTIC_MODE==4)return 44; // Expected controlled error did not occur.
+    if(!state->fixture_ready)return 45;
 #endif
     return frames_written?0:5;
   }

@@ -22,7 +22,7 @@ int main() {
     MotiveFrameMetadata other{};const uint8_t* ignored=nullptr;
     assert(!motive_frames_acquire(box,100,100,&other,&ignored));
     MotiveFrameStatistics stats{};assert(motive_frames_stats(box,&stats));assert(stats.coalesced==98);
-    motive_frames_revoke(box);assert(!motive_frames_lease_valid(lease));
+    motive_frames_revoke(box);assert(!motive_frames_live(box));assert(!motive_frames_lease_valid(lease));
     motive_frames_destroy(box);assert(data[2]==128);motive_frames_release(lease);
   }
   auto* box=motive_frames_create(1,101,1,2,1);assert(box);

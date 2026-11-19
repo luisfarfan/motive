@@ -107,6 +107,48 @@
         "H18-native-goal-controls/inspection.json"
       ],
       "scope": "fixed owner-only commands; renderer observations separately checked against actual pixels, browser shutdown and external cleanup; no libobs"
+    },
+    {
+      "gate": "short owned native diagnostic: static",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-static/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "short owned native diagnostic: hidden",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-hidden/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "short owned native diagnostic: slow",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-slow/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "short owned native diagnostic: slow-consumer",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-slow-consumer/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "short owned native diagnostic: crash-posix",
+      "status": "PASS",
+      "evidence": "H18-native-diagnostic-crash-posix/report.json",
+      "scope": "fixed controlled fixture; expected crash uses host42, not healthy0; no OS sandbox or full performance acceptance"
+    },
+    {
+      "gate": "cold suspension/reload/viewport replacement",
+      "status": "PASS",
+      "evidence": "H18-native-replacements/summary.json",
+      "scope": "three fresh processes/generations; native close and observed reap before next start; no hot reload, JS heap preservation or in-process resize"
+    },
+    {
+      "gate": "final common native close positive regression",
+      "status": "PASS",
+      "evidence": "H18-native-final-smoke-repeat/report.json",
+      "retained_partial": "H18-native-final-smoke/report.json"
     }
   ],
   "native_authorization": "owner granted local owned Motive fixture testing; original hash scope preserved in authorization evidence"

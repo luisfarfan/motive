@@ -4,6 +4,8 @@
 #include "include/cef_scheme.h"
 #ifdef MOTIVE_GOAL_BRIDGE
 #include "renderer_bridge.hpp"
+#elif defined(MOTIVE_DIAGNOSTIC_MODE)
+#include "diagnostic_renderer.hpp"
 #endif
 class SchemeApp : public CefApp {
  public:
@@ -14,7 +16,7 @@ class SchemeApp : public CefApp {
     if(process_type.empty())command_line->AppendSwitch("use-mock-keychain");
   }
 #endif
-#ifdef MOTIVE_GOAL_BRIDGE
+#if defined(MOTIVE_GOAL_BRIDGE) || defined(MOTIVE_DIAGNOSTIC_MODE)
   CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override {return renderer_;}
 #endif
   void OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> r) override {
@@ -27,6 +29,8 @@ class SchemeApp : public CefApp {
  private:
 #ifdef MOTIVE_GOAL_BRIDGE
   CefRefPtr<MotiveRenderBridge> renderer_=new MotiveRenderBridge;
+#elif defined(MOTIVE_DIAGNOSTIC_MODE)
+  CefRefPtr<MotiveDiagnosticRenderer> renderer_=new MotiveDiagnosticRenderer;
 #endif
   IMPLEMENT_REFCOUNTING(SchemeApp);
 };

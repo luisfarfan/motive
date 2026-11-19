@@ -150,7 +150,37 @@ segundo stop. El log de destrucción y la cola OBS no son una confirmación
 independiente de todos los callbacks asíncronos de SCK. Tampoco hay evidencia
 de que un solapamiento de sesiones causara -3812.
 
-El siguiente contraste requiere una única repetición con metadata escalar
+El siguiente contraste requería una única repetición con metadata escalar
 de la ventana exacta y su configuración al iniciar, sin títulos ni otras
 aplicaciones. No se justifican sleeps, reconexiones infinitas, cambios de
 formato o alteraciones de stop/lifetime con esta evidencia.
+
+## B9: geometría inválida demostrada al sustituir
+
+La repetición acotada está en `var/evidence/h17-capture-b9/` y su log nativo
+en `h17-capture-b9-owner/owner.log`. B9 tiene SHA-256
+`7ecf6b28288fed4cc7121d755b435310a59d80ced8268475e8c884e8d0576e24`.
+El propietario fue PID 79255. Las dos consultas coinciden con ese PID exacto;
+el ID cambia de 15831 a 15836 tras cerrar y recrear la fixture propia.
+
+| Dato observado inmediatamente antes de startCapture | Inicial | Sustituta |
+|---|---:|---:|
+| SCWindow.frame, puntos | 680×452 | 0×0 |
+| SCContentFilter.contentRect, puntos | 680×452 | 0×0 |
+| pointPixelScale | 1 | 1 |
+| SCStreamConfiguration, dimensiones | 680×452 | 0×0 |
+| Intervalo configurado | 30000000/1000000000 s | Igual |
+| Resultado start | Admitida | InvalidParameter −3812 |
+
+Esto demuestra que OBS intentó iniciar una configuración con dimensiones
+cero en la sustituta. La identidad correcta y un objeto enumerable no
+acreditan geometría capturable. No prueba por qué macOS publicó ese rectángulo,
+ni atribuye el estado a Stage Manager o a solapamiento de sesiones.
+
+El primer par de medios se conserva y las salidas alcanzan quiescencia en
+260 ms tras la pérdida deliberada. No existe un medio posterior a recuperación.
+El rechazo `SOURCE_CREATE_FAILED`, el **FAIL** de recuperación y el cierre
+normal (exit 0, `cleanup_errors=[]`) permanecen en sus informes originales.
+La corrección siguiente debe rechazar esa geometría antes de crear/iniciar
+SCStream, explicar que la ventana todavía no está lista y conservar la
+reselección explícita. No debe inventar dimensiones ni reintentar sin límite.

@@ -52,7 +52,10 @@ No se reemplazó `target/mac-capture-h14/mac-capture.so` ni se reconstruyó B7.
 SHA-256 del parche:
 `2fe751080f1d560ee5c0e5b3e86ed58523a5c27ac219e33b4e8fe03b57732f17`.
 
-Captura física con el nuevo diagnóstico: **NOT_EVALUATED**. El próximo ensayo
-debe ser una sola repetición
-acotada del caso de sustitución, comparando los escalares del start inicial y
-fallido, sin sleeps ni ajustes de preferencias del usuario.
+Captura física con el nuevo diagnóstico: **PASS** para observación escalar,
+**FAIL** para recuperación. La repetición B9 en
+`var/evidence/h17-capture-b9-owner/owner.log` observa frame/filtro/configuración
+680×452 en la ventana inicial y 0×0 en la sustituta, con identidad exacta y
+scale 1 en ambos casos. El segundo start devuelve −3812. Véase
+[captura B9](h17-capture-verification.md#b9-geometría-inválida-demostrada-al-sustituir).
+No hubo sleeps, alteración de dimensiones ni ajustes de preferencias.

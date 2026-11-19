@@ -89,6 +89,61 @@ frame age is derived. Native-only frame timing requires its own analysis. No
 60-second steady-state trial, repetitions, soak, shared-host topology, OBS
 comparison, native texture cost or GPU measurement is established here.
 
+## Retained native timing and 100 lifecycle cycles
+
+The [native timing summary](../evidence/H18-native-timing-summary.json) derives
+the following from the ephemeral smoke and five viewport variants. Initialization,
+paint observation, consumer start and lifecycle traces use the same native
+`MonotonicNs` helper. Its retained header matches the build exactly; the whole
+`fixture.mm` source snapshot was not recovered byte-for-byte because compile-only
+Goal changes coexisted during that build. The summary records that provenance
+limit and every source-file hash.
+
+| Viewport / requested FPS | Initialize ms | First retained paint ms¹ | Active consumer FPS² | Age p95 ms³ | Coalesced / accepted | CefShutdown ms |
+|---|---:|---:|---:|---:|---:|---:|
+| 640×360 / 30 | 130.28 | 422.02 | 30.09 | 12.32 | 1 / 143 | 18.72 |
+| 960×540 / 30 | 114.05 | 652.32 | 30.10 | 11.53 | 1 / 136 | 24.40 |
+| 540×960 / 30 | 92.33 | 494.99 | 30.11 | 11.24 | 0 / 139 | 20.49 |
+| 640×360 / 60 | 89.06 | 481.87 | 60.16 | 10.46 | 10 / 288 | 19.01 |
+| 960×540 / 60 | 95.73 | 486.65 | 60.09 | 12.32 | 11 / 288 | 16.03 |
+| 540×960 / 60 | 89.99 | 471.57 | 59.95 | 11.60 | 1 / 279 | 25.49 |
+
+¹ From native `initialize_enter` to the first **retained** paint observation.
+An earlier paint may have coalesced, and a retained paint may still be transparent.
+This is neither first actual OnPaint nor content-ready time or TTFF from Popen.
+² `(N−1) / (last consumer start − first consumer start)`, using the native seconds
+between retained samples. It excludes startup/shutdown and measures disk-consumer
+acquisitions, not displayed video or full-run FPS acceptance.
+³ Native paint observation to disk-consumer start; it excludes display/texture
+upload and is not end-to-end video latency. Percentiles use nearest rank and
+retain their sample counts in JSON.
+
+For these six runs, per-run disk-consumer work p95 was 0.157–0.254 ms; maximum
+publish-callback duration was 0.207–0.606 ms. Disk work includes file writes and
+lease release; publish includes validation, locking and copying. **Isolated copy
+time, publish p95 and libobs upload remain null.** A 3.372 ms disk-work outlier is
+retained in the 540×960/60 run.
+
+The separate 100 fresh-process cycles passed all four lifecycle gates **100/100**.
+Counter change passed 92 times and remained **NOT_EVALUATED in eight**: cycles
+23, 36, 38, 40, 48, 58, 62 and 98. Their first compressed BGRA samples were verified
+entirely transparent; no counter zero or ready frame was invented. Native
+initialization median/p95 was 89.69/101.06 ms; first retained paint from initialize
+entry was 211.30/250.14 ms. `CefShutdown` median/p95 was 21.16/26.09 ms, while native
+close-request to shutdown-return was 34.11/44.76 ms (maximum 50.92 ms). These spans
+do not include final helper-process exit.
+
+Those cycles retained 2,642 frames from 2,751 accepted paints, with 78 coalesces,
+zero reported busy/invalid/stale counts and 31 accepted paints not represented
+as acquired or coalesced. Their exact pending/revocation outcome was not recorded.
+Pooled observation-to-consumer age p95 was 11.746 ms and disk-work p95 0.191 ms.
+Fresh-process cycles do not establish leak freedom in a long-lived host.
+
+The separate resource trials retained 29.81 active consumer FPS for one host and
+30.03–30.08 per host for three. The aborted five-host run retained only 4, 0, 4, 0
+and 12 frames; its short-window rates are not scaling evidence. All derived
+cross-clock TTFF, displayed FPS and GPU values remain null.
+
 ## Sources and next step
 
 The exact reports are [1 host](../evidence/H18-perf-owned-1-first/report.json),

@@ -50,6 +50,12 @@ def wrapper_sources(sdk):
     return sources
 
 
+def is_h19_reproduction_name(name):
+    # A fresh, bounded build label never selects a URL, package or Chromium flag.
+    # This permits reproduction without replacing any retained build artifact.
+    return re.fullmatch(r'h19-native-multi-(?:goal-(?:controls-)?)?repro-[a-z0-9]{1,24}-ephemeral', name) is not None
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobs', type=int, default=3)
@@ -63,11 +69,16 @@ def main():
     diagnostic_modes = {'static':1,'hidden':2,'slow':3,'crash':4,'slow-consumer':5}
     diagnostic_names = {'h18-native-' + mode + '-ephemeral' for mode in diagnostic_modes} | {'h18-native-crash-deferred-ephemeral','h18-native-crash-posix-ephemeral'}
     multi_names = {'h19-native-multi-ephemeral','h19-native-multi-goal-ephemeral','h19-native-multi-goal-controls-ephemeral','h19-native-multi-v2-ephemeral','h19-native-multi-goal-v2-ephemeral','h19-native-multi-v3-ephemeral','h19-native-multi-goal-v3-ephemeral','h19-native-multi-goal-controls-v3-ephemeral','h19-native-multi-final-ephemeral','h19-native-multi-goal-final-ephemeral','h19-native-multi-goal-controls-final-ephemeral','h19-native-multi-goal-hidden-ephemeral'}
+    if is_h19_reproduction_name(args.build_name):
+        multi_names.add(args.build_name)
     if args.multi:
         if args.build_name not in multi_names or args.diagnostic:
             raise ValueError('MULTI_PROFILE_MISMATCH')
         if args.bridge != ('-goal-' in args.build_name) or args.controls != ('-controls-' in args.build_name):
             raise ValueError('MULTI_BRIDGE_PROFILE_MISMATCH')
+        report_name = 'H19-native-' + args.build_name.removeprefix('h19-native-') + '-build.json'
+        if (ROOT / 'evidence' / report_name).exists():
+            raise ValueError('H19_BUILD_EVIDENCE_IMMUTABLE_USE_FRESH_REPRO_NAME')
     else:
         if args.diagnostic and (args.bridge or (args.build_name != 'h18-native-' + args.diagnostic + '-ephemeral' and not (args.diagnostic == 'crash' and args.build_name in {'h18-native-crash-deferred-ephemeral','h18-native-crash-posix-ephemeral'}))):
             raise ValueError('DIAGNOSTIC_REQUIRES_FIXED_OWN_BUILD_ROOT')

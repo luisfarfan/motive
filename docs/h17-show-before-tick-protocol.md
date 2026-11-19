@@ -1,6 +1,7 @@
 # H17 — cancelación anterior al primer tick: protocolo acotado
 
-Estado físico: **NOT_EVALUATED**. El modo opt-in
+Estado físico tras dos intentos B10: **BLOCKED**; ninguno demuestra cancelación
+anterior al primer tick. El modo opt-in
 `verify_h17_show_recovery.py --cancel-before-tick-only` no cambia el producto
 ni la ruta por defecto que conserva la cancelación posterior al tick B7.
 Los siete tests offline verifican clasificación y recibos; no son una
@@ -53,5 +54,54 @@ históricos se retienen; no se carga un proyecto del usuario.
 Evidencia offline de los gates y rechazo del B7 post-tick como supuesto
 pre-tick: `var/evidence/h17-before-tick-contract-01/`. Las respuestas completas,
 brackets del socket y journal de una futura ejecución quedarán en su carpeta
-nueva. Ningún test de esta preparación modifica el bundle B9 o abre apps,
+nueva. Ningún test offline de esta preparación modifica el bundle B9 o abre apps,
 devices, outputs o receivers.
+
+## Dos intentos reales B10
+
+Binario SHA-256
+`1390fa6834c22c7df002b72d3f3e3c9c7d2bb993149663ac07334b4282f279c9`.
+Se ejecutó el protocolo sin alterar heartbeat, duración, producto o tiempos
+de espera. Cada intento tuvo nuevo owner, sesión y fixture; no hubo un tercero.
+Los wrappers son `var/evidence/h17-before-tick-b10-owner-01/` y `-02/`;
+las respuestas completas y journals están en `h17-before-tick-b10-01/` y
+`-02/`. `h17-before-tick-b10-summary/report.json` conserva ambos resultados.
+
+| Intento | Owner | Primera operación observada | Acción / terminal | Contador | Gate |
+|---|---:|---|---|---:|---|
+| 1 | 78895 | Consulta 3: started=true, widget_triggered=true, elapsed_ms=0 | No se envió cancel; completó normalmente. | 0→1 | BLOCKED |
+| 2 | 90797 | Consulta 3: started=false, widget_triggered=false, start_ns=null, elapsed_ms=0 | Se pidió cancel; terminal cancelled, pending_ack=false, pero started=true y widget_triggered=true. | 0→0 | BLOCKED |
+
+La primera observación prueba por qué `elapsed_ms=0` no basta. El segundo
+intento prueba que la ventana sin iniciar sí es observable, pero el tick ganó
+entre observar y cancelar. No se atribuye un PASS pre-tick al terminal que ya
+había disparado el widget. El job del segundo intento quedó cancelled,
+cursor=0, con sólo el registro nativo y sin ejecutar el contador.
+
+Los brackets del socket usan `python.time.monotonic`:
+
+- Intento 1, snapshot previo: `[126593.829888125, 126593.840418625]` s.
+- Intento 2, snapshot previo: `[126634.611957208, 126634.621283208]` s;
+  petición cancel: `[126634.629893166, 126634.634503291]` s.
+
+Se conservan los `start_ns` nativos en el JSON, sin hacer una resta entre
+relojes no alineados. La conclusión procede de los flags nativos antes y
+después, no de inferir el primer tick a partir del tiempo de la petición.
+
+La sesión 1 es `02971a8083ac6214f39b23a828564b9f`; su journal tiene cuatro
+entradas y completion `completed`, sin cancel_intent. SHA-256:
+`30445759c612f960216ed3bd15b2d5b267598c81f941de2d3b8f5841448e9bf8`.
+La sesión 2 es `f033f30f55e877b6d79e5b5bdf132fb3`; su journal tiene cinco
+entradas: header, dispatch_intent, dispatch, cancel_intent y completion.
+El token `f033f30f55e877b6d79e5b5bdf132fb3:animation:1:1` y el mismo action_key
+aparecen en la cancelación y el terminal receipt del PID 90797; completion
+es `cancelled` y receipt de mutación es null. SHA-256 del journal:
+`c10dc8ea2c847534504375a30fa99e723d7234840add358c1f4397603f96098c`.
+Esto confirma cancelación nativa posterior al tick, no el gate pre-tick.
+
+Ambos owners cerraron con exit 0, cleanup PASS y sin errores. Los cinco
+stores coinciden byte por byte con los originales actuales registrados al
+abrir cada runner; journals históricos y propios permanecen. Los wrappers
+dicen FAIL_RUNNER porque la cobertura BLOCKED devuelve exit 1: no hubo
+fallo de cleanup ni un error de producto en estos intentos. La evidencia B7
+posterior al tick permanece intacta y no se reetiqueta como anterior al tick.

@@ -6,9 +6,33 @@ Inicio: 18 de noviembre de 2026, America/Lima. Worktree independiente
 `15ffbad307c5439270130979dae0e9d66d92d700`. El checkout local de main estaba
 en `6019ad0`; no se modificó. H18 y sus laboratorios quedan fuera del scope.
 
-Estado de trabajo: **PARTIAL**. Aceptación de beta: **FAIL** mientras permanezcan
-los P0 de captura sin cierre. Este informe es propio de H17; los históricos
+Estado de H17: **PARTIAL**. Aceptación de beta: **FAIL** por el congelamiento
+de captura con foco corroborado y cobertura de recuperación aún incompleta.
+Este informe es propio de H17; los históricos
 H13–H15 permanecen intactos y sus PASS no certifican una nueva candidata.
+
+La candidata final local es [B10](h17-portable-beta.md), release ARM64,
+versión 20, firma ad-hoc y GPUI predeterminado, sin profiler. Runtime/build
+desde `8806f283f14df077f5d73de4d03d93da5a990d29` limpio; ejecutable SHA-256
+`1390fa6834c22c7df002b72d3f3e3c9c7d2bb993149663ac07334b4282f279c9`.
+El instrumento offline de análisis 720p se corrigió después del build; su
+verificación queda separada de la regresión del snapshot candidato. El runtime
+de B10 no cambia. B7/B8/B9 y sus fuentes/medios permanecen separados, sin
+sobrescribir ninguna candidata.
+
+| Evidencia ejecutada | Candidata y alcance | Informe |
+|---|---|---|
+| Foco externo y congelamiento | B7: foco válido PASS, frescura FAIL | [Captura](h17-capture-verification.md) |
+| Ventana recreada | B9: 0×0 y −3812 FAIL; B10: rechazo previo y segundo dual con píxeles PASS acotado | [Captura](h17-capture-verification.md), [guard](h17-sck-geometry-admission.md) |
+| Outputs VT/x264 y entrega | B7: nueve casos funcionales, 14 medios; colas PARTIAL | [Outputs/audio](h17-output-audio-verification.md) |
+| Audio de aplicación y A/V | B9: suite de seis etapas y siete pulsos PASS; identidad histórica PARTIAL | [Outputs/audio](h17-output-audio-verification.md) |
+| Show Control en la misma sesión | B7: reconcile/load y cancel post-tick PASS; B10 pre-tick BLOCKED | [Show Control](h17-show-control-verification.md), [pre-tick](h17-show-before-tick-protocol.md) |
+| Recorrido GPUI y dispositivos | B7–B9: 14 pasos, correcciones AX, VoiceOver de restauración y cámara/mic B8; cobertura general PARTIAL | [UX nativa](h17-native-ux-verification.md) |
+| GPUI A/B | Builds aislados A/B fijados por hash; tres ciclos de cuatro videos; adopción PARTIAL, Fast off | [GPUI](h17-gpui-performance.md) |
+| Recursos de candidata final | B10: idle y dual120s 1080p60/720p60, cuatro medios estructurales PASS; entrega y A/V separados | [Recursos B10](h17-b10-resources.md) |
+
+La tabla no transfiere los PASS físicos de un ejecutable a otro. La regresión
+offline cubre los inputs de B10; los límites de cada ensayo físico se conservan.
 
 ## Identidad y auditoría
 
@@ -36,7 +60,7 @@ se marcan como hipótesis. «Prueba» especifica qué falta para cerrar el alcan
 | ID | P | Evidencia original / anterior | Causa o hipótesis; área | Corrección / riesgo | Prueba necesaria | Actual / evidencia H17 |
 |---|---|---|---|---|---|---|
 | CAP-01 | P0 | H15 B4 default, congelamiento ~15,4 s; FAIL. B6 foco BLOCKED | Productor dibuja, SCK suspended, OBS conserva textura; causa de suspensión no demostrada | Mantener aviso/rechazo de start; no forzar flags de otras apps. Riesgo de confundir estático con fallo | Foco independiente completo y píxeles MKV/RTMP default | FAIL; B7 default-02 foco PASS, freeze MKV15,4s/RTMP15,6s; h17-capture-verification |
-| CAP-02 | P0 | B6 capture-b6-media; FAIL | B9 demuestra SCWindow/filtro/configuración 0×0 al sustituir; start SCK InvalidParameter (−3812) | Recuperación explícita; sin bucle de reconnect. Riesgo de sesión solapada SCK no demostrado | Cierre/reapertura/ID nuevo/idle/outputs y píxeles posteriores | FAIL; h17-capture-b7 y h17-capture-b9; diagnóstico de geometría cero, fuente rechazada y cierre limpio; sin medio posterior |
+| CAP-02 | P0 | B6 capture-b6-media; FAIL | B9 demuestra SCWindow/filtro/configuración 0×0 al sustituir; start SCK InvalidParameter (−3812) | Guard de geometría y CAPTURE_NOT_READY antes de SCStream; reselección explícita. Sin bucle ni dimensiones inventadas; lifecycle asíncrono aún limitado | Cierre/reapertura/ID nuevo/idle/outputs y píxeles posteriores | PARTIAL; B7/B9 FAIL conservados. B10 rechaza 0×0 y una reselección de la misma ID/PID produce segundo dual con progreso de píxeles PASS acotado; entrega/otras combinaciones pendientes |
 | CAP-03 | P0 | Detectado por lectura H17; NOT_EVALUATED | Producto: release_capture_source elimina scene items pero conserva préstamos en cache cuando reemplazo falla | Invalidar préstamos antes del remove; preservar máscara lógica de fuente ausente. Riesgo de ocultar fallo de salud | Contrato real libobs y regresión de recuperación fallida/cierre | PARTIAL; legacy FAIL/fixed PASS en h17-scene-items-03; salud inspeccionada |
 | CAP-04 | P0 | Detectado en OBS33; NOT_EVALUATED | OBS: missing window/addStreamOutput fallido retornan true; lookup solo Window ID | Rechazo de creación y comprobación PID exacto. Riesgo de cambiar rutas upstream de cleanup | Contrato de admisión + captura propia física | PASS en contrato: upstream6 admisiones inválidas/corregido0; captura propia admitida y error real start rechazado. No cierra CAP-01/02 |
 | OUT-01 | P1 | Matriz B6 9 funcionales, 14 medios; PARTIAL | Observer anterior al plugin no prueba entrega. H14 conserva AAC pre-stop con reordering | Mantener false y cutoff/H8; riesgo de alterar finalización sin causa | Matriz VT/x264 MKV/RTMP/dual/cancel/shutdown/receiver-loss | PARTIAL; B7 9 funcionales PASS/14 medios decodificados; 13 paquetes normales ausentes post-stop y 3 de receptor perdido sin bracket; ningún pre-stop observado |
@@ -44,12 +68,12 @@ se marcan como hipótesis. «Prueba» especifica qué falta para cerrar el alcan
 | AUD-01 | P1 | B6 continuidad/A/V PASS | Jitter frente al margen del mixer; corrección 128 ms conservada | Sin cambiar mixer/reloj/buffering. Riesgo de heredar PASS a B7 | Pilot/RTMP/recovery/transitions/persistence/silence/resumed/tail/mix/gain/mute/pulsos | PASS en suite real B9 de seis etapas y A/V; buffering 128 ms conservado. No certifica otra identidad de binario |
 | AUD-02 | P1 | H14 APPLICATION_UNAVAILABLE, B6 PARTIAL | Identidad histórica no reproducida; falta subcausa en H14 | Instrumentación B6 exact PID/count/reason; no seleccionar otra app | Pérdida/reinicio autorizado + observación de proceso y diagnóstico | PARTIAL; B9 pérdida intencional: no_registered_instance y nueva instancia solo por reconnect explícito. Fallo histórico con proceso vivo no reproducido |
 | SHOW-01 | P1 | B6 reconcile+load BUSY; PARTIAL | Producto: revisión externa impide recibo contiguo aun con terminal nativo durable | Recibo terminal independiente, solo reconcile; sin rebase/replay. Riesgo: admisión prematura o recibo falso | Contratos adversariales y sesión real reconcile→load desarmado | PASS; h17-show-b7: carrera450 real por CLI, recibo nativo durable, counter0, reconcile→load desarmado→arm explícito; sin atribuirlo a GPUI |
-| SHOW-02 | P1 | B6 stock450/pre-tick; PARTIAL | Cobertura humana/carrera, no defecto demostrado | Mantener duración stock; no atribuir CLI a GPUI | Edición GPUI durante running, cancel antes/después tick | PARTIAL; carrera CLI450 y cancel post-tick PASS; dos ensayos GPUI sin edición dentro de running (BLOCKED); pre-tick NOT_EVALUATED |
-| PERF-01 | P1 | B6 dual120s 1117,95 MiB / 83,16% CPU / RPC p95 17,51 ms; PARTIAL | Reservas y malloc vivo distintos; sin ownership concluyente de fuga | Medir misma carga y release; no purgar allocator ni cambiar umbrales | Idle/4 videos/720p60/1080p60/dual/3 ciclos/shutdown | NOT_EVALUATED para candidata nueva |
+| SHOW-02 | P1 | B6 stock450/pre-tick; PARTIAL | Cobertura humana/carrera, no defecto demostrado | Mantener duración stock; no atribuir CLI a GPUI | Edición GPUI durante running, cancel antes/después tick | PARTIAL; carrera CLI450 y cancel post-tick PASS; dos ensayos GPUI sin edición dentro de running (BLOCKED); pre-tick B10 BLOCKED tras dos intentos; journals/counters y cleanup conservados |
+| PERF-01 | P1 | B6 dual120s 1117,95 MiB / 83,16% CPU / RPC p95 17,51 ms; PARTIAL | Reservas y malloc vivo distintos; sin ownership concluyente de fuga | Medir misma carga y release; no purgar allocator ni cambiar umbrales | Idle/4 videos/720p60/1080p60/dual/3 ciclos/shutdown | PARTIAL; B10 idle RPC p95 4,61 ms; dual120s 1080p60 CPU mediana 51,72%, footprint máx 1085,55 MiB, RPC p95 3,44 ms; 720p60 46,93% / 1022,33 MiB / 3,29 ms. B6 debug frente a B10 release, no efecto aislado; tres ciclos en A/B separados |
 | PERF-02 | P1 | Preview copia CPU→GPU y 11 drops B6; PARTIAL | Coste heartbeat/RenderImage aún por medir | Instrumentación GPUI opt-in separada de libobs. Riesgo de perturbar medida | Tiempos UI, preview_age/drops, CPU y buffers | PARTIAL; A/B real con draw, preview, buffers/malloc/RPC; drops 33/36 en lifecycle. h17-gpui-performance |
 | GPUI-01 | P1 | Fast desactivado; NOT_EVALUATED | Kit0.10 admite Fast; lock wgpu30.0.2 incompatible con exact30.0.1 Fast | Features opt-in, pin compatible; no adoptar sin visual/foco/a11y | A/B/BA misma carga/hardware, scrolling/editor/deck/dialogs | PARTIAL; A/B real y tres ciclos de cuatro videos: CPU sin ventaja consistente; draw mejora en algunas medidas. Fast permanece desactivado; interacción/a11y A/B pendientes |
 | UX-01 | P2 | B6 recorrido parcial/recibos; PARTIAL | VoiceOver, Tab completo y stock450 sin observar | Corregir solo defectos demostrados; respetar Claude Design | Flujo 14 pasos nativo, labels/foco/disabled/recibos | PARTIAL; flujo nativo 14 pasos B7; textos/recibos corregidos B8/B9, restauración escuchada con VoiceOver; teclado completo pendiente |
-| PKG-01 | P2 | B6 portable debug PASS, distribución PARTIAL | Release optimizada y nueva identidad necesarias | Candidata B7 distinta, ad-hoc local sin Keychain. Riesgo de permisos por identidad nueva | Audit ARM64/rpaths/plugins/tools/licencias/runtime externo/stores | PASS para auditoría estática y runtime local fuera checkout; h17-portable-beta. Segunda Mac y distribución separadas |
+| PKG-01 | P2 | B6 portable debug PASS, distribución PARTIAL | Release optimizada y nueva identidad necesarias | Candidatas B7–B10 distintas; B10 release ad-hoc local sin Keychain. Riesgo de permisos por identidad nueva | Audit ARM64/rpaths/plugins/tools/licencias/runtime externo/stores | PASS para auditoría estática y runtime local fuera checkout; h17-portable-beta. Segunda Mac y distribución separadas |
 | PKG-02 | P2 | B6 fuentes PARTIAL | Reconstrucción fuente→binario y revisión distribución no completas | Snapshot/hashes/fuentes correspondientes sin publicación | Verificar inventario y rebuild; autorización para distribución | PARTIAL; material25native/463Rust y avisos PASS, reconstrucción no certificada |
 | HW-01 | P2 | Cámara/mic/USB/permisos/sleep; BLOCKED | Requiere persona y contenido controlado | Dispositivos explícitos y permisos normales; sin ajustes globales | Protocolo supervisado separado por dispositivo/evento | PARTIAL; cámara/mic integrados autorizados y grabación B8 decodificada; mute/gain real. USB/sleep/wake/permisos denegados no evaluados |
 | MAC-02 | P2 | Segunda Mac ARM64 macOS15+; BLOCKED | Hardware externo no disponible en herramienta | Entregar procedimiento local con hashes | Ejecución fuera checkout en segunda Mac | BLOCKED |
@@ -81,7 +105,7 @@ cambiaron durante las comprobaciones. El guard se consolidó después en
 | Comprobación | Resultado |
 |---|---|
 | Rust, con ui-profiler habilitado | PASS, 120 tests, ninguno omitido |
-| Python de scripts | PASS, 145 tests |
+| Python de scripts | PASS, 145 en el snapshot candidato; 149 después de corregir el analizador offline de resolución |
 | Clippy, all-targets + ui-profiler, warnings como error | PASS |
 | Check release con GPUI Fast opt-in | PASS |
 | Formato Rust y diff | PASS |
@@ -91,6 +115,14 @@ Los contratos nativos usan condiciones sintéticas y no sustituyen captura
 física. Los tests de la librería Show Control y del ownership de scene items
 se conservan en sus checkpoints anteriores. La candidata de producto se
 empaqueta en release predeterminado, sin ui-profiler ni GPUI Fast.
+
+La corrección posterior `1e01dcc` solo cambia `analyze_h14_soak.py` y sus tests:
+antes exigía 1920×1080 para cualquier plan. Ahora compara con la resolución
+explícita permitida del plan y rechaza mismatch, resolución desconocida y
+formato/cadencia/audio incorrectos. Pasan 13 tests focalizados y la suite
+completa de 149; logs en `var/evidence/h17-b10-resources/`. El FAIL instrumental
+720 original y el reanálisis nuevo permanecen separados. No cambian umbrales,
+medios ni producto; no se repite Rust porque sus inputs permanecen idénticos.
 
 ## Datos persistentes y cierre de la fase nativa
 
@@ -107,6 +139,14 @@ momento se conservaron sin cambio; no se rebobinan ni se eliminan los journals
 de pruebas. VoiceOver también volvió al estado off observado inicialmente.
 Las pruebas posteriores deben respaldar y restaurar este estado original,
 no los documentos temporales del recorrido GPUI.
+
+El cierre final está en [final-integrity.json](../var/evidence/h17-closeout/final-integrity.json):
+**PASS** de los cinco stores originales, los 22 journals de baseline sin cambios
+y los 41 archivos previos al benchmark idénticos. Quedan 26 journals, incluidos
+los nuevos de H17; no se borra ninguno. Cero procesos Motive/ffmpeg/ffprobe y
+ausencia de sockets al terminar. Se cotejaron nuevamente los hashes B10,
+mac-capture y manifest de fuentes, sin cambios del producto desde `8806f28`.
+El lock canónico propio se liberó después de terminar todos los decodes.
 
 ## Captura: límites de las APIs
 
@@ -151,3 +191,34 @@ normalmente y comprobar socket/procesos/barreras al terminar cada fase.
    y restaurar proyectos/reglas desarmadas, MKV+RTMP local, cierre/reapertura.
    Registrar OS/hardware y decodificar. Una firma ad-hoc/Apple Development no
    equivale a notarización ni autoriza publicación.
+
+## Decisión de aceptación y riesgos residuales
+
+**FAIL de aceptación general; candidata local B10 conservada para desarrollo.**
+La evidencia de foco B7 sigue mostrando 15,4/15,6 s de congelamiento en los
+medios. El guard B10 evita un start inválido y su recuperación concreta pasa,
+pero no explica ni corrige la suspensión externa. No se presenta una beta
+general como fiable a partir de ese PASS acotado.
+
+Los siguientes pasos requieren evidencia nueva: una hipótesis soportada para
+la suspensión de ventanas externas; cobertura de terminación/resize/Spaces y
+sleep/wake; identidad histórica de audio con proceso vivo; entrega completa
+entre encoder, plugin y contenedor; y observación de la carrera GPUI stock450
+y cancelación anterior al primer tick. Los dos intentos pre-tick agotados
+conservan BLOCKED, sin prolongar la animación ni forzar el scheduler.
+
+El recorrido de teclado/VoiceOver completo, USB, permisos denegados y segunda
+Mac siguen abiertos. La comparación interactiva de GPUI Fast también queda
+pendiente, por lo que no se adopta. El build B10, sus fuentes inventariadas y
+la firma local no satisfacen rebuild reproducible, notarización ni
+distribución. No se hizo push, merge, release ni emisión pública.
+
+El [historial de commits locales](../var/evidence/h17-closeout/commits.txt)
+conserva los checkpoints de la rama `codex/h17-production-reliability`.
+La [verificación de scope](../var/evidence/h17-closeout/scope.json) confirma
+que H17 no cambia informes históricos H13–H15 ni laboratorios excluidos.
+Durante esta misión el checkout principal avanzó desde `6019ad0` a `dc8d36c`
+con trabajo H18 y quedó limpio. H17 conserva su base inicial `15ffbad3`, sin
+merge ni rebase; la integración con el main actual es **NOT_EVALUATED**.
+Los artefactos grandes de evidencia permanecen locales
+en `var/evidence/`; los informes versionados señalan sus rutas e identidades.

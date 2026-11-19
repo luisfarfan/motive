@@ -184,3 +184,89 @@ normal (exit 0, `cleanup_errors=[]`) permanecen en sus informes originales.
 La corrección siguiente debe rechazar esa geometría antes de crear/iniciar
 SCStream, explicar que la ventana todavía no está lista y conservar la
 reselección explícita. No debe inventar dimensiones ni reintentar sin límite.
+
+## B10: rechazo temprano y reselección explícita
+
+B10 tiene ejecutable SHA-256
+`1390fa6834c22c7df002b72d3f3e3c9c7d2bb993149663ac07334b4282f279c9`
+y módulo mac-capture
+`fae4bb68823d1963b7644da74ae77dcf2b56dd8d29b56948c37803b23047a197`.
+El caso `var/evidence/h17-capture-b10/` usa owner PID 29891 y únicamente la
+fixture de ventana del propio proceso. Es una prueba por CLI/MCP, no un gesto
+GPUI ni una prueba de foco externo.
+
+Tras grabar y transmitir la ventana 15955, cerrarla produjo la parada segura
+de ambos destinos. Se abrió la sustituta 15962. La primera selección exacta
+ID/PID encontró frame 0×0 y respondió **CAPTURE_NOT_READY** con la explicación
+«macOS no ha publicado dimensiones válidas…». El log conserva
+`motive_capture_geometry_not_ready`; esa instancia no llegó a `startCapture`
+ni generó el error −3812.
+
+El flag explícito de prueba `--retry-not-ready-once` autorizó una sola segunda
+selección, tras corroborar nuevamente la misma ID/PID propia. No hay sleeps,
+selección por nombre ni reintentos automáticos del producto. La segunda
+consulta obtuvo frame/filtro/configuración 680×452 y la fuente quedó lista.
+Entre las respuestas de las dos selecciones hay aproximadamente 266 ms; no
+es una latencia garantizada ni un tiempo de espera configurado.
+
+Se produjo un segundo par MKV/RTMP durante 15 segundos y se detuvo primero
+RTMP y después REC. Los snapshots de esa fase no registran issues. La
+quiescencia observada fue 276 ms para RTMP y 268 ms para REC, con las reservas
+de polling y entrega ya descritas. Ambos destinos terminaron idle; owner
+exit 0, `cleanup_errors=[]`.
+
+Admisión negativa y reselección real: **PASS** en este caso controlado.
+El informe primario conserva **PARTIAL**, con píxeles y entrega sujetos al
+análisis de los cuatro medios. No se reescriben B7/B9 ni se transfiere este
+resultado al caso de foco externo: CAP-01 sigue **FAIL**.
+
+### Decodificación y píxeles B10
+
+`var/evidence/h17-capture-b10-analysis/` conserva los comandos, hashes,
+trazas por frame, contactos visuales y brackets de snapshots. Los cuatro
+medios pasan los 16 checks estructurales: H.264 1080p30, AAC estéreo 48 kHz,
+decode completo, PTS/DTS válidos, gaps de 34/22 ms y cero clipping digital.
+
+| Medio | Video observado → decoded | AAC observado → contenedor | Cambios del patrón | Mayor estado constante interior |
+|---|---:|---:|---:|---:|
+| Inicial MKV | 479→478 | 748→748 | 145 | 200 ms |
+| Inicial RTMP | 475→474 | 742→742 | 145 | 200 ms |
+| Recuperado MKV | 477→477 | 747→746 | 144 | 200 ms |
+| Recuperado RTMP | 463→463 | 725→724 | 141 | 200 ms |
+
+Se clasificaron cinco regiones de color controladas en **cada frame**;
+ninguno fue inválido. Las muestras de texto confirman ticks crecientes tras
+recuperar, de 3 a 132/133 hasta aproximadamente 14 s. La fixture GPUI usa un
+timer nominal de 100 ms: esto prueba progreso visible en esta toma, no que
+la fuente produzca 30 contenidos nuevos por segundo. Los medios recuperados
+conservan un salto de estado 3→0 al inicio; no se acredita entrega de cada
+actualización. El mayor estado constante total es 267 ms en MKV recuperado;
+los iniciales conservan 366,3 ms al final del cierre deliberado. No se
+descartaron frames ni se amplió un umbral.
+
+Las 28 observaciones de la fuente recuperada muestran age 3–31 ms,
+superficies 15→444, consumos 14→437 y renders 15→457. El contador de callbacks
+suspended subió 0→2 entre ready y ambos outputs activos, y después permaneció
+en 2 durante toda la fase recuperada. Los snapshots no son atómicos y no se
+alinean esos callbacks con un frame concreto del medio.
+
+El progreso controlado después de recuperar tiene **PASS** acotado; la
+entrega exacta de actualizaciones y paquetes sigue **PARTIAL**. El analizador
+histórico marca los dos medios iniciales `INCONCLUSIVE` por cierre intencional,
+aunque sus 16 checks son PASS. Un agregado provisional confundió esa categoría
+con FAIL estructural; se preservó en `report.initial-aggregation.json` y se
+corrigió el derivado, sin cambiar medios ni resultados crudos.
+
+### Cobertura que permanece separada
+
+| Caso | Estado y alcance |
+|---|---|
+| Alta normal, cierre con dual activo y cierre del owner | PASS B10, ventana propia y parada segura |
+| Geometría inválida y diagnóstico específico | PASS B10, rechazo antes de iniciar SCStream |
+| Nueva ID, reselección explícita y segundo dual con píxeles | PASS B10 para la secuencia concreta; gate general de recuperación PARTIAL |
+| PID incorrecto / identidad no encontrada | PASS de contrato offline; prueba física adversarial NOT_EVALUATED |
+| Suspensión por cambio real de foco y frescura general | FAIL B7 conservado; B10 no repite el mismo experimento sin hipótesis nueva |
+| Terminación de productor externo con output, resize, minimización y otros Spaces | NOT_EVALUATED en B10; los ensayos anteriores no certifican esas combinaciones |
+| Sleep/wake | NOT_EVALUATED; procedimiento supervisado en la matriz principal |
+
+El cambio no convierte todas las ventanas de terceros en fuentes fiables.

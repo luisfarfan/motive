@@ -1,7 +1,9 @@
 # H17 — admisión de geometría de ventana
 
 Estado: **PASS** del contrato offline; captura física con este cambio
-**NOT_EVALUATED** aquí. No cierra CAP-01 ni sustituye el FAIL real B9.
+**PASS** acotado en el [ensayo independiente B10](h17-capture-verification.md#b10-rechazo-temprano-y-reselección-explícita).
+No cierra CAP-01 ni sustituye el FAIL real B9. La tabla inferior conserva
+el alcance offline original; el feedback GPUI de este error no se verificó.
 
 ## Evidencia y causa
 

@@ -60,7 +60,7 @@ offline con evidencia terminal usan v3, con lectura de v0–v2 conservada.
 |---|---|---|---|---|---|
 | H17-SC-01 | P1 | Bug de runtime | FAIL | PASS | B7 reproduce terminal con receipt null; reconcile cierra sin rebase/replay y admite load en el mismo proceso. Evidencia nativa abajo. |
 | H17-SC-02 | P1 | Barrera de concurrencia | PASS | PASS | Tests conservados de revisión ajena, token/PID incorrectos, dispatch sin recibo y observación sin recibo terminal. No certifica una carrera física. |
-| H17-SC-03 | P1 | Cancelación antes del tick | NOT_EVALUATED | PARTIAL | Test cancela job queued sin dispatch/cancel nativo ni contador; deduplicación retenida. Cancelación física antes del primer tick OBS pendiente. |
+| H17-SC-03 | P1 | Cancelación antes del tick | NOT_EVALUATED | BLOCKED | Dos intentos físicos B10: primero ya iniciado; segundo observado sin iniciar, pero tick ganó antes de cancel. Ninguno acredita pre-tick; véase protocolo acotado. |
 | H17-SC-04 | P1 | Cancelación después del tick | PARTIAL | PASS | B7: native started/widget_triggered true antes de cancel; terminal cancelled sin pending_ack; contador 0. |
 | H17-SC-05 | P1 | Journal y restauración | PASS | PASS | B7: journal retenido, load desarmado, rechazo de press, armado explícito y dos recibos de 1836 bytes cotejados. |
 | H17-SC-06 | P1 | Carrera GPUI stock450 | PARTIAL | BLOCKED | Requiere gesto humano/nativo observado antes del terminal, sin ampliar los 450 ms. |
@@ -134,8 +134,10 @@ fallidos conservan BLOCKED.
 Reconcile debe conservar cursor, revisión, recibo de dispatch, contador y job;
 el recibo terminal se coteja con el journal nativo. Después comprueba deduplicación,
 cancelación posterior al primer tick, load desarmado, rechazo estando desarmado,
-armado explícito sin jobs y save durable. Cancelar antes del primer tick sigue
-NOT_EVALUATED: el control público no ofrece batching atómico ni se cambia su reloj.
+armado explícito sin jobs y save durable. Ese modo original deja cancelar antes
+del primer tick NOT_EVALUATED. El [protocolo opt-in posterior](h17-show-before-tick-protocol.md)
+lo intentó dos veces sobre B10 y conserva BLOCKED; el control público no ofrece
+batching atómico ni se cambia su reloj.
 
 El único store escrito es `show-control/configuration.json`, mediante el API.
 El runner guarda bytes previos, valida recibos/hash/longitud y restaura solo si

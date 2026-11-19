@@ -1,10 +1,17 @@
 # Plan y criterios de aceptación
 
-Estado: 2026-11-17 (America/Lima). Base experimental ejecutable; no es una
+Estado: 2026-11-18 (America/Lima). Base experimental ejecutable; no es una
 release ni paridad con OBS/Meld. La investigación documental quedó resuelta
 para esta fase y REA no bloqueó los hitos.
 
-**H14 en ejecución; beta no aceptada.** El bundle B3 autocontenido tiene
+**H17: candidata local B10; beta no aceptada.** La [matriz H17](h17-production-reliability.md)
+registra correcciones de admisión y ownership de captura, reconciliación
+Show Control y accesibilidad, junto con pruebas físicas, medios decodificados
+y GPUI A/B. El congelamiento de ventana externa mantiene FAIL; recuperación
+general, entrega final, cobertura interactiva y distribución conservan sus
+límites. Los resultados siguientes permanecen ligados a sus bundles históricos.
+
+**Checkpoint H14; beta no aceptada.** El bundle B3 autocontenido tiene
 23/23 suites H1–H12 verificadas, Show Control real, instalación MATCHDAY,
 persistencia GPUI y soak dual completo de 1800.07 s. La concurrencia GPUI pasa
 en custom3000; stock450 sigue NOT_OBSERVED y el FAIL geométrico estricto de
@@ -48,6 +55,7 @@ ampliaciones posteriores se registran en su propio hito.
 | 12 — Creative Studio integrado | Biblioteca, picker, inspectores tipados, eventos, animaciones y persistencia desde GPUI; grabación VT/RTMP decodificada; 22 suites en sus últimas ejecuciones | [H12](h12-creative-studio-verification.md): 55 tests y Clippy; se conserva el fallo previo de render lag sin causa resuelta, sin certificar bundles posteriores |
 | 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12; producción GPUI y sesión dual de más de 30 min ejecutadas | [H13](h13-production-verification.md): aceptación **PARCIAL, EN CURSO**. Toma principal y compacto pasan sus gates de decode/cadencia; alerta corregida y última exclusión G PASS. Ventana congelada FAIL, contabilidad terminal y memoria sin cerrar; fallos anteriores conservados |
 | 14 — Beta Candidate | Portable B3: 23/23 suites H1–H12; nueve invocaciones H13 adicionales: 6 PASS, 1 FAIL, 2 INCONCLUSIVE; Show Control/MATCHDAY y persistencia GPUI, lifecycle 30/60 FPS y soak dual 1800.07 s. RTMPS privado corresponde a B2 | [H14](h14-beta-verification.md): **BETA NO ACEPTADA**. Prueba nativa final ejecutada y analizada; audio de aplicación FAIL, cola de cierre INCONCLUSIVE, stock450 NOT_OBSERVED y FAIL geométrico custom conservados; captura/entrega/memoria/distribución abiertas |
+| 17 — Production reliability | B7–B10 con identidades separadas; B10 release portable, guard de geometría y recuperación explícita con píxeles; Show Control, audio, recorrido nativo y A/B documentados por candidato | [H17](h17-production-reliability.md): **BETA NO ACEPTADA**. FAIL de foco externo conservado; GPUI Fast desactivado. Recursos, entrega, pruebas supervisadas y distribución tienen gates propios |
 
 Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
 bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión

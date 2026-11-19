@@ -695,3 +695,47 @@ Guardar reglas sigue produciendo un recibo durable y no incrementa revisiones
 de producción. Reconciliar no elimina silenciosamente jobs ni habilita replay;
 si la sesión aún rechaza cargar por BUSY, se conserva el límite y se exige una
 reapertura/restauración explícita desarmada en lugar de modificar el journal.
+
+## H17 — admisión, reconciliación y rendimiento con evidencia separada
+
+La [matriz H17](h17-production-reliability.md) conserva el congelamiento externo
+como FAIL. El productor puede seguir dibujando mientras SCK suspende superficies
+y OBS renderiza la última textura. No se cambian flags de aplicaciones ajenas,
+Spaces ni el estado global del sistema para presentar ese caso como resuelto.
+
+La sustitución de una captura invalida primero los préstamos de scene items
+antes de retirar el source OBS; conserva la máscara lógica y las referencias
+ajenas. La creación SCK rechaza una ventana ausente, un PID distinto y un
+addStreamOutput fallido. B9 mostró además una ventana nueva con geometría 0×0:
+el guard B10 valida el mismo rectángulo antes de casts, filtro y SCStream.
+Devuelve CAPTURE_NOT_READY y exige una reselección explícita; no inventa
+dimensiones ni incorpora un bucle de reconexión. El PASS de recuperación
+controlada B10 no cierra la suspensión general ni cambia el cierre asíncrono
+de SCK. [Contrato y lifecycle](h17-sck-geometry-admission.md).
+
+Show Control distingue un recibo terminal durable de un recibo de mutación.
+Solo reconcile explícito puede usar el terminal validado para cerrar la acción
+y cancelar los pasos restantes sin apropiarse de revisiones ajenas. La carga
+permanece bloqueada mientras hay operaciones incompatibles o incertidumbre;
+cuando se admite, crea una sesión nueva desarmada. No hay replay, borrado de
+jobs, incremento de contador ni reescritura de journals para recuperar.
+[Causa y verificación](h17-show-control-verification.md).
+
+La contabilidad de outputs exige cobertura de extremos, quiescencia y matching
+uno a uno. Un paquete observado antes del plugin no acredita escritura ni
+recepción. Las diferencias post-stop y el receptor perdido conservan sus
+categorías; no justifican modificar H8, flush, reordering ni introducir sleeps.
+El buffering de audio de 128 ms permanece; el fallo histórico de identidad
+con proceso vivo no se declara corregido porque no se reprodujo.
+
+GPUI Fast y ui-profiler son features opt-in. El A/B real no mostró una mejora
+consistente de CPU y aún falta cobertura de interacción/accesibilidad entre
+backends, por lo que el producto mantiene GPUI predeterminado. El heartbeat
+de 33 ms mantiene Show Control y datos externos a las entidades GPUI; no se
+elimina notify para mejorar una métrica dejando estados obsoletos. La memoria
+malloc viva se separa de reservas y footprint. [Evaluación A/B](h17-gpui-performance.md).
+
+B10 es una app release ARM64 con firma ad-hoc local, fuentes inventariadas y
+hashes de build. La correspondencia de archivos no prueba reconstrucción
+reproducible ni distribución notarizada. Cada prueba identifica su candidato;
+los PASS B7/B8/B9 no certifican automáticamente B10. No se publica la beta.

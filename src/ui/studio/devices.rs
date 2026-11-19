@@ -12,6 +12,8 @@ impl Studio {
                     row().children(
                         [
                             ("windows", "Ventana", IconName::Monitor),
+                            ("displays", "Pantalla", IconName::Monitor),
+                            ("applications", "Aplicación", IconName::Monitor),
                             ("cameras", "Webcam", IconName::Video),
                         ]
                         .map(|(kind, title, icon)| {
@@ -94,6 +96,17 @@ impl Studio {
                 );
         }
         if let Some(kind) = self.picker {
+            if kind == "displays" {
+                content = content.child(label(
+                    "Captura todo el contenido de la pantalla seleccionada.",
+                    p.warn,
+                ));
+            } else if kind == "applications" {
+                content = content.child(label(
+                    "Incluye las ventanas de esa aplicación en la pantalla indicada.",
+                    p.muted,
+                ));
+            }
             let entries = self.devices[kind].as_array().cloned().unwrap_or_default();
             if entries.is_empty() {
                 content = content.child(label(
@@ -118,6 +131,15 @@ impl Studio {
                     source: if kind == "windows" {
                         SourceInput::Window {
                             window_id: d["id"].as_u64()? as u32,
+                        }
+                    } else if kind == "displays" {
+                        SourceInput::Display {
+                            display_uuid: d["display_uuid"].as_str()?.into(),
+                        }
+                    } else if kind == "applications" {
+                        SourceInput::Application {
+                            bundle_id: d["bundle_id"].as_str()?.into(),
+                            display_uuid: d["display_uuid"].as_str()?.into(),
                         }
                     } else {
                         SourceInput::Camera {

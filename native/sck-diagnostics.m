@@ -23,6 +23,7 @@ static void diagnostics_query(void *data, calldata_t *params) {
         @"version":@1,@"instrument":@"obs33_sck_callback_and_tick",
         @"phase":phase>=0 && phase<5 ? phases[phase]:@"unknown",
         @"sample_status":status>=0 && status<6 ? statuses[status]:@"unknown",
+        @"user_stopped":@(atomic_load(&d->user_stopped)),
         @"status_counts":counts,@"created_ns":@(atomic_load(&d->created_ns)),
         @"callbacks":@(atomic_load(&d->callbacks)),@"surface_samples":@(surfaces),
         @"last_callback_ns":@(atomic_load(&d->last_callback_ns)),
@@ -62,6 +63,7 @@ void motive_sck_diagnostics_init(motive_sck_diagnostics *d) {
     INIT(missing_images);INIT(invalid_samples);INIT(pts_repeats);INIT(pts_regressions);
     INIT(errors);INIT(last_error_ns);INIT(last_error_code);INIT(surface_id);INIT(presented_surface_id);
     INIT(phase);
+    INIT(user_stopped);
 #undef INIT
     atomic_init(&d->last_pts_ns,-1);atomic_init(&d->presented_pts_ns,-1);atomic_init(&d->status,-1);
     for(unsigned i=0;i<6;i++)atomic_init(&d->statuses[i],0);

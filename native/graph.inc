@@ -18,7 +18,11 @@ struct visual_source {
     char id[64],kind[16],device[512];
     bool extended,stretch;char definition_kind[32],definition_subkind[32],asset_id[80];char *overlay_json;
     uint32_t window,capture_fps; pid_t owner; uint64_t active_since,instance_id; bool desired_active,warming;
+    CGDirectDisplayID display;char display_uuid[64],application[256];
 };
+static bool visual_is_sck(const visual_source *s) {
+    return !strcmp(s->kind,"window") || !strcmp(s->kind,"display") || !strcmp(s->kind,"application");
+}
 struct visual_scene { obs_scene_t *scene; char id[64]; uint32_t visible_mask; char layer_ids[32][64];obs_sceneitem_t *items[32];size_t layer_count; };
 static bool visual_equal(visual_source *s,NSDictionary *d) {
     if (!s->source) return false;
@@ -31,6 +35,8 @@ static bool visual_equal(visual_source *s,NSDictionary *d) {
     if(extended && !strcmp(s->definition_kind,"widget") && strcmp(s->definition_subkind,[(d[@"overlay"][@"widget"][@"kind"]?:@"") UTF8String]))return false;
     if ([kind isEqualToString:@"camera"]) return !strcmp(s->device,[d[@"spec"][@"device_id"] UTF8String]);
     if ([kind isEqualToString:@"window"]) return s->window==[d[@"window_id"] unsignedIntValue] && s->owner==[d[@"owner_pid"] intValue];
+    if ([kind isEqualToString:@"display"]) return !strcmp(s->display_uuid,[d[@"spec"][@"display_uuid"] UTF8String]);
+    if ([kind isEqualToString:@"application"]) return !strcmp(s->display_uuid,[d[@"spec"][@"display_uuid"] UTF8String]) && !strcmp(s->application,[d[@"spec"][@"bundle_id"] UTF8String]);
     return true;
 }
 static void visual_destroy(visual_source *s) {
@@ -57,22 +63,41 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
     snprintf(s->id,sizeof(s->id),"%s",[d[@"id"] UTF8String]);
     snprintf(s->kind,sizeof(s->kind),"%s",kind.UTF8String);
     obs_data_t *settings=obs_data_create(); const char *type="motive_pattern";
-    if ([kind isEqualToString:@"window"]) {
-        s->window=[d[@"window_id"] unsignedIntValue]; s->owner=[d[@"owner_pid"] intValue];
+    if (visual_is_sck(s)) {
         if (!CGPreflightScreenCaptureAccess()) {snprintf(e->error,sizeof(e->error),"SCREEN_PERMISSION_DENIED");goto fail;}
-        NSDictionary *w=find_window(s->window);
-        if (!w || [w[@"pid"] intValue]!=s->owner) {snprintf(e->error,sizeof(e->error),"SOURCE_UNAVAILABLE");goto fail;}
+        if([kind isEqualToString:@"window"]) {
+            s->window=[d[@"window_id"] unsignedIntValue]; s->owner=[d[@"owner_pid"] intValue];
+            NSDictionary *w=find_window(s->window);
+            if (!w || [w[@"pid"] intValue]!=s->owner) {snprintf(e->error,sizeof(e->error),"SOURCE_UNAVAILABLE");goto fail;}
+            obs_data_set_int(settings,"type",1);obs_data_set_int(settings,"window",s->window);
+            obs_data_set_int(settings,"motive_window_owner_pid",s->owner);
+        } else {
+            NSString *uuid=d[@"spec"][@"display_uuid"];
+            s->display=capture_display(uuid);
+            if(!s->display) {snprintf(e->error,sizeof(e->error),"DISPLAY_UNAVAILABLE");goto fail;}
+            snprintf(s->display_uuid,sizeof(s->display_uuid),"%s",uuid.UTF8String);
+            obs_data_set_string(settings,"display_uuid",s->display_uuid);
+            bool application=[kind isEqualToString:@"application"];
+            obs_data_set_int(settings,"type",application?2:0);
+            if(application) {
+                NSString *bundle=d[@"spec"][@"bundle_id"];
+                s->owner=capture_application(bundle);
+                if(!s->owner) {snprintf(e->error,sizeof(e->error),"APPLICATION_UNAVAILABLE_OR_AMBIGUOUS");goto fail;}
+                snprintf(s->application,sizeof(s->application),"%s",bundle.UTF8String);
+                obs_data_set_string(settings,"application",s->application);
+                obs_data_set_int(settings,"motive_application_owner_pid",s->owner);
+            }
+        }
         // SCK captures the OBS FPS on stream creation; unchanged updates are a
         // no-op upstream. Retire every old layer/reference before replacing the
         // OBS source, preserving the stable graph ID. SCK shutdown itself is asynchronous.
         for(size_t i=0;i<e->visual_count;i++) {
             visual_source *old=e->visuals[i];
-            if(old->source && !strcmp(old->kind,"window") && !strcmp(old->id,s->id))
+            if(old->source && visual_is_sck(old) && !strcmp(old->id,s->id))
                 release_capture_source(e,old);
         }
         obs_wait_for_destroy_queue();s->capture_fps=e->fps;
-        type="screen_capture";obs_data_set_int(settings,"type",1);obs_data_set_int(settings,"window",s->window);
-        obs_data_set_int(settings,"motive_window_owner_pid",s->owner);
+        type="screen_capture";
         obs_data_set_bool(settings,"show_cursor",false);obs_data_set_bool(settings,"show_hidden_windows",true);
     } else if ([kind isEqualToString:@"camera"]) {
         snprintf(s->device,sizeof(s->device),"%s",[d[@"spec"][@"device_id"] UTF8String]);
@@ -106,10 +131,17 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
     // OBS retains the settings object even when the plugin's create callback
     // fails. Reject that shell immediately; it cannot ever publish a frame.
     if (!s->source || obs_obj_invalid(s->source)) {
-        const char *error=!strcmp(s->kind,"window") ? motive_capture_creation_error(s->source):"SOURCE_CREATE_FAILED";
+        const char *error=visual_is_sck(s) ? motive_capture_creation_error(s->source):"SOURCE_CREATE_FAILED";
         snprintf(e->error,sizeof(e->error),"%s",error);visual_destroy(s);return NULL;
     }
     s->instance_id=++e->visual_instances;
+    // Revalidate the exact application/display after the plugin's independent
+    // inventory/start. A restarted application never inherits this selection.
+    if(visual_is_sck(s) && strcmp(s->kind,"window") &&
+        (capture_display(@(s->display_uuid))!=s->display ||
+         (!strcmp(s->kind,"application") && capture_application(@(s->application))!=s->owner))) {
+        snprintf(e->error,sizeof(e->error),"CAPTURE_TARGET_CHANGED");visual_destroy(s);return NULL;
+    }
     obs_source_set_muted(s->source,true);
     obs_source_set_audio_mixers(s->source,0);
     obs_source_set_monitoring_type(s->source,OBS_MONITORING_TYPE_NONE);
@@ -123,7 +155,7 @@ fail:
     obs_data_release(settings);free(s);return NULL;
 }
 static NSDictionary *capture_diagnostics(visual_source *s) {
-    if(!s->source || strcmp(s->kind,"window"))return nil;
+    if(!s->source || !visual_is_sck(s))return nil;
     calldata_t params;calldata_init(&params);
     NSDictionary *result=nil;
     if(proc_handler_call(obs_source_get_proc_handler(s->source),"motive_capture_diagnostics",&params)) {
@@ -136,11 +168,18 @@ static NSDictionary *capture_diagnostics(visual_source *s) {
 static const char *visual_health(visual_source *s) {
     if(!s->source) return !strcmp(s->kind,"camera") ? "CAMERA_UNAVAILABLE":"SOURCE_UNAVAILABLE";
     if(s->extended)return overlay_source_health(s->source);
-    if (!strcmp(s->kind,"window")) {
+    if (visual_is_sck(s)) {
         if (!CGPreflightScreenCaptureAccess()) return "SCREEN_PERMISSION_DENIED";
-        NSDictionary *w=find_window(s->window);
-        if (!w || [w[@"pid"] intValue]!=s->owner) return "SOURCE_UNAVAILABLE";
+        if(!strcmp(s->kind,"window")) {
+            NSDictionary *w=find_window(s->window);
+            if (!w || [w[@"pid"] intValue]!=s->owner) return "SOURCE_UNAVAILABLE";
+        } else {
+            if(capture_display(@(s->display_uuid))!=s->display)return "DISPLAY_UNAVAILABLE";
+            if(!strcmp(s->kind,"application") && capture_application(@(s->application))!=s->owner)
+                return "APPLICATION_UNAVAILABLE_OR_AMBIGUOUS";
+        }
         NSDictionary *capture=capture_diagnostics(s);
+        if([capture[@"user_stopped"] boolValue])return "CAPTURE_USER_STOPPED";
         if([capture[@"phase"] isEqual:@"failed"])return "CAPTURE_SESSION_FAILED";
         if([capture[@"sample_status"] isEqual:@"stopped"])return "CAPTURE_STOPPED";
         // Idle or absent buffers alone cannot distinguish static content from
@@ -152,7 +191,7 @@ static const char *visual_health(visual_source *s) {
         if (now-s->active_since>4000000000ULL && (!seen || now-seen>3000000000ULL)) return "CAMERA_STALLED";
         if (!seen) return "CAPTURE_NOT_READY";
     }
-    return obs_source_get_width(s->source) ? "":"CAPTURE_NOT_READY";
+    return obs_source_get_width(s->source) && obs_source_get_height(s->source) ? "":"CAPTURE_NOT_READY";
 }
 #include "scene-switch.inc"
 static void graph_release(motive_engine *e) {
@@ -173,7 +212,7 @@ bool motive_sync_graph(motive_engine *e,const char *json,const char *reconnect_i
     for (NSDictionary *d in sources) {
         visual_source *s=NULL;
         for (size_t i=0;i<e->visual_count;i++) if (!strcmp(e->visuals[i]->id,[d[@"id"] UTF8String]) && visual_equal(e->visuals[i],d)
-            && (strcmp(e->visuals[i]->kind,"window") || e->visuals[i]->capture_fps==e->fps)
+            && (!visual_is_sck(e->visuals[i]) || e->visuals[i]->capture_fps==e->fps)
             && strcmp(reconnect_id,"*") && strcmp(reconnect_id,e->visuals[i]->id)) {s=e->visuals[i];reused[i]=true;break;}
         if (!s) s=visual_create(e,d);
         if (!s) goto fail;
@@ -256,6 +295,7 @@ char *motive_graph_health(motive_engine *e) {
         if(capture && captured && now>captured && now-captured>3000000000ULL)notice=@"NO_RECENT_CAPTURE_BUFFER";
         if([capture[@"sample_status"] isEqual:@"suspended"])notice=@"CAPTURE_SUSPENDED";
         else if([capture[@"sample_status"] isEqual:@"stopped"])notice=@"CAPTURE_STOPPED";
+        else if([capture[@"sample_status"] isEqual:@"blank"])notice=@"CAPTURE_BLANK";
         [states addObject:@{@"id":@(s->id),@"active":@(active),@"issue":@(issue),
             @"warming":@(s->warming),@"instance_id":@(s->instance_id),@"kind":@(s->kind),
             @"width":@(s->source ? obs_source_get_width(s->source):0),@"height":@(s->source ? obs_source_get_height(s->source):0),

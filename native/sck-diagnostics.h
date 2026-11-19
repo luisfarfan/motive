@@ -17,6 +17,7 @@ typedef struct {
     atomic_int_fast64_t last_pts_ns, presented_pts_ns, last_error_code;
     atomic_uint_fast32_t surface_id, presented_surface_id;
     atomic_int status, phase;
+    atomic_bool user_stopped;
 } motive_sck_diagnostics;
 
 void motive_sck_diagnostics_init(motive_sck_diagnostics *d);

@@ -371,11 +371,14 @@ static NSString *permission_status(AVMediaType type) {
         default: return @"not_determined";
     }
 }
+#include "capture-targets.inc"
 char *motive_devices(void) {
     NSMutableArray *cameras=[NSMutableArray array];
     for (AVCaptureDevice *d in camera_devices()) if (d.connected)
         [cameras addObject:@{@"id":d.uniqueID,@"name":d.localizedName}];
-    NSDictionary *object=@{@"windows":window_inventory(),@"audio":audio_inventory(),@"cameras":cameras,
+    NSArray *windows=window_inventory(),*displays=capture_displays();
+    NSDictionary *object=@{@"windows":windows,@"audio":audio_inventory(),@"cameras":cameras,
+        @"displays":displays,@"applications":capture_applications(windows,displays),
         @"screen_permission":@(CGPreflightScreenCaptureAccess()),
         @"microphone_permission":@([permission_status(AVMediaTypeAudio) isEqualToString:@"authorized"]),
         @"camera_permission":@([permission_status(AVMediaTypeVideo) isEqualToString:@"authorized"]),

@@ -1,0 +1,128 @@
+--- a/mac-sck-common.h
++++ b/mac-sck-common.h
+@@ -66,6 +66,7 @@
+     CGDirectDisplayID display;
+     CGWindowID window;
+     int64_t motive_window_owner_pid;
++    int64_t motive_application_owner_pid;
+     NSString *application_id;
+ };
+ 
+--- a/mac-sck-common.m
++++ b/mac-sck-common.m
+@@ -45,6 +45,8 @@
+     MACCAP_LOG(LOG_WARNING, "%s", errorMessage.UTF8String);
+ 
+     if (!self.sc->audio_only) {
++        if ([error.domain isEqualToString:SCStreamErrorDomain] && error.code == SCStreamErrorUserStopped)
++            atomic_store(&self.sc->motive_diagnostics.user_stopped, true);
+         motive_sck_diagnostics_error(&self.sc->motive_diagnostics, error.code);
+         motive_sck_diagnostics_phase(&self.sc->motive_diagnostics, 4);
+     }
+--- a/mac-sck-video-capture.m
++++ b/mac-sck-video-capture.m
+@@ -101,12 +101,17 @@
+         return nil;
+     };
+ 
+-    void (^set_display_mode)(struct screen_capture *, SCDisplay *) =
+-        ^void(struct screen_capture *capture_data, SCDisplay *target_display) {
++    bool (^set_display_mode)(struct screen_capture *, SCDisplay *) =
++        ^bool(struct screen_capture *capture_data, SCDisplay *target_display) {
+             CGDisplayModeRef display_mode = CGDisplayCopyDisplayMode(target_display.displayID);
++            if (!display_mode) return false;
++            size_t width = CGDisplayModeGetPixelWidth(display_mode);
++            size_t height = CGDisplayModeGetPixelHeight(display_mode);
++            if (!width || !height) { CGDisplayModeRelease(display_mode); return false; }
+             [capture_data->stream_properties setWidth:CGDisplayModeGetPixelWidth(display_mode)];
+             [capture_data->stream_properties setHeight:CGDisplayModeGetPixelHeight(display_mode)];
+             CGDisplayModeRelease(display_mode);
++            return true;
+         };
+ 
+     switch (sc->capture_type) {
+@@ -117,7 +122,7 @@
+                 os_sem_post(sc->shareable_content_available);
+                 sc->disp = NULL;
+                 os_event_init(&sc->stream_start_completed, OS_EVENT_TYPE_MANUAL);
+-                return true;
++                return false;
+             }
+             if (sc->hide_obs) {
+                 SCRunningApplication *obsApp = nil;
+@@ -141,7 +146,12 @@
+                 [empty release];
+             }
+ 
+-            set_display_mode(sc, target_display);
++            if (!set_display_mode(sc, target_display)) {
++                [content_filter release];
++                os_sem_post(sc->shareable_content_available);
++                os_event_init(&sc->stream_start_completed, OS_EVENT_TYPE_MANUAL);
++                return false;
++            }
+         } break;
+         case ScreenCaptureWindowStream: {
+             SCWindow *target_window = nil;
+@@ -186,7 +196,7 @@
+                 [sc->stream_properties setHeight:(size_t) motive_matched_frame.size.height];
+ 
+                 if (@available(macOS 14.2, *)) {
+-                    [sc->stream_properties setIncludeChildWindows:YES];
++                    [sc->stream_properties setIncludeChildWindows:NO];
+                 }
+             }
+         } break;
+@@ -197,14 +207,21 @@
+                 os_sem_post(sc->shareable_content_available);
+                 sc->disp = NULL;
+                 os_event_init(&sc->stream_start_completed, OS_EVENT_TYPE_MANUAL);
+-                return true;
++                return false;
+             }
+             SCRunningApplication *target_application = nil;
+             for (SCRunningApplication *application in sc->shareable_content.applications) {
+-                if ([application.bundleIdentifier isEqualToString:sc->application_id]) {
++                if ([application.bundleIdentifier isEqualToString:sc->application_id] &&
++                    (!sc->motive_application_owner_pid || application.processID == sc->motive_application_owner_pid)) {
+                     target_application = application;
+                     break;
+                 }
++            }
++            if (!target_application) {
++                MACCAP_LOG(LOG_WARNING, "motive_capture_application_unavailable");
++                os_sem_post(sc->shareable_content_available);
++                os_event_init(&sc->stream_start_completed, OS_EVENT_TYPE_MANUAL);
++                return false;
+             }
+             NSArray *target_application_array = [[NSArray alloc] initWithObjects:target_application, nil];
+             NSArray *empty_array = [[NSArray alloc] init];
+@@ -212,13 +229,18 @@
+                                                 includingApplications:target_application_array
+                                                      exceptingWindows:empty_array];
+             if (@available(macOS 14.2, *)) {
+-                content_filter.includeMenuBar = YES;
++                content_filter.includeMenuBar = NO;
+             }
+ 
+             [target_application_array release];
+             [empty_array release];
+ 
+-            set_display_mode(sc, target_display);
++            if (!set_display_mode(sc, target_display)) {
++                [content_filter release];
++                os_sem_post(sc->shareable_content_available);
++                os_event_init(&sc->stream_start_completed, OS_EVENT_TYPE_MANUAL);
++                return false;
++            }
+         } break;
+     }
+     os_sem_post(sc->shareable_content_available);
+@@ -356,6 +378,7 @@
+     sc->show_hidden_windows = obs_data_get_bool(settings, "show_hidden_windows");
+     sc->window = (CGWindowID) obs_data_get_int(settings, "window");
+     sc->motive_window_owner_pid = obs_data_get_int(settings, "motive_window_owner_pid");
++    sc->motive_application_owner_pid = obs_data_get_int(settings, "motive_application_owner_pid");
+     sc->capture_type = (unsigned int) obs_data_get_int(settings, "type");
+     sc->audio_only = false;
+ 

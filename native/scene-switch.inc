@@ -60,6 +60,11 @@ static NSArray *scene_issues(motive_engine *e,visual_scene *scene,bool preparing
     if(!scene) return issues;
     for(size_t i=0;i<e->visual_count;i++) if(scene->visible_mask&(1u<<i)) {
         visual_source *s=e->visuals[i];const char *issue=visual_health(s);
+        if(!*issue && visual_is_sck(s)) {
+            NSString *status=capture_diagnostics(s)[@"sample_status"];
+            if([status isEqual:@"suspended"])issue="CAPTURE_SUSPENDED";
+            else if([status isEqual:@"blank"])issue="CAPTURE_BLANK";
+        }
         if(!*issue && preparing && !strcmp(s->kind,"camera")) {
             frame_watch *w=obs_obj_get_data(s->watch);uint64_t seen=atomic_load(&w->seen_ns),now=os_gettime_ns();
             if(now-seen>500000000ULL || (!s->desired_active && seen<e->scene_prepare_ns)) issue="CAPTURE_NOT_READY";
@@ -127,12 +132,14 @@ void motive_poll_scene(motive_engine *e) {
             scene_activity(e,e->scene_target_native->visible_mask,0);return;
         }
         // A target-only failure rolls back to the still-healthy previous scene.
-        // An on-air/shared-source failure also falls through the core's existing
-        // source-health stop/recovery policy after returning to the previous tree.
+        // Fade still requires a healthy origin. Cut must be allowed to leave a
+        // failed origin: its completion signal can arrive on the next render,
+        // and rolling back here would return to the known-broken scene. Target
+        // health remains mandatory; the core bounds its safe-fallback attempt.
         NSArray *target_issues=scene_issues(e,e->scene_target_native,false);
         NSArray *from_issues=scene_issues(e,e->scene_from_native,false);
         if(target_issues.count) scene_abort(e,SCENE_FAILED,"SCENE_TARGET_FAILED",target_issues);
-        else if(from_issues.count) scene_abort(e,SCENE_FAILED,"SCENE_CURRENT_FAILED",from_issues);
+        else if(from_issues.count && e->scene_kind!=0) scene_abort(e,SCENE_FAILED,"SCENE_CURRENT_FAILED",from_issues);
     }
 }
 bool motive_switch_scene(motive_engine *e,const char *id,unsigned kind,unsigned duration) {
@@ -162,7 +169,7 @@ bool motive_switch_scene(motive_engine *e,const char *id,unsigned kind,unsigned 
     }
     e->scene_prepare_ns=os_gettime_ns();e->scene_ready_frame=0;e->scene_needs_warmup=false;
     for(size_t i=0;i<e->visual_count;i++) if((target->visible_mask&(1u<<i)) && !e->visuals[i]->desired_active &&
-        (!strcmp(e->visuals[i]->kind,"camera") || !strcmp(e->visuals[i]->kind,"window"))) e->scene_needs_warmup=true;
+        (!strcmp(e->visuals[i]->kind,"camera") || visual_is_sck(e->visuals[i]))) e->scene_needs_warmup=true;
     obs_source_inc_active(obs_scene_get_source(target->scene));e->scene_target_held=true;e->scene_phase=SCENE_PREPARING;
     scene_activity(e,from->visible_mask,target->visible_mask);motive_poll_scene(e);
     if(e->scene_phase==SCENE_FAILED) {snprintf(e->error,sizeof(e->error),"%s",e->scene_error);return false;}

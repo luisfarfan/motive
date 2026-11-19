@@ -1,5 +1,7 @@
 #[path = "audio.rs"]
 pub mod audio;
+#[path = "capture.rs"]
+pub mod capture;
 #[path = "creator_packs.rs"]
 pub mod creator_packs;
 #[path = "destination_runtime.rs"]
@@ -43,15 +45,10 @@ fn capture_ready_for_start(health: &Value) -> anyhow::Result<()> {
         .flatten()
         .filter(|s| s["active"] == true)
     {
-        match source["capture_diagnostics"]["sample_status"].as_str() {
-            Some("suspended") => anyhow::bail!(
-                "CAPTURE_SUSPENDED: muestra la ventana capturada y espera que macOS reanude las actualizaciones"
-            ),
-            Some("stopped") => {
-                anyhow::bail!("CAPTURE_STOPPED: revisa y recupera explícitamente la fuente")
-            }
-            // Idle/static content and buffer age alone do not prove a fault.
-            _ => {}
+        if let Some(code) = capture::start_blocker(source) {
+            anyhow::bail!(
+                "{code}: revisa la fuente seleccionada; una captura detenida requiere recuperación explícita"
+            );
         }
     }
     Ok(())
@@ -122,6 +119,9 @@ pub enum Command {
     Scenes,
     ConfigureTransition {
         transition: TransitionConfig,
+    },
+    ConfigureCaptureFallback {
+        scene_id: Option<String>,
     },
     CancelTransition {
         operation_id: u64,
@@ -308,6 +308,8 @@ pub struct Project {
     pub variant: Variant,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub video: Option<VideoConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture_safe_scene: Option<String>,
     pub overlay: bool,
     pub audio: String,
     pub capture_window: bool,
@@ -330,6 +332,7 @@ impl Default for Project {
             version: 3,
             variant: Variant::Horizontal,
             video: None,
+            capture_safe_scene: None,
             overlay: true,
             audio: "none".into(),
             capture_window: false,
@@ -375,6 +378,9 @@ pub struct Production {
     pub test_window_request: Option<bool>,
     transition: TransitionConfig,
     observed_transition: Option<(u64, TransitionPhase)>,
+    capture_fallback_attempted: bool,
+    capture_fallback_operation: Option<u64>,
+    capture_fallback_started: Option<std::time::Instant>,
 }
 pub fn error(code: &str, message: impl ToString) -> Value {
     json!({"ok":false,"error":{"code":code,"message":message.to_string()}})
@@ -415,6 +421,9 @@ impl Production {
             test_window_request: None,
             transition: TransitionConfig::default(),
             observed_transition: None,
+            capture_fallback_attempted: false,
+            capture_fallback_operation: None,
+            capture_fallback_started: None,
         };
         p.sync(p.graph().clone(), p.bindings.clone(), "")?;
         Ok(p)
@@ -450,6 +459,7 @@ impl Production {
         }
         json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"overlays":self.overlay_status(),"destinations":self.destinations_status(),"show_control":self.show_control_status(),"creator_packs":self.creator_packs_status(),"encoding":if legacy.is_some(){self.encoding_status(&outputs)}else{Value::Null},"output_configuration":self.output_configuration(),"issues":self.issues,
             "recovery_required":self.recovery.required() || outputs.recovery_required(),"recovery_sources":recovery_sources,"last_fault":self.last_fault,
+            "capture_recovery":{"safe_scene_id":self.project.capture_safe_scene,"fallback_attempted":self.capture_fallback_attempted,"operation_id":self.capture_fallback_operation,"automatic_source_restart":false},
             "sources":self.source_health,"window_id":self.window_id,"output":legacy.map_or("multiple", |slot|slot.legacy_state()),
             "output_code":legacy.map(|slot|slot.failure.as_ref().and_then(|f|f.native_code).unwrap_or(0)),
             "transition_configuration":self.transition,"transition":self.engine.scene_state(),
@@ -504,7 +514,7 @@ impl Production {
             self.graph()
                 .sources
                 .iter()
-                .filter(|s| matches!(s.spec, SourceKind::Window { .. }))
+                .filter(|s| s.spec.is_screen_capture())
                 .map(|s| s.id.clone())
                 .collect::<Vec<_>>(),
         );
@@ -678,10 +688,32 @@ impl Production {
             }
         }
         self.source_health = self.engine.graph_health();
+        capture::annotate(&mut self.source_health);
         let faults = self.faults_from(&self.source_health);
         self.issues = faults.iter().map(|(_, c)| c.clone()).collect();
         self.poll_outputs();
-        if !faults.is_empty()
+        if !self.outputs.busy() {
+            self.capture_fallback_attempted = false;
+            self.capture_fallback_operation = None;
+            self.capture_fallback_started = None;
+        }
+        let isolated = self.try_capture_fallback();
+        let unhandled = faults.iter().any(|(id, _)| {
+            !isolated
+                || !self
+                    .graph()
+                    .sources
+                    .iter()
+                    .any(|s| s.id == *id && s.spec.is_screen_capture())
+        }) || (self.project.capture_safe_scene.is_some()
+            && !isolated
+            && self
+                .source_health
+                .as_array()
+                .into_iter()
+                .flatten()
+                .any(capture::confirmed_failure));
+        if unhandled
             && self.outputs.busy()
             && OutputTarget::ALL
                 .iter()
@@ -717,6 +749,74 @@ impl Production {
             self.recovery.resolve(&id);
             self.awaiting_recovery.remove(&id);
         }
+    }
+    /// One attempt per output session, using already-existing native scenes.
+    /// No SCK destroy/create, output restart, audio changes or capture widening.
+    fn try_capture_fallback(&mut self) -> bool {
+        let Some(scene_id) = self.project.capture_safe_scene.clone() else {
+            return false;
+        };
+        let failures: Vec<String> = self
+            .source_health
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|s| capture::confirmed_failure(s))
+            .filter_map(|s| s["id"].as_str().map(str::to_owned))
+            .collect();
+        if failures.is_empty()
+            || !OutputTarget::ALL
+                .iter()
+                .any(|t| self.outputs.get(*t).phase == output::OutputPhase::Active)
+        {
+            return false;
+        }
+        if !self.capture_fallback_attempted {
+            self.capture_fallback_attempted = true;
+            let result = (|| -> anyhow::Result<()> {
+                capture::validate_safe_scene(self.graph(), self.project.variant, &scene_id)?;
+                let transition = self.engine.scene_state();
+                if transition.busy() {
+                    self.engine.cancel_scene(transition.operation_id)?;
+                }
+                self.engine
+                    .switch_scene(&scene_id, TransitionConfig::default())?;
+                let operation = self.engine.scene_state().operation_id;
+                self.capture_fallback_operation = Some(operation);
+                self.capture_fallback_started = Some(std::time::Instant::now());
+                self.show_control_ledger.bind_transition(operation);
+                Ok(())
+            })();
+            self.recovery.pending.extend(failures.iter().cloned());
+            self.last_fault = failures
+                .iter()
+                .map(|id| format!("CAPTURE_FALLBACK:{id}"))
+                .collect();
+            self.last_action = match result {
+                Ok(()) => "Captura perdida o suspendida: pasando a la escena segura; salidas y audio continúan. Reconexión explícita con salidas detenidas.".into(),
+                Err(error) => format!("CAPTURE_FALLBACK_FAILED: {error}. No se reintenta automáticamente."),
+            };
+            self.bump_external_revision();
+        }
+        let transition = self.engine.scene_state();
+        if self.capture_fallback_operation == Some(transition.operation_id)
+            && transition.busy()
+            && self
+                .capture_fallback_started
+                .is_some_and(|started| started.elapsed().as_secs_f32() > 2.0)
+        {
+            let _ = self.engine.cancel_scene(transition.operation_id);
+            self.last_action =
+                "CAPTURE_FALLBACK_TIMEOUT: cierre seguro de salidas; no se reintenta.".into();
+            return false;
+        }
+        self.capture_fallback_operation == Some(transition.operation_id)
+            && matches!(
+                transition.phase,
+                TransitionPhase::Preparing | TransitionPhase::Running | TransitionPhase::Completed
+            )
+            && (transition.target_scene.as_deref() == Some(&scene_id)
+                || transition.current_scene == scene_id)
     }
     fn idle(&self) -> anyhow::Result<()> {
         anyhow::ensure!(!self.overlays.busy(), "ASSET_IMPORT_BUSY");
@@ -942,6 +1042,9 @@ impl Production {
         reconnect: &str,
     ) -> anyhow::Result<()> {
         graph.validate()?;
+        if let Some(id) = &self.project.capture_safe_scene {
+            capture::validate_safe_scene(&graph, self.project.variant, id)?;
+        }
         if !reconnect.is_empty() {
             self.overlays.invalidate();
         }
@@ -950,7 +1053,11 @@ impl Production {
         self.overlays.graph_replaced();
         self.project.graph = Some(graph);
         self.bindings = bindings;
-        self.project.version = if self.project.video.is_some() {
+        self.project.version = if self.project.capture_safe_scene.is_some()
+            || self.graph().sources.iter().any(|s| s.spec.requires_v6())
+        {
+            6
+        } else if self.project.video.is_some() {
             5
         } else if self.graph().sources.iter().any(|s| s.overlay.is_some()) {
             4
@@ -1018,6 +1125,21 @@ impl Production {
             SourceInput::Pattern => SourceKind::Pattern,
             SourceInput::Overlay { color } => SourceKind::Overlay { color },
             SourceInput::Camera { device_id } => SourceKind::Camera { device_id },
+            SourceInput::Display { display_uuid } => {
+                capture::validate_display(&display_uuid)?;
+                SourceKind::Display { display_uuid }
+            }
+            SourceInput::Application {
+                bundle_id,
+                display_uuid,
+            } => {
+                capture::validate_application(&bundle_id)?;
+                capture::validate_display(&display_uuid)?;
+                SourceKind::Application {
+                    bundle_id,
+                    display_uuid,
+                }
+            }
             SourceInput::Window { window_id } => {
                 let (window, b) = Self::binding(&self.engine.devices(), window_id)?;
                 bindings.insert(id.into(), b);
@@ -1116,6 +1238,7 @@ impl Production {
             self.audio(&p.audio)?;
             self.project.variant = p.variant;
             self.project.video = p.video;
+            self.project.capture_safe_scene = p.capture_safe_scene.clone();
             self.sync(graph, bindings, "")?;
             Ok::<_, anyhow::Error>(())
         })();
@@ -1127,6 +1250,7 @@ impl Production {
                 self.restore_audio(old_audio)?;
                 self.project.variant = old.variant;
                 self.project.video = old.video;
+                self.project.capture_safe_scene = old.capture_safe_scene.clone();
                 self.sync(old.graph.clone().unwrap(), old_bindings, "")?;
                 Ok::<_, anyhow::Error>(())
             })();
@@ -1431,6 +1555,19 @@ impl Production {
                     self.scene_quiescent()?;
                     transition.validate()?;
                     self.transition = transition;
+                }
+                Command::ConfigureCaptureFallback { scene_id } => {
+                    self.idle()?;
+                    if let Some(id) = &scene_id {
+                        capture::validate_safe_scene(self.graph(), self.project.variant, id)?;
+                    }
+                    self.project.capture_safe_scene = scene_id;
+                    if self.project.capture_safe_scene.is_some() {
+                        self.project.version = 6;
+                    }
+                    self.capture_fallback_attempted = false;
+                    self.capture_fallback_operation = None;
+                    self.capture_fallback_started = None;
                 }
                 Command::CancelTransition { operation_id } => {
                     self.engine.cancel_scene(operation_id)?
@@ -1818,15 +1955,31 @@ fn command_error(e: anyhow::Error) -> Value {
 }
 fn validate_project_video(project: &Project) -> anyhow::Result<()> {
     anyhow::ensure!(
-        (1..=5).contains(&project.version),
+        (1..=6).contains(&project.version),
         "PROJECT_VERSION_UNSUPPORTED"
     );
     anyhow::ensure!(
-        (project.version == 5) == project.video.is_some(),
+        project.version == 6 || (project.version == 5) == project.video.is_some(),
+        "PROJECT_VERSION_MISMATCH"
+    );
+    anyhow::ensure!(
+        project.version >= 6
+            || project
+                .graph
+                .as_ref()
+                .is_none_or(|g| g.sources.iter().all(|s| !s.spec.requires_v6())),
         "PROJECT_VERSION_MISMATCH"
     );
     if let Some(video) = project.video {
         video.validate()?;
+    }
+    if let Some(id) = &project.capture_safe_scene {
+        anyhow::ensure!(project.version == 6, "PROJECT_VERSION_MISMATCH");
+        let graph = project
+            .graph
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("INVALID_PROJECT"))?;
+        capture::validate_safe_scene(graph, project.variant, id)?;
     }
     Ok(())
 }
@@ -1848,7 +2001,11 @@ fn parse_project(bytes: &[u8]) -> anyhow::Result<Project> {
     let project: Project = serde_json::from_value(value.clone())?;
     validate_project_video(&project)?;
     anyhow::ensure!(
-        project.version == 5 || value.get("video").is_none(),
+        project.version >= 5 || value.get("video").is_none(),
+        "PROJECT_VERSION_MISMATCH"
+    );
+    anyhow::ensure!(
+        project.version >= 6 || value.get("capture_safe_scene").is_none(),
         "PROJECT_VERSION_MISMATCH"
     );
     anyhow::ensure!(
@@ -1939,6 +2096,57 @@ fn create_tone() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn multimode_project_v6_preserves_identity_and_rejects_legacy_downgrade() {
+        let uuid = "00000000-0000-0000-0000-000000000001";
+        for spec in [
+            super::SourceKind::Display {
+                display_uuid: uuid.into(),
+            },
+            super::SourceKind::Application {
+                bundle_id: "local.motive.fixture".into(),
+                display_uuid: uuid.into(),
+            },
+        ] {
+            for video in [None, Some(super::VideoConfig::default())] {
+                let mut p = super::Project {
+                    version: 6,
+                    video,
+                    ..super::Project::default()
+                };
+                p.graph.as_mut().unwrap().sources[0].spec = spec.clone();
+                let before = super::serialize_project(&p).unwrap();
+                let restored = super::parse_project(&before).unwrap();
+                assert_eq!(super::serialize_project(&restored).unwrap(), before);
+                assert_eq!(restored.graph.unwrap().sources[0].spec, spec);
+                for old in 1..=5 {
+                    p.version = old;
+                    assert!(super::serialize_project(&p).is_err());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn multimode_commands_require_exact_scope() {
+        for source in [
+            serde_json::json!({"kind":"display","display_uuid":"00000000-0000-0000-0000-000000000001"}),
+            serde_json::json!({"kind":"application","bundle_id":"local.motive.fixture","display_uuid":"00000000-0000-0000-0000-000000000001"}),
+        ] {
+            let c = serde_json::json!({"op":"add_source","scene_id":"scene-1","name":"Test","source":source});
+            assert!(super::parse_command(c.clone()).is_ok());
+            let mut missing = c.clone();
+            missing["source"]
+                .as_object_mut()
+                .unwrap()
+                .remove("display_uuid");
+            assert!(super::parse_command(missing).is_err());
+            let mut broad = c;
+            broad["source"]["fallback_to_desktop"] = serde_json::json!(true);
+            assert!(super::parse_command(broad).is_err());
+        }
+    }
+
+    #[test]
     fn capture_start_distinguishes_suspended_from_legitimate_static_content() {
         for state in ["complete", "idle", "started"] {
             assert!(super::capture_ready_for_start(&serde_json::json!([{"active":true,"frame_age_ms":12000,"capture_diagnostics":{"sample_status":state}}])).is_ok());
@@ -2000,6 +2208,39 @@ mod tests {
         }
     }
     #[test]
+    fn fallback_persistence_is_v6_and_never_accepts_a_capture_scene() {
+        let mut project = Project {
+            version: 6,
+            capture_safe_scene: Some("scene-1".into()),
+            ..Project::default()
+        };
+        let loaded = parse_project(&serialize_project(&project).unwrap()).unwrap();
+        assert_eq!(loaded.capture_safe_scene, project.capture_safe_scene);
+        project.version = 3;
+        assert!(serialize_project(&project).is_err());
+        project.version = 6;
+        project
+            .graph
+            .as_mut()
+            .unwrap()
+            .sources
+            .iter_mut()
+            .find(|s| s.id == "main")
+            .unwrap()
+            .spec = SourceKind::Display {
+            display_uuid: "00000000-0000-0000-0000-00000000000A".into(),
+        };
+        assert!(serialize_project(&project).is_err());
+        assert!(parse_command(json!({"op":"configure_capture_fallback","scene_id":null})).is_ok());
+        assert!(parse_command(json!({"op":"configure_capture_fallback"})).is_err());
+        assert!(
+            parse_command(
+                json!({"op":"configure_capture_fallback","scene_id":"scene-1","restart":true})
+            )
+            .is_err()
+        );
+    }
+    #[test]
     fn video_projects_are_explicit_and_legacy_coordinates_roundtrip_unchanged() {
         for version in 1..=4 {
             let legacy = Project {
@@ -2047,7 +2288,7 @@ mod tests {
         );
         assert!(
             serialize_project(&Project {
-                version: 6,
+                version: 7,
                 ..Project::default()
             })
             .is_err()

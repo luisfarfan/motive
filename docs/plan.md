@@ -441,3 +441,22 @@ APPLICATION_UNAVAILABLE histórico no se reproduce ni se declara reparado.
 Stock450/pre-tick, VoiceOver, hardware supervisado, segunda Mac y distribución
 siguen abiertos. Stores originales restaurados por hash, journals conservados,
 owners cerrados normalmente y lock liberado. Bundle y fuentes locales, sin push.
+
+### H20 — captura multimodo y continuidad personal, en curso
+
+[Plan independiente H20](h20-personal-stream-reliability.md), separado del Browser
+Host H19 de ASTRA. Production, UI, CLI y MCP incorporan Window/Display/Application,
+identidades explícitas y proyectos v6 compatibles con v1–v5. El respaldo elegido
+por el usuario usa un Cut a una escena existente sin captura; no reinicia SCK.
+
+El [contraste real C1](h20-capture-verification.md) con módulo original OBS y
+Motive pasa foco y píxeles MKV/RTMP en una secuencia supervisada; CAP-01 no se
+reproduce y permanece abierto. C2 falló al salir de una escena rota. C3 corrige
+esa condición y pasa pérdida de Window/Application, continuidad de outputs/audio,
+patrón seguro decodificado y stop independiente. 130 tests raíz y Clippy pasan.
+
+**PERSONAL STREAM READY: BLOCKED**, separado de beta pública. Pendientes Display
+físico controlado, multiventana, fullscreen/Spaces/permisos, reconstrucción SCK
+live, tail completo, hardware/A/V y tres sesiones reales de una hora. No se cambian
+clock, interleaver ni buffering por conjetura. Evidencia y bundles locales,
+procesos cerrados y lock cedido a H19; no merge/rebase/push ni publicación.

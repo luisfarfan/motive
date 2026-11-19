@@ -256,7 +256,7 @@ def main():
                 'NSHighResolutionCapable': True, 'LSAppNapIsDisabled': True,
                 'NSMicrophoneUsageDescription': 'Motive usa la entrada de audio que eliges para tu producción.',
                 'NSCameraUsageDescription': 'Motive usa únicamente la cámara que eliges para tu producción.',
-                'NSScreenCaptureUsageDescription': 'Motive captura únicamente la ventana y el audio que eliges.',
+                'NSScreenCaptureUsageDescription': 'Motive captura la ventana, aplicación o pantalla y el audio que eliges.',
             }, stream)
         (contents / 'Resources/MotivePortable.json').write_text(
             json.dumps({'version': 1, 'runtime_layout': 'macos-portable-v1'}) + '\n')

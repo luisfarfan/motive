@@ -140,17 +140,86 @@ impl Layouts {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceKind {
     Pattern,
-    Overlay { color: u32 },
-    Window { window: WindowIdentity },
-    Camera { device_id: String },
+    Overlay {
+        color: u32,
+    },
+    Window {
+        window: WindowIdentity,
+    },
+    Display {
+        display_uuid: String,
+    },
+    Application {
+        bundle_id: String,
+        display_uuid: String,
+    },
+    Camera {
+        device_id: String,
+    },
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceInput {
     Pattern,
-    Overlay { color: u32 },
-    Window { window_id: u32 },
-    Camera { device_id: String },
+    Overlay {
+        color: u32,
+    },
+    Window {
+        window_id: u32,
+    },
+    Display {
+        display_uuid: String,
+    },
+    Application {
+        bundle_id: String,
+        display_uuid: String,
+    },
+    Camera {
+        device_id: String,
+    },
+}
+impl SourceKind {
+    pub fn is_screen_capture(&self) -> bool {
+        matches!(
+            self,
+            Self::Window { .. } | Self::Display { .. } | Self::Application { .. }
+        )
+    }
+    pub fn requires_v6(&self) -> bool {
+        matches!(self, Self::Display { .. } | Self::Application { .. })
+    }
+}
+
+#[cfg(test)]
+mod capture_tests {
+    use super::*;
+    #[test]
+    fn shared_layers_reuse_but_duplicate_capture_resources_are_rejected() {
+        let mut graph = Graph::default();
+        graph.sources[0].spec = SourceKind::Application {
+            bundle_id: "local.motive.fixture".into(),
+            display_uuid: "00000000-0000-0000-0000-000000000001".into(),
+        };
+        let mut layer = graph.scenes[0].layers[0].clone();
+        layer.id = "shared-layer".into();
+        graph.scenes[0].layers.push(layer);
+        graph.validate().unwrap();
+        let mut duplicated = graph.sources[0].clone();
+        duplicated.id = "duplicate-source".into();
+        graph.sources.push(duplicated);
+        assert!(
+            graph
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .starts_with("CAPTURE_IN_USE")
+        );
+        graph.sources.last_mut().unwrap().spec = SourceKind::Application {
+            bundle_id: "local.motive.fixture".into(),
+            display_uuid: "00000000-0000-0000-0000-000000000002".into(),
+        };
+        graph.validate().unwrap();
+    }
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -270,6 +339,7 @@ impl Graph {
         self.scene(&self.active_scene)?;
         let mut ids = BTreeSet::new();
         let mut cameras = BTreeSet::new();
+        let mut captures = BTreeSet::new();
         for source in &self.sources {
             anyhow::ensure!(
                 valid_id(&source.id)
@@ -306,6 +376,24 @@ impl Graph {
                         && window.title.len() <= 512,
                     "INVALID_WINDOW_IDENTITY"
                 ),
+                SourceKind::Display { display_uuid } => {
+                    crate::core::capture::validate_display(display_uuid)?;
+                    anyhow::ensure!(
+                        captures.insert(("", display_uuid.as_str())),
+                        "CAPTURE_IN_USE: reuse the existing source with add_layer"
+                    );
+                }
+                SourceKind::Application {
+                    bundle_id,
+                    display_uuid,
+                } => {
+                    crate::core::capture::validate_application(bundle_id)?;
+                    crate::core::capture::validate_display(display_uuid)?;
+                    anyhow::ensure!(
+                        captures.insert((bundle_id.as_str(), display_uuid.as_str())),
+                        "CAPTURE_IN_USE: reuse the existing source with add_layer"
+                    );
+                }
                 _ => {}
             }
         }

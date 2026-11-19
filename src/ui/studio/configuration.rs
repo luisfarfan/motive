@@ -85,9 +85,13 @@ impl Studio {
     pub(super) fn scene_settings(&self, cx: &mut Context<Self>) -> Div {
         let p = Palette::new(self.dark);
         let scene = self.production.graph().active_scene.clone();
+        let fallback_scene = scene.clone();
         let t = self.production.status()["transition"].clone();
         col()
             .gap(px(10.))
+            .child(label("Respaldo de captura: patrón completo y overlays locales; configurar con salidas detenidas.", p.muted))
+            .child(self.action("capture-safe-scene", "Usar actual como respaldo", Command::ConfigureCaptureFallback { scene_id: Some(fallback_scene) }, cx))
+            .child(self.action("capture-safe-disable", "Desactivar respaldo automático", Command::ConfigureCaptureFallback { scene_id: None }, cx))
             .child(field("Nombre de escena", &self.forms.scene_name, p))
             .child(
                 row()
@@ -399,6 +403,7 @@ impl Studio {
                 let reason=match source["freshness_notice"].as_str() {
                     Some("CAPTURE_SUSPENDED")=>"macOS suspendió las actualizaciones. Muestra la ventana capturada y comprueba que el contenido avance.",
                     Some("CAPTURE_STOPPED")=>"La captura se detuvo. Revisa la fuente y reconéctala explícitamente cuando las salidas estén detenidas.",
+                    Some("CAPTURE_BLANK")=>"macOS informa una pantalla sin imagen. Comprueba la pantalla seleccionada antes de iniciar una salida.",
                     _=>"No hay buffers recientes. Comprueba el contenido: una ventana estática también puede dejar de entregar buffers.",
                 };
                 label(format!("{name} · {reason}{age}"),p.warn)

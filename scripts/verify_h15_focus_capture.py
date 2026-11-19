@@ -25,6 +25,8 @@ def main():
     parser.add_argument('--app', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--arm', choices=('default', 'join-all'), default='default')
+    parser.add_argument('--unobserved-upstream', action='store_true',
+                        help='H20 only: verified unmodified OBS module; SCK internals remain unobserved.')
     args = parser.parse_args()
     lock()
     out = args.output.absolute()
@@ -95,7 +97,9 @@ def main():
         handles.append(trial_log)
         trial = subprocess.Popen([sys.executable, str(ROOT / 'scripts/verify_h14_collection.py'),
                                   'run', '--lock-held', '--manifest', str(out / 'manifest.json'),
-                                  '--output', str(out / 'capture')], stdout=trial_log, stderr=trial_log)
+                                  '--output', str(out / 'capture'),
+                                  *(['--unobserved-upstream'] if args.unobserved_upstream else [])],
+                                 stdout=trial_log, stderr=trial_log)
         deadline = time.monotonic() + 20
         while 'awaiting_fixture_front_marker' not in (out / 'trial.stdout').read_text():
             require(trial.poll() is None and time.monotonic() < deadline, 'Capture preparation failed')

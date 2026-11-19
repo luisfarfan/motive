@@ -364,7 +364,7 @@ pub fn tools() -> Vec<Value> {
         ),
         tool(
             "devices",
-            "Ventanas, cámaras, entradas de audio y permisos.",
+            "Ventanas, pantallas (UUID), aplicaciones por pantalla, cámaras, audio y permisos.",
             json!({}),
             &[],
             true,
@@ -468,6 +468,7 @@ pub fn tools() -> Vec<Value> {
     ];
     let target = json!({"type":"string","enum":["recording","streaming"]});
     result.push(tool("outputs", "Registro compartido recording/streaming: fases, workers, perfiles efectivos, recuperación y métricas por intento.", json!({}), &[], true));
+    result.push(tool("configure_capture_fallback", "Con salidas detenidas, elige una escena existente con patrón a pantalla completa y overlays locales. Ante fallo SCK confirmado, un único Cut conserva audio y outputs; no reinicia fuentes. null desactiva. Se guarda en proyecto v6.", json!({"scene_id":{"type":["string","null"]}}), &["scene_id"], false));
     result.push(tool("recordings", "Consulta metadatos acotados de la carpeta fija de grabaciones. closed_unverified no certifica contenido ni integridad; no devuelve medios.", json!({}), &[], true));
     result.push(tool("refresh_recordings", "Actualiza la biblioteca mediante un worker; consulta recordings hasta phase ready/error. No valida ni abre medios.", json!({}), &[], false));
     result.push(tool("output_diagnostics", "Observaciones acotadas de paquetes y finalización del destino. Despacho no confirma escritura ni recepción; no transporta audio/video.", json!({"target":target.clone()}), &["target"], true));
@@ -598,6 +599,8 @@ pub fn tools() -> Vec<Value> {
         {"type":"object","properties":{"kind":{"const":"pattern"}},"required":["kind"],"additionalProperties":false},
         {"type":"object","properties":{"kind":{"const":"overlay"},"color":{"type":"integer","minimum":0,"maximum":16777215}},"required":["kind","color"],"additionalProperties":false},
         {"type":"object","properties":{"kind":{"const":"window"},"window_id":{"type":"integer","minimum":1,"maximum":4294967295u64}},"required":["kind","window_id"],"additionalProperties":false},
+        {"type":"object","properties":{"kind":{"const":"display"},"display_uuid":{"type":"string","pattern":"^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"}},"required":["kind","display_uuid"],"additionalProperties":false},
+        {"type":"object","properties":{"kind":{"const":"application"},"bundle_id":{"type":"string","minLength":1,"maxLength":255},"display_uuid":{"type":"string","pattern":"^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"}},"required":["kind","bundle_id","display_uuid"],"additionalProperties":false},
         {"type":"object","properties":{"kind":{"const":"camera"},"device_id":{"type":"string","minLength":1,"maxLength":511}},"required":["kind","device_id"],"additionalProperties":false}
     ]});
     let transform = json!({"type":"object","properties":{
@@ -632,7 +635,7 @@ pub fn tools() -> Vec<Value> {
         ),
         (
             "add_source",
-            "Crea una fuente y una capa en la escena; IDs nuevos en state.project.graph.",
+            "Crea una fuente y capa mientras idle. Window selecciona una ventana; Display captura toda la pantalla explícita; Application sus ventanas en ese display. Usa devices para identidades; no hay fallback ni selección automática. IDs nuevos en state.project.graph.",
             json!({"scene_id":id,"name":name,"source":source}),
             vec!["scene_id", "name", "source"],
         ),

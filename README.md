@@ -31,18 +31,27 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 
 ## ✨ What is taking shape
 
+**H20 local worktree:** Window, Application and Display now share the official OBS
+capture path, with explicit identities and v6 persistence. A user-selected safe
+scene can preserve outputs/audio after a confirmed capture failure. C3 passed
+owned Window/Application loss tests; the paired OBS/Motive focus test did not
+reproduce CAP-01. **PERSONAL STREAM READY remains blocked**, independently of the
+public beta: controlled Display, broader recovery, terminal delivery and three
+supervised one-hour sessions remain open. See the [H20 plan](docs/h20-personal-stream-reliability.md),
+[architecture and usage](docs/h20-capture-engine.md), and [physical evidence](docs/h20-capture-verification.md).
+
 | | Capability | Implementation |
 |---|---|---|
-| 🪟 | Window capture | Select an individual application window through ScreenCaptureKit |
+| 🪟 | Screen capture | Explicit Window, Application-on-display and Display through the official OBS ScreenCaptureKit module |
 | 📷 | Camera input | Explicit camera selection through the official OBS AVFoundation module |
 | 🎙️ | Global audio mixer | Microphone, controlled tone and explicitly selected application or desktop audio; independent gain/mute, peak/RMS and per-input recovery |
 | 🎬 | Independent outputs | Concurrent H.264/AAC MKV + loopback RTMP, separate encoder pairs/profiles, stop, duration, errors and recovery per destination |
 | 🎨 | Scene editor | Multiple scenes and reusable sources; layer position, size, visibility and order; editable original overlays |
 | 🧩 | Overlay engine | Native text, managed images/video, shapes, widgets and original presets; per-layer fade/slide/scale through GPUI, CLI and MCP |
 | ↔️ | Production video | 540p, 720p or 1080p composition at 30/60 FPS, landscape/portrait; independent layouts retain their 960 × 540 / 540 × 960 design coordinates |
-| 🔌 | Source recovery | Availability checks, controlled output stop and explicit reconnection |
+| 🔌 | Source recovery | Delivery diagnostics, optional safe-scene Cut, bounded failure handling and explicit idle reconnection |
 | 🤖 | Agent control | Local MCP and CLI commands, shared state and structured errors |
-| 💾 | Project state | Explicit video configuration uses v5; legacy v3 and overlay v4 remain valid at 540p30, with v1–v4 loading and stable scene/source/layer IDs |
+| 💾 | Project state | Capture modes and safe-scene policy use v6; v1–v5 retain their contracts and stable scene/source/layer IDs |
 
 ## 🚀 Get started
 

@@ -28,6 +28,10 @@ impl Studio {
                     let layer = l.id.clone();
                     let (icon, detail) = match source.spec {
                         SourceKind::Window { .. } => (IconName::Monitor, "Captura de ventana"),
+                        SourceKind::Display { .. } => (IconName::Monitor, "Pantalla completa"),
+                        SourceKind::Application { .. } => {
+                            (IconName::Monitor, "Aplicación · pantalla seleccionada")
+                        }
                         SourceKind::Camera { .. } => (IconName::Video, "Cámara"),
                         SourceKind::Overlay { .. } => (
                             IconName::Layers,
@@ -54,6 +58,7 @@ impl Studio {
                         match notice {
                             "CAPTURE_SUSPENDED" => "Captura suspendida",
                             "CAPTURE_STOPPED" => "Captura detenida",
+                            "CAPTURE_BLANK" => "Pantalla sin imagen",
                             "NO_RECENT_CAPTURE_BUFFER" => "Sin buffers recientes",
                             _ => detail,
                         }

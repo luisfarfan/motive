@@ -264,12 +264,30 @@ def run_trial(args):
         report['phase_schedule_host_s']={phase:start+i*manifest['seconds']/3 for i,phase in enumerate(PHASES)}
         print(json.dumps({'event':'phase_schedule','schedule':report['phase_schedule_host_s']}),flush=True)
         identity();client.call('select_source',window_id=manifest['fixture']['window_id']);selection_bracket=client.last_bracket[:]
-        state=sample('source_selected');main=next(s for s in state['sources'] if s['id']=='main');created=main.get('capture_diagnostics',{}).get('created_ns')
-        require(created and main['kind']=='window','Exact owned SCK source diagnostic required')
-        report['capture_clock_anchor']={'native_clock':'libobs.os_gettime_ns','created_ns':created,
-            'host_clock':'python.time.monotonic','creation_rpc_bracket_s':selection_bracket,
-            'offset_interval_s':[x-created/1e9 for x in selection_bracket],
-            'basis':'motive_sck_diagnostics_init is synchronous inside the one SelectSource RPC'}
+        state=sample('source_selected');main=next(s for s in state['sources'] if s['id']=='main');created=(main.get('capture_diagnostics') or {}).get('created_ns')
+        require(main['kind']=='window','Exact owned window source required')
+        if getattr(args, 'unobserved_upstream', False):
+            comparison=load(pathlib.Path(manifest['owner']['bundle'])/'Contents/Resources/H20CaptureComparison.json')
+            require(comparison['variant']=='upstream' and comparison['patches']=={}
+                    and comparison['bundled_module_sha256']==report['hashes']['sck_module'],
+                    'Unobserved arm requires the inventoried unmodified OBS module')
+            require(not created,'Unmodified OBS must not expose Motive SCK diagnostics')
+            # The output observer already exposes the same OBS clock, including
+            # before output start. Bracket that RPC instead of inventing SCK data.
+            snapshot=client.call('output_diagnostics',target='recording')['packet_trace']
+            bracket=client.last_bracket[:]; observed=snapshot['observed_ns']
+            require(snapshot['clock']=='obs.os_gettime_ns' and observed>0,'OBS clock unavailable')
+            report['capture_diagnostics_availability']='NOT_AVAILABLE_IN_UPSTREAM'
+            report['capture_clock_anchor']={'native_clock':'libobs.os_gettime_ns',
+                'observed_ns':observed,'host_clock':'python.time.monotonic',
+                'rpc_bracket_s':bracket,'offset_interval_s':[x-observed/1e9 for x in bracket],
+                'basis':'Synchronous output_diagnostics RPC brackets the unchanged OBS clock; no SCK observation'}
+        else:
+            require(created,'Exact owned SCK source diagnostic required')
+            report['capture_clock_anchor']={'native_clock':'libobs.os_gettime_ns','created_ns':created,
+                'host_clock':'python.time.monotonic','creation_rpc_bracket_s':selection_bracket,
+                'offset_interval_s':[x-created/1e9 for x in selection_bracket],
+                'basis':'motive_sck_diagnostics_init is synchronous inside the one SelectSource RPC'}
         ready_deadline=min(start+5,end);ready=False
         while time.monotonic()<ready_deadline:
             state=sample('first_buffer_preflight');flight={t:client.call('preflight_output',target=t,allow_error=True) for t in ('recording','streaming')}
@@ -476,7 +494,7 @@ def analyze(args):
             origin=(lo+hi)/2+native['sys_dts_usec']/1e6-float(actual['pts_time'])
             markers=validate_markers(report['markers'],report['manifest'],complete=True)
             boundaries=[m['host_monotonic'] for m in markers]+[report['trial_end_host_s']]
-            row['focus_clock_alignment']={'method':'Synchronous SCK creation RPC brackets OBS clock; complete first packet relates container PTS to native sys_dts.',
+            row['focus_clock_alignment']={'method':anchor['basis']+'; complete first packet relates container PTS to native sys_dts.',
                 'host_origin_s':origin,'uncertainty_s':uncertainty,'phase_boundary_guard_s':2+uncertainty}
             row['phases']={}
             for i,phase in enumerate(PHASES):
@@ -520,6 +538,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='mode',required=True)
     commands.add_parser('plan')
     run=commands.add_parser('run');run.add_argument('--lock-held',action='store_true',required=True);run.add_argument('--manifest',required=True);run.add_argument('--output',required=True)
+    run.add_argument('--unobserved-upstream',action='store_true',help='H20 verified upstream module only; retain missing SCK observations explicitly')
     marker=commands.add_parser('mark');marker.add_argument('--lock-held',action='store_true',required=True);marker.add_argument('--manifest',required=True);marker.add_argument('--phase',choices=PHASES,required=True);marker.add_argument('--note',default='Root observed focus through CUA')
     marker.add_argument('--system-probe',help='Fresh H15 independent focus probe JSON; requires fixture agreement')
     decoder=commands.add_parser('analyze');decoder.add_argument('--lock-held',action='store_true',required=True);decoder.add_argument('--report',required=True);decoder.add_argument('--output',required=True);decoder.add_argument('--ffmpeg',required=True);decoder.add_argument('--ffprobe',required=True)

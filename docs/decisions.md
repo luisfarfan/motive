@@ -739,3 +739,26 @@ B10 es una app release ARM64 con firma ad-hoc local, fuentes inventariadas y
 hashes de build. La correspondencia de archivos no prueba reconstrucción
 reproducible ni distribución notarizada. Cada prueba identifica su candidato;
 los PASS B7/B8/B9 no certifican automáticamente B10. No se publica la beta.
+
+## H20 — alcance exacto de captura y respaldo acotado
+
+Se reutiliza `screen_capture` oficial OBS para Window, Display y Application.
+Display requiere UUID explícito y Application un bundle único más UUID, con PID
+fijado durante la sesión; ningún target ausente se convierte en escritorio por
+fallback. Window excluye child windows y Application el menú compartido. v6
+transporta modos nuevos y respaldo opcional; proyectos previos conservan contrato.
+
+Salud distingue superficie recibida de contenido fresco, `idle` de `suspended`
+y stop intencional de fallo. Edad de buffer sola no reinicia ni activa respaldo.
+Una escena segura debe existir, cubrir canvas con patrón y excluir capturas,
+incluidas capas ocultas. Ante fallo SCK confirmado puede recibir un único Cut por
+sesión de outputs, acotado a 2 s mientras persiste el fallo. No se destruyen/crean
+fuentes ni se modifica audio/output. Cut puede dejar un origen fallido; Fade y el
+destino conservan sus guards. La prueba C2 que motivó ese cambio se conserva.
+
+La reconstrucción SCK en vivo sigue cerrada: `obs_wait_for_destroy_queue` no es
+un barrier del stop asíncrono de Apple. Reconexión explícita requiere outputs
+detenidos. C3 demuestra respaldo de Window/Application propias, no recuperación
+general del productor ni ausencia de fugas. [Arquitectura](h20-capture-engine.md),
+[investigación fijada](h20-obs-capture-investigation.md) y
+[evidencia por candidata](h20-capture-verification.md).

@@ -61,7 +61,7 @@ impl OwnedFixtureDescriptor {
     }
     pub fn origin(&self) -> String {
         format!(
-            "motive-asset://i{}-g{}",
+            "motive://i{}-g{}/",
             self.identity.instance, self.identity.generation
         )
     }

@@ -96,7 +96,10 @@ impl GoalBinding {
                     return Ok(None);
                 }
                 self.binding.acknowledge(&self.owner, data)?;
-                if v["seq"] == 1 && v["accepted"] == true && !self.goal_sent {
+                // Fixed H19 contamination probe: only instance 1 receives the
+                // owned Goal event. Peers complete bootstrap/properties and stay
+                // ready. This is a fixture policy, not a creator API change.
+                if id.instance == 1 && v["seq"] == 1 && v["accepted"] == true && !self.goal_sent {
                     self.goal_sent = true;
                     Some(self.binding.goal(&self.owner, &self.event, now)?)
                 } else {
@@ -350,7 +353,9 @@ mod tests {
             )
         };
         assert!(b.status(&ack(1), 3).is_err());
-        assert_eq!(b.status(&ack(2), 4).unwrap().unwrap()["instance"], 2);
+        assert!(b.status(&ack(2), 4).unwrap().is_none());
+        assert_eq!(b.binding.state(), State::Ready);
+        assert!(!b.goal_sent);
         assert_eq!(a.status(&ack(1), 4).unwrap().unwrap()["instance"], 1);
     }
 }

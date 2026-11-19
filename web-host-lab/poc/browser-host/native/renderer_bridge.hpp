@@ -6,7 +6,7 @@
 #include <memory>
 struct RendererState {
  motive_bridge::Identity identity;
- bool live=true,initialized=false,context_installed=false;
+ bool live=true,initialized=false,context_installed=false,allow_crash=false;
  uint64_t last_sequence=0,clock_origin_ms=0;
 };
 class MotiveRenderBridge final : public CefRenderProcessHandler {

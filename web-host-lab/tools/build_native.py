@@ -55,36 +55,46 @@ def main():
     parser.add_argument('--jobs', type=int, default=3)
     parser.add_argument('--build-name', default='h18-native-ephemeral')
     parser.add_argument('--bridge', action='store_true')
+    parser.add_argument('--multi', action='store_true')
     parser.add_argument('--controls', action='store_true')
     parser.add_argument('--diagnostic', choices=['static','hidden','slow','crash','slow-consumer'])
     parser.add_argument('--mock-keychain', action='store_true')
     args = parser.parse_args()
     diagnostic_modes = {'static':1,'hidden':2,'slow':3,'crash':4,'slow-consumer':5}
     diagnostic_names = {'h18-native-' + mode + '-ephemeral' for mode in diagnostic_modes} | {'h18-native-crash-deferred-ephemeral','h18-native-crash-posix-ephemeral'}
-    if args.diagnostic and (args.bridge or (args.build_name != 'h18-native-' + args.diagnostic + '-ephemeral' and not (args.diagnostic == 'crash' and args.build_name in {'h18-native-crash-deferred-ephemeral','h18-native-crash-posix-ephemeral'}))):
-        raise ValueError('DIAGNOSTIC_REQUIRES_FIXED_OWN_BUILD_ROOT')
-    if bool(args.diagnostic) != (args.build_name in diagnostic_names):
-        raise ValueError('DIAGNOSTIC_PROFILE_MISMATCH')
-    if args.controls != (args.build_name == 'h18-native-bridge-controls-ephemeral') or (args.controls and not args.bridge):
-        raise ValueError('CONTROLS_REQUIRE_SEPARATE_BRIDGE_PROFILE')
-    if args.bridge != args.build_name.startswith('h18-native-bridge'):
-        raise ValueError('BUILD_ROOT_AND_BRIDGE_PROFILE_MUST_MATCH')
-    if args.bridge and args.build_name not in {'h18-native-bridge','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral','h18-native-bridge-controls-ephemeral','h18-native-bridge-final-ephemeral'}:
-        raise ValueError('BRIDGE_NEEDS_SEPARATE_BUILD_ROOT')
+    multi_names = {'h19-native-multi-ephemeral','h19-native-multi-goal-ephemeral','h19-native-multi-goal-controls-ephemeral','h19-native-multi-v2-ephemeral','h19-native-multi-goal-v2-ephemeral','h19-native-multi-v3-ephemeral','h19-native-multi-goal-v3-ephemeral','h19-native-multi-goal-controls-v3-ephemeral','h19-native-multi-final-ephemeral','h19-native-multi-goal-final-ephemeral','h19-native-multi-goal-controls-final-ephemeral','h19-native-multi-goal-hidden-ephemeral'}
+    if args.multi:
+        if args.build_name not in multi_names or args.diagnostic:
+            raise ValueError('MULTI_PROFILE_MISMATCH')
+        if args.bridge != ('-goal-' in args.build_name) or args.controls != ('-controls-' in args.build_name):
+            raise ValueError('MULTI_BRIDGE_PROFILE_MISMATCH')
+    else:
+        if args.diagnostic and (args.bridge or (args.build_name != 'h18-native-' + args.diagnostic + '-ephemeral' and not (args.diagnostic == 'crash' and args.build_name in {'h18-native-crash-deferred-ephemeral','h18-native-crash-posix-ephemeral'}))):
+            raise ValueError('DIAGNOSTIC_REQUIRES_FIXED_OWN_BUILD_ROOT')
+        if bool(args.diagnostic) != (args.build_name in diagnostic_names):
+            raise ValueError('DIAGNOSTIC_PROFILE_MISMATCH')
+        if args.controls != (args.build_name == 'h18-native-bridge-controls-ephemeral') or (args.controls and not args.bridge):
+            raise ValueError('CONTROLS_REQUIRE_SEPARATE_BRIDGE_PROFILE')
+        if args.bridge != args.build_name.startswith('h18-native-bridge'):
+            raise ValueError('BUILD_ROOT_AND_BRIDGE_PROFILE_MUST_MATCH')
+        if args.bridge and args.build_name not in {'h18-native-bridge','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral','h18-native-bridge-controls-ephemeral','h18-native-bridge-final-ephemeral'}:
+            raise ValueError('BRIDGE_NEEDS_SEPARATE_BUILD_ROOT')
     if args.mock_keychain != args.build_name.endswith('-ephemeral'):
         raise ValueError('EPHEMERAL_PROFILE_AND_KEYCHAIN_BACKEND_MUST_MATCH')
     if not 1 <= args.jobs <= 8:
         raise ValueError('BUILD_JOBS')
     entry = next(e for e in json.loads((ROOT / 'research/sources.lock.json').read_text())['sources'] if e['id'] == 'cef-obs-7871')
-    verified = verify_tree(entry, ('include/', 'libcef_dll/', 'Release/'))
+    verified = verify_tree(entry, ('include/', 'libcef_dll/', 'Release/', 'CREDITS.html', 'LICENSE.txt'))
     sdk = ROOT / entry['source']
-    if args.build_name not in diagnostic_names | {'h18-native-diagnostic','h18-native-close-once','h18-native-final-ephemeral','h18-native-bridge','h18-native-ephemeral','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral','h18-native-bridge-controls-ephemeral','h18-native-bridge-final-ephemeral'}:
+    if args.build_name not in multi_names | diagnostic_names | {'h18-native-diagnostic','h18-native-close-once','h18-native-final-ephemeral','h18-native-bridge','h18-native-ephemeral','h18-native-bridge-ephemeral','h18-native-bridge-alpha-ephemeral','h18-native-bridge-controls-ephemeral','h18-native-bridge-final-ephemeral'}:
         raise ValueError('ISOLATED_BUILD_NAME_REQUIRED')
     build = ROOT / '.cache' / args.build_name
-    report_name = 'H18-native-' + args.build_name.removeprefix('h18-native-') + '-build'
+    report_name = ('H19-native-' + args.build_name.removeprefix('h19-native-') if args.multi else 'H18-native-' + args.build_name.removeprefix('h18-native-')) + '-build'
     build.mkdir(parents=True, exist_ok=True)
     compiler = run(['clang++', '--version']).splitlines()[0]
     flags = ['-std=c++20', '-arch', 'arm64', '-mmacosx-version-min=15.0', '-DCEF_API_VERSION=15000', '-DCEF_USE_SANDBOX', '-DNDEBUG', '-O2', '-fno-rtti', '-fno-strict-aliasing', '-fstack-protector-strong', '-I' + str(sdk)]
+    if args.multi:
+        flags.append('-DMOTIVE_MULTI_BROWSER')
     if args.bridge:
         flags.append('-DMOTIVE_GOAL_BRIDGE')
     if args.mock_keychain:
@@ -97,7 +107,7 @@ def main():
     fingerprint = hashlib.sha256(json.dumps([entry['sha256'], compiler, wrapper_flags]).encode()).hexdigest()[:16]
     objects = build / ('wrapper-' + fingerprint)
     if not objects.exists():
-        previous = next((p for p in (ROOT / '.cache').glob('h18-native*/wrapper-' + fingerprint) if p != objects and p.is_dir()), objects)
+        previous = next((p for p in (ROOT / '.cache').glob('h*-native*/wrapper-' + fingerprint) if p != objects and p.is_dir()), objects)
         if previous.is_dir() and previous != objects:
             shutil.copytree(previous, objects)
         else:
@@ -143,7 +153,7 @@ def main():
         broker.close()
     else:
         for name, mime in [('index.html','text/html'),('fixture.css','text/css'),('fixture.js','text/javascript')]:
-            source = ROOT / 'poc/fixtures' / ('diagnostics/' + args.diagnostic + '.js' if args.diagnostic and name == 'fixture.js' else name)
+            source = ROOT / 'poc/fixtures' / ('h19/fixture.js' if args.multi and name == 'fixture.js' else 'diagnostics/' + args.diagnostic + '.js' if args.diagnostic and name == 'fixture.js' else name)
             files.append((name,mime,source.read_bytes(),False))
     entries = []
     for i, (name, mime, data, widget) in enumerate(files):
@@ -155,8 +165,23 @@ def main():
     inventory = [{'path': name, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(), 'widget': widget} for name,mime,data,widget in files]
     native = ROOT / 'poc/browser-host/native'
     native_flags = [*flags, '-I' + str(build), '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-missing-field-initializers']
+    snapshot = build / 'source-snapshot'
+    snapshot.mkdir(exist_ok=True)
+    source_snapshots = {}
+    inputs = list(native.glob('*')) + list((ROOT / 'poc/browser-host/src').glob('*.rs')) + list((ROOT / 'poc/frame-bridge/src').glob('*.rs'))
+    inputs += [ROOT / 'tools/build_native.py', ROOT / 'poc/fixtures/h19/fixture.js']
+    for source in inputs:
+        if not source.is_file():
+            continue
+        relative = source.relative_to(ROOT)
+        target = snapshot / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        source_snapshots[str(relative)] = digest(target)
+    shutil.copy2(generated, snapshot / 'fixture_assets.hpp')
+    source_snapshots['fixture_assets.hpp'] = digest(snapshot / 'fixture_assets.hpp')
     own_objects = []
-    for filename in ['main.mm', 'fixture.mm', 'helper.cc', *(['renderer_bridge.cc'] if args.bridge else ['diagnostic_renderer.cc'] if args.diagnostic else [])]:
+    for filename in ['main.mm', 'fixture.mm', 'helper.cc', *(['renderer_bridge.cc'] if args.bridge else ['multi_renderer.cc'] if args.multi else ['diagnostic_renderer.cc'] if args.diagnostic else [])]:
         obj = build / (filename + '.o')
         run(['clang++', *native_flags, '-c', native / filename, '-o', obj])
         own_objects.append(obj)
@@ -194,6 +219,7 @@ def main():
         binaries.append(binary)
     (contents / 'Resources').mkdir(exist_ok=True)
     shutil.copy2(sdk / 'LICENSE.txt', contents / 'Resources/CEF-LICENSE.txt')
+    shutil.copy2(sdk / 'CREDITS.html', contents / 'Resources/Chromium-CREDITS.html')
     # Require the copied framework to remain byte/symlink-identical to its pin.
     original_framework = sdk / 'Release/Chromium Embedded Framework.framework'
     expected_paths = {p.relative_to(original_framework) for p in original_framework.rglob('*')}
@@ -227,7 +253,7 @@ def main():
         assert digest(binary) == digest(inspection_copy)
         inspections.append({'path': str(binary.relative_to(ROOT)), 'sha256': digest(binary), 'file': run(['file', binary]).strip(), 'dependencies': run(['otool', '-L', inspection_copy]), 'dependency_inspection_sha256': digest(inspection_copy), 'code_signature': run(['codesign', '-dvv', binary])})
     # No executable is loaded to inspect its architecture or linkage.
-    report = {'status': 'PASS', 'profile': 'owned-diagnostic-' + args.diagnostic if args.diagnostic else 'owned-goal-controls' if args.controls else 'owned-goal-bridge' if args.bridge else 'owned-smoke', 'diagnostic_profile': args.diagnostic, 'credential_backend': 'chromium-use-mock-keychain' if args.mock_keychain else 'chromium-default', 'native_executed': False, 'native_execution_gate': 'NOT_EVALUATED_CANDIDATE' if args.bridge else 'AUTHORIZED_OWNED_DIAGNOSTIC_NOT_RUN_BY_BUILD', 'sandbox_verified': False, 'bundle_signed_for_distribution': False, 'development_ad_hoc_sealed': True, 'signature_verification': signature_verification, 'pre_sign_framework_sha256': pre_sign_framework_sha256, 'cef': entry, 'verified_upstream_files': verified, 'wrapper_translation_units': len(sources), 'compiler': compiler, 'build_seconds': round(time.monotonic() - started, 3), 'framework_sha256': digest(framework / 'Chromium Embedded Framework'), 'binaries': inspections, 'fixture_inventory': inventory, 'broker_report': broker_report, 'source_sha256': {str(p.relative_to(ROOT)): digest(p) for p in sorted(native.iterdir()) if p.is_file()}, 'frame_bridge_sha256': digest(ROOT / 'poc/frame-bridge/src/lib.rs')}
+    report = {'status': 'PASS', 'profile': ('owned-multi-goal-controls' if args.controls else 'owned-multi-goal' if args.bridge else 'owned-multi') if args.multi else 'owned-diagnostic-' + args.diagnostic if args.diagnostic else 'owned-goal-controls' if args.controls else 'owned-goal-bridge' if args.bridge else 'owned-smoke', 'diagnostic_profile': args.diagnostic, 'credential_backend': 'chromium-use-mock-keychain' if args.mock_keychain else 'chromium-default', 'native_executed': False, 'native_execution_gate': 'NOT_EVALUATED_CANDIDATE' if args.bridge else 'AUTHORIZED_OWNED_DIAGNOSTIC_NOT_RUN_BY_BUILD', 'sandbox_verified': False, 'bundle_signed_for_distribution': False, 'development_ad_hoc_sealed': True, 'signature_verification': signature_verification, 'pre_sign_framework_sha256': pre_sign_framework_sha256, 'cef': entry, 'verified_upstream_files': verified, 'wrapper_translation_units': len(sources), 'compiler': compiler, 'build_seconds': round(time.monotonic() - started, 3), 'framework_sha256': digest(framework / 'Chromium Embedded Framework'), 'binaries': inspections, 'fixture_inventory': inventory, 'broker_report': broker_report, 'source_sha256': {str(p.relative_to(ROOT)): digest(p) for p in sorted(native.iterdir()) if p.is_file()}, 'source_snapshot': str(snapshot.relative_to(ROOT)), 'source_snapshot_sha256': source_snapshots, 'frame_bridge_sha256': digest(ROOT / 'poc/frame-bridge/src/lib.rs')}
     (ROOT / 'evidence' / (report_name + '.json')).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ['status', 'native_executed', 'native_execution_gate', 'verified_upstream_files', 'wrapper_translation_units', 'build_seconds']}))
     print(bundle)

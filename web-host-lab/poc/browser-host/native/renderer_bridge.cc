@@ -9,6 +9,7 @@
 #include <cmath>
 #include <chrono>
 #include <set>
+#include <unistd.h>
 
 namespace {
 bool Keys(CefRefPtr<CefV8Value> object,std::initializer_list<const char*> expected){
@@ -89,24 +90,41 @@ bool Invoke(CefRefPtr<CefFrame> frame,const char* method,CefRefPtr<CefValue> val
 }
 }
 void MotiveRenderBridge::OnBrowserCreated(CefRefPtr<CefBrowser> browser,CefRefPtr<CefDictionaryValue> extra){
- if(!extra||extra->GetSize()!=4||extra->GetType("instance")!=VTYPE_DOUBLE||extra->GetType("generation")!=VTYPE_DOUBLE||extra->GetType("entry")!=VTYPE_STRING||extra->GetType("clock_origin_ms")!=VTYPE_DOUBLE)return;
+ if(!extra||extra->GetSize()!=
+#ifdef MOTIVE_MULTI_BROWSER
+ 5
+#else
+ 4
+#endif
+ ||extra->GetType("instance")!=VTYPE_DOUBLE||extra->GetType("generation")!=VTYPE_DOUBLE||extra->GetType("entry")!=VTYPE_STRING||extra->GetType("clock_origin_ms")!=VTYPE_DOUBLE)return;
  const double i=extra->GetDouble("instance"),g=extra->GetDouble("generation"),origin=extra->GetDouble("clock_origin_ms");
  if(!std::isfinite(origin)||origin<1||origin>double(motive_bridge::SafeInteger)||std::floor(origin)!=origin)return;
- if(!std::isfinite(i)||!std::isfinite(g)||i!=1||g<1||g>double(motive_bridge::SafeInteger)||std::floor(g)!=g)return;
- const std::string expected="motive://i1-g"+std::to_string(uint64_t(g))+"/host/index.html";
+ if(!std::isfinite(i)||!std::isfinite(g)||i<1||i>5||std::floor(i)!=i||g<1||g>double(motive_bridge::SafeInteger)||std::floor(g)!=g)return;
+ const std::string expected="motive://i"+std::to_string(uint64_t(i))+"-g"+std::to_string(uint64_t(g))+"/host/index.html";
  if(extra->GetString("entry")!=expected)return;
  auto prior=states_.find(browser->GetIdentifier());if(prior!=states_.end())prior->second->live=false;
- auto state=std::make_shared<RendererState>();state->identity={1,uint64_t(g),browser->GetIdentifier(),expected};state->clock_origin_ms=uint64_t(origin);states_[browser->GetIdentifier()]=std::move(state);
+ auto state=std::make_shared<RendererState>();state->identity={uint64_t(i),uint64_t(g),browser->GetIdentifier(),expected};state->clock_origin_ms=uint64_t(origin);
+#ifdef MOTIVE_MULTI_BROWSER
+ if(extra->GetType("allow_crash")!=VTYPE_BOOL)return;state->allow_crash=extra->GetBool("allow_crash");
+#endif
+ states_[browser->GetIdentifier()]=std::move(state);
 }
 void MotiveRenderBridge::OnBrowserDestroyed(CefRefPtr<CefBrowser> browser){auto found=states_.find(browser->GetIdentifier());if(found!=states_.end()){found->second->live=false;states_.erase(found);}}
 void MotiveRenderBridge::OnContextCreated(CefRefPtr<CefBrowser> browser,CefRefPtr<CefFrame> frame,CefRefPtr<CefV8Context> context){
  auto found=states_.find(browser->GetIdentifier());if(found==states_.end()||!found->second->live||!frame->IsMain()||frame->GetURL()!=found->second->identity.entry)return;
  found->second->context_installed=true;
+#ifdef MOTIVE_MULTI_BROWSER
+ auto identity=CefProcessMessage::Create("motive.h19.renderer_identity");identity->GetArgumentList()->SetInt(0,getpid());frame->SendProcessMessage(PID_BROWSER,identity);
+#endif
  context->GetGlobal()->SetValue("motiveNativePostStatus",CefV8Value::CreateFunction("motiveNativePostStatus",new StatusHandler(found->second)),static_cast<CefV8Value::PropertyAttribute>(V8_PROPERTY_ATTRIBUTE_READONLY|V8_PROPERTY_ATTRIBUTE_DONTDELETE));
 }
 void MotiveRenderBridge::OnContextReleased(CefRefPtr<CefBrowser> browser,CefRefPtr<CefFrame> frame,CefRefPtr<CefV8Context>){auto found=states_.find(browser->GetIdentifier());if(found!=states_.end()&&found->second->context_installed&&frame->IsMain())found->second->live=false;}
 bool MotiveRenderBridge::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,CefRefPtr<CefFrame> frame,CefProcessId source,CefRefPtr<CefProcessMessage> message){
  auto found=states_.find(browser->GetIdentifier());if(found==states_.end()||!found->second->live)return false;
+
+#ifdef MOTIVE_MULTI_BROWSER
+ if(message->GetName()=="motive.h19.exit"&&found->second->allow_crash&&frame&&frame->IsMain()&&source==PID_BROWSER&&frame->GetURL()==found->second->identity.entry&&message->GetArgumentList()->GetSize()==0)_exit(86);
+#endif
  const auto name=message->GetName();const bool init=name==motive_bridge::InitializeMessage;if(!init&&name!=motive_bridge::DispatchMessage)return false;
  auto args=message->GetArgumentList();if(args->GetType(0)!=VTYPE_STRING)return false;const auto json=args->GetString(0);auto& state=*found->second;
  if(!motive_bridge::Boundary(state.identity,browser->GetIdentifier(),frame->IsMain(),source==PID_BROWSER,frame->GetURL().ToString(),args->GetSize(),init?1:2,json.length(),init?65536:16384))return false;

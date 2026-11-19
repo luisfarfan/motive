@@ -5,7 +5,8 @@ from pathlib import Path
 import unittest
 
 from verify_h17_show_recovery import (configuration, read_private, restore_owned_store,
-                                     running, validate_reconciled)
+                                     running, validate_reconciled, before_first_tick,
+                                     validate_before_tick_cancel)
 
 
 class RecoveryChecks(unittest.TestCase):
@@ -46,6 +47,70 @@ class RecoveryChecks(unittest.TestCase):
         for key, changed in [('phase', 'completed'), ('started', False), ('widget_triggered', False),
                              ('duration_ms', 3000), ('elapsed_ms', 450)]:
             self.assertFalse(running({**value, key: changed}))
+
+    def cancel_proof(self):
+        _, final, session = self.proof()
+        final['id'] = 5
+        record = final['records'][0]
+        record['index'], record['stage'], record['terminal_receipt'] = 0, 'cancelled', None
+        prior = copy.deepcopy(final)
+        prior['state'], prior['records'][0]['stage'] = 'awaiting_completion', 'accepted'
+        admitted = {'operation_id': 7, 'phase': 'running', 'started': False,
+                    'widget_triggered': False, 'start_ns': None, 'elapsed_ms': 0,
+                    'progress': 0, 'pending_ack': False, 'kind': 'scale_in', 'duration_ms': 450,
+                    'scene_id': 'scene-1', 'layer_id': 'layer-2', 'trigger_source_id': 'source-3'}
+        before = {'job': prior, 'native': admitted, 'counter': 0}
+        after = {'job': final, 'native': {**admitted, 'phase': 'cancelled'}, 'counter': 0}
+        receipt = record['revision_receipts'][0]
+        key, token = receipt['action_key'], receipt['operation_id']
+        entries = [
+            {'entry': 'dispatch', 'action_key': key, 'report': {
+                'receipt': receipt, 'outcome': {'status': 'accepted', 'operation_id': token}}},
+            {'entry': 'cancel_intent', 'action_key': key, 'operation_id': token},
+            {'entry': 'completion', 'action_key': key, 'operation_id': token, 'report': {
+                'completion': {'status': 'cancelled'}, 'receipt': None,
+                'terminal_receipt': {'action_key': key, 'operation_id': token, 'pid': 71}}}]
+        return before, after, session, entries
+
+    def test_pre_tick_requires_real_native_admission_and_unstarted_terminal(self):
+        before, after, session, entries = self.cancel_proof()
+        self.assertTrue(before_first_tick(before['native']))
+        validate_before_tick_cancel(before, after, session, 71, 0, entries)
+        for key in ('before_started', 'after_started', 'triggered', 'elapsed', 'duration', 'pending_ack',
+                    'counter', 'queued', 'no_native_record', 'completed', 'other_native', 'other_layer'):
+            b, a = copy.deepcopy(before), copy.deepcopy(after)
+            if key == 'before_started': b['native']['started'] = True
+            if key == 'after_started': a['native']['started'] = True
+            if key == 'triggered': a['native']['widget_triggered'] = True
+            if key == 'elapsed': a['native']['elapsed_ms'] = 1
+            if key == 'duration': a['native']['duration_ms'] = 3000
+            if key == 'pending_ack': a['native']['pending_ack'] = True
+            if key == 'counter': a['counter'] = 1
+            if key == 'queued': b['job']['state'] = 'queued'
+            if key == 'no_native_record': b['job']['records'] = []
+            if key == 'completed': a['native']['phase'] = 'completed'
+            if key == 'other_native': a['native']['operation_id'] = 8
+            if key == 'other_layer': a['native']['layer_id'] = 'foreign'
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                validate_before_tick_cancel(b, a, session, 71, 0, entries)
+        missing_clock = dict(before['native'])
+        del missing_clock['start_ns']
+        self.assertFalse(before_first_tick(missing_clock))
+
+    def test_pre_tick_requires_unique_ordered_durable_receipts(self):
+        before, after, session, entries = self.cancel_proof()
+        for key in ('missing_cancel', 'duplicate_dispatch', 'order', 'owner', 'action', 'token', 'outcome', 'mutation'):
+            bad = copy.deepcopy(entries)
+            if key == 'missing_cancel': del bad[1]
+            if key == 'duplicate_dispatch': bad.append(copy.deepcopy(bad[0]))
+            if key == 'order': bad[0], bad[1] = bad[1], bad[0]
+            if key == 'owner': bad[2]['report']['terminal_receipt']['pid'] = 72
+            if key == 'action': bad[1]['action_key'] = 'foreign'
+            if key == 'token': bad[2]['report']['terminal_receipt']['operation_id'] = 'foreign'
+            if key == 'outcome': bad[2]['report']['completion']['status'] = 'completed'
+            if key == 'mutation': bad[2]['report']['receipt'] = bad[0]['report']['receipt']
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                validate_before_tick_cancel(before, after, session, 71, 0, bad)
 
     def test_configuration_uses_two_steps_and_fixed_stock450(self):
         config, deck = configuration('scene-1', 'source-3', 'layer-4')

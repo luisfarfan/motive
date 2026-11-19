@@ -108,6 +108,69 @@ def terminal(value):
                 and value['pending_ack'] is False)
 
 
+def before_first_tick(value):
+    """Elapsed zero is insufficient: the first tick itself can report zero."""
+    return bool(value and value.get('phase') == 'running'
+                and value.get('started') is False and value.get('widget_triggered') is False
+                and 'start_ns' in value and value['start_ns'] is None and value.get('elapsed_ms') == 0
+                and value.get('progress') == 0 and value.get('pending_ack') is False
+                and value.get('kind') == 'scale_in' and value.get('duration_ms') == 450)
+
+
+def validate_before_tick_cancel(before, after, session, pid, counter_before, entries):
+    """Pure evidence gate; a queued job or post-tick cancel cannot satisfy it."""
+    prior, final = before['job'], after['job']
+    require(prior['state'] == 'awaiting_completion' and before_first_tick(before['native']),
+            'Actual native operation must be observed before its first tick')
+    require(final['state'] == 'cancelled' and prior['cursor'] == final['cursor'] == 0,
+            'Native cancellation must leave the following counter unexecuted')
+    require(prior['id'] == final['id'] and prior['expected'] == final['expected']
+            and prior['expected']['pid'] == pid,
+            'Same job and dispatch revision required; no rebase')
+    require(len(prior['records']) == len(final['records']) == 1,
+            'Exactly one native action record; no counter record')
+    record, last = prior['records'][0], final['records'][0]
+    token = record['operation_id']
+    operation = native_animation_id(token, session)
+    require(record['index'] == last['index'] == 0 and last['operation_id'] == token
+            and record['stage'] == 'accepted' and last['stage'] == 'cancelled',
+            'Same accepted action must end cancelled')
+    require(len(record['revision_receipts']) == 1
+            and record['revision_receipts'] == last['revision_receipts'],
+            'Dispatch receipt remains unchanged')
+    dispatch_receipt = record['revision_receipts'][0]
+    key = dispatch_receipt['action_key']
+    require(dispatch_receipt['operation_id'] == token
+            and dispatch_receipt['before']['pid'] == dispatch_receipt['after']['pid'] == pid,
+            'Dispatch belongs to this owner and operation')
+    actual = after['native']
+    require(actual['operation_id'] == before['native']['operation_id'] == operation
+            and terminal(actual) and actual['phase'] == 'cancelled'
+            and before_first_tick({**actual, 'phase': 'running'}),
+            'Native terminal must remain unstarted and untriggered after acknowledgement')
+    require(all(before['native'][k] == actual[k] for k in ('scene_id', 'layer_id', 'trigger_source_id')),
+            'Native source/layer binding changed')
+    require(before['counter'] == after['counter'] == counter_before, 'Counter changed')
+    dispatches = [r for r in entries if r.get('entry') == 'dispatch' and r.get('action_key') == key]
+    cancels = [r for r in entries if r.get('entry') == 'cancel_intent' and r.get('operation_id') == token]
+    completions = [r for r in entries if r.get('entry') == 'completion' and r.get('operation_id') == token]
+    require(len(dispatches) == len(cancels) == len(completions) == 1,
+            'Exactly one durable dispatch, cancel intent and completion required')
+    dispatch, cancel, completion = dispatches[0], cancels[0], completions[0]
+    receipt = {'action_key': key, 'operation_id': token, 'pid': pid}
+    require(dispatch['report']['receipt'] == dispatch_receipt
+            and dispatch['report']['outcome'] == {'status': 'accepted', 'operation_id': token},
+            'Durable dispatch must match the observed native admission')
+    require(cancel['action_key'] == completion['action_key'] == key
+            and completion['report']['completion'] == {'status': 'cancelled'}
+            and completion['report']['receipt'] is None
+            and completion['report']['terminal_receipt'] == receipt,
+            'Durable owner receipt must confirm cancellation of this exact action')
+    require(entries.index(dispatch) < entries.index(cancel) < entries.index(completion),
+            'Durable cancellation must follow dispatch and precede completion')
+    return {'dispatch': dispatch, 'cancel': cancel, 'completion': completion}
+
+
 def validate_reconciled(before, after, session, pid):
     require(before['state'] == 'needs_reconciliation', 'Uncertain job must be retained before reconcile')
     require(after['state'] == 'cancelled' and after['cursor'] == before['cursor'] == 0,
@@ -370,6 +433,65 @@ class Suite:
             result['reason'] = 'Native completion won cancellation race'
         self.report['gates']['cancel_after_tick'] = result['status']
 
+    def cancellation_before_tick(self):
+        # One attempt per fresh owner/session/owned fixture. A second invocation
+        # needs another owner and explicit physical lease; never loop a race.
+        baseline = self.ready()
+        require(not baseline['show_control']['jobs'], 'Fresh session without earlier jobs required')
+        identifier = self.press(self.nonce + '-cancel-before-tick')
+        result = {'status': 'BLOCKED', 'job_id': identifier, 'session': self.session,
+                  'counter_before': counter_value(baseline), 'cancel_requested': False,
+                  'protocol': 'one attempt; at most 32 status queries or 1s; no sleeps before cancel'}
+        self.report['cancellation_before_tick'] = result
+        deadline = time.monotonic() + 1
+        operation = None
+        for count in range(32):
+            observed = self.state()
+            require(observed['show_control']['session'] == self.session, 'Owner session changed')
+            record = next((r for r in job(observed, identifier)['records'] if r.get('operation_id')), None)
+            if record:
+                operation = native_animation_id(record['operation_id'], self.session)
+            result['queries'] = count + 1
+            if operation is not None or job(observed, identifier)['state'] in TERMINAL or time.monotonic() >= deadline:
+                break
+        result['before'] = {'job': job(observed, identifier), 'native': native(observed, operation),
+                            'counter': counter_value(observed), 'host_bracket_s': self.client.last_bracket}
+        candidate = result['before']['native']
+        if (operation is not None and result['before']['job']['state'] == 'awaiting_completion'
+                and before_first_tick(candidate)):
+            require((candidate['scene_id'], candidate['layer_id'], candidate['trigger_source_id'])
+                    == (self.scene, self.layer, self.source), 'Only the owned fixture may be cancelled')
+            result['request'] = self.call('cancel_show_control', session=self.session, job_id=identifier)
+            result['cancel_requested'] = True
+            result['request_bracket_s'] = self.client.last_bracket
+            state, prior, final = self.finish_uncertain(identifier, operation)
+            result['before_reconcile'] = prior
+            result['after'] = {'job': final, 'native': native(state, operation),
+                               'counter': counter_value(self.state())}
+            actual = result['after']['native']
+            require(actual['phase'] != 'failed', 'Native cancellation failed')
+            entries = self.journal(self.session)
+            if actual['phase'] == 'cancelled' and before_first_tick({**actual, 'phase': 'running'}):
+                result['journal_evidence'] = validate_before_tick_cancel(
+                    result['before'], result['after'], self.session, self.report['identity']['pid'],
+                    result['counter_before'], entries)
+                result['status'] = 'PASS'
+            else:
+                result['reason'] = 'First native tick/completion won after the pre-tick observation; no pre-tick PASS'
+        else:
+            result['reason'] = 'No exact unstarted native operation observed; queued-job cancellation is not a substitute'
+            # Let this own job finish normally. Never cancel a merely queued
+            # job to manufacture a zero counter or a missing native token.
+            if operation is not None:
+                self.finish_uncertain(identifier, operation)
+            else:
+                self.wait(lambda s: job(s, identifier)['state'] in TERMINAL
+                          and not s['overlays']['runtime']['animations']['busy'], 'unobserved own job terminal')
+            final = self.state()
+            result['after_missed_window'] = {'job': job(final, identifier), 'counter': counter_value(final)}
+            self.journal(self.session)
+        self.report['gates']['cancel_before_tick'] = result['status']
+
     def restore_and_arm(self):
         old_session = self.session
         original_journal = self.own_journals[old_session]
@@ -437,6 +559,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--owner-pid', type=int, help='Expected PID; otherwise pin exact socket LOCAL_PEERPID before any mutation')
+    parser.add_argument('--cancel-before-tick-only', action='store_true',
+        help='One bounded attempt on a fresh owner/session/owned fixture; no queued-job substitute. Maximum two separately coordinated invocations.')
     args = parser.parse_args()
     paths = verification_paths(ROOT)
     require(paths.portable, 'Explicit portable MOTIVE_TEST_* paths required')
@@ -446,10 +570,13 @@ def main():
     suite = Suite(args, paths, out)
     try:
         suite.open()
-        suite.race()
-        suite.cancellation()
-        suite.restore_and_arm()
-        suite.report['status'] = 'PARTIAL'  # Physical presentation/UI/pre-first-tick remain separate.
+        if args.cancel_before_tick_only:
+            suite.cancellation_before_tick()
+        else:
+            suite.race()
+            suite.cancellation()
+            suite.restore_and_arm()
+        suite.report['status'] = 'PARTIAL'  # UI/media and unexercised gates remain separate.
     except Exception as error:
         suite.report['failure'] = str(error)
         suite.report['traceback'] = traceback.format_exc()
@@ -460,7 +587,8 @@ def main():
         suite.flush()
     print(json.dumps({'status': suite.report['status'], 'gates': suite.report['gates'],
                       'cleanup_errors': suite.report['cleanup_errors'], 'report': str(out / 'report.json')}))
-    return int(suite.report['status'] == 'FAIL' or suite.report['gates']['reconcile_same_process'] != 'PASS')
+    gate = 'cancel_before_tick' if args.cancel_before_tick_only else 'reconcile_same_process'
+    return int(suite.report['status'] == 'FAIL' or suite.report['gates'][gate] != 'PASS')
 
 
 if __name__ == '__main__':

@@ -40,6 +40,7 @@ static void visual_destroy(visual_source *s) {
     free(s->overlay_json);free(s);
 }
 #include "scene-items.h"
+#include "capture-admission.h"
 static void release_capture_source(motive_engine *e,visual_source *s) {
     // Detach every layer, then join OBS source destruction before replacement.
     // AVFoundation stops synchronously. Official SCK starts asynchronous stop;
@@ -104,7 +105,10 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
     s->source=obs_source_create_private(type,s->id,settings);obs_data_release(settings);
     // OBS retains the settings object even when the plugin's create callback
     // fails. Reject that shell immediately; it cannot ever publish a frame.
-    if (!s->source || obs_obj_invalid(s->source)) {snprintf(e->error,sizeof(e->error),"SOURCE_CREATE_FAILED");visual_destroy(s);return NULL;}
+    if (!s->source || obs_obj_invalid(s->source)) {
+        const char *error=!strcmp(s->kind,"window") ? motive_capture_creation_error(s->source):"SOURCE_CREATE_FAILED";
+        snprintf(e->error,sizeof(e->error),"%s",error);visual_destroy(s);return NULL;
+    }
     s->instance_id=++e->visual_instances;
     obs_source_set_muted(s->source,true);
     obs_source_set_audio_mixers(s->source,0);

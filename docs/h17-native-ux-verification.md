@@ -35,7 +35,7 @@ funcional de cada paso se separa de los defectos AX y de la aceptación de medio
 | 4. Añadir fuente propia | PASS | `04-source-audio` y revisión 5: patrón agregado; no se atribuye esta prueba a captura de ventanas de terceros. |
 | 5. Configurar audio | PASS | Tono controlado; mute/unmute en revisiones 9/10 y gain posterior desde UI. No equivale a prueba de micrófono. |
 | 6. Cambiar video | PASS | `05-video-preflight`; revisión 11, 1280×720 a 30 FPS. |
-| 7. Revisar perfiles/preflight | PASS | `06-output-profiles` y `07-recording-preflight`; perfil guardado en revisión 12. Preflight no demuestra entrega. |
+| 7. Revisar perfiles/preflight | PASS | `06-output-profiles` y `07-recording-preflight`; perfil actualizado en configuración activa, revisión 12. No se acredita persistencia del perfil; preflight no demuestra entrega. |
 | 8. Preparar destino local | PASS | `UI · configure_stream`, revisión 13; receptor loopback controlado. Sin emisión pública. |
 | 9. Revisar e instalar MATCHDAY | PASS | `08-matchday-review` y `09-matchday-installed`: 73/73 pasos, 4 escenas, 12 fuentes y 23 capas del pack. Revisión AX FAIL; texto inferior requiere scroll. |
 | 10. Guardar proyecto y reglas | PASS | Proyecto revisión 103; `10-durable-show-save`, recibo 1/revisión 103 y 7241 bytes durables. Recibo AX ausente en B7. |
@@ -52,6 +52,12 @@ journals. Los reports de wrappers B7/B8/B9 registran `owner_exit: 0`,
 `suite_exit: 0` y `cleanup_errors: []`. El observador B8 terminó antes de la
 salida (`observed_owner_exit: false`); allí la prueba del cierre es el wrapper,
 no ese campo del observador. B7 y B9 sí observaron la salida del owner.
+
+Después de cerrar los owners, la [verificación de preservación](../var/evidence/h17-store-preservation/restored-after-native-ui.json)
+confirmó **PASS**: cinco stores recuperaron sus bytes/ausencia originales y
+los 22 archivos de journal permanecieron intactos. `output-profiles.json`
+estaba ausente en el estado original y volvió a quedar ausente; el paso 7
+anterior sólo demuestra configuración activa.
 
 ## Defectos AX conservados de B7
 
@@ -139,7 +145,12 @@ certifica entrega completa ni se transcribe/escucha audio en este análisis.
 Los otros diálogos corregidos por la causa común —acción sensible de Live
 Deck y revisar/eliminar/iniciar destino RTMPS— tienen verificación de código
 y compilación; su recorrido AX/VoiceOver específico queda **NOT_EVALUATED**.
-La grabación B9 de esta toma no tiene análisis de medios en este informe.
+La [revisión de medios B9](../var/evidence/h17-native-b9/media-analysis/review.md)
+registra decode estructural **PASS** y entrega **PARTIAL**: 5715 frames
+decodificados frente a 5716 observados, y 8931 paquetes AAC en ambos lados.
+La hoja de contacto muestra aparición y retiro del gol; no prueba el gate
+stock450. El [informe de outputs/audio](h17-output-audio-verification.md)
+conserva el análisis completo y las limitaciones de atribución al cierre.
 
 ## Medios B7 y gate stock450
 

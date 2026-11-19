@@ -1,0 +1,45 @@
+--- a/mac-sck-video-capture.m
++++ b/mac-sck-video-capture.m
+@@ -1,5 +1,6 @@
+ #include "mac-sck-common.h"
+ #include "window-utils.h"
++#include "capture-admission.h"
+ 
+ API_AVAILABLE(macos(12.5)) static void destroy_screen_stream(struct screen_capture *sc)
+ {
+@@ -164,10 +165,25 @@
+                 motive_matched_window = target_window.windowID;
+                 motive_matched_owner = target_window.owningApplication.processID;
+                 motive_matched_frame = target_window.frame;
++                // Reject unavailable geometry before filter creation or integer conversion.
++                if (!motive_capture_window_geometry_valid(motive_matched_frame.size.width,
++                                                          motive_matched_frame.size.height)) {
++                    motive_capture_mark_geometry_not_ready(sc->source);
++                    MACCAP_LOG(LOG_WARNING,
++                               "motive_capture_geometry_not_ready: source_pid=%d window=%u owner_pid=%d expected_pid=%lld "
++                               "frame_w=%.17g frame_h=%.17g",
++                               (int)getpid(), motive_matched_window, (int)motive_matched_owner,
++                               (long long)sc->motive_window_owner_pid,
++                               motive_matched_frame.size.width, motive_matched_frame.size.height);
++                    os_sem_post(sc->shareable_content_available);
++                    sc->disp = NULL;
++                    os_event_init(&sc->stream_start_completed, OS_EVENT_TYPE_MANUAL);
++                    return false;
++                }
+                 content_filter = [[SCContentFilter alloc] initWithDesktopIndependentWindow:target_window];
+ 
+-                [sc->stream_properties setWidth:(size_t) target_window.frame.size.width];
+-                [sc->stream_properties setHeight:(size_t) target_window.frame.size.height];
++                [sc->stream_properties setWidth:(size_t) motive_matched_frame.size.width];
++                [sc->stream_properties setHeight:(size_t) motive_matched_frame.size.height];
+ 
+                 if (@available(macOS 14.2, *)) {
+                     [sc->stream_properties setIncludeChildWindows:YES];
+@@ -332,6 +348,7 @@
+     struct screen_capture *sc = bzalloc(sizeof(struct screen_capture));
+ 
+     sc->source = source;
++    motive_capture_reset_admission(settings);
+     motive_sck_diagnostics_init(&sc->motive_diagnostics);
+     sc->hide_cursor = !obs_data_get_bool(settings, "show_cursor");
+     sc->hide_obs = obs_data_get_bool(settings, "hide_obs");

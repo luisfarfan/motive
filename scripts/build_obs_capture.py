@@ -2,7 +2,7 @@
 """Build OBS 33.0.1 mac-capture with SCK diagnostics and strict admission.
 
 Pinned upstream bytes stay untouched; all patched sources/objects live in target.
-Diagnostics remain observational. Admission rejects absent/mismatched windows
+Diagnostics remain observational. Admission rejects absent/mismatched windows, invalid geometry
 and failed stream-output registration; buffering, timestamps and active-session
 recovery are unchanged.
 """
@@ -19,6 +19,7 @@ BUILD = ROOT / 'target/mac-capture-h14'
 PATCH = ROOT / 'native/patches/obs-33.0.1-sck-diagnostics.patch'
 ADMISSION_PATCH = ROOT / 'native/patches/obs-33.0.1-sck-admission.patch'
 ADMISSION_OBSERVATION_PATCH = ROOT / 'native/patches/obs-33.0.1-sck-admission-observation.patch'
+GEOMETRY_PATCH = ROOT / 'native/patches/obs-33.0.1-sck-geometry-admission.patch'
 ARCHIVE_SHA = '9174ee0e3677c92d0d060bdce4c5d44dfee9fd3afddfb6333f098fd029b8de2b'
 
 
@@ -32,7 +33,8 @@ def main():
                 continue
             expected = archive.extractfile('obs-studio-33.0.1/plugins/mac-capture/' + path.name).read()
             assert path.read_bytes() == expected, f'Pinned capture source changed: {path.name}'
-    inputs = [pathlib.Path(__file__), PATCH, ADMISSION_PATCH, ADMISSION_OBSERVATION_PATCH,
+    inputs = [pathlib.Path(__file__), PATCH, ADMISSION_PATCH, ADMISSION_OBSERVATION_PATCH, GEOMETRY_PATCH,
+              ROOT / 'native/capture-admission.h',
               ROOT / 'native/sck-diagnostics.h', ROOT / 'native/sck-diagnostics.m']
     stamp = hashlib.sha256(b''.join(p.read_bytes() for p in inputs)).hexdigest()
     output = BUILD / 'mac-capture.so'
@@ -46,6 +48,7 @@ def main():
     subprocess.run(['patch', '-p1', '-i', str(PATCH)], cwd=patched, check=True)
     subprocess.run(['patch', '-p1', '-i', str(ADMISSION_PATCH)], cwd=patched, check=True)
     subprocess.run(['patch', '-p1', '-i', str(ADMISSION_OBSERVATION_PATCH)], cwd=patched, check=True)
+    subprocess.run(['patch', '-p1', '-i', str(GEOMETRY_PATCH)], cwd=patched, check=True)
     sources = sorted(p for p in patched.iterdir() if p.suffix in ('.m', '.c'))
     sources.append(ROOT / 'native/sck-diagnostics.m')
     frameworks = DEPS / 'OBS.app/Contents/Frameworks'

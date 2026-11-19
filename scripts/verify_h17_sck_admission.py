@@ -10,7 +10,7 @@ import subprocess
 import tarfile
 
 from build_obs_capture import (ARCHIVE_SHA, DEPS, PATCH, ADMISSION_PATCH,
-                               ADMISSION_OBSERVATION_PATCH, ROOT, SOURCE)
+                               ADMISSION_OBSERVATION_PATCH, GEOMETRY_PATCH, ROOT, SOURCE)
 
 
 def sha(path):
@@ -54,6 +54,24 @@ def main():
     subprocess.run(['patch', '-p1', '-i', str(ADMISSION_OBSERVATION_PATCH)],
                    cwd=patched, check=True, capture_output=True)
     assert expressions((patched / 'mac-sck-video-capture.m').read_text()) == admission_expressions
+    subprocess.run(['patch', '-p1', '-i', str(GEOMETRY_PATCH)],
+                   cwd=patched, check=True, capture_output=True)
+    source = (patched / 'mac-sck-video-capture.m').read_text()
+    assert expressions(source) == admission_expressions
+    # The real Objective-C branch rejects before allocating its window filter,
+    # casting the same observed dimensions, or creating/starting SCStream.
+    guard = source.index('if (!motive_capture_window_geometry_valid(')
+    window_filter = source.index('content_filter = [[SCContentFilter alloc] initWithDesktopIndependentWindow:target_window]')
+    cast = source.index('(size_t) motive_matched_frame.size.width')
+    stream = source.index('sc->disp = [[SCStream alloc]')
+    assert guard < window_filter < cast < stream
+    branch = source[guard:window_filter]
+    for required in ('motive_capture_mark_geometry_not_ready(sc->source);',
+                     'os_sem_post(sc->shareable_content_available);', 'sc->disp = NULL;',
+                     'os_event_init(&sc->stream_start_completed, OS_EVENT_TYPE_MANUAL);', 'return false;'):
+        assert required in branch, required
+    create = source[source.index('static void *sck_video_capture_create'):]
+    assert create.index('motive_capture_reset_admission(settings);') < create.index('if (!init_screen_stream(sc))')
     template_path = ROOT / 'scripts/fixtures/h17_sck_admission.c'
     template = template_path.read_text()
     frameworks = DEPS / 'OBS.app/Contents/Frameworks'
@@ -86,6 +104,30 @@ def main():
         runs.append({'label': label, 'status': 'PASS' if valid else 'FAIL',
                      'exit': result.returncode, 'extracted_expressions': extracted,
                      'cases': rows[:-1], 'terminal': terminal, 'command': command})
+    geometry_path = ROOT / 'scripts/fixtures/h17_sck_geometry.c'
+    command = ['clang', '-arch', 'arm64', '-O1', '-g',
+               '-fsanitize=address,undefined,float-cast-overflow',
+               '-I', str(SOURCE / 'libobs'), '-I', str(DEPS / 'simde-0.8.2'),
+               '-I', str(ROOT / 'native'), str(geometry_path),
+               '-F', str(frameworks), '-framework', 'libobs',
+               '-Wl,-rpath,' + str(frameworks), '-o', str(out / 'geometry')]
+    compiled = subprocess.run(command, capture_output=True, text=True)
+    (out / 'geometry-build.log').write_text(compiled.stdout + compiled.stderr)
+    compiled.check_returncode()
+    result = subprocess.run([str(out / 'geometry')], capture_output=True, text=True)
+    (out / 'geometry.log').write_text(result.stdout + result.stderr)
+    rows = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
+    terminal = rows[-1]
+    valid = (result.returncode == 0 and terminal['status'] == 'PASS' and
+             terminal['failed_cases'] == 0 and len(rows[:-1]) == 22 and
+             terminal['accepted'] == terminal['destroyed'] == 5 and
+             terminal['post_geometry_entries'] == 6 and
+             all(row['status'] == 'PASS' for row in rows[:-1]) and
+             'ERROR: AddressSanitizer' not in result.stderr and 'runtime error:' not in result.stderr)
+    runs.append({'label': 'geometry', 'status': 'PASS' if valid else 'FAIL',
+                 'exit': result.returncode, 'cases': rows[:-1], 'terminal': terminal,
+                 'command': command, 'guard_before_filter_cast_stream': 'PASS',
+                 'scope': 'production geometry/settings helpers, real libobs invalid shell and error handoff; no SCK execution'})
     # Compile the actual complete patched translation unit separately. This
     # validates the Objective-C API/struct wiring, without executing the module.
     command = ['clang', '-arch', 'arm64', '-mmacosx-version-min=13.0', '-fsyntax-only',
@@ -99,7 +141,8 @@ def main():
               'scope': 'synthetic admission conditions, real libobs invalid-object contract; no physical capture',
               'physical_capture': 'NOT_EVALUATED', 'observation_preserves_admission_expressions': 'PASS', 'runs': runs,
               'syntax': {'status': 'PASS' if syntax.returncode == 0 else 'FAIL', 'command': command},
-              'inputs': {str(p): sha(p) for p in [PATCH, ADMISSION_PATCH, ADMISSION_OBSERVATION_PATCH, template_path,
+              'inputs': {str(p): sha(p) for p in [PATCH, ADMISSION_PATCH, ADMISSION_OBSERVATION_PATCH,
+                  GEOMETRY_PATCH, ROOT / 'native/capture-admission.h', geometry_path, template_path,
                   upstream / 'mac-sck-common.h', upstream / 'mac-sck-video-capture.m']}}
     (out / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({'output': str(out), 'status': report['status']}))

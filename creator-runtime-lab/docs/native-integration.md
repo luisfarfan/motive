@@ -3,7 +3,9 @@
 H17 remains active in the chat **Cerrar fiabilidad y beta de Motive** and worktree
 `motive-h17` on `codex/h17-production-reliability`. Read-only status was inspected
 on 2026-11-18. No explicit release of shared files or integration authorization
-has been received. H18 changes only `creator-runtime-lab/` and `web-host-lab/`.
+has been received. H18 implementation changes only `creator-runtime-lab/` and
+`web-host-lab/`. The owner separately authorized an `AGENTS.md` update on November
+18 to allow supervised native CEF testing with controlled owned content.
 Production/native/Show Control/root Cargo/main bundler are unchanged here.
 
 After an explicit handoff and owner authorization:
@@ -29,9 +31,12 @@ After an explicit handoff and owner authorization:
    clock, upload/change/free textures in OBS graphics context, blank on failed or
    revoked generation and account aggregate visibility across all scene layers.
    No second renderer, audio web, MCP frames or host timestamps as media PTS.
-6. Connect the independently tested fixed MessagePort bootstrap through a typed
-   CEF process-message dispatcher with peer/main-frame/generation authentication.
-   That native dispatcher is not implemented in the owned static fixture yet.
+6. Adapt the now-executed fixed MessagePort/CEF process-message dispatcher to the
+   real owner. The isolated Goal fixture uses the existing offline owner grant,
+   exact browser/peer/main-frame/origin/generation checks and arrival-time TTL.
+   Its native visual pixels and JS state remain distinct from an OBS draw.
+   The fixture-only C ABI does not yet admit arbitrary reviewed packages or a
+   live Show Control scheduler; those must keep the same owner review boundary.
 7. Persist actual installation state and resource mappings through an approved
    compatibility decision. Restore disarmed, recheck original package and managed
    asset hashes, report orphans/incompatibilities, and never replay events.

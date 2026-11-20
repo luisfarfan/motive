@@ -222,6 +222,10 @@ struct audio_input {
     unsigned identity_instances;
     pid_t identity_observed_pid;
     bool identity_terminated,identity_pinned_present,identity_pinned_terminated,identity_bundle_matches;
+    motive_process_identity admitted_process;
+    enum motive_process_probe identity_process_probe;
+    bool identity_generation_matches,identity_executable_matches;
+    uint64_t identity_catalog_absence_observations;
     const char *identity_reason;
     CGDirectDisplayID system_display;
     atomic_bool system_stopped;
@@ -457,7 +461,7 @@ bool motive_audio_restore_missing_target(motive_engine *e,const char *id,unsigne
     snprintf(a->id,sizeof(a->id),"%s",id);snprintf(a->device,sizeof(a->device),"%s",device);
     audio_metrics_init(&a->metrics);
     a->fault=kind>=2?8:1;
-    for(int fault=1;fault<=14;fault++)if(!strcmp(e->error,audio_fault_name(fault))) {a->fault=fault;break;}
+    for(int fault=1;fault<=16;fault++)if(!strcmp(e->error,audio_fault_name(fault))) {a->fault=fault;break;}
     e->audio_inputs[slot]=a;return true;
 }
 bool motive_audio_restore_missing(motive_engine *e,const char *id,const char *device) {
@@ -547,6 +551,12 @@ char *motive_audio_state(motive_engine *e) {
                 @"pinned_process_present":@(a->identity_pinned_present),
                 @"pinned_process_terminated":@(a->identity_pinned_terminated),
                 @"pinned_bundle_matches":@(a->identity_bundle_matches),
+                @"process_probe":a->identity_process_probe==MOTIVE_PROCESS_OBSERVED?@"observed":
+                    a->identity_process_probe==MOTIVE_PROCESS_ABSENT?@"absent":@"unobserved",
+                @"process_generation_matches":@(a->identity_generation_matches),
+                @"process_executable_matches":@(a->identity_executable_matches),
+                @"catalog_absence_observations":@(a->identity_catalog_absence_observations),
+                @"identity_scope":@"admitted_pid_birth_uid_and_executable; catalog_absence_is_not_process_death",
                 @"reason":a->identity_reason?@(a->identity_reason):@"not_checked"
             }:(id)NSNull.null}];
     }

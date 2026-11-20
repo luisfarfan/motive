@@ -8,6 +8,15 @@ import sys
 from verify_h14_collection import ROOT, lock, save
 
 
+def matrix_outcome(cases):
+    if len(cases) != 9 or len({c['name'] for c in cases}) != 9 or any(
+        len(c.get('reports', [])) != 1 or c.get('functional_status') != 'PASS'
+        or c.get('status') not in ('PASS', 'PARTIAL') for c in cases
+    ):
+        return 'FAIL'
+    return 'PARTIAL' if any(c['status'] == 'PARTIAL' for c in cases) else 'PASS'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', type=Path, required=True)
@@ -22,7 +31,7 @@ def main():
     cases = [(encoder, mode, 'stop') for encoder in ('videotoolbox','x264')
              for mode in ('recording','streaming','dual')]
     cases += [('videotoolbox','dual',ending) for ending in ('cancel','receiver-loss','shutdown')]
-    report = {'cases': [], 'frame_reordering':False, 'seconds_per_case':8}
+    report = {'status':'RUNNING', 'cases': [], 'frame_reordering':False, 'seconds_per_case':8}
     for encoder,mode,ending in cases:
         before = set((ROOT/'var/evidence').glob('h14-output-integrity-*'))
         name = '-'.join((encoder,mode,ending))
@@ -43,10 +52,12 @@ def main():
         report['cases'].append(row)
         save(out/'report.json', report)
         wrapper = json.loads((out/name/'report.json').read_text())
-        if wrapper['cleanup_errors'] or wrapper['owner_exit'] is None:
+        if wrapper['cleanup_errors'] or wrapper['owner_exit'] != 0:
             raise RuntimeError('Owner cleanup incomplete; no next physical case')
         print(json.dumps(row),flush=True)
-    return 0
+    report['status'] = matrix_outcome(report['cases'])
+    save(out/'report.json', report)
+    return int(report['status'] == 'FAIL')
 
 
 if __name__ == '__main__': raise SystemExit(main())

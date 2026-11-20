@@ -14,6 +14,7 @@ typedef struct {
     atomic_uint_fast64_t texture_bind_attempts, renders, last_render_ns;
     atomic_uint_fast64_t missing_images, invalid_samples, pts_repeats, pts_regressions;
     atomic_uint_fast64_t statuses[6], errors, last_error_ns;
+    atomic_uint_fast64_t status_last_seen_ns[6], status_changed_ns, status_changes;
     atomic_int_fast64_t last_pts_ns, presented_pts_ns, last_error_code;
     atomic_uint_fast32_t surface_id, presented_surface_id;
     atomic_int status, phase;

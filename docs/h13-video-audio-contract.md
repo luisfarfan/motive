@@ -86,6 +86,33 @@ perdido o señal de parada del stream aíslan la entrada y retienen el fallo.
 captura restante y ambas salidas continúan. La señal pública del módulo no
 entrega NSError al adaptador: `SYSTEM_AUDIO_STREAM_STOPPED` no inventa una causa.
 
+Desde C8.1, la admisión de audio de aplicación fija también PID, UID,
+nacimiento y ejecutable observados por el sistema. Una ausencia posterior del
+catálogo `NSRunningApplication` no declara muerto ese proceso si su identidad
+OS sigue verificada. Identidad no observable produce
+`APPLICATION_IDENTITY_UNAVAILABLE`; reemplazo, conflicto positivo o ambigüedad
+siguen fallando. `application_identity` expone resultado de comparación y
+contador de ausencias de catálogo, sin ruta ni fecha de nacimiento. Es
+metadata puntual de control, no una garantía de liveness futuro ni un reloj.
+Los campos anteriores `pinned_process_present` y `pinned_bundle_matches`
+describen la consulta `NSRunningApplication`; los nuevos `process_probe`,
+`process_generation_matches` y `process_executable_matches` describen la
+observación OS independiente. No deben confundirse ambas fuentes.
+La comparación de ejecutable usa su ruta observada, no un hash del código
+cargado ni una atestación de integridad del proceso.
+
+Desde C8.2, las fuentes de video Application exponen su propia
+`sources[].application_identity`: `health` (`matches`, `changed`, `ambiguous`
+o `unobserved`), probe OS, comparaciones y contador de ausencias de catálogo.
+La observación se actualiza incluso fuera de Program sin activar la captura;
+rearmar el respaldo al retornar requiere `matches` además de las condiciones de superficie.
+Window y Display conservan sus contratos y ese objeto es `null` para ellos.
+
+La API histórica de reconexión en vivo no demuestra una barrera de lifetime
+SCK. El alcance supervisado C8.1/C8.2 requiere detener outputs antes de reconectar;
+la regresión nueva de identidad prueba ese recorrido idle. Véanse los
+[límites de lifecycle](h21-sck-lifecycle.md) y la [evidencia C8](h21-c8-verification.md).
+
 Medidores por entrada: post-fader/pre-mute manual; master: post-mute/pre-clamp.
 La UI muestra los niveles observados, edad de muestras y clipping, sin generar
 animaciones que aparenten señal. Silenciar no borra el medidor de entrada.

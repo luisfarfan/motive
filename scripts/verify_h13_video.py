@@ -10,7 +10,9 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import pathlib
+import stat
 import statistics
 import struct
 import subprocess
@@ -20,6 +22,35 @@ from h7_support import Client, EVIDENCE, EXE, ROOT, process_sample
 from verification_paths import verification_paths
 VERIFY = verification_paths(ROOT)
 from verify_h11_visuals import fixture_png, import_asset, shape_definition, text_definition
+from verify_h14_collection import lock
+
+
+def restore_owned_project(path, expected, original, mode):
+    """Restore only the still-owned saved bytes; never load the original project."""
+    assert not path.is_symlink(), 'Project is a symlink; restoration withheld'
+    observed = path.read_bytes() if path.exists() else None
+    assert observed == expected, 'Project changed by another writer; restoration withheld'
+    if original is None:
+        if path.exists():
+            path.unlink()
+    else:
+        temporary = path.with_name(path.name + '.h13-restore-' + str(os.getpid()))
+        created = False
+        try:
+            with temporary.open('xb') as stream:
+                created = True
+                os.fchmod(stream.fileno(), mode)
+                stream.write(original)
+                stream.flush()
+                os.fsync(stream.fileno())
+            assert (path.read_bytes() if path.exists() else None) == expected
+            temporary.replace(path)
+        finally:
+            if created and temporary.exists():
+                temporary.unlink()
+    assert (path.read_bytes() if path.exists() else None) == original
+    if original is not None:
+        assert stat.S_IMODE(path.stat().st_mode) == mode
 
 
 def config(resolution, fps):
@@ -118,9 +149,20 @@ def main():
     parser.add_argument('--variant', choices=['horizontal','vertical'], default='horizontal')
     parser.add_argument('--encoder', choices=['videotoolbox','x264'], default='videotoolbox')
     args = parser.parse_args()
+    lock()
     run = EVIDENCE/f'h13-video-{time.time_ns()}'
     run.mkdir(parents=True)
     report = dict(ok=False, trials=[], run=str(run), scope='Owned pattern, text, PNG, circle, Cut/Fade and tone; capture/GPUI gates separate')
+    project_path = VERIFY.data_root / 'project.json'
+    assert not project_path.is_symlink(), 'Project is a symlink'
+    original = project_path.read_bytes() if project_path.exists() else None
+    original_mode = stat.S_IMODE(project_path.stat().st_mode) if original is not None else None
+    expected_project = original
+    if original is not None:
+        backup = run/'project.original'
+        backup.write_bytes(original)
+        backup.chmod(0o600)
+    report['original_project_sha256'] = hashlib.sha256(original).hexdigest() if original is not None else None
     c = None
     try:
         c = Client()
@@ -179,7 +221,12 @@ def main():
             if variant=='vertical': expected=expected[::-1]
             assert (configured['width'],configured['height'])==expected
             c.call('set_encoder', encoder=encoder)
+            assert not project_path.is_symlink()
+            assert (project_path.read_bytes() if project_path.exists() else None) == expected_project
             c.call('save_project')
+            saved_project = project_path.read_bytes()
+            assert json.loads(saved_project) == configured['project']
+            expected_project = saved_project
             assert c.call('load_project')['state']['project']==configured['project']
             c.wait(lambda s:not s['issues'] and not s['recovery_required'])
             # Exercise CLI and MCP on the same owner, without another instance.
@@ -218,13 +265,25 @@ def main():
         report['error']=repr(exc)
         raise
     finally:
+        cleanup_error = None
         if c:
             try:
                 if c.state()['output'] not in ('idle','error'):c.stop()
-            except Exception as exc:report['cleanup_error']=repr(exc)
+                final = c.state()
+                assert final['pid'] == initial['pid']
+                assert all(not slot['native_busy'] for slot in final['outputs'].values())
+                lock()
+                restore_owned_project(project_path, expected_project, original, original_mode)
+                report['project_restored'] = True
+            except Exception as exc:
+                cleanup_error = exc
+                report['cleanup_error'] = repr(exc)
+                report['ok'] = False
             report['rpc']=c.ops;c.close()
         (run/'report.json').write_text(json.dumps(report,indent=2))
         print(run/'report.json',flush=True)
+        if cleanup_error is not None:
+            raise RuntimeError('Project cleanup failed; preserve backup and inspect report') from cleanup_error
 
 
 if __name__=='__main__':main()

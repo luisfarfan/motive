@@ -10,6 +10,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <VideoToolbox/VideoToolbox.h>
 #include "output-diagnostics.h"
+#include "process-identity.h"
 
 /* Control entry points run on the main/GPUI owner. OBS owns rendering, mixing
  * and output threads; source/media callbacks only publish bounded observations.

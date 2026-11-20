@@ -11,6 +11,7 @@ import shutil
 
 from verify_h14_collection import digest, lock, require, save
 from verify_h14_output_integrity import correlate_tail
+from h21_tail_semantics import interpret_tail
 
 
 def main():
@@ -24,11 +25,13 @@ def main():
     owner = json.loads(source.parent.with_name(source.parent.name+'-owner').joinpath('report.json').read_text())
     require(owner['owner_exit'] == 0 and not owner['cleanup_errors'], 'Owner cleanup not verified')
     out = args.output.absolute(); out.mkdir(parents=True, exist_ok=False)
-    for script in (Path(__file__), Path(__file__).with_name('verify_h14_output_integrity.py')):
+    for script in (Path(__file__), Path(__file__).with_name('verify_h14_output_integrity.py'),
+                   Path(__file__).with_name('h21_tail_semantics.py')):
         shutil.copy2(script, out/script.name)
     result = {'status':'FAIL', 'source_sha256':digest(source),
               'analyzer_sha256':digest(Path(__file__)),
               'classifier_sha256':digest(Path(__file__).with_name('verify_h14_output_integrity.py')),
+              'semantics_sha256':digest(Path(__file__).with_name('h21_tail_semantics.py')),
               'scope':'Recorded terminal dispatch trace versus actual container packets; not every packet of an arbitrary-length session.',
               'media':[]}
     try:
@@ -52,10 +55,14 @@ def main():
             else:
                 require(initial['output']['attempt_id'] == final['output']['attempt_id'], 'Output attempt changed')
                 row['tail_accounting'] = correlate_tail(initial['packet_trace'], final['packet_trace'], probe['packets'])
+            row['obs_stop_semantics'] = interpret_tail(row['tail_accounting'])
         states = [row['tail_accounting']['status'] for row in result['media']]
         require(len(states) == 2, 'Both destinations required')
         result['status'] = ('FAIL' if 'FAIL' in states else
                             'PASS' if all(s == 'TRACED_TAIL_PRESENT' for s in states) else 'PARTIAL')
+        semantic_states = [row['obs_stop_semantics']['status'] for row in result['media']]
+        result['obs_stop_semantics_status'] = ('PASS' if all(s == 'PASS' for s in semantic_states)
+                                               else 'FAIL' if 'FAIL' in semantic_states else 'INCONCLUSIVE')
     except Exception as error: result['error'] = repr(error)
     result['source_unchanged'] = digest(source) == result['source_sha256']
     if not result['source_unchanged']: result['status'] = 'FAIL'

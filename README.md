@@ -27,11 +27,31 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 
 > **Experimental developer preview.** Recording and local loopback streaming work. This is not yet a packaged release or a full replacement for OBS Studio. The current interface is in Spanish; this README is in English.
 
-**Status — November 18, 2026:** H17 has a local release-mode portable B10 candidate; **the beta is not accepted**. H17 fixes unsafe capture admission, stale scene-item references, same-session Show Control reconciliation and observed accessibility feedback defects. B10 rejects a recreated window with zero dimensions, then passes explicit reselection and decoded visual progress in a controlled dual-output run. The external-window focus freeze remains a blocking failure. Output tail delivery, broader recovery, the historical audio-identity failure and distribution gates remain open. GPUI Fast was measured and stays off by default. See the [H17 acceptance matrix](docs/h17-production-reliability.md) and [portable candidate](docs/h17-portable-beta.md). Each result identifies its tested binary; the [B6 checkpoint](docs/h15-resume-verification.md), [H14 results](docs/h14-beta-verification.md) and [H13 results](docs/h13-evidence-index.md) retain their original evidence and limits.
+**Historical H17 checkpoint — November 18, 2026:** H17 has a local release-mode portable B10 candidate; **the beta is not accepted**. H17 fixes unsafe capture admission, stale scene-item references, same-session Show Control reconciliation and observed accessibility feedback defects. B10 rejects a recreated window with zero dimensions, then passes explicit reselection and decoded visual progress in a controlled dual-output run. The external-window focus freeze remains a blocking failure. Output tail delivery, broader recovery, the historical audio-identity failure and distribution gates remain open. GPUI Fast was measured and stays off by default. See the [H17 acceptance matrix](docs/h17-production-reliability.md) and [portable candidate](docs/h17-portable-beta.md). Each result identifies its tested binary; the [B6 checkpoint](docs/h15-resume-verification.md), [H14 results](docs/h14-beta-verification.md) and [H13 results](docs/h13-evidence-index.md) retain their original evidence and limits.
 
 ## ✨ What is taking shape
 
-**H21 local report — November 19, 2026:** [C7](docs/h21-c7-verification.md)
+**H21/C8.2 — November 20, 2026:** the [reliability investigation](docs/h21-c8-verification.md)
+fixes a confirmed false loss of application audio when macOS's app catalog entry
+vanishes while the admitted process remains alive. C8.2 checks OS process identity
+for application video as well. Capture, audio, project and output regressions pass
+on the signed candidate, including two real fullscreen fallback/return cycles.
+The output verifier now waits for actual tone samples and propagates internal
+matrix failures; the failed first case is retained alongside its explicit recheck.
+C8.1 completed a fully decoded one-hour Window game session. C8.2 completed its
+own Application game hour with full MKV/RTMP decode, no unexplained freezes,
+output drops or clipping observed. This supports supervised trials of that
+windowed game and application-audio scenario on the stable integrated display.
+The final cleanup also caught and corrected an old vertical verifier that left
+its generated project saved; the original bytes and permissions are restored.
+The two interrupted C8 runs and the original physical/Spaces results retain
+their exact binary bindings. **PERSONAL STREAM READY remains blocked** by
+physical A/V calibration and unvalidated personal scenarios.
+[Root causes and limits](docs/h21-c8-root-cause.md),
+[physical measurement protocol](docs/h21-c8-physical-calibration.md),
+[curated evidence](docs/evidence/h21/c8-results.json).
+
+**Historical H21/C7 report — November 19, 2026:** [C7](docs/h21-c7-verification.md)
 completes **three one-hour sessions**: Gaming 1080p60, Podcast and Charlas 1080p30.
 All six MKV/loopback recordings pass full decode, cadence and application-reference
 A/V checks (worst measured offset 67 ms; worst drift 14.258 ms/hour). C7 separates
@@ -41,7 +61,7 @@ checks were repeated on this candidate. The 1,584 regular bundle files match the
 build manifest and its signature verifies; temporary settings and user stores
 are restored, with all H21 test processes and sleep assertions closed.
 
-**PERSONAL STREAM READY remains blocked.** Physical camera/microphone hourly
+**C7 acceptance remains blocked.** Physical camera/microphone hourly
 drift is unproven, Spaces and browser capture remain unverified, safe live SCK
 reconstruction is restricted, and terminal packet delivery is partial (Charlas
 RTMP accounting is inconclusive). Gaming used an instrumented lightweight real
@@ -57,8 +77,8 @@ hour with real beginning/middle/end hand contacts, plus an authorized three-minu
 private YouTube trial whose identifier, motion and tone the owner confirmed
 remotely. Both hourly files and the private trial MKV decode completely. Physical
 drift remains PARTIAL because measurement uncertainty exceeds the 40 ms/hour
-budget; the repeated hour retains one clipped microphone block. Spaces still
-lacks an observed roundtrip. The unchanged bundle and final cleanup pass again.
+budget; the repeated hour retains one clipped microphone block. That C7 follow-up
+still lacked an observed Spaces roundtrip. The unchanged bundle and final cleanup pass again.
 
 **H22 Browser Host laboratory:** native cold replacement, per-generation frame
 accounting, an authenticated bounded BGRA channel and an isolated OBS adapter

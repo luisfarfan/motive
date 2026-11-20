@@ -1,25 +1,36 @@
 # H21 — candidata local y primer ensayo personal
 
-**C7 todavía no es PERSONAL STREAM READY.** Sirve para continuar la validación
-local en esta Mac. C7 conserva el respaldo renovado por retorno explícito y
-comprueba por ID/PID las ventanas admitidas, sin usar los filtros del selector
-como prueba de pérdida. Las tres horas locales y su referencia A/V pasan;
-la deriva física cámara/micrófono, entrega terminal y recuperación general
-conservan límites en el [informe final](h21-personal-streaming.md). La sesión de macOS debe estar desbloqueada y la pantalla disponible.
-No se modifica automáticamente esa política. Estado y hashes:
-[candidata C7](h21-c7-verification.md).
+**C8.2 todavía no es PERSONAL STREAM READY.** Consulta el
+[informe de la candidata C8](h21-c8-verification.md) para sus escenarios exactos,
+hashes y limitaciones. Conserva el respaldo renovado por retorno explícito y
+la identidad ID/PID de ventanas; añade historia escalar de estados SCK y corrige
+el origen de las trazas del verificador. C8.1 también corrige una falsa pérdida
+de audio de aplicación al desaparecer su entrada del catálogo de macOS. C8.2
+aplica la misma identidad OS a video Application y al rearmado explícito del respaldo.
+La sincronía física horaria y una
+conversación remota real siguen sin certificar. La sesión de macOS debe estar
+desbloqueada y la pantalla disponible; Motive no cambia esa política.
+Las [tres horas C7](h21-personal-streaming.md) permanecen como evidencia histórica,
+sin trasladar automáticamente sus PASS o FAIL a esta candidata.
 
-Las horas C7 se ensayan con una aserción externa de reposo autorizada. Para
+El ensayo privado supervisado validado en C8.2 usa Application en la pantalla
+integrada estable, SuperTuxKart 1.5 en ventana con su audio, overlays, Cut/Fade,
+VideoToolbox y MKV + RTMP local durante una hora completamente decodificada.
+No incluye micrófono/cámara ni conversación remota. La recepción externa requiere
+el flujo y comprobación propios descritos abajo. Window tiene un piloto C8.2;
+la hora Window corresponde al binario C8.1 anterior.
+
+Las horas C7/C8 se ensayan con una aserción externa de reposo autorizada. Para
 repetir esa condición durante una prueba local, puedes ejecutar
 `caffeinate -d -i -t 3900` en Terminal: dura como máximo 65 minutos y termina
 sin cambiar preferencias permanentes. No desactiva un bloqueo manual. Motive
-C7 no incorpora esa aserción automáticamente.
+C8 no incorpora esa aserción automáticamente.
 
 ## Abrir y preparar
 
 1. Cierra normalmente cualquier Motive anterior y espera a que termine el ensayo
    que tenga el lock canónico. Abre
-   `motive-h21/target/h21/Motive-H21-C7.app`. No abras dos owners portables.
+   `motive-h21-c8/target/h21/Motive-H21-C8-2.app`. No abras dos owners portables.
 2. Mantén la escena inicial con patrón a canvas completo como respaldo. En
    **Escenas y transiciones**, elige **Usar actual como respaldo**. Crea después tu escena
    principal; el respaldo debe seguir sin cámara ni captura, incluso ocultas.
@@ -35,6 +46,17 @@ C7 no incorpora esa aserción automáticamente.
    No combines audio desktop con una app ya capturada: se rechaza el solapamiento.
    Espera a que todos los canales reciban muestras y desaparezca `AUDIO_NOT_READY`
    antes de iniciar; añadir un canal no significa que ya esté listo.
+   Una ventana recién creada puede aparecer antes que su aplicación en el
+   selector de audio. Deja que termine de iniciar y actualiza el selector;
+   no sustituyas una app ausente por audio de todo el escritorio.
+   El audio de una app también queda vinculado a la pantalla principal al
+   iniciar la captura. Mantén esa pantalla conectada durante la sesión:
+   desconectarla o cambiar la principal puede dejar el canal en error aunque
+   el juego y su video sigan abiertos. En ese caso detén las salidas y reconecta
+   explícitamente el canal; no se selecciona otra pantalla automáticamente.
+   Si se cierra o reinicia la app seleccionada, su canal no sigue al nuevo
+   proceso automáticamente. Detén las salidas y pulsa **Reconectar**. Haz lo
+   mismo si Motive informa que no pudo verificar su identidad.
    Si aparece `AUDIO_INPUT_CLIPPING`, revisa el nivel físico de entrada y la
    distancia al micrófono: el aviso mide antes del fader de Motive. Bajar ese
    fader no recupera una señal que ya llegó saturada. El ruido ambiente y una
@@ -55,6 +77,22 @@ reconstrucción SCK segura en vivo certificada ni fallback automático a escrito
 Si la fuente existente vuelve a entregar superficies recientes, selecciona
 explícitamente su escena desde el respaldo. C6 renueva entonces una oportunidad
 de respaldo para otra suspensión; no reinicia la captura por sí sola.
+El retorno debe hacerse con superficies completas recientes al ejecutar la
+selección. Una observación previa durante una animación no lo garantiza.
+C8.2 observa dos respaldos y retornos en fullscreen de una ventana propia de
+10 Hz, con medios completos. Esto no valida fullscreen de cualquier juego;
+el escenario 3D se ensaya en ventana sobre la pantalla integrada estable.
+
+`idle` o una ventana fuera de su Space no prueban pérdida ni movimiento nuevo.
+Al volver al Space, comprueba que la imagen avance. Si hubo respaldo, el retorno
+es explícito. Un contador de renders o un destino activo no prueba frescura de
+la imagen. No intentes reconstruir la fuente durante una emisión.
+
+SuperTuxKart 1.5 cerró su modo demo al arrancar sin jugador local inicializado.
+La carrera directa y el perfil de prueba inicializado evitaron ese recorrido.
+El aviso del tutorial tampoco sirve como carga de juego: entra realmente en
+la carrera antes del ensayo. C8 usa su copia y perfil privados; no modifica una
+instalación personal ni presenta este resultado como validación de cualquier juego.
 
 ## Ensayo de MKV + RTMP local
 
@@ -65,7 +103,7 @@ puerto 19351 libre:
 
 ```sh
 mkdir -p var/evidence/first-stream-local
-target/h21/Motive-H21-C7.app/Contents/MacOS/ffmpeg \
+target/h21/Motive-H21-C8-2.app/Contents/MacOS/ffmpeg \
   -nostdin -v error -listen 1 -i rtmp://127.0.0.1:19351/live/motive \
   -map 0:v:0 -map 0:a:0 -c copy var/evidence/first-stream-local/received.mkv
 ```
@@ -80,7 +118,10 @@ espera la finalización de ambos. Cierra Motive normalmente.
 
 El MKV portable está en `~/Movies/Motive`; el recibido en el directorio anterior.
 Reproduce y decodifica ambos archivos. Un archivo reproducible y cero drops no
-acreditan por sí solos entrega completa de la cola final. La entrega terminal conserva ese límite.
+acreditan por sí solos entrega completa. La traza está antes del plugin: OBS
+puede descartar paquetes posteriores al corte normal. Distingue esa frontera,
+una pérdida anterior, un receptor desconectado y metadata incompleta; consulta
+la [auditoría C8](h21-c8-root-cause.md#paquetes-terminales).
 
 ## Preparar un destino externo
 
@@ -90,6 +131,7 @@ la etiqueta única, movimiento y tono durante el envío. Es recepción observada
 por el usuario, sin copia remota decodificada ni medida numérica de A/V remoto.
 El primer intento conserva su confirmación retirada y recepción sin verificar.
 Consulta el [seguimiento C7](h21-c7-followup.md).
+Esa recepción no certifica un envío nuevo desde C8; requiere su propia comprobación.
 El flujo nativo es:
 
 1. Abre **Salidas → Configurar destinos RTMPS**. Introduce el host, puerto y
@@ -116,7 +158,7 @@ No pongas claves en comandos, overlays, logs o MCP. Esta guía no inicia una
 emisión externa. El [contrato de destinos](h14-destination-contract.md) describe
 los límites del formato y la confirmación por cada intento.
 
-## Tres sesiones de aceptación
+## Tres sesiones históricas C7 y protocolo de aceptación
 
 | Sesión | Configuración | Resultado local y límite |
 |---|---|---|

@@ -16,6 +16,7 @@ import time
 from h7_support import Client
 from h21_gpu_sample import sample_gpu
 from h21_audio_observation import classify_issues
+from h21_trace_origin import collect_origin
 from verify_h14_collection import ROOT, Receiver, default_owner, digest, lines, lock, require, save
 
 
@@ -26,14 +27,21 @@ def main():
     parser.add_argument('--scenario', choices=('podcast', 'charlas'), required=True)
     parser.add_argument('--seconds', type=int, choices=(60, 3600), required=True)
     parser.add_argument('--camera-id')
-    parser.add_argument('--microphone-id', required=True)
-    parser.add_argument('--controlled-devices-prepared', action='store_true', required=True)
+    parser.add_argument('--microphone-id')
+    parser.add_argument('--controlled-devices-prepared', action='store_true')
+    parser.add_argument('--presentation-reference-only', action='store_true',
+                        help='Charlas instrument regression without physical devices; not personal acceptance')
     parser.add_argument('--display-uuid')
     parser.add_argument('--presentation-display-uuid')
     parser.add_argument('--authorized-controlled-display', action='store_true')
     parser.add_argument('--collect-microphone-clipping', action='store_true',
                         help='Continue diagnostic collection on mic clipping; keep audio quality FAIL')
     args = parser.parse_args()
+    if args.presentation_reference_only:
+        if args.scenario != 'charlas' or args.camera_id or args.microphone_id:
+            parser.error('Reference-only scope permits Charlas without physical devices only')
+    elif not (args.microphone_id and args.controlled_devices_prepared):
+        parser.error('Physical session requires an explicitly prepared microphone')
     if args.scenario == 'podcast' and not args.camera_id:
         parser.error('Podcast requires an explicitly prepared physical camera')
     if args.scenario == 'charlas' and not (args.display_uuid and args.presentation_display_uuid and args.authorized_controlled_display):
@@ -48,6 +56,8 @@ def main():
               'fixture_sha256': digest(fixture_binary), 'physical_camera_av': 'NOT_MEASURED',
               'audio_quality_status': 'NOT_COMPLETED', 'audio_quality_warnings': [],
               'collect_microphone_clipping': args.collect_microphone_clipping,
+              'presentation_reference_only': args.presentation_reference_only,
+              'microphone_requested': bool(args.microphone_id),
               'browser_capture': 'BLOCKED_OWNED_VISIBLE_BROWSER_UNAVAILABLE' if args.scenario=='charlas' else 'NOT_REQUIRED',
               'limits': ['Controlled generated guest audio/video, not a remote guest call.',
                          'Application marker does not calibrate physical camera/microphone latency.',
@@ -94,8 +104,9 @@ def main():
     try:
         client = Client(); state = client.state(); default_owner(state); report['owner_pid'] = state['pid']
         devices = client.call('devices')['devices']; save(out/'devices-private.json', devices)
-        require(devices['microphone_permission'] and devices['screen_permission'], 'Normal audio/screen permission required')
-        require(any(d['id']==args.microphone_id for d in devices['audio']), 'Prepared microphone absent')
+        require(devices['screen_permission'], 'Normal screen permission required')
+        if args.microphone_id:
+            require(devices['microphone_permission'] and any(d['id']==args.microphone_id for d in devices['audio']), 'Prepared microphone absent')
         if args.camera_id:
             require(devices['camera_permission'] and any(d['id']==args.camera_id for d in devices['cameras']), 'Prepared camera unavailable')
         log = (out/'fixture.jsonl').open('x'); err = (out/'fixture.stderr').open('x'); handles.extend((log, err))
@@ -151,7 +162,8 @@ def main():
             alternate = app_scene; report['application_scene'] = app_scene; report['display_scene'] = display_scene
         client.call('select_scene', scene_id=main_scene)
         guest = add_audio('H21 generated guest', {'kind':'system_application', 'bundle_id':'local.motive.h21capturefixture'}, -6)
-        mic = add_audio('H21 prepared microphone', {'kind':'microphone', 'device_id':args.microphone_id}, -12)
+        mic = (add_audio('H21 prepared microphone', {'kind':'microphone', 'device_id':args.microphone_id}, -12)
+               if args.microphone_id else None)
         add_audio('H21 continuity reference', {'kind':'tone'}, -18)
         wait(lambda s: not s['audio_mixer']['issues'] and all(i['phase']=='ready' for i in s['audio_mixer']['runtime']['inputs']), 'mixer ready')
         wait(lambda s:any(i['id']==window_source and i.get('capture_delivery')=='receiving' for i in s['sources']), 'Window receiving')
@@ -164,15 +176,20 @@ def main():
         client.call('configure_stream', endpoint={'transport':'rtmp','port':port})
         receiver = Receiver(str(app/'Contents/MacOS/ffmpeg'), out, port)
         client.call('preflight_output', target='recording')
+        report['initial_traces'] = {}
         for target in ('recording','streaming'):
             slot = client.call('start_output', target=target)['state']['outputs'][target]; attempts[target] = slot['attempt_id']
             report['media'].append({'target':target, 'path':str(receiver.path) if target=='streaming' else slot['path']})
+            wait(lambda s:s['outputs'][target]['phase']=='active', target+' active')
+            report['initial_traces'][target] = collect_origin(client, target, attempts[target])
+            checkpoint()
         state = wait(lambda s:all(s['outputs'][t]['phase']=='active' for t in attempts), 'outputs active')
         require(all(state['outputs'][t]['encoding']['selected_hardware'] for t in attempts), 'Hardware encoder required')
         report['initial_state'] = state
         # Bind the beginning of each real output to its final trace. Packet
         # counters alone do not certify delivery at the stop boundary.
-        report['initial_traces'] = {t:client.call('output_diagnostics', target=t) for t in attempts}
+        # Origins were collected independently before starting the next target;
+        # an active RTMP connection can still have dispatched zero packets.
         start = time.monotonic(); report['started_monotonic'] = start; event('session_started'); snapshot('start')
         interval = 20 if args.seconds==60 else 300
         next_switch = interval; return_at = None; index = 0; next_memory = next_checkpoint = 0
@@ -201,7 +218,7 @@ def main():
                 if elapsed>=next_memory:
                     report['memory'].append({'elapsed_s':elapsed, 'response':client.call('memory_diagnostics')}); next_memory += 5
                 if return_at is not None and elapsed>=return_at:
-                    client.call('set_audio_mute', input_id=mic, muted=False)
+                    if mic: client.call('set_audio_mute', input_id=mic, muted=False)
                     client.call('set_audio_gain', input_id=guest, gain_db=-6)
                     client.call('select_scene', scene_id=main_scene); event('return_main'); return_at = None
                 elif elapsed>=next_switch and elapsed<args.seconds-10:
@@ -210,10 +227,10 @@ def main():
                     destination = alternate
                     if args.scenario=='charlas': destination = display_scene if index%2 else app_scene
                     client.call('select_scene', scene_id=destination)
-                    client.call('set_audio_mute', input_id=mic, muted=True)
+                    if mic: client.call('set_audio_mute', input_id=mic, muted=True)
                     client.call('set_audio_gain', input_id=guest, gain_db=-18)
                     fixture_command('focus '+str(index%2))
-                    event('planned_transition_and_mix', transition=kind, scene_id=destination, mic_muted=True, guest_gain_db=-18)
+                    event('planned_transition_and_mix', transition=kind, scene_id=destination, mic_muted=bool(mic), guest_gain_db=-18)
                     return_at = elapsed+3; next_switch += interval; index += 1
                 if elapsed>=next_checkpoint:
                     report['gpu'].append({'elapsed_s':elapsed,'response':sample_gpu()})

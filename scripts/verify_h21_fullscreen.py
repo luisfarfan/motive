@@ -23,12 +23,15 @@ def main():
     parser.add_argument('--mode', choices=('window',), required=True)
     args = parser.parse_args(); owner_lock = lock()
     app=args.app.resolve(strict=True); out=args.output.absolute(); out.mkdir(parents=True, exist_ok=False)
-    binary=ROOT/'target/H21CaptureFixtureV5.app/Contents/MacOS/MotiveH21CaptureFixture'
+    binary=ROOT/'target/H21CaptureFixtureV7.app/Contents/MacOS/MotiveH21CaptureFixture'
     report={'status':'FAIL', 'mode':args.mode, 'lock':owner_lock, 'owner_sha256':digest(app/'Contents/MacOS/motive'),
             'native_fullscreen':True, 'fixture_sha256':digest(binary), 'samples':[], 'phases':[], 'snapshots':[], 'media':[], 'cleanup_errors':[],
             'limits':['Owned 10 Hz content, not a game or a 60 Hz capture freshness claim.',
                       'No Display, manual Space switch, Stage Manager, permission revocation, physical devices or long soak.',
-                      'Internal tone checks continuity, not audiovisual alignment.']}
+                      'Internal tone checks continuity, not audiovisual alignment.',
+                      'Control queries poll during AppKit transitions; coarser autonomous polling may miss a resolved transient.']}
+    report['verifier_sha256']=digest(Path(__file__))
+    shutil.copy2(__file__,out/Path(__file__).name)
     client=fixture=receiver=None; attempts={}; capture_scene=safe=None
     def checkpoint(): save(out/'report.json',report)
     def sample(label):
@@ -127,13 +130,28 @@ def main():
                 requested=time.monotonic();fixture.stdin.write('fullscreen 0\n');fixture.stdin.flush()
                 deadline=time.monotonic()+20
                 while True:
+                    # Observe control health throughout the real transition as
+                    # well as waiting for its AppKit completion below. A style
+                    # bit is too early, and waiting without queries can miss a
+                    # transient that the two-backup coverage needs to exercise.
+                    transition_state=sample(label+'_transition')
+                    require(all(transition_state['outputs'][t]['phase']=='active' and
+                                transition_state['outputs'][t]['attempt_id']==a for t,a in attempts.items()),
+                            'Output continuity lost during fullscreen transition')
                     metadata=lines(out/'fixture.jsonl')
                     observed=metadata[-1] if metadata else {}
-                    if observed.get('windows') and observed['windows'][0].get('native_fullscreen') in (0,1) and observed['windows'][0]['native_fullscreen']==enabled:break
+                    # AppKit sets the style bit before its animation ends.
+                    # Require the actual completion callback from this request,
+                    # then separately require fresh SCK surfaces below.
+                    completed=next((row for row in reversed(metadata)
+                        if row.get('reason')==('fullscreen_enter_completed' if enabled else 'fullscreen_exit_completed')
+                        and row.get('uptime_s',0)>=requested),None)
+                    if completed and observed.get('windows') and observed['windows'][0].get('native_fullscreen')==enabled:break
                     require(fixture.poll() is None and time.monotonic()<deadline,'Native fullscreen transition not observed')
                     time.sleep(.2)
-                report['fullscreen_observations'].append({'requested_host_s':requested,'enabled':enabled,'fixture':observed})
-                wait(lambda s:any(x['id']==source_id and x.get('capture_diagnostics',{}).get('sample_status')=='complete'
+                report['fullscreen_observations'].append({'requested_host_s':requested,'enabled':enabled,
+                    'completion_callback':completed,'fixture':observed})
+                wait(lambda s:s['transition']['phase']=='completed' and any(x['id']==source_id and x.get('capture_diagnostics',{}).get('sample_status')=='complete'
                                   and x['capture_diagnostics'].get('surface_age_ms',1e9)<500 for x in s['sources']),
                      label+'_surface',20)
                 if client.state()['project']['graph']['active_scene']==safe:

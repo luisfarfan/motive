@@ -100,6 +100,13 @@ pub fn explicit_return_can_rearm(
         else {
             return false;
         };
+        // Off-Program issue strings intentionally omit inactive-source faults.
+        // Application identity is observed independently without activating SCK.
+        if matches!(&source.spec, SourceKind::Application { .. })
+            && observed["application_identity"]["health"] != "matches"
+        {
+            return false;
+        }
         let diagnostics = &observed["capture_diagnostics"];
         if diagnostics["phase"] != "running"
             || diagnostics["sample_status"] != "complete"
@@ -261,6 +268,49 @@ mod tests {
         assert!(!eligible(&graph.active_scene, &graph.active_scene));
         assert!(!eligible("safe", "safe"));
         assert!(!eligible("safe", "missing"));
+        assert_eq!(health, original);
+        assert_eq!(delivery(&health[0]), Delivery::Inactive);
+    }
+
+    #[test]
+    fn application_return_needs_current_identity_even_with_fresh_surfaces() {
+        let (mut graph, mut health) = return_fixture();
+        graph
+            .sources
+            .iter_mut()
+            .find(|s| s.id == "main")
+            .unwrap()
+            .spec = SourceKind::Application {
+            bundle_id: "local.motive.fixture".into(),
+            display_uuid: "00000000-0000-0000-0000-00000000000A".into(),
+        };
+        health[0]["kind"] = json!("application");
+        for identity in [
+            Value::Null,
+            json!({"health":"changed"}),
+            json!({"health":"ambiguous"}),
+            json!({"health":"unobserved"}),
+        ] {
+            health[0]["application_identity"] = identity;
+            assert!(!explicit_return_can_rearm(
+                &graph,
+                Variant::Horizontal,
+                "safe",
+                "safe",
+                &graph.active_scene,
+                &health
+            ));
+        }
+        health[0]["application_identity"] = json!({"health":"matches"});
+        let original = health.clone();
+        assert!(explicit_return_can_rearm(
+            &graph,
+            Variant::Horizontal,
+            "safe",
+            "safe",
+            &graph.active_scene,
+            &health
+        ));
         assert_eq!(health, original);
         assert_eq!(delivery(&health[0]), Delivery::Inactive);
     }

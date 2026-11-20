@@ -13,6 +13,7 @@ import shutil
 import socket
 import subprocess
 import time
+from h21_trace_origin import collect_origin
 
 from h7_support import Client
 from h21_gpu_sample import sample_gpu
@@ -133,13 +134,15 @@ def main():
         client.call('configure_stream',endpoint={'transport':'rtmp','port':port})
         receiver=Receiver(str(app/'Contents/MacOS/ffmpeg'),out,port)
         client.call('preflight_output',target='recording')
+        report['initial_traces']={}
         for target in ('recording','streaming'):
             slot=client.call('start_output',target=target)['state']['outputs'][target];attempts[target]=slot['attempt_id']
             report['media'].append({'target':target,'path':str(receiver.path) if target=='streaming' else slot['path']})
+            bounded(lambda s:s['outputs'][target]['phase']=='active',target+' active')
+            report['initial_traces'][target]=collect_origin(client,target,attempts[target])
         state=bounded(lambda s:all(s['outputs'][t]['phase']=='active' for t in attempts),'outputs active')
         require(all(state['outputs'][t]['encoding']['selected_hardware'] for t in attempts),'Hardware encoder required')
         report['initial_state']=state
-        report['initial_traces']={t:client.call('output_diagnostics',target=t) for t in attempts}
         start=time.monotonic();report['started_monotonic']=start;event('session_started');snapshot('start')
         next_memory=next_checkpoint=0; next_switch=20 if args.seconds==60 else 300; return_at=None; switch_index=0
         with (out/'samples.jsonl').open('x') as samples:

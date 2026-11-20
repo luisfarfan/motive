@@ -9,7 +9,8 @@ static const char *audio_fault_name(int fault) {
         "AUDIO_NOT_READY","AUDIO_CREATE_FAILED","AUDIO_DISCONNECTED","AUDIO_STALLED",
         "SCREEN_PERMISSION_DENIED","SYSTEM_AUDIO_UNAVAILABLE","SYSTEM_AUDIO_ENUMERATION_FAILED",
         "APPLICATION_UNAVAILABLE","APPLICATION_AMBIGUOUS","DISPLAY_UNAVAILABLE",
-        "SYSTEM_AUDIO_SELF_CAPTURE","SYSTEM_AUDIO_STREAM_STOPPED","SYSTEM_AUDIO_NO_SAMPLES"};
+        "SYSTEM_AUDIO_SELF_CAPTURE","SYSTEM_AUDIO_STREAM_STOPPED","SYSTEM_AUDIO_NO_SAMPLES",
+        "APPLICATION_IDENTITY_UNAVAILABLE"};
     return fault>=0 && fault<(int)(sizeof(names)/sizeof(names[0]))?names[fault]:"AUDIO_STATE_UNAVAILABLE";
 }
 static bool audio_target_valid(unsigned kind,const char *target) {
@@ -89,6 +90,8 @@ static int system_audio_resolve(audio_input *a) {
     NSArray<NSRunningApplication *> *running=[NSRunningApplication runningApplicationsWithBundleIdentifier:bundle];
     if(running.count!=1)return running.count?11:10;
     if(running.firstObject.processIdentifier!=pid || running.firstObject.terminated)return 10;
+    if(motive_process_observe(pid,&a->admitted_process)!=MOTIVE_PROCESS_OBSERVED)return 16;
+    a->identity_catalog_absence_observations=0;
     a->application_pid=pid;a->system_display=main;return 0;
 }
 static int system_audio_target_health(audio_input *a) {
@@ -101,18 +104,41 @@ static int system_audio_target_health(audio_input *a) {
     NSRunningApplication *app=running.firstObject;
     // Owner-only metadata, frozen when fault is latched. Inspect the exact
     // authorized PID independently of LaunchServices' bundle enumeration.
-    // This observation never authorizes a replacement or changes health policy.
+    // Catalog metadata supplements the OS identity pinned at admission; it
+    // never authorizes a replacement process or recreates the capture.
     NSRunningApplication *pinned=[NSRunningApplication runningApplicationWithProcessIdentifier:a->application_pid];
     a->identity_checked_ns=os_gettime_ns();a->identity_instances=(unsigned)running.count;
     a->identity_observed_pid=app?app.processIdentifier:0;
     a->identity_terminated=app?app.terminated:false;
     a->identity_pinned_present=pinned!=nil;a->identity_pinned_terminated=pinned?pinned.terminated:false;
     a->identity_bundle_matches=pinned && [pinned.bundleIdentifier isEqualToString:bundle];
-    a->identity_reason=!running.count?"no_registered_instance":running.count!=1?"multiple_registered_instances":
-        app.terminated?"registered_instance_terminated":app.processIdentifier!=a->application_pid?"registered_pid_changed":"matching";
-    if(running.count!=1)return running.count?11:10;
-    if(app.terminated || app.processIdentifier!=a->application_pid)return 10;
-    return system_audio_is_self(bundle,app.processIdentifier)?13:0;
+    motive_process_identity observed;
+    a->identity_process_probe=motive_process_observe(a->application_pid,&observed);
+    a->identity_generation_matches=a->identity_process_probe==MOTIVE_PROCESS_OBSERVED &&
+        motive_process_same_generation(&a->admitted_process,&observed);
+    a->identity_executable_matches=a->identity_process_probe==MOTIVE_PROCESS_OBSERVED &&
+        !strcmp(a->admitted_process.executable,observed.executable);
+    bool bundle_conflict=pinned.bundleIdentifier.length && !a->identity_bundle_matches;
+    enum motive_application_identity_health identity=motive_application_identity_check(
+        &a->admitted_process,a->identity_process_probe,&observed,(unsigned)running.count,
+        a->identity_observed_pid,bundle_conflict);
+    if(identity==MOTIVE_APPLICATION_IDENTITY_UNOBSERVED) {
+        a->identity_reason="process_identity_unobserved";return 16;
+    }
+    if(identity==MOTIVE_APPLICATION_AMBIGUOUS) {
+        a->identity_reason="multiple_registered_instances";return 11;
+    }
+    if(identity==MOTIVE_APPLICATION_CHANGED) {
+        a->identity_reason=a->identity_process_probe==MOTIVE_PROCESS_ABSENT?"process_exited":
+            !a->identity_generation_matches?"process_generation_changed":
+            !a->identity_executable_matches?"process_executable_changed":"registered_identity_conflict";
+        return 10;
+    }
+    if(!running.count) {
+        a->identity_catalog_absence_observations++;
+        a->identity_reason="pinned_process_verified_catalog_absent";
+    } else a->identity_reason="pinned_process_verified";
+    return system_audio_is_self(bundle,a->application_pid)?13:0;
 }
 static void system_audio_stopped(void *param,calldata_t *unused) {
     (void)unused;

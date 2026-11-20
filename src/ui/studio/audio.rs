@@ -91,6 +91,9 @@ fn issue_caption(issue: AudioIssueCode) -> &'static str {
         AudioIssueCode::ApplicationUnavailable => {
             "La aplicación seleccionada se cerró o cambió de proceso. Ábrela y pulsa Reconectar."
         }
+        AudioIssueCode::ApplicationIdentityUnavailable => {
+            "No se pudo verificar la identidad de la aplicación. Detén las salidas antes de reconectar esta entrada."
+        }
         AudioIssueCode::ApplicationAmbiguous => {
             "Hay varias instancias con la misma identidad. Deja una abierta y vuelve a consultar."
         }

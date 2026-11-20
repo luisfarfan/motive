@@ -1,10 +1,26 @@
 # Plan y criterios de aceptación
 
-Estado: 2026-11-19 (America/Lima). Base experimental ejecutable; no es una
+Estado: 2026-11-20 (America/Lima). Base experimental ejecutable; no es una
 release ni paridad con OBS/Meld. La investigación documental quedó resuelta
 para esta fase y REA no bloqueó los hitos.
 
-**H21: informe local C7 cerrado; PERSONAL STREAM READY BLOCKED.** La
+**H21/C8.2: verificación local cerrada; ensayo privado supervisado acotado READY;
+PERSONAL STREAM READY BLOCKED.**
+La [matriz C8](h21-c8-verification.md) añade observabilidad temporal SCK, corrige
+el origen RTMP del verificador y distingue el cutoff OBS de una pérdida indebida.
+Dos intentos C8 fallan por pérdida de display y por falsa pérdida de identidad
+de aplicación. C8.1 corrige el segundo con identidad OS y completa una hora
+Window, decodificada y sellada. C8.2 aplica la misma política a video Application;
+sus regresiones, dos respaldos fullscreen y pilotos Window/Application pasan.
+Un arranque prematuro del verificador de salidas conserva FAIL y repetición
+explícita; el agregado ya propaga fallos internos. La hora final de Application
+completa 3600,503 s sobre la integrada, con MKV/RTMP completamente decodificados,
+sin congelamientos inexplicados, drops o clipping observados. Integridad y
+limpieza final pasan; el verificador vertical ahora restaura el proyecto original.
+Físico/Spaces C8 no se heredan al nuevo hash. Calibración
+horaria, conversación remota y lifetime SCK mantienen sus límites. H22 sigue separado.
+
+**Histórico H21/C7: informe local cerrado; PERSONAL STREAM READY BLOCKED.** La
 [matriz personal](h21-personal-streaming.md) registra **3/3 horas completas**:
 Gaming 3600,815 s, Podcast 3600,980 s y Charlas 3600,939 s. Los seis medios pasan
 decode, cadencia y referencia A/V: máximos por escenario 51 / 67 / 47 ms y
@@ -71,7 +87,7 @@ ampliaciones posteriores se registran en su propio hito.
 | 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12; producción GPUI y sesión dual de más de 30 min ejecutadas | [H13](h13-production-verification.md): aceptación **PARCIAL, EN CURSO**. Toma principal y compacto pasan sus gates de decode/cadencia; alerta corregida y última exclusión G PASS. Ventana congelada FAIL, contabilidad terminal y memoria sin cerrar; fallos anteriores conservados |
 | 14 — Beta Candidate | Portable B3: 23/23 suites H1–H12; nueve invocaciones H13 adicionales: 6 PASS, 1 FAIL, 2 INCONCLUSIVE; Show Control/MATCHDAY y persistencia GPUI, lifecycle 30/60 FPS y soak dual 1800.07 s. RTMPS privado corresponde a B2 | [H14](h14-beta-verification.md): **BETA NO ACEPTADA**. Prueba nativa final ejecutada y analizada; audio de aplicación FAIL, cola de cierre INCONCLUSIVE, stock450 NOT_OBSERVED y FAIL geométrico custom conservados; captura/entrega/memoria/distribución abiertas |
 | 17 — Production reliability | B7–B10 con identidades separadas; B10 release portable, guard de geometría y recuperación explícita con píxeles; Show Control, audio, recorrido nativo y A/B documentados por candidato | [H17](h17-production-reliability.md): **BETA NO ACEPTADA**. FAIL de foco externo conservado; GPUI Fast desactivado. Recursos, entrega, pruebas supervisadas y distribución tienen gates propios |
-| 21 — Personal Streaming Core | C7 release firmado: identidad exacta de Window, base repetida y tres horas Gaming/Podcast/Charlas con seis medios decodificados; bundle y cierre verificados | [H21](h21-personal-streaming.md): **PERSONAL STREAM READY BLOCKED**. Referencia A/V PASS; sincronía física/cola PARTIAL, Charlas RTMP INCONCLUSIVE, Spaces/navegador/SCK live BLOCKED |
+| 21 — Personal Streaming Core | C8.2 firmado: identidad OS de Application/audio, regresiones y hora Application de juego 3D decodificada; hora Window C8.1 separada; integridad y limpieza verificadas | [C8](h21-c8-verification.md): ensayo privado supervisado acotado READY; **PERSONAL STREAM READY BLOCKED** por calibración física y escenarios personales. [C7](h21-personal-streaming.md) conserva sus resultados históricos |
 
 Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
 bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión
@@ -557,3 +573,17 @@ corresponden el acoplamiento al graphics owner y la validación real de texturas
 captura y encoder en H23. Los datos y sus errores conservados permiten retomar
 esa investigación sin convertir el resultado de un contraste en reemplazo
 del FAIL original.
+
+### H21/C8 — fiabilidad y validación causal
+
+[Informe C8](h21-c8-verification.md), rama y worktree independientes sobre
+`1a7560d`. Añade historia escalar SCK sin alterar recuperación o lifetime; corrige
+el origen vacío RTMP del verificador y separa cutoff normal de pérdida indebida.
+Regresiones de captura/audio/outputs/proyectos, Spaces C8 observado y juego 3D
+real aportan evidencia nueva. C8.1 completa la hora Window; C8.2 extiende la
+identidad OS a Application y completa su propia hora tras las regresiones, con
+ambos medios decodificados. Firma, fuentes runtime y limpieza final verificadas;
+dos stores originales restaurados y lock liberado. El índice conserva también
+el fallo inicial de limpieza del verificador vertical y su corrección probada.
+PERSONAL STREAM READY sigue bloqueado por calibración física horaria,
+conversación remota real y cobertura de escenarios. No se integra H22 ni se publica.

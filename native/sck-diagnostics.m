@@ -18,13 +18,20 @@ static void diagnostics_query(void *data, calldata_t *params) {
     NSArray *statuses=@[@"complete",@"idle",@"blank",@"suspended",@"started",@"stopped"];
     NSArray *phases=@[@"created",@"starting",@"running",@"stopping",@"failed"];
     NSMutableDictionary *counts=[NSMutableDictionary dictionary];
+    NSMutableDictionary *last_seen=[NSMutableDictionary dictionary];
     for (unsigned i=0;i<6;i++) counts[statuses[i]]=@(atomic_load(&d->statuses[i]));
+    for (unsigned i=0;i<6;i++) last_seen[statuses[i]]=@(atomic_load(&d->status_last_seen_ns[i]));
     NSDictionary *snapshot=@{
         @"version":@1,@"instrument":@"obs33_sck_callback_and_tick",
         @"phase":phase>=0 && phase<5 ? phases[phase]:@"unknown",
         @"sample_status":status>=0 && status<6 ? statuses[status]:@"unknown",
         @"user_stopped":@(atomic_load(&d->user_stopped)),
         @"status_counts":counts,@"created_ns":@(atomic_load(&d->created_ns)),
+        // Scalar observations only; queries may overlap a status transition.
+        // These retain a transient event even when control polling misses it.
+        @"status_last_seen_ns":last_seen,
+        @"sample_status_since_ns":@(atomic_load(&d->status_changed_ns)),
+        @"status_changes":@(atomic_load(&d->status_changes)),
         @"callbacks":@(atomic_load(&d->callbacks)),@"surface_samples":@(surfaces),
         @"last_callback_ns":@(atomic_load(&d->last_callback_ns)),
         @"callback_age_ms":age_ms(now,atomic_load(&d->last_callback_ns)),
@@ -63,10 +70,14 @@ void motive_sck_diagnostics_init(motive_sck_diagnostics *d) {
     INIT(missing_images);INIT(invalid_samples);INIT(pts_repeats);INIT(pts_regressions);
     INIT(errors);INIT(last_error_ns);INIT(last_error_code);INIT(surface_id);INIT(presented_surface_id);
     INIT(phase);
+    INIT(status_changed_ns);INIT(status_changes);
     INIT(user_stopped);
 #undef INIT
     atomic_init(&d->last_pts_ns,-1);atomic_init(&d->presented_pts_ns,-1);atomic_init(&d->status,-1);
-    for(unsigned i=0;i<6;i++)atomic_init(&d->statuses[i],0);
+    for(unsigned i=0;i<6;i++) {
+        atomic_init(&d->statuses[i],0);
+        atomic_init(&d->status_last_seen_ns[i],0);
+    }
     atomic_store(&d->created_ns,os_gettime_ns());
 }
 void motive_sck_diagnostics_register(motive_sck_diagnostics *d,obs_source_t *source) {
@@ -94,8 +105,14 @@ void motive_sck_diagnostics_sample(motive_sck_diagnostics *d,CMSampleBufferRef s
         CFTypeRef value=entry ? CFDictionaryGetValue(entry,SCStreamFrameInfoStatus):NULL;
         if(value && CFGetTypeID(value)==CFNumberGetTypeID())CFNumberGetValue(value,kCFNumberIntType,&status);
     }
-    atomic_store(&d->status,status);
-    if(status>=0 && status<6)atomic_fetch_add(&d->statuses[status],1);
+    if(atomic_exchange(&d->status,status)!=status) {
+        atomic_store(&d->status_changed_ns,now);
+        atomic_fetch_add(&d->status_changes,1);
+    }
+    if(status>=0 && status<6) {
+        atomic_fetch_add(&d->statuses[status],1);
+        atomic_store(&d->status_last_seen_ns[status],now);
+    }
     CMTime pts=CMSampleBufferGetPresentationTimeStamp(sample);
     if(CMTIME_IS_NUMERIC(pts) && pts.timescale>0) {
         int64_t ns=CMTimeConvertScale(pts,1000000000,kCMTimeRoundingMethod_Default).value;

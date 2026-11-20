@@ -237,6 +237,7 @@ pub enum AudioIssueCode {
     SystemAudioUnavailable,
     SystemAudioEnumerationFailed,
     ApplicationUnavailable,
+    ApplicationIdentityUnavailable,
     ApplicationAmbiguous,
     DisplayUnavailable,
     SystemAudioSelfCapture,
@@ -296,6 +297,16 @@ pub struct ApplicationIdentityObservation {
     pub pinned_process_present: bool,
     pub pinned_process_terminated: bool,
     pub pinned_bundle_matches: bool,
+    #[serde(default)]
+    pub process_probe: String,
+    #[serde(default)]
+    pub process_generation_matches: bool,
+    #[serde(default)]
+    pub process_executable_matches: bool,
+    #[serde(default)]
+    pub catalog_absence_observations: u64,
+    #[serde(default)]
+    pub identity_scope: String,
     pub reason: String,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -676,5 +687,42 @@ mod tests {
         runtime.inputs[0].issue = Some(AudioIssueCode::SystemAudioStreamStopped);
         assert!(!runtime.ready());
         assert_eq!(runtime.issues()[0].recovery, "reconnect_audio_input");
+    }
+
+    #[test]
+    fn legacy_identity_observation_does_not_claim_os_verification() {
+        let observation: ApplicationIdentityObservation =
+            serde_json::from_value(serde_json::json!({
+                "checked_ns": 42, "expected_pid": 123, "registered_instances": 0,
+                "observed_pid": 0, "registered_terminated": false,
+                "pinned_process_present": false, "pinned_process_terminated": false,
+                "pinned_bundle_matches": false, "reason": "no_registered_instance"
+            }))
+            .unwrap();
+        assert!(observation.process_probe.is_empty());
+        assert!(!observation.process_generation_matches);
+        assert!(!observation.process_executable_matches);
+        assert_eq!(observation.catalog_absence_observations, 0);
+    }
+
+    #[test]
+    fn unobservable_application_identity_is_a_failed_input() {
+        let issue: AudioIssueCode =
+            serde_json::from_str("\"APPLICATION_IDENTITY_UNAVAILABLE\"").unwrap();
+        assert_eq!(issue, AudioIssueCode::ApplicationIdentityUnavailable);
+        let runtime = AudioRuntime {
+            available: true,
+            inputs: vec![AudioInputRuntime {
+                id: "audio-1".into(),
+                instance_id: 1,
+                phase: AudioPhase::Failed,
+                issue: Some(issue),
+                application_identity: None,
+                levels: AudioLevels::default(),
+            }],
+            ..AudioRuntime::default()
+        };
+        assert!(!runtime.ready());
+        assert_eq!(runtime.issues()[0].severity, "error");
     }
 }

@@ -20,6 +20,8 @@ struct visual_source {
     uint32_t window,capture_fps; pid_t owner; uint64_t active_since,instance_id; bool desired_active,warming;
     CGDirectDisplayID display;char display_uuid[64],application[256];
     capture_window_identity window_identity;
+    motive_process_identity admitted_application;
+    capture_application_identity application_identity;
 };
 static bool visual_is_sck(const visual_source *s) {
     return !strcmp(s->kind,"window") || !strcmp(s->kind,"display") || !strcmp(s->kind,"application");
@@ -84,6 +86,9 @@ static visual_source *visual_create(motive_engine *e,NSDictionary *d) {
                 NSString *bundle=d[@"spec"][@"bundle_id"];
                 s->owner=capture_application(bundle);
                 if(!s->owner) {snprintf(e->error,sizeof(e->error),"APPLICATION_UNAVAILABLE_OR_AMBIGUOUS");goto fail;}
+                if(motive_process_observe(s->owner,&s->admitted_application)!=MOTIVE_PROCESS_OBSERVED) {
+                    snprintf(e->error,sizeof(e->error),"APPLICATION_IDENTITY_UNAVAILABLE");goto fail;
+                }
                 snprintf(s->application,sizeof(s->application),"%s",bundle.UTF8String);
                 obs_data_set_string(settings,"application",s->application);
                 obs_data_set_int(settings,"motive_application_owner_pid",s->owner);
@@ -175,8 +180,14 @@ static const char *visual_health(visual_source *s) {
             if(!observe_capture_window_identity(s->window,s->owner,&s->window_identity))return "SOURCE_UNAVAILABLE";
         } else {
             if(capture_display(@(s->display_uuid))!=s->display)return "DISPLAY_UNAVAILABLE";
-            if(!strcmp(s->kind,"application") && capture_application(@(s->application))!=s->owner)
-                return "APPLICATION_UNAVAILABLE_OR_AMBIGUOUS";
+            // motive_graph_health refreshes this observation even off Program,
+            // before this active-source policy is evaluated. Never reselect here.
+            if(!strcmp(s->kind,"application")) {
+                if(s->application_identity.health==MOTIVE_APPLICATION_IDENTITY_UNOBSERVED)
+                    return "APPLICATION_IDENTITY_UNAVAILABLE";
+                if(s->application_identity.health!=MOTIVE_APPLICATION_MATCHES)
+                    return "APPLICATION_UNAVAILABLE_OR_AMBIGUOUS";
+            }
         }
         NSDictionary *capture=capture_diagnostics(s);
         if([capture[@"user_stopped"] boolValue])return "CAPTURE_USER_STOPPED";
@@ -283,6 +294,10 @@ char *motive_graph_health(motive_engine *e) {
     NSMutableArray *states=[NSMutableArray array];
     for(size_t i=0;i<e->visual_count;i++) {
         visual_source *s=e->visuals[i];bool active=s->desired_active;
+        // Refresh scalar identity off Program too, so an explicit healthy return
+        // cannot rearm from stale application metadata. No capture is activated.
+        if(!strcmp(s->kind,"application"))
+            observe_capture_application(@(s->application),&s->admitted_application,&s->application_identity);
         // Health follows the committed graph, including cold sources whose OBS
         // activation is still asynchronous. Never call them ready by omission.
         const char *issue=active ? visual_health(s):"";
@@ -310,6 +325,8 @@ char *motive_graph_health(motive_engine *e) {
                 @"layer":@(s->window_identity.observed_layer),@"title_present":@(s->window_identity.title_present),
                 @"scope":@"exact_admitted_window_id_and_pid; picker_filters_do_not_define_liveness"
             }:(id)NSNull.null,
+            @"application_identity":!strcmp(s->kind,"application")?
+                capture_application_identity_json(&s->admitted_application,&s->application_identity):(id)NSNull.null,
             @"content_freshness":@"not_inferred_from_timestamps",
             @"frame_age_ms":seen && now>=seen ? @((now-seen)/1000000):[NSNull null]}];
     }

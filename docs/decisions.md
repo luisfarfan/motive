@@ -859,3 +859,55 @@ de updates de producto. Los perfiles de memoria se separan de gates de FPS y
 no convierten crecimiento de footprint en fuga o caché sin evidencia de ownership.
 La aceptación de H22 es parcial mientras C permanezca BLOCKED; H23 requiere
 autorización explícita e integración con el único owner existente.
+
+## H21/C8 — observación temporal, origen de trazas y aceptación por evidencia
+
+Se conserva la hora de cada estado SCK para no perder una suspensión transitoria
+entre consultas. Los campos no forman un snapshot atómico ni prueban frescura
+de píxeles. No se introduce una gracia arbitraria, cambio de reloj/buffering o
+reconstrucción live; la revisión de OBS 33.0.1 y master fijado no demuestra la
+barrera de callbacks necesaria. CAP-01 queda localizado antes del consumo de
+superficies, sin atribución interna de WindowServer/SCK demostrada.
+
+El verificador recoge el origen de cada destino después de observar audio y video,
+desde secuencia 1 y sin pérdida de metadata. Un estado RTMP activo no basta.
+El clasificador histórico se conserva; una interpretación adicional distingue
+paquetes anteriores, frontera incierta, cutoff normal posterior y receptor
+interrumpido. No se modifica output/interleaver para entregar paquetes que OBS
+descarta deliberadamente al parar.
+
+Un bloque pre-fader al umbral no localiza clipping en el ADC. Se separan entrada,
+mix y referencia física; ni un offset central exploratorio ni una referencia
+generada certifican deriva física dentro de su incertidumbre. Se conserva el
+protocolo calibrado y sus bloqueos. El ensayo de juego usa SuperTuxKart oficial,
+perfil propio con red/escrituras confinadas y ventana/PID explícitos; menús,
+crashes de startup y métricas de runtime no sustituyen medios decodificados.
+Los estados privado supervisado, personal y beta pública se evalúan separadamente.
+[Causas y fuentes](h21-c8-root-cause.md), [verificación](h21-c8-verification.md).
+
+C8.1 corrige un segundo fallo observado a los 43 minutos: una ausencia en
+`NSRunningApplication` se confundía con la muerte de un proceso que el supervisor
+todavía tenía vivo y que entregaba muestras recientes. La admisión conserva sus
+requisitos estrictos y fija identidad OS (PID, UID, nacimiento, ejecutable).
+Durante la captura, catálogo ausente no equivale a proceso muerto cuando esa
+identidad sigue observada; conflictos positivos y observación no disponible
+fallan. No se sigue un proceso sustituto ni se reconstruye el stream. El binario
+C8 anterior, sus dos intentos largos fallidos y su sello permanecen intactos;
+las regresiones y la sesión C8.1 llevan otro hash.
+
+C8.2 extiende la identidad OS a video Application porque `visual_health`
+compartía la premisa invalidada por el fallo de audio: catálogo ausente igual
+a proceso muerto. No se afirma que aquel ensayo Window reprodujera un fallo
+de video Application. La admisión permanece estricta y la captura existente
+no se reconfigura. También se observa identidad fuera de Program; el retorno
+explícito no rearma desde superficies frescas si la aplicación cambió o su
+identidad no pudo verificarse. La hora Window y el sello C8.1 preceden a esta
+modificación; C8.2 se compila, firma y verifica como candidata independiente.
+
+Los verificadores también deben preservar el resultado negativo y el entorno.
+La matriz de salidas propaga fallos internos y espera muestras reales del tono
+antes de iniciar, sin sleeps de calentamiento. El ensayo vertical H13 conserva
+bytes/permisos del proyecto y sólo los restaura si su última escritura sigue
+intacta; nunca carga automáticamente el proyecto del dueño. El primer fallo
+de limpieza C8 queda registrado junto a la restauración por hash y la repetición
+real que comprueba la corrección. Estos cambios no requieren otro binario.

@@ -317,6 +317,11 @@ def main():
             prepared_profiles[target] = value
         # Configuration is immutable while either output is busy. Prepare both
         # independent profiles before beginning the first native output.
+        # Adding a tone is asynchronous: a valid input can still be warming.
+        # Observe real samples instead of racing the output's audio preflight.
+        report['audio_ready_state'] = wait(lambda s: not s['audio_mixer']['issues'] and
+            any(i['id'] == tone and i['phase'] == 'ready' and i['levels']['frames'] > 0
+                for i in s['audio_mixer']['runtime']['inputs']), timeout=10)
         for target in targets:
             value = prepared_profiles[target]
             state = client.call('start_output', target=target)['state']

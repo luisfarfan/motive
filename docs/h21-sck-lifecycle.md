@@ -1,5 +1,10 @@
 # H21 — lifetime de captura y límites de recuperación
 
+La [revisión C8](h21-c8-root-cause.md#obs-original-y-master) compara OBS 33.0.1
+con master fijado el 2026-11-20 y conserva este bloqueo de reconstrucción live.
+La nueva historia de estados es observabilidad; no constituye una barrera de
+callbacks ni cambia la política de recuperación descrita aquí.
+
 Revisión: 2026-11-19, America/Lima. **Reconstrucción SCK en vivo: BLOCKED**.
 No se cambiaron el módulo de captura, su cola, el reloj ni buffering de audio
 para convertir una hipótesis en un PASS. La candidata C4 conserva el runtime
@@ -33,7 +38,7 @@ de SCStream. Tampoco lo certifican un sleep, una caída de RSS, el exit de un
 test de geometría ni un enum de estados. Los tests ASan existentes instrumentan
 sus fixtures, no las bibliotecas cerradas de Apple ni todo libobs precompilado.
 
-## Política conservada
+## Política conservada para captura de video
 
 - Crear, sustituir o reconectar una captura requiere outputs detenidos.
 - Un stop intencional no dispara reinicio. Edad de buffer o contenido estático
@@ -46,6 +51,25 @@ sus fixtures, no las bibliotecas cerradas de Apple ni todo libobs precompilado.
 El PASS físico acotado de C4 prueba continuidad durante el respaldo y cierre
 normal de sus procesos. No demuestra seguridad de reemplazo concurrente,
 ausencia de fugas, permisos revocados o suspensión del sistema.
+
+### Límite adicional localizado en audio SCK durante C8
+
+La política anterior no debe extenderse automáticamente al mixer histórico.
+`motive_poll_audio` aísla un canal fallido y llama a `audio_detach`; la API
+`ReconnectAudioInput` permite recuperación por entrada sin el guard `idle` que
+usan añadir/eliminar entradas. Esas rutas también alcanzan `sck_audio_capture`.
+El primer ensayo 3D prolongado C8 observó la destrucción del canal fallido antes
+de parar los outputs. Las regresiones H13 ejercitan recuperación funcional,
+pero no prueban la barrera de callbacks de ese módulo.
+
+`signal_handler_disconnect`, el retiro de callbacks de audio y la cola de
+destrucción OBS no demuestran por sí solos que toda referencia de SCStream
+haya terminado. No se observó un UAF en C8 y no se lo declara como bug confirmado.
+La obligación de lifetime incluye **audio y video**; no se certifica reconexión
+SCK live por el PASS funcional de H13. C8 no añade otra ruta de reconstrucción,
+ni usa el fallo de pantalla como permiso para reconectar automáticamente.
+La guía pide detener salidas antes de la recuperación explícita; eso delimita
+el uso ensayado y no constituye una prueba del lifetime nativo pendiente.
 
 ## Experimento requerido antes de abrir reconstrucción en vivo
 

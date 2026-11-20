@@ -1,5 +1,9 @@
 # H21 — Personal Streaming Core: informe final local
 
+Esta página conserva el cierre **C7**. La ronda actual es
+[H21/C8 — fiabilidad y validación causal](h21-c8-verification.md), con su propio
+binario, matriz y evidencia. Sus resultados no reescriben los históricos de abajo.
+
 **PERSONAL STREAM READY: BLOCKED.** Verificación cerrada el 2026-11-19,
 America/Lima, con **3/3 sesiones de una hora completadas en C7**. Los seis medios
 pasan decode completo, cadencia y referencia A/V. La aceptación personal sigue

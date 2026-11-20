@@ -58,6 +58,68 @@ pub fn confirmed_failure(source: &Value) -> bool {
     )
 }
 
+/// An explicit return from the safe scene may grant one more fallback attempt.
+/// Only existing visible captures with recent complete SCK surfaces qualify.
+/// Inactive here means off Program, not permission to restart a stopped stream.
+pub fn explicit_return_can_rearm(
+    graph: &Graph,
+    variant: Variant,
+    safe_scene: &str,
+    from_scene: &str,
+    destination: &str,
+    health: &Value,
+) -> bool {
+    if from_scene != safe_scene || destination == safe_scene {
+        return false;
+    }
+    let Some(scene) = graph.scenes.iter().find(|scene| scene.id == destination) else {
+        return false;
+    };
+    let mut has_capture = false;
+    for layer in scene
+        .layers
+        .iter()
+        .filter(|layer| layer.layouts.get(variant).visible)
+    {
+        let Some(source) = graph
+            .sources
+            .iter()
+            .find(|source| source.id == layer.source_id)
+        else {
+            return false;
+        };
+        if !source.spec.is_screen_capture() {
+            continue;
+        }
+        has_capture = true;
+        let Some(observed) = health
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|item| item["id"] == source.id)
+        else {
+            return false;
+        };
+        let diagnostics = &observed["capture_diagnostics"];
+        if diagnostics["phase"] != "running"
+            || diagnostics["sample_status"] != "complete"
+            || !diagnostics["surface_age_ms"]
+                .as_f64()
+                .is_some_and(|age| (0.0..=500.0).contains(&age))
+        {
+            return false;
+        }
+        // Assess the explicitly requested destination, which is currently off
+        // Program. This changes a local observation only, never a native source.
+        let mut candidate = observed.clone();
+        candidate["active"] = Value::Bool(true);
+        if delivery(&candidate) != Delivery::Receiving {
+            return false;
+        }
+    }
+    has_capture
+}
+
 pub fn validate_display(uuid: &str) -> anyhow::Result<()> {
     anyhow::ensure!(
         uuid.len() == 36
@@ -171,6 +233,186 @@ pub fn annotate(health: &mut Value) {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    fn return_fixture() -> (Graph, Value) {
+        let mut graph = Graph::default();
+        graph
+            .sources
+            .iter_mut()
+            .find(|s| s.id == "main")
+            .unwrap()
+            .spec = SourceKind::Display {
+            display_uuid: "00000000-0000-0000-0000-00000000000A".into(),
+        };
+        let health = json!([{"id":"main","kind":"display","active":false,"issue":"",
+            "capture_diagnostics":{"phase":"running","sample_status":"complete",
+            "surface_samples":20,"surface_age_ms":12,"user_stopped":false}}]);
+        (graph, health)
+    }
+
+    #[test]
+    fn explicit_return_requires_fresh_existing_capture_without_mutating_it() {
+        let (graph, health) = return_fixture();
+        let original = health.clone();
+        let eligible = |from, to| {
+            explicit_return_can_rearm(&graph, Variant::Horizontal, "safe", from, to, &health)
+        };
+        assert!(eligible("safe", &graph.active_scene));
+        assert!(!eligible(&graph.active_scene, &graph.active_scene));
+        assert!(!eligible("safe", "safe"));
+        assert!(!eligible("safe", "missing"));
+        assert_eq!(health, original);
+        assert_eq!(delivery(&health[0]), Delivery::Inactive);
+    }
+
+    #[test]
+    fn explicit_return_never_rearms_stale_stopped_or_failed_capture() {
+        let (graph, health) = return_fixture();
+        for (key, value) in [
+            ("phase", json!("failed")),
+            ("phase", json!("starting")),
+            ("sample_status", json!("suspended")),
+            ("sample_status", json!("idle")),
+            ("sample_status", json!("stopped")),
+            ("sample_status", json!("started")),
+            ("sample_status", json!("blank")),
+            ("surface_samples", json!(0)),
+            ("surface_age_ms", json!(-1)),
+            ("surface_age_ms", json!(500.01)),
+            ("surface_age_ms", Value::Null),
+            ("user_stopped", json!(true)),
+        ] {
+            let mut observed = health.clone();
+            observed[0]["capture_diagnostics"][key] = value.clone();
+            assert!(
+                !explicit_return_can_rearm(
+                    &graph,
+                    Variant::Horizontal,
+                    "safe",
+                    "safe",
+                    &graph.active_scene,
+                    &observed
+                ),
+                "{key}: {value}"
+            );
+        }
+        let mut unavailable = health.clone();
+        unavailable[0]["issue"] = json!("SOURCE_UNAVAILABLE");
+        for observed in [unavailable, json!([]), Value::Null] {
+            assert!(!explicit_return_can_rearm(
+                &graph,
+                Variant::Horizontal,
+                "safe",
+                "safe",
+                &graph.active_scene,
+                &observed
+            ));
+        }
+    }
+
+    #[test]
+    fn explicit_return_requires_visible_capture_in_requested_orientation() {
+        let (mut graph, health) = return_fixture();
+        let id = graph.active_scene.clone();
+        graph
+            .scene_mut(&id)
+            .unwrap()
+            .layers
+            .iter_mut()
+            .find(|l| l.source_id == "main")
+            .unwrap()
+            .layouts
+            .horizontal
+            .visible = false;
+        assert!(!explicit_return_can_rearm(
+            &graph,
+            Variant::Horizontal,
+            "safe",
+            "safe",
+            &id,
+            &health
+        ));
+        assert!(explicit_return_can_rearm(
+            &graph,
+            Variant::Vertical,
+            "safe",
+            "safe",
+            &id,
+            &health
+        ));
+        graph
+            .sources
+            .iter_mut()
+            .find(|s| s.id == "main")
+            .unwrap()
+            .spec = SourceKind::Pattern;
+        assert!(!explicit_return_can_rearm(
+            &graph,
+            Variant::Vertical,
+            "safe",
+            "safe",
+            &id,
+            &health
+        ));
+        graph
+            .sources
+            .iter_mut()
+            .find(|s| s.id == "main")
+            .unwrap()
+            .spec = SourceKind::Camera {
+            device_id: "test-camera".into(),
+        };
+        assert!(!explicit_return_can_rearm(
+            &graph,
+            Variant::Vertical,
+            "safe",
+            "safe",
+            &id,
+            &health
+        ));
+    }
+
+    #[test]
+    fn explicit_return_requires_every_visible_capture_to_be_healthy() {
+        let (mut graph, mut health) = return_fixture();
+        graph
+            .sources
+            .iter_mut()
+            .find(|s| s.id == "overlay")
+            .unwrap()
+            .spec = SourceKind::Display {
+            display_uuid: "00000000-0000-0000-0000-00000000000B".into(),
+        };
+        let id = graph.active_scene.clone();
+        assert!(!explicit_return_can_rearm(
+            &graph,
+            Variant::Horizontal,
+            "safe",
+            "safe",
+            &id,
+            &health
+        ));
+        let mut second = health[0].clone();
+        second["id"] = json!("overlay");
+        health.as_array_mut().unwrap().push(second);
+        assert!(explicit_return_can_rearm(
+            &graph,
+            Variant::Horizontal,
+            "safe",
+            "safe",
+            &id,
+            &health
+        ));
+        health[1]["capture_diagnostics"]["user_stopped"] = json!(true);
+        assert!(!explicit_return_can_rearm(
+            &graph,
+            Variant::Horizontal,
+            "safe",
+            "safe",
+            &id,
+            &health
+        ));
+    }
 
     #[test]
     fn fallback_cannot_reveal_capture_or_leave_canvas_uncovered() {

@@ -336,6 +336,33 @@ static NSDictionary *find_window(uint32_t id) {
     for (NSDictionary *w in window_inventory()) if ([w[@"id"] unsignedIntValue]==id) return w;
     return nil;
 }
+typedef struct {
+    uint64_t checked_ns;
+    pid_t observed_owner;
+    int32_t observed_layer;
+    bool query_available,found,title_present;
+} capture_window_identity;
+static bool observe_capture_window_identity(uint32_t window_id,pid_t owner,capture_window_identity *observation) {
+    *observation=(capture_window_identity){.checked_ns=os_gettime_ns()};
+    if(!window_id || owner<=0)return false;
+    // Admission still uses the curated picker above. An existing SCK capture
+    // keeps its exact ID/PID even when its title, layer or app presentation
+    // policy changes. Query that identity, never select a replacement window.
+    NSArray *list=CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow,window_id));
+    observation->query_available=list!=nil;
+    for(NSDictionary *window in list) {
+        NSNumber *number=window[(id)kCGWindowNumber],*pid=window[(id)kCGWindowOwnerPID];
+        if(![number isKindOfClass:NSNumber.class] || number.unsignedIntValue!=window_id)continue;
+        observation->found=true;
+        if(![pid isKindOfClass:NSNumber.class])return false;
+        observation->observed_owner=pid.intValue;
+        observation->observed_layer=[window[(id)kCGWindowLayer] intValue];
+        NSString *title=window[(id)kCGWindowName];
+        observation->title_present=[title isKindOfClass:NSString.class] && title.length>0;
+        return pid.intValue==owner;
+    }
+    return false;
+}
 static NSArray *audio_inventory(void) {
     NSMutableArray *audio=[NSMutableArray array];
     obs_properties_t *props=obs_get_source_properties("coreaudio_input_capture");

@@ -1,8 +1,23 @@
 # Plan y criterios de aceptación
 
-Estado: 2026-11-18 (America/Lima). Base experimental ejecutable; no es una
+Estado: 2026-11-19 (America/Lima). Base experimental ejecutable; no es una
 release ni paridad con OBS/Meld. La investigación documental quedó resuelta
 para esta fase y REA no bloqueó los hitos.
+
+**H21: informe local C7 cerrado; PERSONAL STREAM READY BLOCKED.** La
+[matriz personal](h21-personal-streaming.md) registra **3/3 horas completas**:
+Gaming 3600,815 s, Podcast 3600,980 s y Charlas 3600,939 s. Los seis medios pasan
+decode, cadencia y referencia A/V: máximos por escenario 51 / 67 / 47 ms y
+máxima deriva 14,258 ms/h. C7 corrige una falsa pérdida de Window reproducida
+al cambiar su nivel; no reconstruye SCK. Las regresiones cortas, UI/CLI/MCP y
+proyectos v1–v6 se repiten. Bundle intacto, firma válida y limpieza final PASS.
+
+Los FAIL C4–C6 y el primer Podcast C7 interrumpido a 474,782 s por suspensión
+SCK permanecen. Sincronía física horaria PARTIAL, terminal PARTIAL (Charlas RTMP
+INCONCLUSIVE por traza inicial vacía), Spaces/navegador y SCK live BLOCKED.
+La carga Gaming es ligera y el invitado Podcast generado. Tres horas completas
+no equivalen a aceptación total ni a prueba de emisión externa. H22 continúa
+separado; no se integra Browser Host ni se publica.
 
 **H17: candidata local B10; beta no aceptada.** La [matriz H17](h17-production-reliability.md)
 registra correcciones de admisión y ownership de captura, reconciliación
@@ -56,6 +71,7 @@ ampliaciones posteriores se registran en su propio hito.
 | 13 — Live Production Engine | Bundle G: siete casos de canvas, mezcla/recuperación, matriz dual 4/4 casos y 12/12 medios, A/V visible y 23/23 suites H1–H12; producción GPUI y sesión dual de más de 30 min ejecutadas | [H13](h13-production-verification.md): aceptación **PARCIAL, EN CURSO**. Toma principal y compacto pasan sus gates de decode/cadencia; alerta corregida y última exclusión G PASS. Ventana congelada FAIL, contabilidad terminal y memoria sin cerrar; fallos anteriores conservados |
 | 14 — Beta Candidate | Portable B3: 23/23 suites H1–H12; nueve invocaciones H13 adicionales: 6 PASS, 1 FAIL, 2 INCONCLUSIVE; Show Control/MATCHDAY y persistencia GPUI, lifecycle 30/60 FPS y soak dual 1800.07 s. RTMPS privado corresponde a B2 | [H14](h14-beta-verification.md): **BETA NO ACEPTADA**. Prueba nativa final ejecutada y analizada; audio de aplicación FAIL, cola de cierre INCONCLUSIVE, stock450 NOT_OBSERVED y FAIL geométrico custom conservados; captura/entrega/memoria/distribución abiertas |
 | 17 — Production reliability | B7–B10 con identidades separadas; B10 release portable, guard de geometría y recuperación explícita con píxeles; Show Control, audio, recorrido nativo y A/B documentados por candidato | [H17](h17-production-reliability.md): **BETA NO ACEPTADA**. FAIL de foco externo conservado; GPUI Fast desactivado. Recursos, entrega, pruebas supervisadas y distribución tienen gates propios |
+| 21 — Personal Streaming Core | C7 release firmado: identidad exacta de Window, base repetida y tres horas Gaming/Podcast/Charlas con seis medios decodificados; bundle y cierre verificados | [H21](h21-personal-streaming.md): **PERSONAL STREAM READY BLOCKED**. Referencia A/V PASS; sincronía física/cola PARTIAL, Charlas RTMP INCONCLUSIVE, Spaces/navegador/SCK live BLOCKED |
 
 Las verificaciones H0–H10 de la tabla son evidencia histórica de sus respectivos
 bundles. En el bundle H11 `a423dee…20b3d`, los tres manifests de regresión
@@ -460,3 +476,41 @@ físico controlado, multiventana, fullscreen/Spaces/permisos, reconstrucción SC
 live, tail completo, hardware/A/V y tres sesiones reales de una hora. No se cambian
 clock, interleaver ni buffering por conjetura. Evidencia y bundles locales,
 procesos cerrados y lock cedido a H19; no merge/rebase/push ni publicación.
+
+
+### H21 — informe local cerrado, aceptación personal bloqueada
+
+[C4](h21-c4-verification.md) repite el respaldo Window/Application y obtiene
+medios reales en multiventana, minimize/restore, Display y audio de aplicación.
+Un piloto Arkanoid de 60 s añade Display Odyssey, micrófono, audio de juego/otra
+app y dual 1080p60, con A/V acotada dentro de 80 ms. No acredita sesiones horarias.
+CAP-01 sigue abierto; el protocolo nuevo de foco quedó inconcluso.
+
+[C5](h21-c5-verification.md) corrige la identidad local de firma requerida por
+macOS para la apertura normal y vuelve a verificar regresiones. **PERSONAL STREAM
+READY BLOCKED** hasta cerrar los gates críticos, incluyendo tres sesiones de una
+hora, deriva y sincronía física. Los fallos, restricciones SCK y colas PARTIAL
+permanecen; no se incorpora Browser Host ni se publica.
+
+[C6](h21-c6-verification.md) corrige el segundo respaldo tras un retorno explícito
+en fullscreen, con dos fallos reales y continuidad dual decodificada. Pasan 134
+tests raíz, 136 Show Control, 162 Python, Clippy y auditoría portable. Sus doce
+etapas de base repiten captura, proyectos, audio y salidas; las sesiones de una
+hora y los demás gates físicos siguen pendientes de completar.
+
+[C7](h21-c7-verification.md) separa los filtros del selector de la comprobación
+de identidad de una ventana ya capturada. Corrige un falso respaldo reproducible
+en C6 y conserva la respuesta al cierre real. El fallo de Podcast C6 r4 a los
+55 min 46 s motivó la investigación; no identifica por sí mismo qué metadata
+lo causó ni acredita una hora. Las pruebas cortas y tres horas completas se repiten sobre ese hash. Los seis
+medios pasan decode y A/V de aplicación; cámara/micrófono físicos quedan PARTIAL.
+El cierre verifica 1.584 archivos, firma, stores, ajustes y procesos. Los gates
+restantes se detallan en la matriz final, sin heredar PASS entre candidatas.
+
+El [seguimiento supervisado C7](h21-c7-followup.md) añade otra hora de Podcast,
+esta vez con contactos físicos localizados al inicio, medio y final. La deriva
+permanece PARTIAL por incertidumbre; el bloque saturado de entrada se conserva
+como FAIL. La segunda prueba privada de YouTube recibe confirmación de imagen,
+movimiento y tono durante el envío. Spaces sigue sin cambio observado. Bundle
+sin modificaciones y nueva limpieza de 15 checks PASS; aceptación personal aún
+BLOCKED, sin merge/push/release.

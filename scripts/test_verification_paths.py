@@ -124,6 +124,17 @@ class VerificationPathTests(unittest.TestCase):
             with self.subTest(lock=value):
                 self.assertFalse(paths.lock_matches(json.dumps(value)))
 
+    def test_h21_canonical_owner_does_not_accept_a_different_worktree_or_label(self):
+        paths = self.resolve()
+        self.assertTrue(paths.lock_matches(json.dumps({'owner': 'h21-root', 'worktree': str(self.root)})))
+        for value in (
+            {'owner': 'h21-root', 'worktree': str(self.root) + '-other'},
+            {'owner': 'h21-root ', 'worktree': str(self.root)},
+            {'owner': 'h21-root-other', 'worktree': str(self.root)},
+        ):
+            with self.subTest(lock=value):
+                self.assertFalse(paths.lock_matches(json.dumps(value)))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -762,3 +762,67 @@ detenidos. C3 demuestra respaldo de Window/Application propias, no recuperación
 general del productor ni ausencia de fugas. [Arquitectura](h20-capture-engine.md),
 [investigación fijada](h20-obs-capture-investigation.md) y
 [evidencia por candidata](h20-capture-verification.md).
+
+## H21 — aceptación personal independiente y evidencia de C4
+
+C4 se compila en release desde la integración H19/H20 y repite sus pruebas;
+los PASS C3 no se heredan. El runtime conserva GPUI predeterminado, el módulo
+oficial de captura y sus parches, el reloj, interleaver y buffering de 128 ms.
+No se incorpora CEF ni Browser Host. La aceptación personal es independiente
+de la beta pública y permanece bloqueada mientras falten pruebas críticas.
+
+Las pruebas de Window distinguen suspensión confirmada, respaldo seguro y
+retorno explícito a una fuente existente que volvió a entregar superficies.
+Eso no prueba reconstrucción SCK segura durante outputs. La restricción de
+recreación en vivo se conserva por lifetime no demostrado. Una superficie
+borderless propia cubriendo Display tampoco acredita fullscreen nativo o Spaces.
+
+El propietario autorizó Display y dio libertad para elegir contenido/dispositivos.
+El UUID ausente del monitor externo se rechaza antes de capturar; no se transforma
+automáticamente en otro escritorio. El ensayo posterior selecciona explícitamente
+la pantalla integrada observada y mantiene la cobertura propia hasta retirar la
+fuente con outputs quiescentes. Cámara/micrófono requieren además un entorno
+físico preparado; el permiso genérico no acredita contenido controlado.
+
+La matriz de nueve casos conserva PARTIAL para entrega terminal. Las diferencias
+observadas después del límite de stop se distinguen de pérdidas interiores y de
+un receptor terminado intencionalmente. No se cambia buffering ni se agrega
+un flush por una diferencia de contadores. La candidata y sus medios siguen
+identificados por hashes, y los fallos originales quedan intactos.
+
+La sesión gráfica bloqueada detuvo las pruebas físicas tras un STARTUP_FAILED
+real de Metal. No se cambia la política de bloqueo/energía ni se automatiza el
+desbloqueo. El supervisor H21 admite sesiones explícitas acotadas de una hora,
+vigila RSS/estado de consola y solicita cierre controlado ante un límite; no
+concede un PASS por terminar un proceso. Si una regresión con reinicios mediante
+LaunchServices no prueba el cierre del owner reemplazado, conserva el lock con
+`RETAIN.json` para inspección. [Matriz y continuación](h21-personal-streaming.md).
+
+
+C5 conserva las secciones Mach-O de C4, pero usa la identidad Apple Development
+existente. La firma ad-hoc de C4 no satisfacía el requisito TCC de pantalla al
+abrirla por LaunchServices; se conserva ese FAIL y se verifica la sucesora.
+No se resuelve el conflicto borrando TCC, heredando permisos del supervisor ni
+cambiando ajustes globales. Pantalla/cámara/micrófono se observan autorizados en
+la apertura normal de C5; captura y medios requieren repeticiones independientes.
+
+C5 demuestra otro límite: tras el primer respaldo y un retorno explícito a la
+captura, una segunda suspensión al salir de fullscreen detiene ambas salidas.
+C6 renueva una oportunidad únicamente cuando un `select_scene` aceptado sale
+de la escena segura hacia capturas existentes, visibles y con superficies
+completas recientes. La salud que mejora por sí sola no rearma el respaldo.
+Un stop intencional sigue excluido. Se conserva el booleano histórico de intento
+y se exponen disponibilidad y contador por separado. El ensayo real C6 observa
+dos respaldos, mismos recursos/outputs/mixer y medios decodificados continuos.
+No constituye autorización para reconstruir SCK en vivo. [Evidencia C6](h21-c6-verification.md).
+
+C7 separa la admisión de una ventana de su identidad durante la captura. El
+selector conserva sus filtros, pero una fuente admitida consulta únicamente su
+CGWindowID y verifica el PID fijado. Un cambio de nivel o de título no demuestra
+que la ventana desapareció. La ausencia, PID distinto o consulta no disponible
+siguen fallando. La observación expuesta contiene solo identidad y metadata
+escalar, sin títulos de ventanas. No cambia el alcance capturado ni recrea SCK.
+Una prueba real reproduce el falso respaldo en C6 al elevar una ventana propia;
+C7 conserva la captura y sigue respondiendo a su cierre real. El campo causante
+del fallo original de Podcast a los 55 minutos no quedó observado y no se infiere
+de esa reproducción. [Evidencia C7](h21-c7-verification.md).

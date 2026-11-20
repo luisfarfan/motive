@@ -13,13 +13,23 @@
         withAttributes:@{NSFontAttributeName:[NSFont boldSystemFontOfSize:25],NSForegroundColorAttributeName:NSColor.whiteColor}];
 }
 @end
-int main(void) { @autoreleasepool {
-    NSApplication *app=[NSApplication sharedApplication];
-    [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+@interface FixtureApp : NSObject <NSApplicationDelegate>
+@property(nonatomic, strong) NSWindow *window;
+@end
+@implementation FixtureApp
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    (void)notification;
     NSWindow *window=[[NSWindow alloc] initWithContentRect:NSMakeRect(150,150,720,420)
         styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable backing:NSBackingStoreBuffered defer:NO];
+    self.window=window;
     window.title=@"Motive External Fixture"; window.releasedWhenClosed=NO;
     FixtureView *view=[[FixtureView alloc] initWithFrame:NSMakeRect(0,0,720,420)]; window.contentView=view;
     [NSTimer scheduledTimerWithTimeInterval:0.05 repeats:YES block:^(NSTimer *timer) { view.phase+=.05; view.needsDisplay=YES; }];
-    [window makeKeyAndOrderFront:nil]; [app activateIgnoringOtherApps:YES]; [app run];
+    [window makeKeyAndOrderFront:nil]; [NSApp activateIgnoringOtherApps:YES];
+}
+@end
+int main(void) { @autoreleasepool {
+    NSApplication *app=[NSApplication sharedApplication];
+    [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+    FixtureApp *delegate=[FixtureApp new]; app.delegate=delegate; [app run];
 } return 0; }

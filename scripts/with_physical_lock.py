@@ -19,6 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--timeout', type=float, default=1800)
     parser.add_argument('--purpose', required=True)
+    parser.add_argument('--owner', default='Motive physical verification')
     parser.add_argument('command', nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.command[1:] if args.command[:1] == ['--'] else args.command
@@ -31,7 +32,7 @@ def main():
     lock = common.resolve().parent / 'var/run/physical-test.lock'
     lock.parent.mkdir(parents=True, exist_ok=True)
     token = uuid.uuid4().hex
-    owner = {'owner': 'H20 capture reliability', 'token': token, 'pid': os.getpid(),
+    owner = {'owner': args.owner, 'token': token, 'pid': os.getpid(),
              'worktree': str(root), 'purpose': args.purpose,
              'acquired_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'command': command}
     try:
@@ -50,6 +51,11 @@ def main():
                 os.killpg(child.pid, 0)
             except ProcessLookupError:
                 normal = True
+            # LaunchServices can detach a native owner from this process group.
+            # A verifier that cannot prove its cleanup can retain the lease.
+            if (lock / 'RETAIN.json').exists():
+                normal = False
+                raise RuntimeError('Verifier requested lock retention; inspect RETAIN.json and owned processes')
             if not normal:
                 raise RuntimeError('Child process group remains; lock retained for inspection')
             return code

@@ -19,6 +19,7 @@ struct visual_source {
     bool extended,stretch;char definition_kind[32],definition_subkind[32],asset_id[80];char *overlay_json;
     uint32_t window,capture_fps; pid_t owner; uint64_t active_since,instance_id; bool desired_active,warming;
     CGDirectDisplayID display;char display_uuid[64],application[256];
+    capture_window_identity window_identity;
 };
 static bool visual_is_sck(const visual_source *s) {
     return !strcmp(s->kind,"window") || !strcmp(s->kind,"display") || !strcmp(s->kind,"application");
@@ -171,8 +172,7 @@ static const char *visual_health(visual_source *s) {
     if (visual_is_sck(s)) {
         if (!CGPreflightScreenCaptureAccess()) return "SCREEN_PERMISSION_DENIED";
         if(!strcmp(s->kind,"window")) {
-            NSDictionary *w=find_window(s->window);
-            if (!w || [w[@"pid"] intValue]!=s->owner) return "SOURCE_UNAVAILABLE";
+            if(!observe_capture_window_identity(s->window,s->owner,&s->window_identity))return "SOURCE_UNAVAILABLE";
         } else {
             if(capture_display(@(s->display_uuid))!=s->display)return "DISPLAY_UNAVAILABLE";
             if(!strcmp(s->kind,"application") && capture_application(@(s->application))!=s->owner)
@@ -303,6 +303,13 @@ char *motive_graph_health(motive_engine *e) {
             @"capture_fps_measured":capture ? capture[@"surface_fps_lifetime"]:[NSNull null],
             @"frames":capture ? capture[@"surface_samples"]:@(w ? atomic_load(&w->frames):0),
             @"capture_diagnostics":capture ?: [NSNull null],@"freshness_notice":notice,
+            @"window_identity":!strcmp(s->kind,"window")?@{
+                @"checked_ns":@(s->window_identity.checked_ns),@"expected_window_id":@(s->window),
+                @"expected_pid":@(s->owner),@"query_available":@(s->window_identity.query_available),
+                @"found":@(s->window_identity.found),@"observed_pid":@(s->window_identity.observed_owner),
+                @"layer":@(s->window_identity.observed_layer),@"title_present":@(s->window_identity.title_present),
+                @"scope":@"exact_admitted_window_id_and_pid; picker_filters_do_not_define_liveness"
+            }:(id)NSNull.null,
             @"content_freshness":@"not_inferred_from_timestamps",
             @"frame_age_ms":seen && now>=seen ? @((now-seen)/1000000):[NSNull null]}];
     }

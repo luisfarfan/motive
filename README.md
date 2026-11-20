@@ -31,14 +31,34 @@ Motive is an early native streaming and recording studio built with **Rust, GPUI
 
 ## ✨ What is taking shape
 
-**H20 local worktree:** Window, Application and Display now share the official OBS
-capture path, with explicit identities and v6 persistence. A user-selected safe
-scene can preserve outputs/audio after a confirmed capture failure. C3 passed
-owned Window/Application loss tests; the paired OBS/Motive focus test did not
-reproduce CAP-01. **PERSONAL STREAM READY remains blocked**, independently of the
-public beta: controlled Display, broader recovery, terminal delivery and three
-supervised one-hour sessions remain open. See the [H20 plan](docs/h20-personal-stream-reliability.md),
-[architecture and usage](docs/h20-capture-engine.md), and [physical evidence](docs/h20-capture-verification.md).
+**H21 local report — November 19, 2026:** [C7](docs/h21-c7-verification.md)
+completes **three one-hour sessions**: Gaming 1080p60, Podcast and Charlas 1080p30.
+All six MKV/loopback recordings pass full decode, cadence and application-reference
+A/V checks (worst measured offset 67 ms; worst drift 14.258 ms/hour). C7 separates
+admitted-window identity from picker filters and retains C6's safe fallback after
+an explicit healthy return. Build, integration, project v1–v6 and shared UI/CLI/MCP
+checks were repeated on this candidate. The 1,584 regular bundle files match the
+build manifest and its signature verifies; temporary settings and user stores
+are restored, with all H21 test processes and sleep assertions closed.
+
+**PERSONAL STREAM READY remains blocked.** Physical camera/microphone hourly
+drift is unproven, Spaces and browser capture remain unverified, safe live SCK
+reconstruction is restricted, and terminal packet delivery is partial (Charlas
+RTMP accounting is inconclusive). Gaming used an instrumented lightweight real
+Arkanoid game; Podcast used an owned generated guest application. The first C7
+Podcast attempt failed on SCK suspension during a desktop animation; that failure
+and all C4–C6 evidence remain. Those three sessions used local receivers; no public release was made.
+See the [final acceptance matrix](docs/h21-personal-streaming.md),
+[evidence index](docs/evidence/h21/results.json) and
+[first stream guide](docs/h21-first-stream.md).
+
+The [supervised follow-up](docs/h21-c7-followup.md) adds another complete Podcast
+hour with real beginning/middle/end hand contacts, plus an authorized three-minute
+private YouTube trial whose identifier, motion and tone the owner confirmed
+remotely. Both hourly files and the private trial MKV decode completely. Physical
+drift remains PARTIAL because measurement uncertainty exceeds the 40 ms/hour
+budget; the repeated hour retains one clipped microphone block. Spaces still
+lacks an observed roundtrip. The unchanged bundle and final cleanup pass again.
 
 | | Capability | Implementation |
 |---|---|---|
@@ -243,7 +263,7 @@ Responses include the shared PID/revision, source issues and real engine counter
 
 The API accepts no arbitrary output paths, public stream URLs, shell commands or stream-key values. `configure_stream` accepts only RTMP/RTMPS and an unprivileged port at **127.0.0.1**. `cancel_output` queues safe deferred cancellation (`cancel_pending`) while a handshake finishes; `stop_output` retains its immediate-cancellation guard. Native worker completion is checked through a pinned lifecycle patch to the official OBS output module.
 
-H14 adds a separate [locally approved RTMPS destination registry](docs/h14-destination-contract.md). Host, port and application path are reviewed in GPUI; stream keys enter an AppKit secure sheet and remain in **macOS Keychain**, bound to that destination. Each external start requires a fresh local confirmation; CLI/MCP cannot grant that authority. A private YouTube trial passed connection and user-observed audio/video on B2, with [remote delivery limits retained](docs/h14-rtmps-b2-verification.md); B3 has no external repeat. The [H8 trust limitation](docs/h8-streaming-verification.md) remains historical evidence. The legacy CLI-only `start_local_stream` still sends MPEG-TS to **127.0.0.1:19350**.
+H14 adds a separate [locally approved RTMPS destination registry](docs/h14-destination-contract.md). Host, port and application path are reviewed in GPUI; stream keys enter an AppKit secure sheet and remain in **macOS Keychain**, bound to that destination. Each external start requires a fresh local confirmation; CLI/MCP cannot grant that authority. Private YouTube trials have operator-observed audio/video on [B2](docs/h14-rtmps-b2-verification.md) and the later [C7 follow-up](docs/h21-c7-followup.md), with independent remote decode and numerical remote A/V still unverified. B3 has no external repeat. The [H8 trust limitation](docs/h8-streaming-verification.md) remains historical evidence. The legacy CLI-only `start_local_stream` still sends MPEG-TS to **127.0.0.1:19350**.
 
 Native window close, **Motive → Salir de Motive** and Cmd+Q use the shared shutdown lifecycle. Active production requires confirmation; finalization waits for both output workers and any existing import. The core rejects new work once shutdown is pending or committed while allowing queries. Native tests observed Cmd+Q cancellation, rejection of a stale confirmation and deferred shutdown during an incomplete RTMP handshake. Motive stayed open behind the worker barrier and exited 0.835 seconds after the controlled peer was released. Other native close paths retain their individual coverage in the [acceptance report](docs/h13-native-acceptance.md).
 
@@ -297,7 +317,7 @@ See [H1 verification](docs/h1-verification.md) and [scene-graph verification](do
 ## 🗺️ Direction and boundaries
 
 - **Now:** portable B3 has 23/23 H1–H12 regression passes, nine additional H13 invocations (6 PASS, 1 FAIL, 2 INCONCLUSIVE), a complete 30-minute dual-output soak and real Show Control/GPUI evidence. The final native workflow and its three media files have been analyzed. Custom3000 concurrency passes; stock450 remains unobserved and the strict custom geometry failure is retained. The beta is not accepted.
-- **Next:** investigate application-audio and capture/cadence failures, resolve shutdown-queue coverage, output accounting and memory limits, and complete portability, accessibility and removable-device recovery checks. Private RTMPS evidence belongs to B2; remote decoded delivery and a B3 external repeat remain unverified.
+- **Next:** investigate application-audio and capture/cadence failures, resolve shutdown-queue coverage, output accounting and memory limits, and complete portability, accessibility and removable-device recovery checks. Private RTMPS has operator observations on B2 and C7; independent remote decoded delivery and a B3 external repeat remain unverified.
 - **Later:** isolated browser overlays, richer typography/effects, a notarized distributable release and simultaneous variants. No release or public broadcast is authorized by these local tests.
 
 The preview copies new BGRA frames through CPU memory into GPUI; it is not zero-copy. The core supports up to 8 scenes, 16 visual sources, 32 layers and 4 video sources, with one active canvas, one MKV destination and one RTMP destination. It does not provide multiple streaming destinations or simultaneous canvas variants. The 256 MiB visual allocation estimate is not an RSS cap: hidden decoders and resource-replacement peaks still consume memory. There are no cloud services, payments or marketplace features.

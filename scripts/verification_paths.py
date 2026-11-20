@@ -43,9 +43,9 @@ class VerificationPaths:
             return False
         return (isinstance(owner, dict) and owner.get('worktree') == str(self.root)
                 and isinstance(owner.get('owner'), str)
-                # H17 uses this exact canonical owner instead of a milestone
+                # H17/H21 use exact canonical owners instead of a milestone
                 # token in the historical human-readable H14/H15 owner label.
-                and (owner['owner'] == 'h17-root'
+                and (owner['owner'] in {'h17-root', 'h21-root'}
                      or bool({'H14', 'H15'} & set(owner['owner'].split()))))
 
     def manifest(self):

@@ -379,6 +379,8 @@ pub struct Production {
     transition: TransitionConfig,
     observed_transition: Option<(u64, TransitionPhase)>,
     capture_fallback_attempted: bool,
+    capture_fallback_rearmed: bool,
+    capture_fallback_attempt_count: u64,
     capture_fallback_operation: Option<u64>,
     capture_fallback_started: Option<std::time::Instant>,
 }
@@ -422,6 +424,8 @@ impl Production {
             transition: TransitionConfig::default(),
             observed_transition: None,
             capture_fallback_attempted: false,
+            capture_fallback_rearmed: false,
+            capture_fallback_attempt_count: 0,
             capture_fallback_operation: None,
             capture_fallback_started: None,
         };
@@ -459,7 +463,7 @@ impl Production {
         }
         json!({"pid":std::process::id(),"revision":self.revision,"project":self.project,"audio_mixer":self.audio_mixer_status(),"overlays":self.overlay_status(),"destinations":self.destinations_status(),"show_control":self.show_control_status(),"creator_packs":self.creator_packs_status(),"encoding":if legacy.is_some(){self.encoding_status(&outputs)}else{Value::Null},"output_configuration":self.output_configuration(),"issues":self.issues,
             "recovery_required":self.recovery.required() || outputs.recovery_required(),"recovery_sources":recovery_sources,"last_fault":self.last_fault,
-            "capture_recovery":{"safe_scene_id":self.project.capture_safe_scene,"fallback_attempted":self.capture_fallback_attempted,"operation_id":self.capture_fallback_operation,"automatic_source_restart":false},
+            "capture_recovery":{"safe_scene_id":self.project.capture_safe_scene,"fallback_attempted":self.capture_fallback_attempted,"fallback_armed":self.project.capture_safe_scene.is_some() && (!self.capture_fallback_attempted || self.capture_fallback_rearmed),"attempt_count":self.capture_fallback_attempt_count,"operation_id":self.capture_fallback_operation,"automatic_source_restart":false},
             "sources":self.source_health,"window_id":self.window_id,"output":legacy.map_or("multiple", |slot|slot.legacy_state()),
             "output_code":legacy.map(|slot|slot.failure.as_ref().and_then(|f|f.native_code).unwrap_or(0)),
             "transition_configuration":self.transition,"transition":self.engine.scene_state(),
@@ -694,6 +698,8 @@ impl Production {
         self.poll_outputs();
         if !self.outputs.busy() {
             self.capture_fallback_attempted = false;
+            self.capture_fallback_rearmed = false;
+            self.capture_fallback_attempt_count = 0;
             self.capture_fallback_operation = None;
             self.capture_fallback_started = None;
         }
@@ -750,7 +756,8 @@ impl Production {
             self.awaiting_recovery.remove(&id);
         }
     }
-    /// One attempt per output session, using already-existing native scenes.
+    /// One attempt initially; only an explicit healthy return from the safe
+    /// scene can grant another. Polling/health recovery alone never rearms it.
     /// No SCK destroy/create, output restart, audio changes or capture widening.
     fn try_capture_fallback(&mut self) -> bool {
         let Some(scene_id) = self.project.capture_safe_scene.clone() else {
@@ -771,8 +778,11 @@ impl Production {
         {
             return false;
         }
-        if !self.capture_fallback_attempted {
+        if !self.capture_fallback_attempted || self.capture_fallback_rearmed {
             self.capture_fallback_attempted = true;
+            self.capture_fallback_rearmed = false;
+            self.capture_fallback_attempt_count =
+                self.capture_fallback_attempt_count.saturating_add(1);
             let result = (|| -> anyhow::Result<()> {
                 capture::validate_safe_scene(self.graph(), self.project.variant, &scene_id)?;
                 let transition = self.engine.scene_state();
@@ -1279,11 +1289,34 @@ impl Production {
             // Select existing native scenes; do not reconcile capture resources,
             // reset video or touch the running output/encoders.
             anyhow::ensure!(!self.engine.overlay_animation_busy(), "ANIMATION_BUSY");
-            let previous = self.engine.scene_state().operation_id;
+            let before = self.engine.scene_state();
+            let rearm = self.capture_fallback_attempted
+                && self.outputs.busy()
+                && !before.busy()
+                && self
+                    .project
+                    .capture_safe_scene
+                    .as_deref()
+                    .is_some_and(|safe| {
+                        capture::explicit_return_can_rearm(
+                            self.graph(),
+                            self.project.variant,
+                            safe,
+                            &before.current_scene,
+                            scene_id,
+                            &self.engine.graph_health(),
+                        )
+                    });
+            let previous = before.operation_id;
             self.engine.switch_scene(scene_id, self.transition)?;
             let accepted = self.engine.scene_state().operation_id;
             if accepted != previous {
                 self.show_control_ledger.bind_transition(accepted);
+                if rearm {
+                    self.capture_fallback_rearmed = true;
+                    self.capture_fallback_operation = None;
+                    self.capture_fallback_started = None;
+                }
             }
             return Ok(());
         }
@@ -1566,6 +1599,8 @@ impl Production {
                         self.project.version = 6;
                     }
                     self.capture_fallback_attempted = false;
+                    self.capture_fallback_rearmed = false;
+                    self.capture_fallback_attempt_count = 0;
                     self.capture_fallback_operation = None;
                     self.capture_fallback_started = None;
                 }

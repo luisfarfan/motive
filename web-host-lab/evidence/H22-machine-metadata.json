@@ -1,0 +1,51 @@
+{
+  "observed_utc": "2026-11-19T17:14:15.647603+00:00",
+  "scope": "public local hardware/OS metadata only; no serial, UUID, account or device inventory",
+  "commands": {
+    "architecture": [
+      "uname",
+      "-m"
+    ],
+    "cpu_brand": [
+      "sysctl",
+      "-n",
+      "machdep.cpu.brand_string"
+    ],
+    "physical_memory_bytes": [
+      "sysctl",
+      "-n",
+      "hw.memsize"
+    ],
+    "logical_cpu_count": [
+      "sysctl",
+      "-n",
+      "hw.logicalcpu"
+    ],
+    "hardware_model": [
+      "sysctl",
+      "-n",
+      "hw.model"
+    ],
+    "macos_version": [
+      "sw_vers",
+      "-productVersion"
+    ],
+    "macos_build": [
+      "sw_vers",
+      "-buildVersion"
+    ]
+  },
+  "values": {
+    "architecture": "arm64",
+    "cpu_brand": "Apple M5 Pro",
+    "physical_memory_bytes": "51539607552",
+    "logical_cpu_count": "18",
+    "hardware_model": "Mac17,8",
+    "macos_version": "27.2",
+    "macos_build": "26B123"
+  },
+  "limits": [
+    "Observed during the H22 campaign; not a guarantee for all macOS ARM64 hardware.",
+    "No measurement of GPU utilization, thermal state, game/encoder load or unique physical RAM per process."
+  ]
+}

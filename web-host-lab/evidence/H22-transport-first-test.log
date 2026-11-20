@@ -1,0 +1,64 @@
+H22_PHYSICAL_SLOT_ACQUIRED 972365a7251d493a8a7ddf6bfc3f53bb
+     Locking 29 packages to highest Rust 1.99.1 compatible versions
+      Adding getrandom v0.3.4 (available: v0.4.3)
+      Adding hmac v0.12.1 (available: v0.13.0)
+      Adding sha2 v0.10.9 (available: v0.11.1)
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling libc v0.2.191
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.229
+   Compiling subtle v2.6.1
+   Compiling serde_json v1.0.154
+   Compiling cfg-if v1.0.5
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.19
+   Compiling getrandom v0.3.4
+   Compiling zeroize v1.9.1
+   Compiling generic-array v0.14.7
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling hmac v0.12.1
+   Compiling sha2 v0.10.9
+   Compiling motive-browser-contracts v0.1.0 (/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/browser-host)
+   Compiling motive-frame-transport v0.1.0 (/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/frame-transport)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.18s
+     Running unittests src/lib.rs (web-host-lab/poc/frame-transport/target/debug/deps/motive_frame_transport-cb50ee825f5378aa)
+
+running 10 tests
+test tests::bounds_and_invalid_deadlines_cannot_be_overridden ... ok
+test tests::private_bootstrap_rejects_extra_data_and_random_launches_differ ... ok
+test tests::replay_revokes_an_outstanding_lease_and_never_relabels_its_bytes ... ok
+test tests::real_socket_roundtrip_preserves_full_bgra_alpha_and_stride ... FAILED
+test tests::fragmented_packet_is_reassembled_but_truncated_body_is_not_a_frame ... FAILED
+test tests::unauthenticated_header_and_payload_mutations_never_publish ... ok
+test tests::authenticated_header_rejects_every_ungranted_field_before_allocation ... ok
+test tests::coalescing_and_one_lease_bound_survive_one_hundred_wire_frames ... ok
+test tests::blocked_writer_times_out_without_blocking_the_producer_mailbox ... ok
+test tests::absolute_deadline_is_not_reset_by_a_slow_writer ... ok
+
+failures:
+
+---- tests::real_socket_roundtrip_preserves_full_bgra_alpha_and_stride stdout ----
+
+thread 'tests::real_socket_roundtrip_preserves_full_bgra_alpha_and_stride' (18581261) panicked at src/tests.rs:29:31:
+called `Result::unwrap()` on an `Err` value: "SOCKET_TIMEOUT"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::fragmented_packet_is_reassembled_but_truncated_body_is_not_a_frame stdout ----
+
+thread 'tests::fragmented_packet_is_reassembled_but_truncated_body_is_not_a_frame' (18581259) panicked at src/tests.rs:72:23:
+called `Result::unwrap()` on an `Err` value: "SOCKET_TIMEOUT"
+
+
+failures:
+    tests::fragmented_packet_is_reassembled_but_truncated_body_is_not_a_frame
+    tests::real_socket_roundtrip_preserves_full_bgra_alpha_and_stride
+
+test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+error: test failed, to rerun pass `--lib`
+H22_PHYSICAL_SLOT_RELEASED

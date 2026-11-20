@@ -514,3 +514,46 @@ como FAIL. La segunda prueba privada de YouTube recibe confirmación de imagen,
 movimiento y tono durante el envío. Spaces sigue sin cambio observado. Bundle
 sin modificaciones y nueva limpieza de 15 checks PASS; aceptación personal aún
 BLOCKED, sin merge/push/release.
+
+### H22 — Browser Host separado; aceptación de producto bloqueada
+
+[Informe H22](../web-host-lab/docs/h22-readiness.md), en el worktree independiente
+`codex/h22-browser-production-readiness`, sobre main H19+H20. No modifica el
+owner Production, captura ni Show Control de H21. Los gates A funcionalidad,
+B rendimiento, C seguridad y D preparación de integración se evalúan por separado.
+
+Cold replacement usa revocación, cierre final CEF, liberación de leases/contexto
+y generación nueva; hot resize sigue cerrado para Production. El diagnóstico de
+la pausa H19 de 458,98 ms no identifica una causa interna concluyente. Los ensayos
+nativos conservan frames, hashes, traces y límites originales; los FAIL históricos
+no se sustituyen por mocks ni se borran.
+
+La matriz corta conserva 31/33 PASS; Goal horizontal con tres y cinco falla
+cadencia en una repetición de cada configuración. Cold cycles de 600 s pasa
+64 operaciones con peer máximo 58,34 ms, pero la mezcla prolongada conserva
+stalls tardíos de hasta 465,57 ms. Goal lifecycle conserva cierre de 5403,68 ms
+frente a 5000 ms. La memoria crece en los perfiles finales y no acredita una
+meseta general. Estos bloqueos se separan del gate de seguridad y no se
+convierten en capacidad de streaming mediante promedios o contratos aislados.
+
+El transporte binario y el adaptador OBS se verifican aisladamente. Keychain
+real y confinamiento de terceros permanecen BLOCKED: el XPC mínimo confina
+operaciones propias, pero la candidata CEF + App Sandbox falla al registrar
+su servicio Mach. Mock Keychain y el control de red son exclusivamente LAB.
+
+H23 requiere [handoff explícito](../web-host-lab/docs/h22-h23-handoff.md), resolver
+la política de credenciales/despliegue, conectar workers al graphics owner
+existente sin bloquear el render, y probar alpha/color, escenas compartidas,
+capture+encoder, recovery, cierre y fluidez real. La capacidad CEF no se suma
+automáticamente al presupuesto de streaming. No hay autorización de merge,
+push, publicación ni integración en Production en este hito.
+
+La cobertura final H22 es 39/39 casos, 35 PASS y cuatro FAIL según los gates
+de cada escenario. Los contrastes adicionales no reprodujeron el cierre
+tardío ni los stalls, y no los declaran resueltos. Para cerrar la aceptación
+quedan la causa de esas recurrencias, atribución/meseta de memoria y una ruta
+soportada de credenciales/confinamiento. Sólo después del handoff explícito
+corresponden el acoplamiento al graphics owner y la validación real de texturas,
+captura y encoder en H23. Los datos y sus errores conservados permiten retomar
+esa investigación sin convertir el resultado de un contraste en reemplazo
+del FAIL original.

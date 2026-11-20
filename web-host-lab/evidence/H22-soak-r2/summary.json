@@ -1,0 +1,109 @@
+{
+  "status": "FAIL",
+  "cases": [
+    {
+      "name": "coldcycles3",
+      "run": "evidence/H22-soak-r2-coldcycles3",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_trial.py",
+        "--build",
+        "h22-native-multi-cold4-ephemeral",
+        "--name",
+        "H22-soak-r2-coldcycles3",
+        "--scenario",
+        "cold-cycles",
+        "--instances",
+        "3",
+        "--seconds",
+        "600",
+        "--width",
+        "640",
+        "--height",
+        "360",
+        "--generation",
+        "700000"
+      ],
+      "slot_busy_attempts": 27,
+      "native_returncode": 0,
+      "analysis.json": {
+        "returncode": 0,
+        "sha256": "cd682d235a6fafec2108463f34ea7c9841ba43d875481ed154991455d6ba9864"
+      },
+      "status": "PASS",
+      "continued_after_performance_failure": false
+    },
+    {
+      "name": "widgetmix3h",
+      "run": "evidence/H22-soak-r2-widgetmix3h",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_trial.py",
+        "--build",
+        "h22-native-multi-widgets3-ephemeral",
+        "--name",
+        "H22-soak-r2-widgetmix3h",
+        "--scenario",
+        "widget-soak",
+        "--instances",
+        "3",
+        "--seconds",
+        "600",
+        "--width",
+        "640",
+        "--height",
+        "360",
+        "--generation",
+        "700100"
+      ],
+      "slot_busy_attempts": 14,
+      "native_returncode": 0,
+      "analysis.json": {
+        "returncode": 0,
+        "sha256": "f1b96a3211d2aaafbecca6b9b969e70e2ce983ccd497900ff60ba8cc9c02e4bc"
+      },
+      "workload-analysis.json": {
+        "returncode": 1,
+        "sha256": "2e9c576b78dcd7cd8bcddff8f6fe73df0d1c878e2f49f07e05e9aa46a1853296"
+      },
+      "status": "FAIL",
+      "continued_after_performance_failure": true
+    },
+    {
+      "name": "goals3v",
+      "run": "evidence/H22-soak-r2-goals3v",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_trial.py",
+        "--build",
+        "h22-native-multi-goal-load3-ephemeral",
+        "--name",
+        "H22-soak-r2-goals3v",
+        "--scenario",
+        "goal-load",
+        "--instances",
+        "3",
+        "--seconds",
+        "600",
+        "--width",
+        "540",
+        "--height",
+        "960",
+        "--generation",
+        "700200"
+      ],
+      "slot_busy_attempts": 44,
+      "native_returncode": 0,
+      "analysis.json": {
+        "returncode": 0,
+        "sha256": "6bbbc36c6a944db777e07e6e5837417785de8c112d740e50767127bde1199eee"
+      },
+      "workload-analysis.json": {
+        "returncode": 0,
+        "sha256": "1af19b033f0d4ce836dcaee5949fd493002c5a9e66826979060eb60399cbf12a"
+      },
+      "status": "PASS",
+      "continued_after_performance_failure": false
+    }
+  ]
+}

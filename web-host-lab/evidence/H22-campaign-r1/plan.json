@@ -1,0 +1,55 @@
+{
+  "plan": [
+    [
+      "contracts",
+      [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_with_lock.py",
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_verify_contracts.py",
+        "--name",
+        "H22-contracts-r1"
+      ]
+    ],
+    [
+      "capacity",
+      [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_suite.py",
+        "--suite",
+        "capacity",
+        "--name",
+        "H22-capacity-r1",
+        "--generation",
+        "223000"
+      ]
+    ],
+    [
+      "widgets",
+      [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_suite.py",
+        "--suite",
+        "widgets",
+        "--name",
+        "H22-widgets-r1",
+        "--generation",
+        "225000"
+      ]
+    ],
+    [
+      "soak",
+      [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_suite.py",
+        "--suite",
+        "soak",
+        "--name",
+        "H22-soak-r1",
+        "--generation",
+        "230000"
+      ]
+    ]
+  ],
+  "policy": "pilot first; contracts then independent matrices; retain any FAIL and stop that matrix"
+}

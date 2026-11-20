@@ -1,0 +1,110 @@
+{
+  "steps": [
+    {
+      "command": [
+        "clang",
+        "-arch",
+        "arm64",
+        "-mmacosx-version-min=15.0",
+        "-fobjc-arc",
+        "-fblocks",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/security-xpc/owner.m",
+        "-framework",
+        "Foundation",
+        "-o",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/MacOS/MotiveH22Probe"
+      ],
+      "returncode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "clang",
+        "-arch",
+        "arm64",
+        "-mmacosx-version-min=15.0",
+        "-fobjc-arc",
+        "-fblocks",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/security-xpc/service.m",
+        "-framework",
+        "Foundation",
+        "-o",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc/Contents/MacOS/H22Boundary"
+      ],
+      "returncode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "codesign",
+        "--force",
+        "--sign",
+        "-",
+        "--timestamp=none",
+        "--entitlements",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/service.entitlements",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc"
+      ],
+      "returncode": 0,
+      "output": "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc: replacing existing signature\n"
+    },
+    {
+      "command": [
+        "codesign",
+        "--force",
+        "--sign",
+        "-",
+        "--timestamp=none",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app"
+      ],
+      "returncode": 0,
+      "output": "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app: replacing existing signature\n"
+    },
+    {
+      "command": [
+        "codesign",
+        "--verify",
+        "--strict",
+        "--deep",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app"
+      ],
+      "returncode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "codesign",
+        "-d",
+        "--entitlements",
+        ":-",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc/Contents/MacOS/H22Boundary"
+      ],
+      "returncode": 0,
+      "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"https://www.apple.com/DTDs/PropertyList-1.0.dtd\"><plist version=\"1.0\"><dict><key>com.apple.security.app-sandbox</key><true/></dict></plist>\nExecutable=/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc/Contents/MacOS/H22Boundary\nwarning: Specifying ':' in the path is deprecated and will not work in a future release\n"
+    }
+  ],
+  "binaries": {
+    "MotiveH22Probe.app/Contents/MacOS/MotiveH22Probe": "98586956c9a1e40e5fdca060917d51a7188cb4d57e72eeb8e734d45904383f6c",
+    "MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc/Contents/MacOS/H22Boundary": "bd300d52d6e31f710c38b785f80ba6118f30ccad39cd6d8d4e9d8635436c4ed9"
+  },
+  "sources": {
+    "probe.h": "0a678e0785eb85e1b15778e1b6e48d47ae1ade3c2443ac65e7ea791208ae38ba",
+    "owner.m": "0f81a2bff05383f455699f95b4bf48c26edd82602d7ef25db831f19ad0506e16",
+    "service.m": "d03a620eff2191d23374711d186258bc260e649790786a26a0d95de1f771d9bc"
+  },
+  "entitlements": {
+    "com.apple.security.app-sandbox": true
+  },
+  "cef_loaded": false,
+  "keychain_called": false
+}

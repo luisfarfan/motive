@@ -7,6 +7,7 @@
 struct MultiRendererState {
   motive_bridge::Identity identity;
   bool live=true,animated=false,allow_crash=false,slow=false;
+  int kind=0;
   std::string decoy;
 };
 class MotiveMultiRenderer final : public CefRenderProcessHandler {

@@ -1,0 +1,119 @@
+{
+  "status": "PASS",
+  "scope": "owned CEF lab; no OBS or production credential acceptance",
+  "checker_sha256": "fbeb763e2870366c6e393df809b19dd550b6cd1362ea7fbc8cf4ccbb6a13611c",
+  "input_sha256": {
+    "report.json": "9eec07b89c4675b6006e85e8a68479c5d42e6f021d48bcddbb4c1490fc169e53",
+    "instances.json": "19dda8f1d6ef53460418d6cfde44ef9676d66e18deee223a83bf9f3f81166cc7",
+    "supervision.json.gz": "c844ba0dd0d50064cf345995aa380e2cde155d8033360da3b9f76ab2bbe33519",
+    "measurement-sources/poc/browser-host/supervisor.py": "38ce0d5b336d8057c6b7dd5bf444cb912e7358ba1f2c66bea54e5d7c6ed66fe0",
+    "measurement-sources/tools/h19_metrics.py": "8a109877038ea43f173629bf6edfac66a2fcf68e3be2ec4ac58d5e8935486412",
+    "measurement-sources/tools/h22_network_check.py": "adec7fbea2d5f06d312a3f652e73f979f45acfc19cca0cc4e94aae6591386ff1",
+    "measurement-sources/tools/h22_partial_evidence.py": "0ed2052f97d7ec594c792d67217540df263a6848601f5e8530f9de2050e2b01b",
+    "measurement-sources/tools/h22_process_snapshot.py": "b3607027d1381655d0f652307000f0b3a8b97c53eac47a61d52a0fbe3e060b2d",
+    "measurement-sources/tools/h22_trial.py": "15ca183ed1fc356e0896663bdeecdbdef99df908ed4eb428d8c178743bdcb44f",
+    "measurement-sources/tools/h22_with_lock.py": "ad8c72bdee272b54a393f1868b8150fa9a672e01c891e01fd69fb5c6f1804ca9",
+    "measurement-sources/tools/run_h19_multi.py": "d5d4cd8edb4ee0d6dff00eeed82810c322fdcad7a0acc9d91eecc3406fdb8667",
+    "lifecycle.jsonl": "fdc99c0c5f7802441d861f12b5bee1cf4e4a85be6d51129b6f0afa1655fccf0f",
+    "network-analysis.json": "e8ecc89029c7fd06b7cf83f9aed7aa86e3197f4597a926bc59028b0abaf3dfb3",
+    "netlog.json.gz": "6b038d8eacbaafd7b194c087e9eb11fa8a93fab72f79d59d7643cac8d5a327fa",
+    "instance-1-g240100-e1/lifecycle.jsonl": "ab61e96763704f3fd5a6a255979ad76c14c3565e7154ff5a9294ebeef0904cc8",
+    "instance-1-g240100-e1/frames.json": "88866fc656f5d2909706027345e478671159a1eb3c4999238b72baa8ff558464",
+    "instance-1-g240100-e1/first.json": "db23999dd2d0093441590969523be75f1fe95237050fd3e4b9173ac1db2cbf74",
+    "instance-1-g240100-e1/first.bgra.gz": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e",
+    "instance-1-g240100-e1/latest.json": "c652d15f871f65d230f23bafa210b8c7fbaeb90cd625389ae8e3f2c4cc350fcc",
+    "instance-1-g240100-e1/latest.bgra.gz": "e4ed82c652c25e6138cc57abc98e8d4a43fda630b30c36159017168cb66d0750"
+  },
+  "gates": {
+    "owned_network_lab_route": {
+      "status": "PASS",
+      "netlog_sha256": "0988e0585cd0bacaa01246d5bfe32ebc51629a278e8759257a3ee4d5ac2072e3",
+      "policy": "closed-resolver-v2",
+      "owned_control_resolution_rejected": true,
+      "owned_control_errors": [
+        -130
+      ],
+      "events": 550,
+      "socket_attempts": [],
+      "proxy_connections": 0,
+      "direct_target_connections": 0,
+      "component_manifests": [],
+      "scope": "default redacted Chromium NetLog, positively observed owned request failure before socket creation; not complete OS egress observation",
+      "security_third_party": "BLOCKED",
+      "credential_backend": "MOCK_LAB_ONLY",
+      "limits": [
+        "Proxy/host rules do not confine a compromised native process or non-Chromium network stack.",
+        "No conclusion about real Keychain or all filesystem/IPC capabilities.",
+        "Updater disabled for owned laboratory workload reproducibility, not a production update strategy."
+      ]
+    },
+    "instance-1-g240100-e1": {
+      "status": "PASS",
+      "accepted": 357,
+      "terminal_sum": 357,
+      "consumed": 356,
+      "retained_bytes": 0
+    },
+    "native_close_cleanup": {
+      "status": "PASS",
+      "close_to_shutdown_ms": 31.394041,
+      "supervisor_cleanup_ms": 8.858,
+      "peak_rss_mib": 656.078125,
+      "host_identities": 1
+    },
+    "cold_replacement_barriers": {
+      "status": "PASS",
+      "replacements": []
+    }
+  },
+  "operations": [],
+  "epochs": [
+    {
+      "identity": [
+        1,
+        240100,
+        1
+      ],
+      "paints": 357,
+      "copied_bytes": 329011200,
+      "max_consumer_work_ms": 0.3475,
+      "join_ms": 0.363958,
+      "report_ms": 0.710084
+    }
+  ],
+  "executable_sha256": "7b2c9957825c44ff645886648eace050cf0807b7c1a603e5e52b8b4c7c69766e",
+  "requested": {
+    "deadline_seconds": 32.0,
+    "duration_ms": 12000,
+    "fps": 30,
+    "height": 360,
+    "instances": 1,
+    "rss_limit_mib": 2048,
+    "scenario": "steady",
+    "width": 640
+  },
+  "credential_backend": "chromium-use-mock-keychain",
+  "ui_heartbeat": {
+    "samples": 0,
+    "maximum_interval_ms": 0.0
+  },
+  "resources": {
+    "totals": {
+      "total_samples": 54,
+      "partial_samples": 4,
+      "valid_cpu_intervals": 51,
+      "observed_cpu_delta_ns": 1350283083,
+      "measured_wall_delta_ns": 13555376791,
+      "observed_cpu_mean_percent_one_core": 9.961236074946372,
+      "peak_observed_tree_phys_footprint_bytes": 377232128
+    },
+    "windows": []
+  },
+  "steady_frames": [],
+  "steady_frame_performance": {
+    "status": "NOT_EVALUATED",
+    "scope": "continuous-motion native acquisition windows; intermittent animations evaluated separately"
+  },
+  "functional_status": "PASS",
+  "performance_status": "NOT_EVALUATED"
+}

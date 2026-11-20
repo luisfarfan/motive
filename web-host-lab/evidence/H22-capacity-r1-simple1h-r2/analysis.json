@@ -1,0 +1,310 @@
+{
+  "status": "PASS",
+  "scope": "owned CEF lab; no OBS or production credential acceptance",
+  "checker_sha256": "36ec67de6eb78d0cc3c7c3c0370d37d37d75626ba2b67307ab9ce2181913326d",
+  "input_sha256": {
+    "report.json": "7dd9791a46b365dc94bfec9bfe0db43b22f493dfe9e90a24b3134745e1b19fae",
+    "instances.json": "de5f04dfaa627d29965a1e2a12a56810472a33b7cd7e043bfc650437774e33e9",
+    "supervision.json.gz": "ce6fb0a40052599ac247ec598f8ad139a1cbf5710dd2e43560a53c6218a154ed",
+    "measurement-sources/poc/browser-host/supervisor.py": "38ce0d5b336d8057c6b7dd5bf444cb912e7358ba1f2c66bea54e5d7c6ed66fe0",
+    "measurement-sources/tools/h19_metrics.py": "8a109877038ea43f173629bf6edfac66a2fcf68e3be2ec4ac58d5e8935486412",
+    "measurement-sources/tools/h22_partial_evidence.py": "0ed2052f97d7ec594c792d67217540df263a6848601f5e8530f9de2050e2b01b",
+    "measurement-sources/tools/h22_process_snapshot.py": "b3607027d1381655d0f652307000f0b3a8b97c53eac47a61d52a0fbe3e060b2d",
+    "measurement-sources/tools/h22_trial.py": "ac00cd5289e53562b693a6bbf60461742769373646063dbe7b4263f91ae91038",
+    "measurement-sources/tools/h22_with_lock.py": "ad8c72bdee272b54a393f1868b8150fa9a672e01c891e01fd69fb5c6f1804ca9",
+    "measurement-sources/tools/run_h19_multi.py": "b7853bfb708f434a2170596f45408f94e01f58feac15de786bd622ac556c68cc",
+    "lifecycle.jsonl": "d9c10deff2c32dd12d010c9615a2d4d0eeeefe865faa6829d5ff5c8907aefb2b",
+    "instance-1-g223100-e1/lifecycle.jsonl": "f8f0783623eed5d9b7bf6552891ff8257b146e6d5f964acf2e47e98c88c0ed08",
+    "instance-1-g223100-e1/frames.json": "91639316f55553fde7507ccc0a0ba0d3c17ba8dd24d39485e37b8023e568265d",
+    "instance-1-g223100-e1/first.json": "e8b7091f2848dbe573c152c8ba346b1b3eee7845f4e5bdfe2d4ff68a4ade4f95",
+    "instance-1-g223100-e1/first.bgra.gz": "b6800ce26c97c9f075f7e2022bd49bc61711f0af0c08f0c93079ca7c57bd1361",
+    "instance-1-g223100-e1/latest.json": "eb8d006eccf4f63fd30820f4ecf436360726268d7c4dfd2ee3bcf4802c9674cd",
+    "instance-1-g223100-e1/latest.bgra.gz": "cd461c33ae0fd1d403cd7cacaf5f55f414f69e20b1c3028a1e16a9ab0172aa31"
+  },
+  "gates": {
+    "instance-1-g223100-e1": {
+      "status": "PASS",
+      "accepted": 2158,
+      "terminal_sum": 2158,
+      "consumed": 2158,
+      "retained_bytes": 0
+    },
+    "native_close_cleanup": {
+      "status": "PASS",
+      "close_to_shutdown_ms": 33.961416,
+      "supervisor_cleanup_ms": 7.895,
+      "peak_rss_mib": 699.0625,
+      "host_identities": 1
+    },
+    "cold_replacement_barriers": {
+      "status": "PASS",
+      "replacements": []
+    }
+  },
+  "operations": [],
+  "epochs": [
+    {
+      "identity": [
+        1,
+        223100,
+        1
+      ],
+      "paints": 2158,
+      "copied_bytes": 1988812800,
+      "max_consumer_work_ms": 0.811667,
+      "join_ms": 9.631333,
+      "report_ms": 0.534417
+    }
+  ],
+  "executable_sha256": "4d40f7a2295af66600043013fdfd0f3d89471b081ddbc886faa9cee5367b0dc2",
+  "requested": {
+    "deadline_seconds": 92.0,
+    "duration_ms": 72000,
+    "fps": 30,
+    "height": 360,
+    "instances": 1,
+    "rss_limit_mib": 2048,
+    "scenario": "steady",
+    "width": 640
+  },
+  "credential_backend": "chromium-use-mock-keychain",
+  "ui_heartbeat": {
+    "samples": 0,
+    "maximum_interval_ms": 0.0
+  },
+  "resources": {
+    "totals": {
+      "total_samples": 277,
+      "partial_samples": 7,
+      "valid_cpu_intervals": 274,
+      "observed_cpu_delta_ns": 6943525582,
+      "measured_wall_delta_ns": 72074858292,
+      "observed_cpu_mean_percent_one_core": 9.633769315049353,
+      "peak_observed_tree_phys_footprint_bytes": 402431464
+    },
+    "windows": [
+      {
+        "clock": "python_monotonic",
+        "requested_start_ms": 10000,
+        "requested_end_ms": 70000,
+        "sample_count": 229,
+        "observed_sample_span_ms": 59960.058999999994,
+        "rss_mib": {
+          "n": 229,
+          "median": 667.5625,
+          "p95": 678.59375,
+          "max": 693.625
+        },
+        "physical_footprint_mib": {
+          "n": 229,
+          "median": 363.0222625732422,
+          "p95": 368.9597854614258,
+          "max": 383.7885513305664
+        },
+        "process_count": {
+          "n": 229,
+          "median": 6,
+          "p95": 6,
+          "max": 7
+        },
+        "observed_cpu_percent_one_core": 9.327371842608835,
+        "complete_identity_cpu_percent_one_core": 9.297932769937326,
+        "cpu_intervals": 228,
+        "complete_identity_cpu_intervals": 226,
+        "measured_cpu_wall_seconds": 59.960058625,
+        "roles": {
+          "renderer": {
+            "rss_mib": {
+              "n": 229,
+              "median": 223.421875,
+              "p95": 226.859375,
+              "max": 227.0625
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 59.940086364746094,
+              "p95": 62.736961364746094,
+              "max": 62.940086364746094
+            },
+            "process_count": {
+              "n": 229,
+              "median": 2,
+              "p95": 2,
+              "max": 2
+            },
+            "observed_identities": 2,
+            "cpu_delta_ns": 1385325750,
+            "cpu_percent_one_core": 2.3104142687118663
+          },
+          "storage_service": {
+            "rss_mib": {
+              "n": 229,
+              "median": 72.375,
+              "p95": 72.46875,
+              "max": 72.46875
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 20.01654052734375,
+              "p95": 20.03216552734375,
+              "max": 20.03216552734375
+            },
+            "process_count": {
+              "n": 229,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 420333,
+            "cpu_percent_one_core": 0.0007010216628186293
+          },
+          "network_service": {
+            "rss_mib": {
+              "n": 229,
+              "median": 85.171875,
+              "p95": 86.765625,
+              "max": 88.4375
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 22.922813415527344,
+              "p95": 23.016563415527344,
+              "max": 23.016563415527344
+            },
+            "process_count": {
+              "n": 229,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 49552083,
+            "cpu_percent_one_core": 0.0826418187979215
+          },
+          "gpu": {
+            "rss_mib": {
+              "n": 229,
+              "median": 116.984375,
+              "p95": 117.125,
+              "max": 117.140625
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 214.06352996826172,
+              "p95": 214.3916778564453,
+              "max": 214.3916778564453
+            },
+            "process_count": {
+              "n": 229,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 2828029542,
+            "cpu_percent_one_core": 4.716522309771174
+          },
+          "browser_host": {
+            "rss_mib": {
+              "n": 229,
+              "median": 169.625,
+              "p95": 175.328125,
+              "max": 177.1875
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 46.87616729736328,
+              "p95": 50.73554229736328,
+              "max": 52.62616729736328
+            },
+            "process_count": {
+              "n": 229,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 1329369917,
+            "cpu_percent_one_core": 2.217092423665054
+          },
+          "utility": {
+            "rss_mib": {
+              "n": 1,
+              "median": 29.4375,
+              "p95": 29.4375,
+              "max": 29.4375
+            },
+            "footprint_mib": {
+              "n": 1,
+              "median": 14.891265869140625,
+              "p95": 14.891265869140625,
+              "max": 14.891265869140625
+            },
+            "process_count": {
+              "n": 1,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 0,
+            "cpu_percent_one_core": 0.0
+          }
+        },
+        "gpu_percent": null,
+        "unique_physical_mib": null
+      }
+    ]
+  },
+  "steady_frames": [
+    {
+      "identity": [
+        1,
+        223100,
+        1
+      ],
+      "interval": {
+        "clock": "native_steady_clock",
+        "start_ns": 234150741696166,
+        "end_ns": 234210741696166,
+        "window_seconds": 60.0,
+        "completed_acquisitions": 1800,
+        "acquisition_fps": 30.0,
+        "frame_age_ms": {
+          "n": 1800,
+          "median": 5.403292,
+          "p95": 11.6175,
+          "max": 12.773041
+        },
+        "consumer_completion_age_ms": {
+          "n": 1800,
+          "median": 5.540729499999999,
+          "p95": 11.754416,
+          "max": 12.901083
+        },
+        "consumer_work_ms": {
+          "n": 1800,
+          "median": 0.1328125,
+          "p95": 0.203333,
+          "max": 0.811667
+        },
+        "consumer_work_total_ms": 250.516005,
+        "consumer_work_over_100_ms": 0,
+        "acquisition_gap_ms": {
+          "n": 1799,
+          "median": 35.406708,
+          "p95": 37.648875,
+          "max": 50.019416
+        },
+        "status": "PASS"
+      }
+    }
+  ],
+  "steady_frame_performance": {
+    "status": "PASS",
+    "scope": "continuous-motion native acquisition windows; intermittent animations evaluated separately"
+  },
+  "functional_status": "PASS",
+  "performance_status": "PASS"
+}

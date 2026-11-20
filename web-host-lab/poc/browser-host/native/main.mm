@@ -11,6 +11,10 @@
 #include <filesystem>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "h22_role_probe.hpp"
+#ifdef MOTIVE_APP_SANDBOX_PROBE
+#import <Foundation/Foundation.h>
+#endif
 
 // This executable is NOT launched by build/test. Native browser execution needs
 // the specific owner policy exception described in docs/h18-native-host.md.
@@ -26,12 +30,32 @@ int main(int argc,char** argv) {
 #endif
     if(!number(argv[8],c.instances)||(c.instances!=1&&c.instances!=3&&c.instances!=5))return 65;
     c.scenario=argv[9];
-    const std::vector<std::string> scenarios={"steady","static","mixed","hidden","resize","crash","lifecycle","events","slow","goal","security","slow-consumer"};
+    const std::vector<std::string> scenarios={"steady","static","mixed","hidden","resize","crash","lifecycle","events","slow","goal","security","slow-consumer","cold-resize","cold-lifecycle","cold-cycles","lower-third","community-alert","widget-mix","widget-lifecycle","widget-soak","goal-load","goal-lifecycle"};
     if(std::find(scenarios.begin(),scenarios.end(),c.scenario)==scenarios.end())return 65;
     if(c.scenario=="lifecycle"&&(c.instances!=3||c.duration_ms<25000))return 65;
+    if(c.scenario=="cold-lifecycle"&&(c.instances!=3||c.duration_ms<25000))return 65;
+    if(c.scenario=="cold-cycles"&&(c.instances!=3||c.duration_ms!=600000))return 65;
+    if(c.scenario=="cold-resize"&&(c.instances<3||c.duration_ms<10000))return 65;
+    if((c.scenario=="widget-lifecycle"||c.scenario=="goal-lifecycle")&&(c.instances<3||c.duration_ms<42000))return 65;
+    if(c.scenario=="widget-soak"&&(c.instances!=3||c.duration_ms!=600000))return 65;
+#ifdef MOTIVE_WIDGET_FIXTURES
+    if(!c.scenario.starts_with("widget-")&&c.scenario!="lower-third"&&c.scenario!="community-alert")return 65;
+#endif
   }
   const bool viewport=(c.width==640&&c.height==360)||(c.width==960&&c.height==540)||(c.width==540&&c.height==960);
   if(!motive_multi::GenerationWithRestartHeadroom(c.generation)||!viewport||(c.fps!=30&&c.fps!=60)||c.duration_ms<1000||c.duration_ms>(multi?600000:15000))return 65;
+#ifdef MOTIVE_APP_SANDBOX_PROBE
+  // Separate H22 compatibility diagnostic, never an alternate production path.
+  // CEF keeps its own sandbox and explicit laboratory mock credential backend.
+  // No user-selected path, file entitlement, network entitlement or exception.
+  if(!multi||c.instances!=1||c.scenario!="steady"||c.duration_ms!=3000)return 65;
+  @autoreleasepool {
+    const std::string home=[NSHomeDirectory() UTF8String];
+    if(!home.ends_with("/Library/Containers/org.motive.lab.h22.cefsandbox/Data"))return 68;
+    c.private_root=home+"/Library/Caches/motive-h22-"+std::to_string(c.generation);
+    if(mkdir(c.private_root.c_str(),0700))return 69;
+  }
+#endif
   // The trusted supervisor supplies a fresh private directory. Refuse aliases,
   // shared permissions, foreign owners and preexisting output/cache paths.
   struct stat st{};
@@ -45,5 +69,9 @@ int main(int argc,char** argv) {
   for(char** e=*_NSGetEnviron();e&&*e;++e){const char* equal=std::strchr(*e,'=');if(equal)environment_names.emplace_back(*e,size_t(equal-*e));}
   for(const auto& name:environment_names)if(unsetenv(name.c_str()))return 67;
   if(setenv("PATH","/usr/bin:/bin:/usr/sbin:/sbin",1)||setenv("TMPDIR",c.private_root.c_str(),1)||setenv("LANG","C",1))return 67;
+#ifdef MOTIVE_ROLE_PROBE
+  if(!multi||c.scenario!="security"||c.duration_ms!=5000)return 65;
+  H22RoleProbe(argc,argv,false);
+#endif
   return RunOwnedFixture(c,argc,argv);
 }

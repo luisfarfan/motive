@@ -1,0 +1,34 @@
+[
+  {
+    "label": "cold4",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_with_lock.py",
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/build_native.py",
+      "--build-name",
+      "h22-native-multi-cold4-ephemeral",
+      "--multi",
+      "--mock-keychain",
+      "--network-lab"
+    ],
+    "returncode": 0
+  },
+  {
+    "label": "network-tests",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_with_lock.py",
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tests",
+      "-p",
+      "test_h22_network_check.py",
+      "-v"
+    ],
+    "returncode": 0
+  }
+]

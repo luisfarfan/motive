@@ -17,6 +17,9 @@
 #include "include/cef_browser.h"
 #include "include/cef_client.h"
 #include "include/cef_task.h"
+#ifdef MOTIVE_H22_NETWORK_LAB
+#include "include/cef_urlrequest.h"
+#endif
 #include "include/wrapper/cef_byte_read_handler.h"
 #include "include/wrapper/cef_library_loader.h"
 #include "include/wrapper/cef_stream_resource_handler.h"
@@ -88,17 +91,23 @@ struct State {
   bool StartConsumer();
   void Resize(int width,int height);
   void HostMaybeQuit();
+  void ReplacementReady();
   void RendererFailed(int status,int exit_code);
+#if defined(MOTIVE_GOAL_BRIDGE) || defined(MOTIVE_WIDGET_FIXTURES)
+  std::atomic<uint64_t> visual_capture_after_ns{0};
+  unsigned visibility_stage=0;
+#endif
+#ifdef MOTIVE_WIDGET_FIXTURES
+  int widget_kind=0;
+#endif
 #ifdef MOTIVE_GOAL_BRIDGE
   std::string widget_entry;
   MotiveGoalBinding* goal=nullptr;
-  std::atomic<uint64_t> visual_capture_after_ns{0};
 #ifdef MOTIVE_GOAL_CONTROLS
   unsigned control_stage=0;
   bool controls_complete=false;
 #endif
   bool bootstrap_sent=false;
-  unsigned visibility_stage=0;
   int visibility_sequence=0;
   std::optional<int> primary_browser;
   const uint64_t clock_origin_ms=MonotonicNs()/1000000;
@@ -149,7 +158,7 @@ class Later final : public CefTask {
 #ifdef MOTIVE_GOAL_BRIDGE
 bool GoalVisibilityCommand(std::shared_ptr<State> state,CefRefPtr<CefFrame> frame,bool hidden){
   if(state->stopping||!state->goal||!frame)return false;
-  if((hidden&&state->visibility_stage!=0)||(!hidden&&state->visibility_stage!=2)){state->Trace("visibility_transition_rejected");return false;}
+  if((hidden&&state->visibility_stage!=0&&state->visibility_stage!=4)||(!hidden&&state->visibility_stage!=2)){state->Trace("visibility_transition_rejected");return false;}
   std::array<uint8_t,16384> output{};const uint64_t now=MonotonicNs()/1000000-state->clock_origin_ms;
   const auto count=motive_goal_control(state->goal,hidden?2:3,now,output.data(),output.size());
   if(count<=0){state->Trace("visibility_control_rejected");return false;}
@@ -233,7 +242,7 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override {
     s_->Trace("before_close");
     s_->browsers.erase(browser->GetIdentifier());
-    if(primary_){s_->stopping=true;if(s_->mailbox)motive_frames_revoke(s_->mailbox);s_->closed=true;s_->closed_ns=MonotonicNs();s_->health=s_->failed?"failed_closed":"closed";s_->FinishFrames();s_->context=nullptr;}
+    if(primary_){s_->stopping=true;if(s_->mailbox)motive_frames_revoke(s_->mailbox);s_->closed=true;s_->closed_ns=MonotonicNs();s_->health=s_->failed?"failed_closed":"closed";s_->FinishFrames();s_->context=nullptr;s_->Trace("context_released");s_->ReplacementReady();}
     s_->MaybeQuit();
   }
   bool OnBeforePopup(CefRefPtr<CefBrowser>,CefRefPtr<CefFrame>,int,const CefString&,const CefString&,
@@ -308,6 +317,13 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
         if(phase==5){s_->Trace("slow_begin");return true;}
         if(phase==6){s_->Trace("slow_end");return true;}
         if(phase==7){++s_->events_received;s_->Trace("fixture_event_received");return true;}
+#ifdef MOTIVE_WIDGET_FIXTURES
+        if(phase==8){s_->Trace("visual_active");uint64_t empty=0;s_->visual_capture_after_ns.compare_exchange_strong(empty,MonotonicNs()+600000000);return true;}
+        if(phase==9){s_->Trace("visual_complete");return true;}
+        if(phase==10&&s_->visibility_stage==1){s_->Trace("hidden_cancel_acknowledged");s_->visibility_stage=2;s_->hidden=true;browser->GetHost()->WasHidden(true);s_->Trace("hidden_begin");return true;}
+        if(phase==11&&s_->visibility_stage==3){s_->Trace("hidden_resume_acknowledged");s_->visibility_stage=4;s_->hidden=false;browser->GetHost()->WasHidden(false);browser->GetHost()->Invalidate(PET_VIEW);s_->Trace("hidden_end");return true;}
+        if(phase==12){s_->Trace("fixture_event_rejected");return true;}
+#endif
         if(s_->config.scenario=="security"&&phase>=20&&phase<=29){s_->security_phases.insert(phase);s_->Trace("security_fixture_observation");return true;}
       }
     }
@@ -334,7 +350,7 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
     const auto kind=status->GetString("kind");
     if(kind=="renderer_ready")s_->Trace("renderer_ready");
     if(kind=="visual_ack")s_->Trace("visual_ack");
-    if(s_->config.multi&&s_->config.scenario=="hidden"&&kind=="visual_ack"&&status->GetBool("accepted")&&status->GetInt("seq")==s_->visibility_sequence){
+    if(s_->config.multi&&kind=="visual_ack"&&status->GetBool("accepted")&&status->GetInt("seq")==s_->visibility_sequence){
       if(s_->visibility_stage==1){
         s_->Trace("hidden_cancel_acknowledged");s_->visibility_stage=2;s_->hidden=true;
         browser->GetHost()->WasHidden(true);s_->Trace("hidden_begin");
@@ -345,7 +361,7 @@ class Client final : public CefClient, public CefRenderHandler, public CefLifeSp
     }
     if(kind=="visual_state"){
       if(status->GetString("state")=="active"){
-        s_->Trace("visual_active");uint64_t empty=0;s_->visual_capture_after_ns.compare_exchange_strong(empty,MonotonicNs()+(s_->config.multi&&s_->config.scenario=="hidden"?200000000:600000000));
+        s_->Trace("visual_active");uint64_t empty=0;s_->visual_capture_after_ns.compare_exchange_strong(empty,MonotonicNs()+(s_->config.multi&&(s_->config.scenario=="hidden"||s_->config.scenario=="goal-lifecycle")?200000000:600000000));
 #ifdef MOTIVE_GOAL_CONTROLS
         if(s_->control_stage==0){
           s_->control_stage=1;auto state=s_;
@@ -431,6 +447,9 @@ struct Host : std::enable_shared_from_this<Host> {
   std::vector<std::shared_ptr<State>> states;
   int trace_fd=-1;
   bool stopping=false,quit_requested=false;
+  struct Replacement {uint64_t old_generation;int width,height;};
+  std::map<uint64_t,Replacement> replacements;
+  uint64_t heartbeat_count=0,heartbeat_last_ns=0,heartbeat_max_gap_ns=0;
   uint64_t started_ns=MonotonicNs();
   void Trace(const char* phase){
     if(trace_fd<0)return;
@@ -440,14 +459,19 @@ struct Host : std::enable_shared_from_this<Host> {
   std::shared_ptr<State> Current(uint64_t instance){
     for(auto it=states.rbegin();it!=states.rend();++it)if((*it)->instance==instance)return *it;return nullptr;
   }
-  std::shared_ptr<State> Create(uint64_t instance,uint64_t generation){
+  std::shared_ptr<State> Create(uint64_t instance,uint64_t generation,int width=0,int height=0){
     if(stopping||states.size()>=32||instance<1||instance>5||generation<1||generation>motive_bridge::SafeInteger)return nullptr;
     for(const auto& previous:states)if(previous->instance==instance&&(!previous->closed||generation<=previous->config.generation)){Trace("duplicate_instance_rejected");return nullptr;}
     auto options=config;options.generation=generation;
+    if(width||height){if(!motive_multi::ValidGeometry(width,height))return nullptr;options.width=width;options.height=height;}
     if(config.multi){options.private_root=config.private_root+"/instance-"+std::to_string(instance)+"-g"+std::to_string(generation)+"-e1";if(mkdir(options.private_root.c_str(),0700))return nullptr;}
     auto s=std::make_shared<State>(options,instance);s->host=shared_from_this();
     s->animated=config.scenario!="static"&&(config.scenario!="mixed"||instance==1);
-    s->crash_allowed=config.multi&&(config.scenario=="crash"||config.scenario=="lifecycle");
+    s->crash_allowed=config.multi&&(config.scenario=="crash"||config.scenario=="lifecycle"||config.scenario=="cold-lifecycle"||config.scenario=="cold-cycles"||config.scenario=="widget-lifecycle"||config.scenario=="widget-soak"||config.scenario=="goal-lifecycle");
+#ifdef MOTIVE_WIDGET_FIXTURES
+    s->widget_kind=config.scenario=="lower-third"?1:config.scenario=="community-alert"?2:int((instance-1)%3)+1;
+    s->animated=s->widget_kind!=3;
+#endif
     s->used_dimensions.emplace(options.width,options.height);
     if(!s->mailbox||s->trace_fd<0||!s->StartConsumer())return nullptr;
 #ifdef MOTIVE_GOAL_BRIDGE
@@ -468,6 +492,9 @@ struct Host : std::enable_shared_from_this<Host> {
 #endif
 #elif defined(MOTIVE_MULTI_BROWSER)
     extra=CefDictionaryValue::Create();extra->SetDouble("instance",double(instance));extra->SetDouble("generation",double(generation));extra->SetString("entry",s->entry);extra->SetBool("animated",s->animated);extra->SetBool("allow_crash",s->crash_allowed);extra->SetBool("slow",config.scenario=="slow"&&instance==1);
+#ifdef MOTIVE_WIDGET_FIXTURES
+    extra->SetInt("widget_kind",s->widget_kind);
+#endif
 #elif defined(MOTIVE_DIAGNOSTIC_MODE)
     extra=CefDictionaryValue::Create();extra->SetDouble("generation",double(generation));extra->SetString("entry",s->entry);extra->SetInt("mode",MOTIVE_DIAGNOSTIC_MODE);
 #endif
@@ -504,6 +531,12 @@ struct Host : std::enable_shared_from_this<Host> {
     auto s=Current(instance);if(!s||s->stopping)return;
 #ifdef MOTIVE_GOAL_BRIDGE
     for(auto& [id,b]:s->browsers)if(!GoalVisibilityCommand(s,b->GetMainFrame(),hidden)){s->failed=true;s->health="visibility_failed";s->CloseAll();break;}
+#elif defined(MOTIVE_WIDGET_FIXTURES)
+    if((hidden&&s->visibility_stage!=0&&s->visibility_stage!=4)||(!hidden&&s->visibility_stage!=2)){s->Trace("visibility_transition_rejected");return;}
+    s->visibility_stage=hidden?1:3;s->Trace(hidden?"hidden_cancel_dispatched":"hidden_resume_dispatched");
+    for(auto& [id,b]:s->browsers)b->GetMainFrame()->SendProcessMessage(PID_RENDERER,CefProcessMessage::Create(hidden?"motive.h22.cancel":"motive.h22.resume"));
+    const auto stage=s->visibility_stage;
+    Schedule(1000,[s,stage](auto){if(!s->stopping&&s->visibility_stage==stage){s->failed=true;s->health="visibility_timeout";s->CloseAll();}});
 #else
     s->hidden=hidden;s->Trace(hidden?"hidden_begin":"hidden_end");
     for(auto& [id,b]:s->browsers){b->GetHost()->WasHidden(hidden);if(!hidden)b->GetHost()->Invalidate(PET_VIEW);}
@@ -511,15 +544,91 @@ struct Host : std::enable_shared_from_this<Host> {
   }
   void Close(uint64_t instance,const char* reason){auto s=Current(instance);if(s&&!s->stopping){s->Trace(reason);s->CloseAll();}}
   void Recreate(uint64_t instance){auto s=Current(instance);if(!s||!s->closed){Trace("recreate_before_final_close_rejected");return;}Create(instance,s->config.generation+1);}
+  void Replace(uint64_t instance,int width,int height,const char* reason){
+    auto s=Current(instance);
+    if(!s||s->stopping||replacements.contains(instance)||!motive_multi::ValidGeometry(width,height)||!motive_multi::GenerationWithRestartHeadroom(s->config.generation)){Trace("cold_replacement_rejected");return;}
+    replacements.emplace(instance,Replacement{s->config.generation,width,height});
+    s->Trace(reason);s->Trace("cold_replacement_requested");
+    // Revoke visual authority immediately; final close and lease release are
+    // separate barriers. Never relabel an old OnPaint with a new generation.
+    if(s->mailbox)motive_frames_revoke_reason(s->mailbox,1);
+    s->CloseAll();
+  }
+  void ReplacementReady(uint64_t instance,uint64_t generation){
+    auto it=replacements.find(instance);if(it==replacements.end()||it->second.old_generation!=generation)return;
+    auto self=shared_from_this();
+    // No CreateBrowser inside OnBeforeClose: let CEF unwind its callback first.
+    CefPostTask(TID_UI,new Later([self,instance,generation](){
+      auto it=self->replacements.find(instance);if(it==self->replacements.end()||it->second.old_generation!=generation)return;
+      const auto replacement=it->second;self->replacements.erase(it);
+      auto old=self->Current(instance);
+      if(self->stopping)return;
+      if(!old||old->config.generation!=generation||!old->closed||old->pending_creates||!old->browsers.empty()||old->context||old->mailbox||old->consumer||!old->frames_written){self->Trace("cold_replacement_barrier_failed");self->CloseAll();return;}
+      old->Trace("cold_replacement_barrier_passed");
+      if(!self->Create(instance,generation+1,replacement.width,replacement.height)){self->Trace("cold_replacement_create_failed");self->CloseAll();}
+    }));
+  }
+  void Heartbeat(){
+    const auto now=MonotonicNs();if(heartbeat_last_ns)heartbeat_max_gap_ns=std::max(heartbeat_max_gap_ns,now-heartbeat_last_ns);
+    heartbeat_last_ns=now;++heartbeat_count;Trace("ui_heartbeat");
+    Schedule(50,[](auto h){h->Heartbeat();});
+  }
   void Crash(uint64_t instance){auto s=Current(instance);if(!s||s->stopping||!s->crash_allowed)return;s->Trace("renderer_exit_requested");for(auto& [id,b]:s->browsers)b->GetMainFrame()->SendProcessMessage(PID_RENDERER,CefProcessMessage::Create("motive.h19.exit"));}
-  void Event(uint64_t instance){auto s=Current(instance);if(!s||s->stopping)return;s->Trace("fixture_event_dispatched");for(auto& [id,b]:s->browsers)b->GetMainFrame()->SendProcessMessage(PID_RENDERER,CefProcessMessage::Create("motive.h19.event"));}
+  void Event(uint64_t instance){
+    auto s=Current(instance);if(!s||s->stopping||s->hidden)return;
+#ifdef MOTIVE_GOAL_BRIDGE
+    std::array<uint8_t,16384> output{};const uint64_t now=MonotonicNs()/1000000-s->clock_origin_ms;
+    const auto count=motive_goal_control(s->goal,5,now,output.data(),output.size());
+    if(count<=0){s->Trace(count==0?"fixture_goal_not_ready":"fixture_goal_failed");return;}
+    s->Trace("fixture_goal_dispatched");
+    for(auto& [id,b]:s->browsers){auto m=CefProcessMessage::Create(motive_bridge::DispatchMessage);m->GetArgumentList()->SetString(0,std::string(reinterpret_cast<const char*>(output.data()),size_t(count)));m->GetArgumentList()->SetDouble(1,double(now));b->GetMainFrame()->SendProcessMessage(PID_RENDERER,m);}
+#else
+    s->Trace("fixture_event_dispatched");for(auto& [id,b]:s->browsers)b->GetMainFrame()->SendProcessMessage(PID_RENDERER,CefProcessMessage::Create("motive.h19.event"));
+#endif
+  }
   void Scenario(){
     if(!config.multi)return;
-    if(config.scenario=="lifecycle"){
+    if(config.scenario.starts_with("cold-"))Heartbeat();
+    if(config.scenario.starts_with("widget-")||config.scenario=="lower-third"||config.scenario=="community-alert"||config.scenario.starts_with("goal-")){
+      Heartbeat();
+      for(int at=2000;at<config.duration_ms-5000;at+=6000)Schedule(at,[](auto h){for(uint64_t i=1;i<=uint64_t(h->config.instances);++i)h->Event(i);});
+      if(config.scenario=="widget-lifecycle"||config.scenario=="goal-lifecycle"){
+        Schedule(2500,[](auto h){h->Close(3,"remove_requested");});Schedule(8500,[](auto h){h->Recreate(3);});
+        Schedule(14500,[](auto h){h->Visibility(3,true);});Schedule(20500,[](auto h){h->Visibility(3,false);});
+        Schedule(26500,[](auto h){h->Replace(3,540,960,"geometry_change_requested");});
+        Schedule(32500,[](auto h){h->Crash(3);});Schedule(38500,[](auto h){h->Recreate(3);});
+      }else if(config.scenario=="widget-soak"){
+        for(int cycle=0;cycle<7;++cycle){const int at=2500+cycle*60000;
+          Schedule(at,[](auto h){h->Replace(3,540,960,"geometry_change_requested");});
+          Schedule(at+6000,[](auto h){h->Replace(3,640,360,"geometry_change_requested");});
+          Schedule(at+12000,[](auto h){h->Visibility(3,true);});Schedule(at+18000,[](auto h){h->Visibility(3,false);});
+          Schedule(at+24000,[](auto h){h->Close(3,"restart_requested");});Schedule(at+30000,[](auto h){h->Recreate(3);});
+          Schedule(at+36000,[](auto h){h->Crash(3);});Schedule(at+42000,[](auto h){h->Recreate(3);});
+        }
+      }
+      return;
+    }
+    if(config.scenario=="cold-resize"){
+      Schedule(3000,[](auto h){h->Replace(1,540,960,"geometry_change_requested");});
+      Schedule(7000,[](auto h){h->Replace(1,640,360,"geometry_change_requested");});
+    }else if(config.scenario=="cold-cycles"){
+      // Two unaffected animated peers throughout; <=27 creation records. The
+      // closed inventory/history cap remains finite and is never silently reset.
+      for(int cycle=0;cycle<8;++cycle){
+        const int at=10000+cycle*65000;
+        Schedule(at,[](auto h){h->Replace(3,540,960,"geometry_change_requested");});
+        Schedule(at+5000,[](auto h){h->Replace(3,640,360,"geometry_change_requested");});
+        Schedule(at+10000,[](auto h){h->Visibility(3,true);});
+        Schedule(at+12000,[](auto h){h->Visibility(3,false);});
+        Schedule(at+15000,[](auto h){h->Close(3,"restart_requested");});
+        Schedule(at+17000,[](auto h){h->Recreate(3);});
+        Schedule(at+22000,[](auto h){h->Event(3);});
+      }
+    }else if(config.scenario=="lifecycle"||config.scenario=="cold-lifecycle"){
       Schedule(3000,[](auto h){h->Close(2,"remove_requested");});
       Schedule(5000,[](auto h){h->Create(4,h->config.generation);});
       Schedule(7000,[](auto h){h->Visibility(1,true);});
-      Schedule(9000,[](auto h){auto s=h->Current(3);if(s&&!s->stopping)s->Resize(540,960);});
+      Schedule(9000,[](auto h){if(h->config.scenario=="cold-lifecycle")h->Replace(3,540,960,"geometry_change_requested");else {auto s=h->Current(3);if(s&&!s->stopping)s->Resize(540,960);}});
       Schedule(11000,[](auto h){h->Visibility(1,false);});
       Schedule(13000,[](auto h){h->Close(4,"restart_requested");});
       Schedule(15000,[](auto h){h->Recreate(4);});
@@ -550,7 +659,7 @@ struct Host : std::enable_shared_from_this<Host> {
 #else
     json+="false";
 #endif
-    json+=",\"third_party_execution\":false,\"instances\":[";
+    json+=",\"third_party_execution\":false,\"ui_heartbeat_count\":"+std::to_string(heartbeat_count)+",\"ui_heartbeat_max_gap_ns\":"+std::to_string(heartbeat_max_gap_ns)+",\"instances\":[";
     bool first=true;for(const auto& s:states){if(!first)json+=',';first=false;
       json+="{\"instance\":"+std::to_string(s->instance)+",\"generation\":"+std::to_string(s->config.generation)+",\"epoch\":"+std::to_string(s->epoch)+",\"browser_id\":"+std::to_string(s->browser_id)+",\"renderer_pid_reported\":"+std::to_string(s->renderer_pid)+",\"origin\":\""+s->origin+"\",\"request_context\":\"distinct_in_memory\",\"package\":\"compiled_owned_inventory\",\"inventory_entries\":"+std::to_string(s->inventory.size())+",\"width\":"+std::to_string(s->config.width)+",\"height\":"+std::to_string(s->config.height)+",\"created_ns\":"+std::to_string(s->created_ns)+",\"first_paint_ns\":"+std::to_string(s->first_paint_ns)+",\"first_nontransparent_paint_ns\":"+std::to_string(s->first_useful_paint_ns)+",\"closed_ns\":"+std::to_string(s->closed_ns)+",\"frames_written\":"+(s->frames_written?"true":"false")+",\"closed\":"+(s->closed?"true":"false")+",\"failed\":"+(s->failed?"true":"false")+",\"health\":\""+s->health+"\",\"blocked_resources\":"+std::to_string(s->blocked_resources)+",\"blocked_navigation\":"+std::to_string(s->blocked_navigation)+",\"renderer_decoy_observed\":"+(s->renderer_decoy_observed?"true":"false")+",\"renderer_decoy_opened\":"+(s->renderer_decoy_opened?"true":"false")+",\"renderer_decoy_errno\":"+std::to_string(s->renderer_decoy_errno)+",\"browser_decoy_opened\":"+(s->browser_decoy_opened?"true":"false")+",\"browser_decoy_errno\":"+std::to_string(s->browser_decoy_errno)+",\"blocked_popups\":"+std::to_string(s->blocked_popups)+",\"blocked_downloads\":"+std::to_string(s->blocked_downloads)+",\"blocked_permissions\":"+std::to_string(s->blocked_permissions)+",\"events_received\":"+std::to_string(s->events_received)+",\"renderer_termination_status\":"+std::to_string(s->last_renderer_status)+",\"renderer_exit_code\":"+std::to_string(s->last_renderer_exit_code)+",\"renderer_decoded_exit_code\":"+std::to_string(s->failed?motive_diagnostic::PosixExitCode(s->last_renderer_exit_code):-1)+",\"security_phases\":[";
       bool comma=false;for(int phase:s->security_phases){if(comma)json+=',';comma=true;json+=std::to_string(phase);}json+="],\"epochs\":[";comma=false;for(const auto& record:s->epoch_records){if(comma)json+=',';comma=true;json+=record;}json+="]}";
@@ -558,10 +667,11 @@ struct Host : std::enable_shared_from_this<Host> {
   }
 };
 void State::HostMaybeQuit(){if(auto h=host.lock())h->MaybeQuit();}
+void State::ReplacementReady(){if(auto h=host.lock())h->ReplacementReady(instance,config.generation);}
 void State::RendererFailed(int status,int exit_code){if(auto h=host.lock()){auto current=h->Current(instance);if(current.get()==this)h->RendererFailed(current,status,exit_code);}}
 bool State::StartConsumer(){
   consumer=std::make_unique<FrameConsumer>(mailbox,config.private_root
-#ifdef MOTIVE_GOAL_BRIDGE
+#if defined(MOTIVE_GOAL_BRIDGE) || defined(MOTIVE_WIDGET_FIXTURES)
     ,&visual_capture_after_ns,config.scenario=="slow-consumer"?100:0
 #elif defined(MOTIVE_DIAGNOSTIC_MODE) && MOTIVE_DIAGNOSTIC_MODE == 5
     ,nullptr,100
@@ -573,7 +683,7 @@ bool State::StartConsumer(){
 void State::FinishFrames(){
   if(frame_finalized)return;frame_finalized=true;
   if(mailbox)motive_frames_revoke(mailbox);
-  if(consumer){consumer->Stop();Trace("consumer_joined");frames_written=consumer->WriteReport(callbacks,busy,invalid,max_publish_ns);consumer.reset();}
+  if(consumer){Trace("consumer_join_enter");consumer->Stop();Trace("consumer_joined");Trace("frame_report_enter");frames_written=consumer->WriteReport(callbacks,busy,invalid,max_publish_ns);consumer.reset();}
   Trace(frames_written?"frame_report_written":"frame_report_failed");
   CaptureEpoch(false,frames_written);
   motive_frames_destroy(mailbox);mailbox=nullptr;
@@ -604,6 +714,23 @@ void State::Resize(int width,int height){
   if(!mailbox||!StartConsumer()){failed=true;CloseAll();return;}
   Trace("resize_epoch_started");for(auto& [id,b]:browsers){b->GetHost()->WasResized();b->GetHost()->Invalidate(PET_VIEW);}
 }
+#ifdef MOTIVE_H22_NETWORK_LAB
+struct NetworkProbeState {bool done=false,failed=false;size_t received=0;};
+class NetworkProbeClient final : public CefURLRequestClient {
+ public:
+  explicit NetworkProbeClient(std::shared_ptr<NetworkProbeState> state):state_(std::move(state)){}
+  void OnRequestComplete(CefRefPtr<CefURLRequest> request) override {
+    state_->done=true;state_->failed=request->GetRequestStatus()==UR_FAILED&&request->GetRequestError()==ERR_PROXY_CONNECTION_FAILED;
+  }
+  void OnUploadProgress(CefRefPtr<CefURLRequest>,int64_t,int64_t) override {}
+  void OnDownloadProgress(CefRefPtr<CefURLRequest>,int64_t,int64_t) override {}
+  void OnDownloadData(CefRefPtr<CefURLRequest>,const void*,size_t length) override {state_->received+=length;}
+  bool GetAuthCredentials(bool,const CefString&,int,const CefString&,const CefString&,CefRefPtr<CefAuthCallback>) override {return false;}
+ private:
+  std::shared_ptr<NetworkProbeState> state_;
+  IMPLEMENT_REFCOUNTING(NetworkProbeClient);
+};
+#endif
 class App final : public SchemeApp, public CefBrowserProcessHandler {
  public:
   explicit App(std::shared_ptr<Host> host):host_(std::move(host)){}
@@ -611,12 +738,31 @@ class App final : public SchemeApp, public CefBrowserProcessHandler {
   CefRefPtr<CefClient> GetDefaultClient() override {return host_->states.empty()?nullptr:new Client(host_->states.front(),false);}
   void OnContextInitialized() override {
     host_->Trace("context_initialized");
+#ifdef MOTIVE_H22_NETWORK_LAB
+    // Both ports belong to the supervisor. The closed resolver rejects even
+    // the proxy before socket creation. Native + NetLog must observe the
+    // specific failure; neither owned listener may receive a connection.
+    auto request=CefRequest::Create();request->SetURL("http://127.0.0.1:18720/h22-owned-proxy-control");
+    request->SetFlags(UR_FLAG_SKIP_CACHE);
+    probe_=CefURLRequest::Create(request,new NetworkProbeClient(probe_state_),nullptr);
+#endif
     for(unsigned i=1;i<=host_->config.instances;++i)if(!host_->Create(i,host_->config.generation)){host_->CloseAll();return;}
     host_->Scenario();auto host=host_;
     CefPostDelayedTask(TID_UI,new Later([host](){host->Trace("close_task");host->CloseAll();}),host_->config.duration_ms);
   }
+#ifdef MOTIVE_H22_NETWORK_LAB
+  bool FinishNetworkProbe() {
+    const bool okay=probe_&&probe_state_->done&&probe_state_->failed&&probe_state_->received==0;
+    if(probe_&&!probe_state_->done)probe_->Cancel();
+    probe_=nullptr;host_->Trace(okay?"network_probe_rejected":"network_probe_incomplete");return okay;
+  }
+#endif
  private:
   std::shared_ptr<Host> host_;
+#ifdef MOTIVE_H22_NETWORK_LAB
+  std::shared_ptr<NetworkProbeState> probe_state_=std::make_shared<NetworkProbeState>();
+  CefRefPtr<CefURLRequest> probe_;
+#endif
   IMPLEMENT_REFCOUNTING(App);
 };
 } // namespace h16
@@ -660,7 +806,13 @@ int RunOwnedFixture(const FixtureConfig& config,int argc,char** argv) {
       state->browsers.clear();state->context=nullptr;
     }
     const bool manifest_written=host->WriteReport();
+#ifdef MOTIVE_H22_NETWORK_LAB
+    const bool network_probe_okay=app->FinishNetworkProbe();
+#endif
     app=nullptr;h16::active_host.reset();host->Trace("shutdown_enter");CefShutdown();host->Trace("shutdown_return");
+#ifdef MOTIVE_H22_NETWORK_LAB
+    if(!network_probe_okay)return 12;
+#endif
 #ifdef MOTIVE_GOAL_BRIDGE
     if(config.multi&&config.scenario=="hidden"){auto state=host->Current(1);if(!state||state->visibility_stage!=4)return 11;}
 #endif

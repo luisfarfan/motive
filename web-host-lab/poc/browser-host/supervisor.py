@@ -22,7 +22,7 @@ class Process:
     parent: int
     group: int
     rss_kib: int
-    cpu_percent: float
+    cpu_percent: float | None
     birth: tuple[int, int]
     state: str
 
@@ -211,9 +211,12 @@ def chromium_role(arguments, fallback):
              'zygote': 'zygote', 'crashpad-handler': 'crash_handler'}
     role = roles.get(kind[1], fallback)
     if role == 'utility':
-        service = re.search(r'(?:^|\s)--utility-sub-type=([A-Za-z.]+)(?:\s|$)', arguments)
+        service = re.search(r'(?:^|\s)--utility-sub-type=([A-Za-z_.]+)(?:\s|$)', arguments)
         return {'network.mojom.NetworkService': 'network_service',
                 'storage.mojom.StorageService': 'storage_service',
+                'tracing.mojom.TracingService': 'tracing_service',
+                'data_decoder.mojom.DataDecoderService': 'data_decoder_service',
+                'proxy_resolver.mojom.ProxyResolverFactory': 'proxy_resolver_service',
                 'audio.mojom.AudioService': 'audio_service'}.get(service[1] if service else '', role)
     return role
 
@@ -265,7 +268,7 @@ def snapshot():
 
 class Supervisor:
     def __init__(self, root: Path, *, deadline_seconds=5.0, rss_limit_kib=2 * 1024 * 1024, interval_seconds=0.025,
-                 sample_capacity=256, inspect_roles=False):
+                 sample_capacity=256, inspect_roles=False, process_snapshot=None):
         if not 0.05 <= deadline_seconds <= 720 or not 1 <= rss_limit_kib <= 16 * 1024 * 1024 or not 0.005 <= interval_seconds <= 1:
             raise ValueError('SUPERVISOR_LIMITS')
         if type(sample_capacity) is not int or not 1 <= sample_capacity <= 8192:
@@ -279,6 +282,7 @@ class Supervisor:
         self.interval_seconds = interval_seconds
         self.sample_capacity = sample_capacity
         self.inspect_roles = inspect_roles
+        self.process_snapshot = process_snapshot or snapshot
         self.session_id = uuid.uuid4().hex
         self.generation = 0
         self.active = False
@@ -322,7 +326,7 @@ class Supervisor:
                     known[(child.pid, leader_identity)] = Process(child.pid, os.getpid(), group, 0, 0, leader_identity, '')
 
                 def observe():
-                    current = snapshot()
+                    current = self.process_snapshot()
                     # Group members belong to the launch session; extend to
                     # descendants while their parent identity is still observed.
                     members = {p.pid: p for p in current.values() if p.group == group}
@@ -344,10 +348,13 @@ class Supervisor:
                 def sample_members(members, phase):
                     nonlocal peak_rss, first_rss_exceedance
                     live = [p for p in members.values() if not p.state.startswith('Z')]
+                    if any(p.rss_kib < 0 for p in live):
+                        raise RuntimeError('OWNED_RSS_UNAVAILABLE')
                     rss = sum(p.rss_kib for p in live)
                     peak_rss = max(peak_rss, rss)
                     sample = {'elapsed_ms': round((time.monotonic() - start) * 1000, 3), 'processes': len(live),
-                              'rss_kib': rss, 'cpu_percent_ps': sum(p.cpu_percent for p in live),
+                              'rss_kib': rss, 'cpu_percent_ps': (sum(p.cpu_percent for p in live)
+                                  if all(p.cpu_percent is not None for p in live) else None),
                               'resource_usage': resources.capture(live), 'phase': phase}
                     if rss > self.rss_limit_kib and first_rss_exceedance is None:
                         first_rss_exceedance = {'elapsed_ms': sample['elapsed_ms'], 'rss_kib': rss, 'phase': phase}
@@ -376,7 +383,7 @@ class Supervisor:
                     if not alive:
                         break
                     for p in alive:
-                        latest = snapshot().get(p.pid)
+                        latest = self.process_snapshot().get(p.pid)
                         if latest and latest.identity == p.identity:
                             try: os.kill(p.pid, sig)
                             except ProcessLookupError: pass
@@ -408,6 +415,8 @@ class Supervisor:
         except BaseException as error:
             report = {'session_id': self.session_id, 'generation': self.generation,
                       'reason': 'supervisor_error', 'error_type': type(error).__name__,
+                      'error_code': (str(error) if isinstance(error,RuntimeError) and re.fullmatch('[A-Z0-9_]{1,64}',str(error)) else None),
+                      'observed_processes': len(known),
                       'scope': 'best-effort cleanup of observed owned tree'}
             report.update(samples=list(samples), resource_measurements=resources.report())
             raise

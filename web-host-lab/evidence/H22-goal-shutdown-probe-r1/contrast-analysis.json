@@ -1,0 +1,38 @@
+{
+  "status": "PARTIAL",
+  "scope": "one same-binary diagnostic; does not replace original matrix case",
+  "native_audit": "PASS",
+  "workload_functional": "PASS",
+  "workload_performance": "FAIL",
+  "close_metrics": {
+    "status": "PASS",
+    "close_to_shutdown_ms": 94.725125,
+    "supervisor_cleanup_ms": 11.915,
+    "peak_rss_mib": 1348.96875,
+    "host_identities": 1
+  },
+  "cef_shutdown_ms": 60.231708,
+  "sampler_status": "SHUTDOWN_RETURNED_BEFORE_TRIGGER",
+  "failed_complete_capacity_events": [
+    {
+      "identity": [
+        1,
+        900000,
+        1
+      ],
+      "start_ns": 248518654688833,
+      "end_ns": 248520521170750,
+      "fps": 28.39566754827553
+    }
+  ],
+  "complete_capacity_events": 10,
+  "input_sha256": {
+    "evidence/H22-goal-shutdown-probe-r1/report.json": "ba0106fa62815ae081937c9adadce2cf79ab36fd130e39ac41bce51c75b49315",
+    "evidence/H22-goal-shutdown-probe-r1/analysis.json": "877ef0ec1dae104754e65f0815c7480fecaae1f74d6071f7132284f3725f0907",
+    "evidence/H22-goal-shutdown-probe-r1/workload-analysis.json": "57694859561c66c9666fa1b4bcc245d7327224efd72561b07dc7b55353e283ea",
+    "evidence/H22-goal-shutdown-probe-r1/lifecycle.jsonl": "77493ec15a0ab2f29c5eb88d3bca9a26a25f58a7e0d3caad51b87c2171b5d77e",
+    "evidence/H22-goal-shutdown-probe-r1-observer/observation.json": "d3be6e5eee07e50a13118d419a0ad1ef5fd788ba1f717327175b0674ec90ea9a",
+    "evidence/H22-goal-shutdown-probe-r1-observer/observer-source.py": "499854d53a2328685b5a9eeee3c3fb9a618a8e8c74b22875731efcd62bece1c8"
+  },
+  "conclusion": "Original close deadline failure not reproduced and not resolved. One complete Goal event again misses cadence; interrupted intervals remain retained without inventing a sustained-FPS claim."
+}

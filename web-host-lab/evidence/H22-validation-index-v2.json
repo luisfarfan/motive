@@ -1,0 +1,81 @@
+{
+  "status": "PASS",
+  "full_regression": "evidence/H22-contracts-r3/summary.json",
+  "full_regression_sha256": "a7fa4845b5f58b0c819a9c10b43ea7eeb23d17c3689435f30a2a7c37f13c5bcf",
+  "inherited_source_changes_after_regression": [
+    {
+      "path": "tools/h22_matrix.py",
+      "tested_r3_sha256": "d843c414c494bae1f778fff20c13cc7a44a67331d3e8678518161e7e188b9099",
+      "current_sha256": "26de6e8307d69854a9920744a814818b0dc4f8d2884ba1ab027c1ea88defcb7b"
+    },
+    {
+      "path": "tools/h22_suite.py",
+      "tested_r3_sha256": "923c3f779dbe371e383ad76cbec0a707a358a3e93f4d6c31227fda87a5603f3d",
+      "current_sha256": "c2af8bcd7ac00165d2f89fd8b55479d3526e2fcdcb656cbb5cfbaa172f548451"
+    },
+    {
+      "path": "tools/h22_workload_check.py",
+      "tested_r3_sha256": "ff59c0eaf736eb6335b32452000be7b4bef515f3edd393d46e195a42f96e3414",
+      "current_sha256": "e2fbc2981e69b02b29b143bdae327454a9f3cf65253825482d333f7fa5e0eeb1"
+    },
+    {
+      "path": "tests/test_h22_workload_check.py",
+      "tested_r3_sha256": "67cfb84338b827fb0f053a92af7c4667bdeffe9fbf4e156077cea9e09796eb4a",
+      "current_sha256": "5c5046da2f181726d789a6fe42e86b06a07ca867f5d6e28f2cf218fd05ab57e9"
+    }
+  ],
+  "focal_regressions": [
+    {
+      "log": "evidence/H22-event-auditor-tests.log",
+      "log_sha256": "3cc0d2d0460bc9d99c622a1feb6d42e9409cd4e2dce9cb377b795d5cc12a0cbe",
+      "tests": 7,
+      "status": "PASS",
+      "sources": {
+        "tools/h22_workload_check.py": "e2fbc2981e69b02b29b143bdae327454a9f3cf65253825482d333f7fa5e0eeb1",
+        "tests/test_h22_workload_check.py": "5c5046da2f181726d789a6fe42e86b06a07ca867f5d6e28f2cf218fd05ab57e9"
+      }
+    },
+    {
+      "log": "evidence/H22-matrix-auditor-tests.log",
+      "log_sha256": "86f09bdb02d9c4d6a722c2e05afe1b4525da736761e8f3fb7503e06e36118a81",
+      "tests": 3,
+      "status": "PASS",
+      "sources": {
+        "tools/h22_matrix.py": "26de6e8307d69854a9920744a814818b0dc4f8d2884ba1ab027c1ea88defcb7b",
+        "tests/test_h22_matrix.py": "508e35ff68f83d9504773afa6ba868be2ca24a15c7ed2df716cb7d75dae55add"
+      }
+    },
+    {
+      "log": "evidence/H22-campaign-r3/suite-gate-tests.log",
+      "log_sha256": "b7747b5de0cbeb7ebc71deaf33c358ffeb71d61602ff7de3e226b5495da39ceb",
+      "tests": 4,
+      "status": "PASS",
+      "sources": {
+        "tools/h22_suite.py": "c2af8bcd7ac00165d2f89fd8b55479d3526e2fcdcb656cbb5cfbaa172f548451",
+        "tests/test_h22_suite.py": "aa9a3399872b4fcf875bb4ff902b1e15806f51206379417fb1e03bcb9e903092"
+      }
+    },
+    {
+      "log": "evidence/H22-coverage-auditor-tests.log",
+      "log_sha256": "3e8c038861bcad5de4d67eaee20a07ea948e4dac1d1c26b3224ab779c3da0f78",
+      "tests": 5,
+      "status": "PASS",
+      "sources": {
+        "tools/h22_coverage.py": "a0210bd2f878c9da37d56db31bc0f2bf51f616c96c7bc7fd0ca1e3b73a31e7c4",
+        "tests/test_h22_coverage.py": "45fd203f838bc552f497c15ebb3fbf6f1d6b381162a76776e7707ff032ff11b0"
+      }
+    }
+  ],
+  "limits": [
+    "No GPU texture or Production acceptance.",
+    "Focal regressions cover later read-only auditor changes; native sources remain matched to immutable final binaries.",
+    "Read-only delivery inventory/cleanup and the shutdown observer have separate execution evidence; this index does not claim their inclusion in the earlier full suite."
+  ],
+  "scope": "source-bound regression evidence; not H22 acceptance",
+  "additional_h22_auditors": {
+    "tests": 34,
+    "log": "evidence/H22-campaign-r2/auditor-tests.log",
+    "sha256": "41d0f3cc0392bbf8a98346529735f8399502087d7881878301d387bd3272b856",
+    "status": "PASS"
+  }
+}

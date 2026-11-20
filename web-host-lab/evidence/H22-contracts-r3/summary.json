@@ -1,0 +1,110 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "inherited-contracts",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/verify_h19.py",
+        "--output-dir",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/evidence/H22-contracts-r3/inherited"
+      ],
+      "returncode": 0,
+      "log_sha256": "0c869c38f70aa3d28017bff0332bdc8cd2d6d13d90167b89a0c05d606463b031"
+    },
+    {
+      "name": "transport-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/frame-transport/Cargo.toml",
+        "--all-targets"
+      ],
+      "returncode": 0,
+      "log_sha256": "be42edc9a3f811b61e1fcbefc2cb9fdc72fe99b166039744d41cac6f0a9fb3fe"
+    },
+    {
+      "name": "transport-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/frame-transport/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "returncode": 0,
+      "log_sha256": "8c233a54790c4800d3dd585436af679aa838da259bfdb129412e2d51cdb75cdc"
+    },
+    {
+      "name": "transport-build",
+      "command": [
+        "cargo",
+        "build",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/frame-transport/Cargo.toml",
+        "--all-targets"
+      ],
+      "returncode": 0,
+      "log_sha256": "8c233a54790c4800d3dd585436af679aa838da259bfdb129412e2d51cdb75cdc"
+    },
+    {
+      "name": "transport-fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/frame-transport/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "returncode": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "obs-compile-link",
+      "command": [
+        "clang++",
+        "-std=c++20",
+        "-arch",
+        "arm64",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "/Users/luisfarfan/Developer/products/motive/.deps/obs-studio-33.0.1/libobs",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/obs-adapter/adapter.cpp",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/obs-adapter/contract-test.cpp",
+        "/Users/luisfarfan/Developer/products/motive/.deps/OBS.app/Contents/Frameworks/libobs.framework/Versions/A/libobs",
+        "-Wl,-rpath,/Users/luisfarfan/Developer/products/motive/.deps/OBS.app/Contents/Frameworks",
+        "-o",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/evidence/H22-contracts-r3/obs-contract"
+      ],
+      "returncode": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "obs-validation-contract",
+      "command": [
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/evidence/H22-contracts-r3/obs-contract"
+      ],
+      "returncode": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "real-cef-frame-process-replay",
+      "returncode": 0
+    }
+  ],
+  "scope": "isolated real socket/process and pure OBS contracts; no live CEF/OBS integration or Production acceptance"
+}

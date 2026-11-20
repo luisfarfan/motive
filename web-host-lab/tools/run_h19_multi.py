@@ -25,13 +25,18 @@ from run_owned_fixture import (LAB, PIN, VIEWPORTS, canonical_directory, collect
     sha, verify_inventory, write_new)
 from h19_metrics import resource_window, frame_window
 
-SCENARIOS = {'steady', 'static', 'mixed', 'lifecycle', 'crash', 'goal', 'security', 'slow', 'hidden', 'resize', 'events', 'slow-consumer'}
+SCENARIOS = {'steady', 'static', 'mixed', 'lifecycle', 'crash', 'goal', 'security', 'slow', 'hidden', 'resize', 'events', 'slow-consumer', 'cold-resize', 'cold-lifecycle', 'cold-cycles', 'lower-third', 'community-alert', 'widget-mix', 'widget-lifecycle', 'widget-soak', 'goal-load', 'goal-lifecycle'}
 
 
 def validate_options(args):
     require(args.instances in (1, 3, 5), 'INSTANCE_COUNT')
     require(args.scenario in SCENARIOS, 'FIXED_SCENARIO')
     require(args.scenario != 'lifecycle' or (args.instances == 3 and args.duration_ms >= 25000), 'LIFECYCLE_THREE_INITIAL_WIDGETS')
+    require(args.scenario != 'cold-lifecycle' or (args.instances == 3 and args.duration_ms >= 25000), 'COLD_LIFECYCLE_THREE_INITIAL_WIDGETS')
+    require(args.scenario != 'cold-cycles' or (args.instances == 3 and args.duration_ms == 600000), 'COLD_CYCLES_BOUNDED_SOAK')
+    require(args.scenario != 'cold-resize' or (args.instances >= 3 and args.duration_ms >= 10000), 'COLD_RESIZE_WITH_PEERS')
+    require(args.scenario not in ('widget-lifecycle','goal-lifecycle') or (args.instances >= 3 and args.duration_ms >= 42000), 'WIDGET_LIFECYCLE_WITH_PEERS')
+    require(args.scenario != 'widget-soak' or (args.instances == 3 and args.duration_ms == 600000), 'WIDGET_SOAK_BOUNDS')
     require((args.width, args.height) in VIEWPORTS and args.fps in (30, 60), 'FIXED_VIEWPORT')
     require(1000 <= args.duration_ms <= 600000, 'FIXTURE_DURATION')
     require(math.isfinite(args.deadline_seconds) and args.duration_ms / 1000 < args.deadline_seconds <= 720, 'DEADLINE')
@@ -45,7 +50,7 @@ def match_build(args):
     require(root.is_relative_to(LAB / '.cache'), 'LOCAL_BUILD_REQUIRED')
     executable = root / 'MotiveBrowserFixture.app/Contents/MacOS/MotiveBrowserFixture'
     matches = []
-    for path in sorted((LAB / 'evidence').glob('H19-native*-build.json')):
+    for path in sorted([*(LAB / 'evidence').glob('H19-native*-build.json'), *(LAB / 'evidence').glob('H22-native*-build.json')]):
         report = read_json(path)
         binaries = report.get('binaries', [])
         if binaries and binaries[0].get('sha256') == args.expected_sha256 and LAB / binaries[0]['path'] == executable:
@@ -64,10 +69,11 @@ class OwnedCanary:
     Count connections without reading/logging request data. No external routing.
     Zero connections proves only no observed hit at this canary, never OS egress.
     """
-    def __init__(self):
+    def __init__(self, port=18719):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.socket.bind(('127.0.0.1', 18719))
+            require(port in (18719,18720),'OWNED_CANARY_PORT')
+            self.socket.bind(('127.0.0.1', port))
             self.socket.listen(8)
             self.socket.settimeout(.1)
         except BaseException:
@@ -176,6 +182,7 @@ def parser():
     p.add_argument('--png', action='store_true')
     p.add_argument('--preflight-only', action='store_true')
     p.add_argument('--memory-regions', action='store_true', help='One bounded metadata-only diagnostic; not a steady performance trial')
+    p.add_argument('--memory-profile', action='store_true', help='H22: bounded vmmap summaries at 60/300/570s; diagnostic, not cadence acceptance')
     return p
 
 
@@ -186,9 +193,21 @@ def main(argv=None):
     output = None
     output_created = False
     canary = None
+    direct_canary = None
+    memory_probe = None
     try:
         validate_options(args)
         build, build_path, build_report, inventory = match_build(args)
+        require(not build_report.get('app_sandbox_probe'), 'USE_SEPARATE_SANDBOX_PROBE')
+        if build_path.name.startswith('H22-') and not args.preflight_only:
+            require(build_report.get('network_lab') and build_report.get('network_lab_policy')=='closed-resolver-v2',
+                'H22_OLD_NETWORK_PROFILE_BLOCKED')
+        widget_scenario=args.scenario.startswith('widget-') or args.scenario in ('lower-third','community-alert')
+        require(widget_scenario == bool(build_report.get('controlled_widget_fixtures')), 'FIXED_WIDGET_BUILD_SCENARIO')
+        require(not args.scenario.startswith('goal-') or 'goal' in build_report['profile'], 'GOAL_LOAD_REQUIRES_ORIGINAL_PACKAGE')
+        if build_report.get('native_role_probe'):
+            require(args.scenario=='security' and args.duration_ms==5000, 'NATIVE_ROLE_PROBE_SCENARIO')
+            require(regular_bytes(build/'h22-owned-decoy',1024)==b'MOTIVE_H22_OWNED_DECOY_NO_SECRET\n', 'NATIVE_ROLE_DECOY')
         output = Path(os.path.abspath(args.output_dir))
         canonical_directory(output.parent)
         require(output.is_relative_to(LAB / 'evidence'), 'LAB_EVIDENCE_REQUIRED')
@@ -200,6 +219,22 @@ def main(argv=None):
                       requested={k: getattr(args, k) for k in ('instances', 'scenario', 'width', 'height', 'fps', 'duration_ms', 'deadline_seconds', 'rss_limit_mib')},
                       collector_sha256={p: sha(regular_bytes(LAB / p, 2*1024**2)) for p in
                         ('tools/run_h19_multi.py', 'tools/h19_metrics.py', 'poc/browser-host/supervisor.py')})
+        if build_path.name.startswith('H22-'):
+            report['collector_sha256']['tools/h22_process_snapshot.py'] = sha(regular_bytes(LAB / 'tools/h22_process_snapshot.py', 2*1024**2))
+            for relative in ('tools/h22_with_lock.py','tools/h22_trial.py','tools/h22_partial_evidence.py'):
+                report['collector_sha256'][relative]=sha(regular_bytes(LAB/relative,2*1024**2))
+            if build_report.get('network_lab'):
+                report['collector_sha256']['tools/h22_network_check.py']=sha(regular_bytes(LAB/'tools/h22_network_check.py',2*1024**2))
+            if args.memory_profile:
+                report['collector_sha256']['tools/h22_memory_probe.py'] = sha(regular_bytes(LAB / 'tools/h22_memory_probe.py', 2*1024**2))
+                report['collector_sha256']['tools/h19_memory_regions.py'] = sha(regular_bytes(LAB / 'tools/h19_memory_regions.py', 2*1024**2))
+            sources = output / 'measurement-sources'
+            for relative, expected in report['collector_sha256'].items():
+                data = regular_bytes(LAB / relative, 2*1024**2)
+                require(sha(data) == expected, 'COLLECTOR_CHANGED_DURING_PREFLIGHT')
+                destination = sources / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                write_new(destination, data)
         if args.preflight_only:
             report.update(status='PASS', scope='static_preflight_only')
         else:
@@ -215,6 +250,9 @@ def main(argv=None):
             if args.scenario == 'security':
                 write_new(fixture / 'sandbox-decoy', b'MOTIVE_H19_OWNED_DECOY_NO_SECRET\n')
                 canary = OwnedCanary()
+            if build_report.get('network_lab'):
+                require(args.scenario!='security','NETWORK_PROFILE_SEPARATE_FROM_SECURITY_PROBES')
+                canary=OwnedCanary();direct_canary=OwnedCanary(18720)
             generation = args.generation or time.monotonic_ns() // 1000
             executable = build / 'MotiveBrowserFixture.app/Contents/MacOS/MotiveBrowserFixture'
             command = [str(executable), '--owned-multi', str(fixture), str(generation), str(args.width),
@@ -223,11 +261,22 @@ def main(argv=None):
             module = importlib.util.module_from_spec(spec)
             sys.modules[spec.name] = module
             spec.loader.exec_module(module)
+            native_snapshot = None
+            if build_path.name.startswith('H22-'):
+                from h22_process_snapshot import NativeSnapshot
+                native_snapshot = NativeSnapshot(module)
             supervisor = module.Supervisor(supervisor_root, deadline_seconds=args.deadline_seconds,
-                rss_limit_kib=args.rss_limit_mib*1024, interval_seconds=.25, sample_capacity=4096, inspect_roles=True)
+                rss_limit_kib=args.rss_limit_mib*1024, interval_seconds=.25, sample_capacity=4096, inspect_roles=True,
+                process_snapshot=native_snapshot)
             report.update(native_generation=generation, raw_evidence_root=str(private), run_id=run_id)
             memory_regions = []
+            if args.memory_profile:
+                require(args.duration_ms == 600000 and build_path.name.startswith('H22-'), 'MEMORY_PROFILE_H22_SOAK_ONLY')
+                from h22_memory_probe import MemoryProbe
+                memory_probe = MemoryProbe(output, module)
             def sample_hook(sample):
+                if memory_probe:
+                    memory_probe.sample(sample)
                 if args.memory_regions and not memory_regions and sample['elapsed_ms'] >= 3000 and sample['phase'] == 'running':
                     from h19_memory_regions import inspect_owned_regions
                     probe = {'trigger_elapsed_ms': sample['elapsed_ms'], 'processes': []}
@@ -237,9 +286,28 @@ def main(argv=None):
                         row['role'] = process['role']
                         probe['processes'].append(row)
             supervision = invoke_supervisor(supervisor, command, report, on_sample=sample_hook)
+            if native_snapshot:
+                report['process_observer'] = native_snapshot.report()
+            if memory_probe:
+                memory_probe.finish()
+                memory_probe = None
+                report['memory_profile_diagnostic'] = True
             if args.memory_regions:
                 save_json(output / 'memory-regions.json', memory_regions)
                 report['memory_regions_diagnostic'] = True
+            if direct_canary:
+                direct_canary.close()
+                from h22_network_check import inspect_netlog
+                try:
+                    netlog=regular_bytes(fixture/'h22-netlog.json',9*1024**2)
+                    write_new(output/'netlog.json.gz',gzip.compress(netlog,mtime=0))
+                    manifests=[str(p.relative_to(fixture/'cache')) for p in sorted((fixture/'cache').rglob('manifest.json'))]
+                    network=inspect_netlog(netlog,canary.connections,direct_canary.connections,manifests)
+                except (OSError,ValueError,KeyError,TypeError) as error:
+                    network={'status':'FAIL','error_type':type(error).__name__,'error':str(error)[:240]}
+                save_json(output/'network-analysis.json',network)
+                report['network_lab']=network
+                direct_canary=None
             if canary:
                 canary.close()
                 report['owned_loopback_canary'] = {'bound': True, 'accepted_connections': canary.connections, 'connections': canary.connections, 'closed': True,
@@ -258,6 +326,13 @@ def main(argv=None):
             for filename in ('lifecycle.jsonl', 'instances.json', 'security.json'):
                 if (fixture / filename).exists():
                     write_new(output / filename, regular_bytes(fixture / filename, 16*1024**2))
+            if not (fixture / 'instances.json').exists():
+                report['incomplete_native_output'] = 'instances.json absent; no final conservation claim'
+                if build_path.name.startswith('H22-'):
+                    from h22_partial_evidence import retain_partial
+                    retain_partial(fixture,output)
+                require(supervision.get('reason') != 'supervisor_error', 'SUPERVISOR_ERROR_' + supervision.get('error_type', 'unknown'))
+                raise ValueError('NATIVE_FINAL_MANIFEST_MISSING')
             manifest = read_json(fixture / 'instances.json', 16*1024**2)
             entries = manifest['instances']
             require(type(entries) is list and 1 <= len(entries) <= 256, 'INSTANCE_MANIFEST')
@@ -285,7 +360,7 @@ def main(argv=None):
             memory = supervision.get('peak_tree_rss_kib', 2**63) <= args.rss_limit_mib*1024
             paints = all(item['frame_delivery'] for item in report['instances'])
             native_closed = all(item.get('closed') is True and item.get('closed_ns', 0) > 0 for item in entries)
-            failures_expected = not any(item.get('failed') for item in entries) or args.scenario in ('crash', 'lifecycle')
+            failures_expected = not any(item.get('failed') for item in entries) or args.scenario in ('crash', 'lifecycle', 'cold-lifecycle','widget-lifecycle','widget-soak','goal-lifecycle')
             conservation = all(item.get('paint_conservation', {}).get('status') == 'PASS' for item in report['instances'])
             markers = goal or all(item['samples'].get('latest', {}).get('instance_marker', {}).get('status') == 'PASS' for item in report['instances'])
             report['gates'] = {'native_exit': 'PASS' if healthy_exit else 'FAIL', 'observed_cleanup': 'PASS' if cleanup else 'FAIL',
@@ -296,6 +371,9 @@ def main(argv=None):
                 'unexpected_instance_failure': 'PASS' if failures_expected else 'FAIL',
                 'third_party_isolation': 'BLOCKED', 'production_keychain': 'BLOCKED', 'libobs': 'NOT_EVALUATED'}
             report['status'] = 'PASS' if healthy_exit and cleanup and memory and paints and conservation and markers and native_closed and failures_expected else 'FAIL'
+            if report.get('network_lab'):
+                report['gates']['owned_network_lab_route']=report['network_lab']['status']
+                if report['network_lab']['status']!='PASS':report['status']='FAIL'
             report['limits'] = ['PASS is the scoped owned native run, never global H19 acceptance.',
                 'Mock Keychain is an explicit Chromium test backend, not a production fix.',
                 'Frame acquisition is not audiovisual output FPS. No CEF timestamp is PTS.',
@@ -311,8 +389,12 @@ def main(argv=None):
         print(json.dumps(report, indent=2), file=sys.stderr)
         return 1
     finally:
+        if memory_probe:
+            memory_probe.finish()
         if canary:
             canary.close()
+        if direct_canary:
+            direct_canary.close()
 
 
 if __name__ == '__main__':

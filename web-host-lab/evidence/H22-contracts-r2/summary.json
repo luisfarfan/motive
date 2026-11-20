@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "bridge-fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/frame-bridge/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "returncode": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "transport-fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/frame-transport/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "returncode": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "real-cef-frame-process-replay",
+      "returncode": 0
+    }
+  ],
+  "scope": "isolated real socket/process and pure OBS contracts; no live CEF/OBS integration or Production acceptance"
+}

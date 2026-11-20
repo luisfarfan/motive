@@ -1,0 +1,71 @@
+{
+  "status": "FAIL",
+  "cases": [
+    {
+      "name": "boundary2",
+      "run": "evidence/H22-pilot-r1-boundary2",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_trial.py",
+        "--build",
+        "h22-native-multi-boundary1-ephemeral",
+        "--name",
+        "H22-pilot-r1-boundary2",
+        "--scenario",
+        "security",
+        "--instances",
+        "1",
+        "--seconds",
+        "5",
+        "--width",
+        "640",
+        "--height",
+        "360",
+        "--generation",
+        "221000"
+      ],
+      "slot_busy_attempts": 0,
+      "native_returncode": 0,
+      "analysis.json": {
+        "returncode": 0,
+        "sha256": "8e5cb69796fbef5397e649b405bd69435bc5d0d9a4aec92e1a4fc53602ecdcba"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "lower3h",
+      "run": "evidence/H22-pilot-r1-lower3h",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_trial.py",
+        "--build",
+        "h22-native-multi-widgets1-ephemeral",
+        "--name",
+        "H22-pilot-r1-lower3h",
+        "--scenario",
+        "lower-third",
+        "--instances",
+        "3",
+        "--seconds",
+        "72",
+        "--width",
+        "640",
+        "--height",
+        "360",
+        "--generation",
+        "221100"
+      ],
+      "slot_busy_attempts": 0,
+      "native_returncode": 0,
+      "analysis.json": {
+        "returncode": 0,
+        "sha256": "5a2a095a52bd62690d1e2666a0417807d7adf7d7139acc5fd340cb9e9fa926c4"
+      },
+      "workload-analysis.json": {
+        "returncode": 1,
+        "sha256": "3a1c68da5a516ccaba46c823e9a13ef77b57e57084bb0c8ad91362d26f5aaa26"
+      },
+      "status": "FAIL"
+    }
+  ]
+}

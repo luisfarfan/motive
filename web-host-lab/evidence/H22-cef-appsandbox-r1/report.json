@@ -1,0 +1,123 @@
+{
+  "status": "BLOCKED",
+  "scope": "CEF 150 App Sandbox compatibility only",
+  "native_host_executed": true,
+  "native_host_execution_attempted": true,
+  "cef_sandbox_disabled": false,
+  "real_keychain_authorized": false,
+  "real_keychain_access_measured": false,
+  "credential_backend": "chromium-use-mock-keychain",
+  "third_party_content_allowed": false,
+  "build_report_sha256": "e5f66990a5a596727e6e602408f58403dc49a39a121d14100c8367b37d8dee23",
+  "main_sha256": "61bec7e83c8af3d59993505deb875f9e4a7ffbc0633193c1c5a00310158b7630",
+  "entitlements": {
+    "main": {
+      "com.apple.security.app-sandbox": true
+    },
+    "helpers": {
+      "com.apple.security.app-sandbox": true,
+      "com.apple.security.inherit": true
+    }
+  },
+  "supervision_sha256": "1748ca12fb5b042ad4aeb07a60d798b12398364cc9c22c672fe2ce922dcfbf68",
+  "supervision": {
+    "session_id": "81df769353394cc5b9d68c8c61fbf179",
+    "generation": 1,
+    "reason": "exit",
+    "returncode": -5,
+    "elapsed_ms": 2076.381,
+    "shutdown_ms": 13.962,
+    "observed_processes": 1,
+    "remaining_observed_live_pids": [],
+    "cleanup_observed_tree": true,
+    "peak_tree_rss_kib": 111520,
+    "footprint_bytes": null,
+    "gpu_percent": null,
+    "launch_kind": "trusted_caller_supplied_executable",
+    "scope": "observed owned tree; not proof against unobserved process escape or an OS sandbox",
+    "resource_measurements": {
+      "version": 1,
+      "api": "proc_pid_rusage(RUSAGE_INFO_V0)",
+      "mach_timebase": {
+        "numer": 125,
+        "denom": 3
+      },
+      "cpu_unit": "nanoseconds; percent 100 equals one fully occupied core",
+      "total_samples": 20,
+      "partial_samples": 3,
+      "valid_cpu_intervals": 17,
+      "observed_cpu_delta_ns": 105072000,
+      "measured_wall_delta_ns": 1938428834,
+      "observed_cpu_mean_percent_one_core": 5.4204724030637275,
+      "peak_observed_tree_phys_footprint_bytes": 28017696,
+      "observed_process_roles": {
+        "browser_host": 1
+      },
+      "gpu_percent": null,
+      "limits": [
+        "Only consecutive observations of matching PID/birth/start identity contribute CPU deltas.",
+        "CPU before first/after last observation and processes shorter than the sampling interval may be missed.",
+        "Memory is a sequential sum of per-process physical footprints, not a coalition or unique physical-page total.",
+        "Reported CPU excludes the supervisor and process-list collection overhead.",
+        "Roles parse a finite allowlist of owned helper process arguments, birth checked before/after; no raw command line retained.",
+        "Virtual bytes are address-space reservation; private/shared residency and unique physical pages remain unavailable.",
+        "Historical cpu_percent_ps remains ps output; legacy footprint_bytes remains unspecified/null."
+      ]
+    },
+    "rss_budget": {
+      "limit_kib": 2097152,
+      "first_exceedance": null,
+      "observed_overshoot_kib": 0,
+      "cleanup_sampled": true,
+      "scope": "sampled emergency stop, not a hard allocation cap; intersample peaks may be missed"
+    },
+    "sample_retention": {
+      "capacity": 256,
+      "retained": 20,
+      "dropped_oldest": 0
+    },
+    "final_remaining_observed_pids": [],
+    "final_remaining_observed_live_pids": [],
+    "final_cleanup_observed_tree": true
+  },
+  "process_observer": {
+    "api": "proc_listallpids + PROC_PIDTBSDINFO + PROC_PIDTASKINFO",
+    "calls": 21,
+    "max_duration_ms": 10.61175,
+    "cpu_percent_ps": null,
+    "capacity": 65536,
+    "scope": "same-user process metadata; observed tree only, not hostile confinement"
+  },
+  "diagnostic_streams": {
+    "status": "PASS",
+    "scope": "bounded streams of the explicitly launched controlled fixture",
+    "per_stream_limit_bytes": 65536,
+    "streams": {
+      "stdout.log": {
+        "status": "PASS",
+        "file": "supervisor-stdout.log",
+        "source_bytes": 0,
+        "saved_bytes": 0,
+        "saved_prefix_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "truncated": false
+      },
+      "stderr.log": {
+        "status": "PASS",
+        "file": "supervisor-stderr.log",
+        "source_bytes": 225,
+        "saved_bytes": 225,
+        "saved_prefix_sha256": "049fbabc17da7d94cbd0aa45083e2b1db7be1882a6b22930031e6f55e6583128",
+        "truncated": false
+      }
+    }
+  },
+  "native_evidence": [
+    {
+      "path": "lifecycle.jsonl",
+      "bytes": 59,
+      "sha256": "66a850f545743f34d218ba626725da1bb05d56d10afaf96b412209a6f47ed13f"
+    }
+  ],
+  "initialized": false,
+  "result": "CEF deployment compatibility not established; no permission relaxation authorized by this probe"
+}

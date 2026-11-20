@@ -1,0 +1,516 @@
+{
+  "status": "PASS",
+  "scope": "owned CEF lab; no OBS or production credential acceptance",
+  "checker_sha256": "0565b74fa04f4d59cbe3ef3e033cd77fb8cf3c609acc02cb88fe57e05ce7d118",
+  "input_sha256": {
+    "report.json": "8a4b4bdd23daf33ce05b7b43c0d27aedde187a6c1315c4ef97cf4f67495d50cf",
+    "instances.json": "0bbe298360500c21a987a3e4a5bd223bbcd5318342e01f6f5158d4e2766eed94",
+    "supervision.json.gz": "7a1488c2a219c03fa6f0acc79a230d60367f775d53c4be850f86d968dfcfa336",
+    "measurement-sources/poc/browser-host/supervisor.py": "38ce0d5b336d8057c6b7dd5bf444cb912e7358ba1f2c66bea54e5d7c6ed66fe0",
+    "measurement-sources/tools/h19_metrics.py": "8a109877038ea43f173629bf6edfac66a2fcf68e3be2ec4ac58d5e8935486412",
+    "measurement-sources/tools/h22_network_check.py": "1d89b24ad5735e0f6a7e8efac9df7fda7d951f9c4fd22882bbd1c227ffa08129",
+    "measurement-sources/tools/h22_partial_evidence.py": "0ed2052f97d7ec594c792d67217540df263a6848601f5e8530f9de2050e2b01b",
+    "measurement-sources/tools/h22_process_snapshot.py": "b3607027d1381655d0f652307000f0b3a8b97c53eac47a61d52a0fbe3e060b2d",
+    "measurement-sources/tools/h22_trial.py": "15ca183ed1fc356e0896663bdeecdbdef99df908ed4eb428d8c178743bdcb44f",
+    "measurement-sources/tools/h22_with_lock.py": "ad8c72bdee272b54a393f1868b8150fa9a672e01c891e01fd69fb5c6f1804ca9",
+    "measurement-sources/tools/run_h19_multi.py": "a62afcd468339b7aa3b8e99618ac4a569b5aa41aea5b9ec56a07bf7dc6e44dee",
+    "lifecycle.jsonl": "adbaf42294344699b7daa4e6a74a2ae5fd4bb390441d964e9266781bcdc525a9",
+    "network-analysis.json": "a7ef1974cf1b2cb5c67f10f69b8437715905ca83b33845edad5f2ffbb4fb276d",
+    "netlog.json.gz": "eb44b03dcbf5dc4e078412f68562de131bfff4610dbb768a28d2f5fd8ef7daa6",
+    "instance-1-g251500-e1/lifecycle.jsonl": "cdf74e04c0d36f5a444bbdf4e92599b4ef7ca805406f0070330fb8e212936b1b",
+    "instance-1-g251500-e1/frames.json": "939c3836de1f5e2ce85aa1456ede3053fcec18fc768fcaae16eed07700c2029e",
+    "instance-1-g251500-e1/first.json": "1dd3d82c58d1d5cc312a66ae9e4c68bec8f0dc7a630481eed4defa183b69415f",
+    "instance-1-g251500-e1/first.bgra.gz": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe",
+    "instance-1-g251500-e1/latest.json": "b8d659cd2bd2ca82017629b064784dedca4590f7b38cdedf4a8ca82853e1d6cd",
+    "instance-1-g251500-e1/latest.bgra.gz": "8a02867e5b28fde6e1326309b5967a3c568355414752bf555918b436120ca2d8",
+    "instance-2-g251500-e1/lifecycle.jsonl": "6edcb7015424c841a023c9ba69f6cfbaefbe591ee19ebb93450e7911115a2521",
+    "instance-2-g251500-e1/frames.json": "da25a2a6f8255fdce9bd1a2878b9e23efe6716456286e8900233cb04412353f7",
+    "instance-2-g251500-e1/first.json": "e787ec9082682885cc610ee02452b9f59da034b65783db3d2934a691bb02383d",
+    "instance-2-g251500-e1/first.bgra.gz": "c5c4e65718d73c6392de3ebf35b62c9a5dc35343d13dde5c7605f1b6a6488998",
+    "instance-2-g251500-e1/latest.json": "b62e92764d9a142dd3a605c1129931818dc8dfefcf81ecec49c9487cd2a9cdea",
+    "instance-2-g251500-e1/latest.bgra.gz": "880052f88967c7cb87d0764bc63c815f591780ce73163424686b60d17bfdaa8d",
+    "instance-3-g251500-e1/lifecycle.jsonl": "6d3073d1543da76b9b73e762b3fa40259cbbbdfdfcebfa19c5277b122bb4bb29",
+    "instance-3-g251500-e1/frames.json": "f10a73fcafa489dbc1bca31ab1115c9150ce9c9e3343aee2eecaa557d850355a",
+    "instance-3-g251500-e1/first.json": "92415b66f191bc9c73315a9648c390bbad96d947d2df97203bdde41eede1ff24",
+    "instance-3-g251500-e1/first.bgra.gz": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f",
+    "instance-3-g251500-e1/latest.json": "d5dd801532da2e5d1940dafb6b4c869e54b5c39bb179c6d5da70ca9a1ad56239",
+    "instance-3-g251500-e1/latest.bgra.gz": "e06d1d3003f22f130255e025dc045ac9a9fa1842ac4561264d8baec143c32e5a"
+  },
+  "gates": {
+    "owned_network_lab_route": {
+      "status": "PASS",
+      "netlog_sha256": "4595dee06b90052a9f8469f673d0dbf0077f84ad13791b6de9077f463ca2ecab",
+      "policy": "closed-resolver-v2",
+      "owned_control_resolution_rejected": true,
+      "owned_control_errors": [
+        -130
+      ],
+      "events": 829,
+      "socket_events": 0,
+      "socket_attempts": [],
+      "proxy_connections": 0,
+      "direct_target_connections": 0,
+      "component_manifests": [],
+      "scope": "default redacted Chromium NetLog, positively observed owned request failure before socket creation; not complete OS egress observation",
+      "security_third_party": "BLOCKED",
+      "credential_backend": "MOCK_LAB_ONLY",
+      "limits": [
+        "Proxy/host rules do not confine a compromised native process or non-Chromium network stack.",
+        "No conclusion about real Keychain or all filesystem/IPC capabilities.",
+        "Updater disabled for owned laboratory workload reproducibility, not a production update strategy."
+      ]
+    },
+    "instance-1-g251500-e1": {
+      "status": "PASS",
+      "accepted": 2157,
+      "terminal_sum": 2157,
+      "consumed": 2156,
+      "retained_bytes": 0
+    },
+    "instance-2-g251500-e1": {
+      "status": "PASS",
+      "accepted": 2157,
+      "terminal_sum": 2157,
+      "consumed": 2156,
+      "retained_bytes": 0
+    },
+    "instance-3-g251500-e1": {
+      "status": "PASS",
+      "accepted": 2157,
+      "terminal_sum": 2157,
+      "consumed": 2156,
+      "retained_bytes": 0
+    },
+    "native_close_cleanup": {
+      "status": "PASS",
+      "close_to_shutdown_ms": 36.985208,
+      "supervisor_cleanup_ms": 7.775,
+      "peak_rss_mib": 948.25,
+      "host_identities": 1
+    },
+    "cold_replacement_barriers": {
+      "status": "PASS",
+      "replacements": []
+    }
+  },
+  "operations": [],
+  "epochs": [
+    {
+      "identity": [
+        1,
+        251500,
+        1
+      ],
+      "paints": 2157,
+      "copied_bytes": 1987891200,
+      "max_consumer_work_ms": 0.238167,
+      "join_ms": 7.345125,
+      "report_ms": 0.753417
+    },
+    {
+      "identity": [
+        2,
+        251500,
+        1
+      ],
+      "paints": 2157,
+      "copied_bytes": 1987891200,
+      "max_consumer_work_ms": 0.231167,
+      "join_ms": 1.138625,
+      "report_ms": 0.509625
+    },
+    {
+      "identity": [
+        3,
+        251500,
+        1
+      ],
+      "paints": 2157,
+      "copied_bytes": 1987891200,
+      "max_consumer_work_ms": 0.449167,
+      "join_ms": 1.667458,
+      "report_ms": 0.460833
+    }
+  ],
+  "executable_sha256": "7b2c9957825c44ff645886648eace050cf0807b7c1a603e5e52b8b4c7c69766e",
+  "requested": {
+    "deadline_seconds": 92.0,
+    "duration_ms": 72000,
+    "fps": 30,
+    "height": 360,
+    "instances": 3,
+    "rss_limit_mib": 2048,
+    "scenario": "steady",
+    "width": 640
+  },
+  "credential_backend": "chromium-use-mock-keychain",
+  "ui_heartbeat": {
+    "samples": 0,
+    "maximum_interval_ms": 0.0
+  },
+  "resources": {
+    "totals": {
+      "total_samples": 275,
+      "partial_samples": 5,
+      "valid_cpu_intervals": 272,
+      "observed_cpu_delta_ns": 14482586334,
+      "measured_wall_delta_ns": 72068371209,
+      "observed_cpu_mean_percent_one_core": 20.095620437986803,
+      "peak_observed_tree_phys_footprint_bytes": 489137704
+    },
+    "windows": [
+      {
+        "clock": "python_monotonic",
+        "requested_start_ms": 10000,
+        "requested_end_ms": 70000,
+        "sample_count": 227,
+        "observed_sample_span_ms": 59848.638000000006,
+        "rss_mib": {
+          "n": 227,
+          "median": 936.71875,
+          "p95": 946.9375,
+          "max": 947.75
+        },
+        "physical_footprint_mib": {
+          "n": 227,
+          "median": 459.13431549072266,
+          "p95": 465.66556549072266,
+          "max": 466.47806549072266
+        },
+        "process_count": {
+          "n": 227,
+          "median": 8,
+          "p95": 8,
+          "max": 8
+        },
+        "observed_cpu_percent_one_core": 19.493074728052147,
+        "complete_identity_cpu_percent_one_core": 19.493074728052147,
+        "cpu_intervals": 226,
+        "complete_identity_cpu_intervals": 226,
+        "measured_cpu_wall_seconds": 59.848638959,
+        "roles": {
+          "renderer": {
+            "rss_mib": {
+              "n": 227,
+              "median": 480.671875,
+              "p95": 490.0625,
+              "max": 490.703125
+            },
+            "footprint_mib": {
+              "n": 227,
+              "median": 126.53646850585938,
+              "p95": 134.23959350585938,
+              "max": 134.88021850585938
+            },
+            "process_count": {
+              "n": 227,
+              "median": 4,
+              "p95": 4,
+              "max": 4
+            },
+            "observed_identities": 4,
+            "cpu_delta_ns": 3766014249,
+            "cpu_percent_one_core": 6.292564567057158
+          },
+          "storage_service": {
+            "rss_mib": {
+              "n": 227,
+              "median": 72.5625,
+              "p95": 72.65625,
+              "max": 72.65625
+            },
+            "footprint_mib": {
+              "n": 227,
+              "median": 20.235313415527344,
+              "p95": 20.235313415527344,
+              "max": 20.235313415527344
+            },
+            "process_count": {
+              "n": 227,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 465500,
+            "cpu_percent_one_core": 0.0007777954655224426
+          },
+          "network_service": {
+            "rss_mib": {
+              "n": 227,
+              "median": 82.46875,
+              "p95": 82.53125,
+              "max": 82.53125
+            },
+            "footprint_mib": {
+              "n": 227,
+              "median": 23.141563415527344,
+              "p95": 23.204063415527344,
+              "max": 23.219688415527344
+            },
+            "process_count": {
+              "n": 227,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 21387292,
+            "cpu_percent_one_core": 0.03573563638540153
+          },
+          "gpu": {
+            "rss_mib": {
+              "n": 227,
+              "median": 123.203125,
+              "p95": 123.546875,
+              "max": 123.59375
+            },
+            "footprint_mib": {
+              "n": 227,
+              "median": 240.3760757446289,
+              "p95": 240.6260757446289,
+              "max": 240.6729507446289
+            },
+            "process_count": {
+              "n": 227,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 5457114167,
+            "cpu_percent_one_core": 9.118192597058822
+          },
+          "browser_host": {
+            "rss_mib": {
+              "n": 227,
+              "median": 177.828125,
+              "p95": 178.140625,
+              "max": 178.390625
+            },
+            "footprint_mib": {
+              "n": 227,
+              "median": 48.28239440917969,
+              "p95": 55.34489440917969,
+              "max": 55.34489440917969
+            },
+            "process_count": {
+              "n": 227,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 2421358708,
+            "cpu_percent_one_core": 4.045804132085242
+          }
+        },
+        "gpu_percent": null,
+        "unique_physical_mib": null
+      }
+    ]
+  },
+  "steady_frames": [
+    {
+      "identity": [
+        1,
+        251500,
+        1
+      ],
+      "interval": {
+        "clock": "native_steady_clock",
+        "start_ns": 238021664292208,
+        "end_ns": 238081664292208,
+        "window_seconds": 60.0,
+        "completed_acquisitions": 1800,
+        "acquisition_fps": 30.0,
+        "frame_age_ms": {
+          "n": 1800,
+          "median": 6.6483545,
+          "p95": 13.434583,
+          "max": 15.178375
+        },
+        "consumer_completion_age_ms": {
+          "n": 1800,
+          "median": 6.7618335,
+          "p95": 13.586875,
+          "max": 15.295125
+        },
+        "consumer_work_ms": {
+          "n": 1800,
+          "median": 0.11172950000000001,
+          "p95": 0.156417,
+          "max": 0.238167
+        },
+        "consumer_work_total_ms": 200.147661,
+        "consumer_work_over_100_ms": 0,
+        "acquisition_gap_ms": {
+          "n": 1799,
+          "median": 31.800375,
+          "p95": 42.655042,
+          "max": 49.53975
+        },
+        "status": "PASS",
+        "continuity": {
+          "paint": {
+            "max_gap_ms": 41.757458,
+            "gap_start_ns": 238041758719833,
+            "gap_end_ns": 238041800477291,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 49.53975,
+            "gap_start_ns": 238059457582750,
+            "gap_end_ns": 238059507122500,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 49.473042,
+            "gap_start_ns": 238059457738666,
+            "gap_end_ns": 238059507211708,
+            "observations": 1802,
+            "status": "PASS"
+          }
+        }
+      }
+    },
+    {
+      "identity": [
+        2,
+        251500,
+        1
+      ],
+      "interval": {
+        "clock": "native_steady_clock",
+        "start_ns": 238021666134791,
+        "end_ns": 238081666134791,
+        "window_seconds": 60.0,
+        "completed_acquisitions": 1800,
+        "acquisition_fps": 30.0,
+        "frame_age_ms": {
+          "n": 1800,
+          "median": 6.936292,
+          "p95": 13.426625,
+          "max": 15.338
+        },
+        "consumer_completion_age_ms": {
+          "n": 1800,
+          "median": 7.049479,
+          "p95": 13.55325,
+          "max": 15.43175
+        },
+        "consumer_work_ms": {
+          "n": 1800,
+          "median": 0.11164550000000001,
+          "p95": 0.158542,
+          "max": 0.231167
+        },
+        "consumer_work_total_ms": 199.67899,
+        "consumer_work_over_100_ms": 0,
+        "acquisition_gap_ms": {
+          "n": 1799,
+          "median": 30.1815,
+          "p95": 42.83175,
+          "max": 45.206334
+        },
+        "status": "PASS",
+        "continuity": {
+          "paint": {
+            "max_gap_ms": 41.908209,
+            "gap_start_ns": 238041758453791,
+            "gap_end_ns": 238041800362000,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 45.206334,
+            "gap_start_ns": 238046127729541,
+            "gap_end_ns": 238046172935875,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 45.183209,
+            "gap_start_ns": 238064557667166,
+            "gap_end_ns": 238064602850375,
+            "observations": 1802,
+            "status": "PASS"
+          }
+        }
+      }
+    },
+    {
+      "identity": [
+        3,
+        251500,
+        1
+      ],
+      "interval": {
+        "clock": "native_steady_clock",
+        "start_ns": 238021667660708,
+        "end_ns": 238081667660708,
+        "window_seconds": 60.0,
+        "completed_acquisitions": 1801,
+        "acquisition_fps": 30.016666666666666,
+        "frame_age_ms": {
+          "n": 1801,
+          "median": 6.829209,
+          "p95": 13.409208,
+          "max": 15.07625
+        },
+        "consumer_completion_age_ms": {
+          "n": 1801,
+          "median": 6.934542,
+          "p95": 13.543666,
+          "max": 15.165166
+        },
+        "consumer_work_ms": {
+          "n": 1801,
+          "median": 0.112125,
+          "p95": 0.157958,
+          "max": 0.449167
+        },
+        "consumer_work_total_ms": 201.509201,
+        "consumer_work_over_100_ms": 0,
+        "acquisition_gap_ms": {
+          "n": 1800,
+          "median": 30.184375,
+          "p95": 42.905042,
+          "max": 47.424791
+        },
+        "status": "PASS",
+        "continuity": {
+          "paint": {
+            "max_gap_ms": 40.117625,
+            "gap_start_ns": 238041760605208,
+            "gap_end_ns": 238041800722833,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 47.424791,
+            "gap_start_ns": 238037959417375,
+            "gap_end_ns": 238038006842166,
+            "observations": 1803,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 47.417458,
+            "gap_start_ns": 238037959544750,
+            "gap_end_ns": 238038006962208,
+            "observations": 1803,
+            "status": "PASS"
+          }
+        }
+      }
+    }
+  ],
+  "steady_frame_performance": {
+    "status": "PASS",
+    "scope": "continuous-motion native acquisition windows; intermittent animations evaluated separately"
+  },
+  "functional_status": "PASS",
+  "performance_status": "PASS"
+}

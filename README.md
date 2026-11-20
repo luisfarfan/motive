@@ -40,6 +40,15 @@ public beta: controlled Display, broader recovery, terminal delivery and three
 supervised one-hour sessions remain open. See the [H20 plan](docs/h20-personal-stream-reliability.md),
 [architecture and usage](docs/h20-capture-engine.md), and [physical evidence](docs/h20-capture-verification.md).
 
+**H22 Browser Host laboratory:** native cold replacement, per-generation frame
+accounting, an authenticated bounded BGRA channel and an isolated OBS adapter
+prepare the H23 handoff. **This does not enable browser overlays in Production.**
+Production Keychain and third-party confinement remain blocked. Capacity and
+continuity results apply only to the exact owned CEF workloads and binaries;
+they do not establish game or streaming performance. See the
+[H22 acceptance report](web-host-lab/docs/h22-readiness.md) and
+[H23 handoff](web-host-lab/docs/h22-h23-handoff.md).
+
 | | Capability | Implementation |
 |---|---|---|
 | 🪟 | Screen capture | Explicit Window, Application-on-display and Display through the official OBS ScreenCaptureKit module |

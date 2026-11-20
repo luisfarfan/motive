@@ -2,6 +2,8 @@
 #pragma once
 #include "include/cef_app.h"
 #include "include/cef_scheme.h"
+#include <cstdlib>
+#include <string>
 #ifdef MOTIVE_GOAL_BRIDGE
 #include "renderer_bridge.hpp"
 #elif defined(MOTIVE_MULTI_BROWSER)
@@ -16,6 +18,28 @@ class SchemeApp : public CefApp {
     // Official Chromium test backend: this owned ephemeral fixture neither
     // needs nor claims real OS credential storage. No global/keychain mutation.
     if(process_type.empty())command_line->AppendSwitch("use-mock-keychain");
+#ifdef MOTIVE_H22_NETWORK_LAB
+    if(process_type.empty()) {
+      // Owned laboratory routing only. This is NOT an OS security boundary or
+      // production update policy. Keep CEF sandbox and TLS verification intact.
+      command_line->AppendSwitch("disable-component-update");
+      command_line->AppendSwitch("disable-quic");
+      std::string features=command_line->GetSwitchValue("disable-features").ToString();
+      if(!features.empty())features+=",";
+      command_line->AppendSwitchWithValue("disable-features",features+"MediaRouter");
+      command_line->AppendSwitchWithValue("proxy-server","http://127.0.0.1:18719");
+      command_line->AppendSwitchWithValue("proxy-bypass-list","<-loopback>");
+      // Chromium 150 MappedHostResolver recognizes ^NOTFOUND, not the older
+      // ~NOTFOUND spelling. Reject the proxy itself too: even literal-IP
+      // resolution otherwise runs the shared IPv6 reachability socket probe.
+      command_line->AppendSwitchWithValue("host-resolver-rules","MAP * ^NOTFOUND");
+      // main.mm replaces TMPDIR with the verified private fixture directory.
+      const char* root=std::getenv("TMPDIR");
+      if(root)command_line->AppendSwitchWithValue("log-net-log",std::string(root)+"/h22-netlog.json");
+      command_line->AppendSwitchWithValue("net-log-capture-mode","Default");
+      command_line->AppendSwitchWithValue("net-log-max-size-mb","8");
+    }
+#endif
   }
 #endif
 #if defined(MOTIVE_GOAL_BRIDGE) || defined(MOTIVE_MULTI_BROWSER) || defined(MOTIVE_DIAGNOSTIC_MODE)

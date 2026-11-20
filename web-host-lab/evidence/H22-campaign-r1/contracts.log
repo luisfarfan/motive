@@ -1,0 +1,25 @@
+H22_PHYSICAL_SLOT_ACQUIRED c736743831dc45a3bf25f48880f796a3
+H22_TEMPORARY_IDLE_SLEEP_ASSERTION pid=61163
+inherited-contracts FAIL
+transport-tests PASS
+transport-clippy PASS
+transport-build PASS
+transport-fmt PASS
+obs-compile-link PASS
+obs-validation-contract PASS
+Traceback (most recent call last):
+  File "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_verify_contracts.py", line 69, in <module>
+    if __name__=='__main__':raise SystemExit(main())
+                                             ~~~~^^
+  File "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_verify_contracts.py", line 54, in main
+    supervisor=module.Supervisor(out/'supervised-replay',deadline_seconds=20,rss_limit_kib=256*1024,process_snapshot=NativeSnapshot(module))
+  File "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/browser-host/supervisor.py", line 276, in __init__
+    self.root = Path(root).resolve(strict=True)
+                ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 938, in resolve
+    return self.with_segments(os.path.realpath(self, strict=strict))
+                              ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen posixpath>", line 457, in realpath
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/evidence/H22-contracts-r1/supervised-replay'
+H22_IDLE_SLEEP_ASSERTION_RELEASED
+H22_PHYSICAL_SLOT_RELEASED

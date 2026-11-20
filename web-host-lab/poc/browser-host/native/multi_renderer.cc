@@ -14,7 +14,7 @@ class Phase final : public CefV8Handler {
   bool Execute(const CefString& name,CefRefPtr<CefV8Value>,const CefV8ValueList& args,CefRefPtr<CefV8Value>& result,CefString&) override {
     result=CefV8Value::CreateBool(false);auto c=CefV8Context::GetCurrentContext();
     if(!c||!s_->live||name!="motiveFixturePhase"||args.size()!=1||!args[0]->IsInt())return true;
-    const int phase=args[0]->GetIntValue();if(phase!=1&&phase!=2&&phase!=5&&phase!=6&&phase!=7&&!(phase>=20&&phase<=29&&!s_->decoy.empty()))return true;
+    const int phase=args[0]->GetIntValue();if(phase!=1&&phase!=2&&phase!=5&&phase!=6&&phase!=7&&!(phase>=8&&phase<=12&&s_->kind)&&!(phase>=20&&phase<=29&&!s_->decoy.empty()))return true;
     auto b=c->GetBrowser();auto f=c->GetFrame();if(!b||!f||!f->IsMain()||b->GetIdentifier()!=s_->identity.browser||f->GetURL()!=s_->identity.entry)return true;
     auto m=CefProcessMessage::Create("motive.h19.phase");m->GetArgumentList()->SetInt(0,phase);f->SendProcessMessage(PID_BROWSER,m);result=CefV8Value::CreateBool(true);return true;
   }
@@ -27,7 +27,13 @@ void MotiveMultiRenderer::OnBrowserCreated(CefRefPtr<CefBrowser> browser,CefRefP
   if(!std::isfinite(i)||!std::isfinite(g)||i<1||i>5||std::floor(i)!=i||g<1||g>double(motive_bridge::SafeInteger)||std::floor(g)!=g)return;
   const std::string entry="motive://i"+std::to_string(uint64_t(i))+"-g"+std::to_string(uint64_t(g))+"/index.html";if(extra->GetString("entry")!=entry)return;
   auto s=std::make_shared<MultiRendererState>();s->identity={uint64_t(i),uint64_t(g),browser->GetIdentifier(),entry};s->animated=extra->GetBool("animated");s->allow_crash=extra->GetBool("allow_crash");s->slow=extra->GetBool("slow");
-  if(extra->GetSize()==7){if(extra->GetType("decoy_path")!=VTYPE_STRING)return;s->decoy=extra->GetString("decoy_path");if(s->decoy.size()>4096||!s->decoy.ends_with("/sandbox-decoy"))return;}
+  if(extra->GetSize()==7){
+#ifdef MOTIVE_WIDGET_FIXTURES
+    if(extra->GetType("widget_kind")!=VTYPE_INT)return;s->kind=extra->GetInt("widget_kind");if(s->kind<1||s->kind>3)return;
+#else
+    if(extra->GetType("decoy_path")!=VTYPE_STRING)return;s->decoy=extra->GetString("decoy_path");if(s->decoy.size()>4096||!s->decoy.ends_with("/sandbox-decoy"))return;
+#endif
+  }
   states_[browser->GetIdentifier()]=std::move(s);
 }
 void MotiveMultiRenderer::OnBrowserDestroyed(CefRefPtr<CefBrowser> browser){auto i=states_.find(browser->GetIdentifier());if(i!=states_.end()){i->second->live=false;states_.erase(i);}}
@@ -36,6 +42,7 @@ void MotiveMultiRenderer::OnContextCreated(CefRefPtr<CefBrowser> browser,CefRefP
   auto s=it->second;auto flags=static_cast<CefV8Value::PropertyAttribute>(V8_PROPERTY_ATTRIBUTE_READONLY|V8_PROPERTY_ATTRIBUTE_DONTDELETE);
   auto config=CefV8Value::CreateObject(nullptr,nullptr);config->SetValue("instance",CefV8Value::CreateInt(int(s->identity.instance)),flags);config->SetValue("animated",CefV8Value::CreateBool(s->animated),flags);config->SetValue("slow",CefV8Value::CreateBool(s->slow),flags);
   config->SetValue("security",CefV8Value::CreateBool(!s->decoy.empty()),flags);
+  config->SetValue("kind",CefV8Value::CreateInt(s->kind),flags);
   context->GetGlobal()->SetValue("MotiveOwnedFixture",config,flags);
   context->GetGlobal()->SetValue("motiveFixturePhase",CefV8Value::CreateFunction("motiveFixturePhase",new Phase(s)),flags);
   auto identity=CefProcessMessage::Create("motive.h19.renderer_identity");identity->GetArgumentList()->SetInt(0,getpid());frame->SendProcessMessage(PID_BROWSER,identity);
@@ -48,8 +55,10 @@ void MotiveMultiRenderer::OnContextReleased(CefRefPtr<CefBrowser> browser,CefRef
 bool MotiveMultiRenderer::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,CefRefPtr<CefFrame> frame,CefProcessId source,CefRefPtr<CefProcessMessage> message){
   auto i=states_.find(browser->GetIdentifier());if(i==states_.end()||!i->second->live||!frame||!frame->IsMain()||source!=PID_BROWSER||frame->GetURL()!=i->second->identity.entry||message->GetArgumentList()->GetSize()!=0)return false;
   if(message->GetName()=="motive.h19.exit"&&i->second->allow_crash)_exit(86);
-  if(message->GetName()=="motive.h19.event"){
-    auto c=frame->GetV8Context();if(!c||!c->Enter())return false;auto fn=c->GetGlobal()->GetValue("motiveOwnedEvent");bool ok=false;
+  const auto name=message->GetName();
+  if(name=="motive.h19.event"||(i->second->kind&&(name=="motive.h22.cancel"||name=="motive.h22.resume"))){
+    const char* method=name=="motive.h19.event"?"motiveOwnedEvent":name=="motive.h22.cancel"?"motiveOwnedCancel":"motiveOwnedResume";
+    auto c=frame->GetV8Context();if(!c||!c->Enter())return false;auto fn=c->GetGlobal()->GetValue(method);bool ok=false;
     if(fn&&fn->IsFunction()){auto result=fn->ExecuteFunction(nullptr,{});ok=result&&result->IsBool()&&result->GetBoolValue();}c->Exit();return ok;
   }
   return false;

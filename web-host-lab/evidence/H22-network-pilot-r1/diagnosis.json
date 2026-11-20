@@ -1,0 +1,27 @@
+{
+  "status": "FAIL_PRESERVED",
+  "scope": "read-only diagnosis of own pilot; no packet capture or OS confinement claim",
+  "inputs": {
+    "report.json": "77b9bd5b18d061a5d04a1ea140e27d280672fd7a4f19733364a7d38a89a5e20e",
+    "network-analysis.json": "30e1d8218fe8939e42ed193c425265ec22f23cc732319dbd1eb0424ac41acdc9",
+    "netlog.json.gz": "a48630d0d594bd80572048165757ebd18aa93c616a44b4a833dc89ea981a6c8b"
+  },
+  "native_returncode": 0,
+  "observed_udp_connect_attempts": 4,
+  "observed_udp_net_errors": [
+    -109,
+    -109,
+    -109,
+    -109
+  ],
+  "observed_proxy_connections": 10,
+  "observed_direct_target_connections": 0,
+  "component_manifests": [],
+  "findings": [
+    "Chromium 150 MappedHostResolver returns failing requests for ^NOTFOUND; ~NOTFOUND proceeds as hostname, confirmed by retained HOST_RESOLVER_MANAGER_REQUEST host http://~notfound.",
+    "The resolver performs IPv6 reachability probing even for the excluded literal loopback proxy.",
+    "Source probe connects UDP and checks its local address, without a Send call in that function. No packet capture was taken; this is not proof of all network behavior.",
+    "Revised owned LAB policy maps all hosts to ^NOTFOUND, including proxy, and requires the owned URL request to fail with ERR_PROXY_CONNECTION_FAILED before any observed TCP/UDP socket attempt."
+  ],
+  "next_policy": "closed-resolver-v2"
+}

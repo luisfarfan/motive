@@ -1,0 +1,696 @@
+{
+  "status": "PASS",
+  "scope": "owned CEF lab; no OBS or production credential acceptance",
+  "checker_sha256": "0565b74fa04f4d59cbe3ef3e033cd77fb8cf3c609acc02cb88fe57e05ce7d118",
+  "input_sha256": {
+    "report.json": "5aa1c33aaa41fa80d22a08d5fd6705a9bf6ded1d53fda54b0e9da13a19859b8d",
+    "instances.json": "6989604dd1731674480608e79de6e42990aa016378a0e047196a447578a8d544",
+    "supervision.json.gz": "0f3db28c529ba8a3527f28b974ff772fe1c1575f377a2f8ccff225d46051f53a",
+    "measurement-sources/poc/browser-host/supervisor.py": "38ce0d5b336d8057c6b7dd5bf444cb912e7358ba1f2c66bea54e5d7c6ed66fe0",
+    "measurement-sources/tools/h19_metrics.py": "8a109877038ea43f173629bf6edfac66a2fcf68e3be2ec4ac58d5e8935486412",
+    "measurement-sources/tools/h22_network_check.py": "1d89b24ad5735e0f6a7e8efac9df7fda7d951f9c4fd22882bbd1c227ffa08129",
+    "measurement-sources/tools/h22_partial_evidence.py": "0ed2052f97d7ec594c792d67217540df263a6848601f5e8530f9de2050e2b01b",
+    "measurement-sources/tools/h22_process_snapshot.py": "b3607027d1381655d0f652307000f0b3a8b97c53eac47a61d52a0fbe3e060b2d",
+    "measurement-sources/tools/h22_trial.py": "15ca183ed1fc356e0896663bdeecdbdef99df908ed4eb428d8c178743bdcb44f",
+    "measurement-sources/tools/h22_with_lock.py": "ad8c72bdee272b54a393f1868b8150fa9a672e01c891e01fd69fb5c6f1804ca9",
+    "measurement-sources/tools/run_h19_multi.py": "a62afcd468339b7aa3b8e99618ac4a569b5aa41aea5b9ec56a07bf7dc6e44dee",
+    "lifecycle.jsonl": "708544f7a17dd9a7ef376548a66bb1ac71661f912e2830b0950b92ff20d43196",
+    "network-analysis.json": "9ae901a9b1818ea71d7e3f6d6a2fa0c09985736188c105319563ddde83bc9b91",
+    "netlog.json.gz": "82325607a6f6b1b1f1b1479fd0cb190a8dafe011af72216cd01d48d48f250aed",
+    "instance-1-g251600-e1/lifecycle.jsonl": "8d71ddf8f1fb804cd8b8b7e4219063704bb02d06143e1834c11be531d8f9003a",
+    "instance-1-g251600-e1/frames.json": "ddd84e128a6da032adc18cd634a86159fccdd8aa55e1b008ef3c221fcc85b542",
+    "instance-1-g251600-e1/first.json": "1ca58319f83c5e94edca27a64a67fcc462808ff350d82388db25afe8d084caae",
+    "instance-1-g251600-e1/first.bgra.gz": "fb2dc87b9a55f66080348d84be11f263514f3fc897c8ae882780f289905807fe",
+    "instance-1-g251600-e1/latest.json": "5dd5a813a67f490253c6812dba9569d490710d1002849a8bb2414aca59a86ea3",
+    "instance-1-g251600-e1/latest.bgra.gz": "71b5157fddebe2dbd16df2d025a2959dc49e306625b614b9c8363415216cfa1f",
+    "instance-2-g251600-e1/lifecycle.jsonl": "f4c28a833aaed011220a75a30b7046f5faccb5fde19d1a328b28c2adee73af14",
+    "instance-2-g251600-e1/frames.json": "554b46a38df9d1736c87db935c0bf0c739594747092d1ef825cbc44c2b16aa04",
+    "instance-2-g251600-e1/first.json": "c401415572dc362b0f8876105905e32475cf830344da69ef6c4794251b0e083e",
+    "instance-2-g251600-e1/first.bgra.gz": "c5c4e65718d73c6392de3ebf35b62c9a5dc35343d13dde5c7605f1b6a6488998",
+    "instance-2-g251600-e1/latest.json": "f0168546be2865eb11e671715388ae1d70de4e96f60d01c337619a55f137f0b3",
+    "instance-2-g251600-e1/latest.bgra.gz": "7db7a634ca77349746a1e1860e1d0b54cd54dba6347b2c938d2fa9689ed40d9e",
+    "instance-3-g251600-e1/lifecycle.jsonl": "019b987c615ffb997710cce1b1eadfc83affef3d825a42f9a340315386f88685",
+    "instance-3-g251600-e1/frames.json": "e0da4a3cf5056b06992467c7ce88d2c968fc0cf0233b55796e5862784f8e279e",
+    "instance-3-g251600-e1/first.json": "4ed09cfeeedcea221a6d8376dd91b84620a6b85b4abaa03d9cdb07a546d1935b",
+    "instance-3-g251600-e1/first.bgra.gz": "f6c2a1a7bce53a17a0a458e62be272904e16584bdbccd49254030edde53b950f",
+    "instance-3-g251600-e1/latest.json": "f83a573e51f7332516e97199ed1beab540ce13ca902fb23a60480a0274635deb",
+    "instance-3-g251600-e1/latest.bgra.gz": "1b632607c70d7f41af9246ddac40eabdef74291d9f1bba609409da6c4a3897b1",
+    "instance-4-g251600-e1/lifecycle.jsonl": "c41e56864a309adbef44e4ba0292524990bddd2beb952323181d1b615daf98af",
+    "instance-4-g251600-e1/frames.json": "0047942d7a95e6e01000c74cb57a9f6a465285668fe815ec152e79bab53d1164",
+    "instance-4-g251600-e1/first.json": "4ae1700cb96d0c3fd9ec6be4a66672054aa05f1787ddfc61709d9dd086fa6521",
+    "instance-4-g251600-e1/first.bgra.gz": "f187701bb5135879a8bb06f8232e840df27752955c12ac258c606f40ec456ffc",
+    "instance-4-g251600-e1/latest.json": "2c6f80dafcb2594ce784572c744c7d0a33229021421ec96d171c1cca39736470",
+    "instance-4-g251600-e1/latest.bgra.gz": "aca7c6ee3db371ac48ccd8bf42abb6ee12a61de1d28460f4f8ab82fd3311daaa",
+    "instance-5-g251600-e1/lifecycle.jsonl": "55ba323a3a26bcf6d0c320c55aa84b38570174d89316619e2d42a8384932a76c",
+    "instance-5-g251600-e1/frames.json": "5cc3a714e90e2aa49e736a990b51b0d78f4b763f09e2bb441360c3b4616f1a56",
+    "instance-5-g251600-e1/first.json": "758c5f66e9e92d65538e79742b24ef7b0778dff177ed1515063c2f7e3dfe56bd",
+    "instance-5-g251600-e1/first.bgra.gz": "9fde7599d961fab2c80703148fffd8a2f6c8d49e00aee4d7106da3a27033a2e7",
+    "instance-5-g251600-e1/latest.json": "94f1240bb29480ea8b9406749cd85bb282ba1492d2946109aca70a6123bc0924",
+    "instance-5-g251600-e1/latest.bgra.gz": "c311fbfdbcb1b09325c2cc32eb50dcc8c657c8d345de888347189fcbf3091854"
+  },
+  "gates": {
+    "owned_network_lab_route": {
+      "status": "PASS",
+      "netlog_sha256": "29bd3affc4aa783e24808957cde370de2c7b7c79922dac2f1ae43f85ca6ef33f",
+      "policy": "closed-resolver-v2",
+      "owned_control_resolution_rejected": true,
+      "owned_control_errors": [
+        -130
+      ],
+      "events": 1055,
+      "socket_events": 0,
+      "socket_attempts": [],
+      "proxy_connections": 0,
+      "direct_target_connections": 0,
+      "component_manifests": [],
+      "scope": "default redacted Chromium NetLog, positively observed owned request failure before socket creation; not complete OS egress observation",
+      "security_third_party": "BLOCKED",
+      "credential_backend": "MOCK_LAB_ONLY",
+      "limits": [
+        "Proxy/host rules do not confine a compromised native process or non-Chromium network stack.",
+        "No conclusion about real Keychain or all filesystem/IPC capabilities.",
+        "Updater disabled for owned laboratory workload reproducibility, not a production update strategy."
+      ]
+    },
+    "instance-1-g251600-e1": {
+      "status": "PASS",
+      "accepted": 2156,
+      "terminal_sum": 2156,
+      "consumed": 2155,
+      "retained_bytes": 0
+    },
+    "instance-2-g251600-e1": {
+      "status": "PASS",
+      "accepted": 2156,
+      "terminal_sum": 2156,
+      "consumed": 2155,
+      "retained_bytes": 0
+    },
+    "instance-3-g251600-e1": {
+      "status": "PASS",
+      "accepted": 2156,
+      "terminal_sum": 2156,
+      "consumed": 2156,
+      "retained_bytes": 0
+    },
+    "instance-4-g251600-e1": {
+      "status": "PASS",
+      "accepted": 2156,
+      "terminal_sum": 2156,
+      "consumed": 2156,
+      "retained_bytes": 0
+    },
+    "instance-5-g251600-e1": {
+      "status": "PASS",
+      "accepted": 2156,
+      "terminal_sum": 2156,
+      "consumed": 2156,
+      "retained_bytes": 0
+    },
+    "native_close_cleanup": {
+      "status": "PASS",
+      "close_to_shutdown_ms": 70.388541,
+      "supervisor_cleanup_ms": 7.877,
+      "peak_rss_mib": 1244.328125,
+      "host_identities": 1
+    },
+    "cold_replacement_barriers": {
+      "status": "PASS",
+      "replacements": []
+    }
+  },
+  "operations": [],
+  "epochs": [
+    {
+      "identity": [
+        1,
+        251600,
+        1
+      ],
+      "paints": 2156,
+      "copied_bytes": 1986969600,
+      "max_consumer_work_ms": 0.348667,
+      "join_ms": 8.34775,
+      "report_ms": 0.550375
+    },
+    {
+      "identity": [
+        2,
+        251600,
+        1
+      ],
+      "paints": 2156,
+      "copied_bytes": 1986969600,
+      "max_consumer_work_ms": 0.368166,
+      "join_ms": 3.101833,
+      "report_ms": 0.598125
+    },
+    {
+      "identity": [
+        3,
+        251600,
+        1
+      ],
+      "paints": 2156,
+      "copied_bytes": 1986969600,
+      "max_consumer_work_ms": 0.347875,
+      "join_ms": 11.93225,
+      "report_ms": 0.482
+    },
+    {
+      "identity": [
+        4,
+        251600,
+        1
+      ],
+      "paints": 2156,
+      "copied_bytes": 1986969600,
+      "max_consumer_work_ms": 0.31775,
+      "join_ms": 8.645625,
+      "report_ms": 0.435459
+    },
+    {
+      "identity": [
+        5,
+        251600,
+        1
+      ],
+      "paints": 2156,
+      "copied_bytes": 1986969600,
+      "max_consumer_work_ms": 0.338083,
+      "join_ms": 3.017166,
+      "report_ms": 0.479791
+    }
+  ],
+  "executable_sha256": "7b2c9957825c44ff645886648eace050cf0807b7c1a603e5e52b8b4c7c69766e",
+  "requested": {
+    "deadline_seconds": 92.0,
+    "duration_ms": 72000,
+    "fps": 30,
+    "height": 360,
+    "instances": 5,
+    "rss_limit_mib": 2048,
+    "scenario": "steady",
+    "width": 640
+  },
+  "credential_backend": "chromium-use-mock-keychain",
+  "ui_heartbeat": {
+    "samples": 0,
+    "maximum_interval_ms": 0.0
+  },
+  "resources": {
+    "totals": {
+      "total_samples": 278,
+      "partial_samples": 5,
+      "valid_cpu_intervals": 275,
+      "observed_cpu_delta_ns": 21019242084,
+      "measured_wall_delta_ns": 72101257875,
+      "observed_cpu_mean_percent_one_core": 29.152393042074927,
+      "peak_observed_tree_phys_footprint_bytes": 618082784
+    },
+    "windows": [
+      {
+        "clock": "python_monotonic",
+        "requested_start_ms": 10000,
+        "requested_end_ms": 70000,
+        "sample_count": 229,
+        "observed_sample_span_ms": 59737.641,
+        "rss_mib": {
+          "n": 229,
+          "median": 1224.375,
+          "p95": 1242.125,
+          "max": 1243.53125
+        },
+        "physical_footprint_mib": {
+          "n": 229,
+          "median": 571.9808807373047,
+          "p95": 585.6528015136719,
+          "max": 589.4496765136719
+        },
+        "process_count": {
+          "n": 229,
+          "median": 10,
+          "p95": 10,
+          "max": 10
+        },
+        "observed_cpu_percent_one_core": 28.495059386823876,
+        "complete_identity_cpu_percent_one_core": 28.495059386823876,
+        "cpu_intervals": 228,
+        "complete_identity_cpu_intervals": 228,
+        "measured_cpu_wall_seconds": 59.73764075,
+        "roles": {
+          "renderer": {
+            "rss_mib": {
+              "n": 229,
+              "median": 739.203125,
+              "p95": 754.625,
+              "max": 755.765625
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 193.64856719970703,
+              "p95": 206.36736297607422,
+              "max": 207.50798797607422
+            },
+            "process_count": {
+              "n": 229,
+              "median": 6,
+              "p95": 6,
+              "max": 6
+            },
+            "observed_identities": 6,
+            "cpu_delta_ns": 5476669625,
+            "cpu_percent_one_core": 9.167870636069605
+          },
+          "storage_service": {
+            "rss_mib": {
+              "n": 229,
+              "median": 72.875,
+              "p95": 72.984375,
+              "max": 72.984375
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 20.532188415527344,
+              "p95": 20.547813415527344,
+              "max": 20.547813415527344
+            },
+            "process_count": {
+              "n": 229,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 563250,
+            "cpu_percent_one_core": 0.0009428728569264765
+          },
+          "network_service": {
+            "rss_mib": {
+              "n": 229,
+              "median": 82.984375,
+              "p95": 83.078125,
+              "max": 83.078125
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 23.672813415527344,
+              "p95": 23.719688415527344,
+              "max": 23.719688415527344
+            },
+            "process_count": {
+              "n": 229,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 23625917,
+            "cpu_percent_one_core": 0.03954946446391089
+          },
+          "gpu": {
+            "rss_mib": {
+              "n": 229,
+              "median": 133.9375,
+              "p95": 134.71875,
+              "max": 134.796875
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 272.1260757446289,
+              "p95": 281.5167465209961,
+              "max": 282.2823715209961
+            },
+            "process_count": {
+              "n": 229,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 7833448750,
+            "cpu_percent_one_core": 13.113086910784972
+          },
+          "browser_host": {
+            "rss_mib": {
+              "n": 229,
+              "median": 195.421875,
+              "p95": 196.734375,
+              "max": 196.921875
+            },
+            "footprint_mib": {
+              "n": 229,
+              "median": 59.251190185546875,
+              "p95": 73.59494018554688,
+              "max": 73.73556518554688
+            },
+            "process_count": {
+              "n": 229,
+              "median": 1,
+              "p95": 1,
+              "max": 1
+            },
+            "observed_identities": 1,
+            "cpu_delta_ns": 3687968666,
+            "cpu_percent_one_core": 6.173609502648462
+          }
+        },
+        "gpu_percent": null,
+        "unique_physical_mib": null
+      }
+    ]
+  },
+  "steady_frames": [
+    {
+      "identity": [
+        1,
+        251600,
+        1
+      ],
+      "interval": {
+        "clock": "native_steady_clock",
+        "start_ns": 238135306543416,
+        "end_ns": 238195306543416,
+        "window_seconds": 60.0,
+        "completed_acquisitions": 1800,
+        "acquisition_fps": 30.0,
+        "frame_age_ms": {
+          "n": 1800,
+          "median": 5.6909165,
+          "p95": 11.642833,
+          "max": 12.778541
+        },
+        "consumer_completion_age_ms": {
+          "n": 1800,
+          "median": 5.783396,
+          "p95": 11.76475,
+          "max": 12.846
+        },
+        "consumer_work_ms": {
+          "n": 1800,
+          "median": 0.099583,
+          "p95": 0.146125,
+          "max": 0.348667
+        },
+        "consumer_work_total_ms": 182.54106,
+        "consumer_work_over_100_ms": 0,
+        "acquisition_gap_ms": {
+          "n": 1799,
+          "median": 35.406375,
+          "p95": 37.603292,
+          "max": 46.595041
+        },
+        "status": "PASS",
+        "continuity": {
+          "paint": {
+            "max_gap_ms": 39.212292,
+            "gap_start_ns": 238155421943041,
+            "gap_end_ns": 238155461155333,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 46.595041,
+            "gap_start_ns": 238155422151000,
+            "gap_end_ns": 238155468746041,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 46.577708,
+            "gap_start_ns": 238155422282500,
+            "gap_end_ns": 238155468860208,
+            "observations": 1802,
+            "status": "PASS"
+          }
+        }
+      }
+    },
+    {
+      "identity": [
+        2,
+        251600,
+        1
+      ],
+      "interval": {
+        "clock": "native_steady_clock",
+        "start_ns": 238135307882666,
+        "end_ns": 238195307882666,
+        "window_seconds": 60.0,
+        "completed_acquisitions": 1800,
+        "acquisition_fps": 30.0,
+        "frame_age_ms": {
+          "n": 1800,
+          "median": 5.800542,
+          "p95": 11.882709,
+          "max": 12.770084
+        },
+        "consumer_completion_age_ms": {
+          "n": 1800,
+          "median": 5.8943125,
+          "p95": 11.98,
+          "max": 12.88
+        },
+        "consumer_work_ms": {
+          "n": 1800,
+          "median": 0.10243749999999999,
+          "p95": 0.150708,
+          "max": 0.368166
+        },
+        "consumer_work_total_ms": 187.344618,
+        "consumer_work_over_100_ms": 0,
+        "acquisition_gap_ms": {
+          "n": 1799,
+          "median": 35.34475,
+          "p95": 37.619417,
+          "max": 50.030791
+        },
+        "status": "PASS",
+        "continuity": {
+          "paint": {
+            "max_gap_ms": 39.232084,
+            "gap_start_ns": 238155422185916,
+            "gap_end_ns": 238155461418000,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 50.030791,
+            "gap_start_ns": 238155423383250,
+            "gap_end_ns": 238155473414041,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 49.999708,
+            "gap_start_ns": 238155423508083,
+            "gap_end_ns": 238155473507791,
+            "observations": 1802,
+            "status": "PASS"
+          }
+        }
+      }
+    },
+    {
+      "identity": [
+        3,
+        251600,
+        1
+      ],
+      "interval": {
+        "clock": "native_steady_clock",
+        "start_ns": 238135309066041,
+        "end_ns": 238195309066041,
+        "window_seconds": 60.0,
+        "completed_acquisitions": 1800,
+        "acquisition_fps": 30.0,
+        "frame_age_ms": {
+          "n": 1800,
+          "median": 5.811332999999999,
+          "p95": 11.923375,
+          "max": 12.70325
+        },
+        "consumer_completion_age_ms": {
+          "n": 1800,
+          "median": 5.918771,
+          "p95": 12.041,
+          "max": 12.791375
+        },
+        "consumer_work_ms": {
+          "n": 1800,
+          "median": 0.0985625,
+          "p95": 0.140833,
+          "max": 0.347875
+        },
+        "consumer_work_total_ms": 180.423067,
+        "consumer_work_over_100_ms": 0,
+        "acquisition_gap_ms": {
+          "n": 1799,
+          "median": 35.347792,
+          "p95": 37.608958,
+          "max": 47.116417
+        },
+        "status": "PASS",
+        "continuity": {
+          "paint": {
+            "max_gap_ms": 38.846709,
+            "gap_start_ns": 238155422451791,
+            "gap_end_ns": 238155461298500,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 47.116417,
+            "gap_start_ns": 238148322129541,
+            "gap_end_ns": 238148369245958,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 47.143709,
+            "gap_start_ns": 238148322243541,
+            "gap_end_ns": 238148369387250,
+            "observations": 1802,
+            "status": "PASS"
+          }
+        }
+      }
+    },
+    {
+      "identity": [
+        4,
+        251600,
+        1
+      ],
+      "interval": {
+        "clock": "native_steady_clock",
+        "start_ns": 238135310132166,
+        "end_ns": 238195310132166,
+        "window_seconds": 60.0,
+        "completed_acquisitions": 1800,
+        "acquisition_fps": 30.0,
+        "frame_age_ms": {
+          "n": 1800,
+          "median": 5.9263125,
+          "p95": 11.880417,
+          "max": 12.707125
+        },
+        "consumer_completion_age_ms": {
+          "n": 1800,
+          "median": 6.030457999999999,
+          "p95": 11.973333,
+          "max": 12.838209
+        },
+        "consumer_work_ms": {
+          "n": 1800,
+          "median": 0.104125,
+          "p95": 0.145834,
+          "max": 0.239125
+        },
+        "consumer_work_total_ms": 187.852912,
+        "consumer_work_over_100_ms": 0,
+        "acquisition_gap_ms": {
+          "n": 1799,
+          "median": 35.35,
+          "p95": 37.617917,
+          "max": 46.61375
+        },
+        "status": "PASS",
+        "continuity": {
+          "paint": {
+            "max_gap_ms": 39.06,
+            "gap_start_ns": 238155422664375,
+            "gap_end_ns": 238155461724375,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 46.61375,
+            "gap_start_ns": 238175989159708,
+            "gap_end_ns": 238176035773458,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 46.645875,
+            "gap_start_ns": 238175989267708,
+            "gap_end_ns": 238176035913583,
+            "observations": 1802,
+            "status": "PASS"
+          }
+        }
+      }
+    },
+    {
+      "identity": [
+        5,
+        251600,
+        1
+      ],
+      "interval": {
+        "clock": "native_steady_clock",
+        "start_ns": 238135311275458,
+        "end_ns": 238195311275458,
+        "window_seconds": 60.0,
+        "completed_acquisitions": 1800,
+        "acquisition_fps": 30.0,
+        "frame_age_ms": {
+          "n": 1800,
+          "median": 6.171333499999999,
+          "p95": 11.844917,
+          "max": 12.806833
+        },
+        "consumer_completion_age_ms": {
+          "n": 1800,
+          "median": 6.2639795,
+          "p95": 11.93225,
+          "max": 12.892875
+        },
+        "consumer_work_ms": {
+          "n": 1800,
+          "median": 0.10225,
+          "p95": 0.144041,
+          "max": 0.287208
+        },
+        "consumer_work_total_ms": 184.977615,
+        "consumer_work_over_100_ms": 0,
+        "acquisition_gap_ms": {
+          "n": 1799,
+          "median": 35.337209,
+          "p95": 37.614833,
+          "max": 47.066416
+        },
+        "status": "PASS",
+        "continuity": {
+          "paint": {
+            "max_gap_ms": 39.0225,
+            "gap_start_ns": 238155422849666,
+            "gap_end_ns": 238155461872166,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 47.066416,
+            "gap_start_ns": 238144123101250,
+            "gap_end_ns": 238144170167666,
+            "observations": 1802,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 47.05275,
+            "gap_start_ns": 238144123201666,
+            "gap_end_ns": 238144170254416,
+            "observations": 1802,
+            "status": "PASS"
+          }
+        }
+      }
+    }
+  ],
+  "steady_frame_performance": {
+    "status": "PASS",
+    "scope": "continuous-motion native acquisition windows; intermittent animations evaluated separately"
+  },
+  "functional_status": "PASS",
+  "performance_status": "PASS"
+}

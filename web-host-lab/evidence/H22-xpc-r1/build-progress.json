@@ -1,0 +1,94 @@
+[
+  {
+    "command": [
+      "clang",
+      "-arch",
+      "arm64",
+      "-mmacosx-version-min=15.0",
+      "-fobjc-arc",
+      "-fblocks",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/security-xpc/owner.m",
+      "-framework",
+      "Foundation",
+      "-o",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/MacOS/MotiveH22Probe"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "clang",
+      "-arch",
+      "arm64",
+      "-mmacosx-version-min=15.0",
+      "-fobjc-arc",
+      "-fblocks",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/poc/security-xpc/service.m",
+      "-framework",
+      "Foundation",
+      "-o",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc/Contents/MacOS/H22Boundary"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "codesign",
+      "--force",
+      "--sign",
+      "-",
+      "--timestamp=none",
+      "--entitlements",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/service.entitlements",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc"
+    ],
+    "returncode": 0,
+    "output": "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc: replacing existing signature\n"
+  },
+  {
+    "command": [
+      "codesign",
+      "--force",
+      "--sign",
+      "-",
+      "--timestamp=none",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app"
+    ],
+    "returncode": 0,
+    "output": "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app: replacing existing signature\n"
+  },
+  {
+    "command": [
+      "codesign",
+      "--verify",
+      "--strict",
+      "--deep",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "codesign",
+      "-d",
+      "--entitlements",
+      ":-",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc/Contents/MacOS/H22Boundary"
+    ],
+    "returncode": 0,
+    "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"https://www.apple.com/DTDs/PropertyList-1.0.dtd\"><plist version=\"1.0\"><dict><key>com.apple.security.app-sandbox</key><true/></dict></plist>\nExecutable=/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/.cache/H22-xpc-r1/MotiveH22Probe.app/Contents/XPCServices/org.motive.lab.h22.boundary.xpc/Contents/MacOS/H22Boundary\nwarning: Specifying ':' in the path is deprecated and will not work in a future release\n"
+  }
+]

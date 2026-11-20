@@ -1,0 +1,143 @@
+[
+  {
+    "label": "build-widgets3",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_with_lock.py",
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/build_native.py",
+      "--build-name",
+      "h22-native-multi-widgets3-ephemeral",
+      "--multi",
+      "--mock-keychain",
+      "--network-lab",
+      "--widgets"
+    ],
+    "returncode": 0,
+    "log_sha256": "b18a4bbf97dcab20de74ea824314f4ce21813e74efed2352048d3d79ba728b67"
+  },
+  {
+    "label": "build-goal-load3",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_with_lock.py",
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/build_native.py",
+      "--build-name",
+      "h22-native-multi-goal-load3-ephemeral",
+      "--multi",
+      "--mock-keychain",
+      "--network-lab",
+      "--bridge"
+    ],
+    "returncode": 0,
+    "log_sha256": "e60d73d9da73fd40341b729318c5084ce7d71091b70544f84cd9d52bc3b01b1d"
+  },
+  {
+    "label": "contracts",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_with_lock.py",
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_verify_contracts.py",
+      "--name",
+      "H22-contracts-r3"
+    ],
+    "returncode": 0,
+    "log_sha256": "e96078a80078c2cf1d0eab6e8538680edcebef9a3041a711328189b365059181"
+  },
+  {
+    "label": "auditor-tests",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_with_lock.py",
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tests",
+      "-p",
+      "test_h22_*.py",
+      "-v"
+    ],
+    "returncode": 0,
+    "log_sha256": "41d0f3cc0392bbf8a98346529735f8399502087d7881878301d387bd3272b856"
+  },
+  {
+    "label": "memory600",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_trial.py",
+      "--build",
+      "h22-native-multi-cold4-ephemeral",
+      "--name",
+      "H22-cold4-memory600-r1",
+      "--scenario",
+      "steady",
+      "--instances",
+      "3",
+      "--seconds",
+      "600",
+      "--generation",
+      "250000",
+      "--memory-profile"
+    ],
+    "returncode": 0,
+    "log_sha256": "50b8455aa1806c617f906b5d4cce415c44400527e90e940fea5492bc8a288873"
+  },
+  {
+    "label": "memory-h22_audit.py",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_audit.py",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/evidence/H22-cold4-memory600-r1",
+      "--output",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/evidence/H22-cold4-memory600-r1/analysis.json"
+    ],
+    "returncode": 0,
+    "log_sha256": "30be860bf22befba89b26e5212bcff3c6ae1ab8c11cc349a20e612e9a9ebd423"
+  },
+  {
+    "label": "memory-h22_memory_check.py",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_memory_check.py",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/evidence/H22-cold4-memory600-r1",
+      "--output",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/evidence/H22-cold4-memory600-r1/memory-analysis.json"
+    ],
+    "returncode": 0,
+    "log_sha256": "1fb6c1d88812f7a5d0105b7aa5a0ee572c223faf4d8ccca346a87a5560e183a9"
+  },
+  {
+    "label": "capacity",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_suite.py",
+      "--suite",
+      "capacity",
+      "--name",
+      "H22-capacity-r2",
+      "--generation",
+      "251000"
+    ],
+    "returncode": 0,
+    "log_sha256": "b12b046a28fe65487be9c3639f77d2a84df9f44f7b8e112b073d97b0d0bfa0f6"
+  },
+  {
+    "label": "widgets",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_suite.py",
+      "--suite",
+      "widgets",
+      "--name",
+      "H22-widgets-r2",
+      "--generation",
+      "253000"
+    ],
+    "returncode": 1,
+    "log_sha256": "bc5de3fb3d6a940532d1d7059816eca39f4884618d59106ac1b55394519e9a75"
+  }
+]

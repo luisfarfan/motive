@@ -1,0 +1,69 @@
+H22_PHYSICAL_SLOT_ACQUIRED 52d58f5b707348fe80d0e74b1fbc01db
+H22_TEMPORARY_IDLE_SLEEP_ASSERTION pid=88643
+{
+  "status": "PASS",
+  "gates": {
+    "native_exit": "PASS",
+    "observed_cleanup": "PASS",
+    "rss_budget": "PASS",
+    "per_generation_frames": "PASS",
+    "frame_identity": "PASS",
+    "instance_pixel_markers": "PASS",
+    "paint_conservation": "PASS",
+    "native_final_close": "PASS",
+    "unexpected_instance_failure": "PASS",
+    "third_party_isolation": "BLOCKED",
+    "production_keychain": "BLOCKED",
+    "libobs": "NOT_EVALUATED",
+    "owned_network_lab_route": "PASS"
+  },
+  "report": "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/evidence/H22-network-pilot-r2/report.json"
+}
+H22_IDLE_SLEEP_ASSERTION_RELEASED
+H22_PHYSICAL_SLOT_RELEASED
+{
+  "status": "PASS",
+  "gates": {
+    "owned_network_lab_route": {
+      "status": "PASS",
+      "netlog_sha256": "0988e0585cd0bacaa01246d5bfe32ebc51629a278e8759257a3ee4d5ac2072e3",
+      "policy": "closed-resolver-v2",
+      "owned_control_resolution_rejected": true,
+      "owned_control_errors": [
+        -130
+      ],
+      "events": 550,
+      "socket_attempts": [],
+      "proxy_connections": 0,
+      "direct_target_connections": 0,
+      "component_manifests": [],
+      "scope": "default redacted Chromium NetLog, positively observed owned request failure before socket creation; not complete OS egress observation",
+      "security_third_party": "BLOCKED",
+      "credential_backend": "MOCK_LAB_ONLY",
+      "limits": [
+        "Proxy/host rules do not confine a compromised native process or non-Chromium network stack.",
+        "No conclusion about real Keychain or all filesystem/IPC capabilities.",
+        "Updater disabled for owned laboratory workload reproducibility, not a production update strategy."
+      ]
+    },
+    "instance-1-g240100-e1": {
+      "status": "PASS",
+      "accepted": 357,
+      "terminal_sum": 357,
+      "consumed": 356,
+      "retained_bytes": 0
+    },
+    "native_close_cleanup": {
+      "status": "PASS",
+      "close_to_shutdown_ms": 31.394041,
+      "supervisor_cleanup_ms": 8.858,
+      "peak_rss_mib": 656.078125,
+      "host_identities": 1
+    },
+    "cold_replacement_barriers": {
+      "status": "PASS",
+      "replacements": []
+    }
+  },
+  "audit_error": null
+}

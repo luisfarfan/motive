@@ -762,3 +762,36 @@ detenidos. C3 demuestra respaldo de Window/Application propias, no recuperación
 general del productor ni ausencia de fugas. [Arquitectura](h20-capture-engine.md),
 [investigación fijada](h20-obs-capture-investigation.md) y
 [evidencia por candidata](h20-capture-verification.md).
+
+## H22 — sustitución cold, frontera completa y transporte acotado
+
+La [ruta cold](../web-host-lab/docs/h22-continuity.md) revoca la autoridad visual
+antes de cerrar. Una tarea posterior a OnBeforeClose exige cero leases,
+consumer terminado y RequestContext liberado antes de crear generación nueva.
+La geometría es inmutable por generación. El límite de continuidad sigue siendo
+<250 ms para widgets activos; no se habilita WasResized hot en Production ni
+se atribuye el fallo H19 a GPU/CEF sin traza causal suficiente.
+
+Se mantienen frame completo y mailbox de último valor con coalescing; no se
+introducen zero-copy, dirty rectangles o pooling por conjetura. El canal H22
+usa socket privado heredado, secreto de lanzamiento, HMAC de header y payload,
+grant inmutable y deadline total. No lleva video por MCP ni crea otro reloj.
+El [adaptador aislado](../web-host-lab/docs/h22-h23-handoff.md) toma prestado el
+graphics context OBS existente; sus contratos no certifican texturas GPU,
+salida codificada o un handoff no bloqueante ya conectado a Production.
+
+RequestContext y HMAC no confinan un browser comprometido. El CEF fijado sigue
+sin una configuración soportada y verificada que cumpla los gates de Keychain
+y aislamiento del árbol. App Sandbox de un servicio XPC mínimo no demuestra
+compatibilidad CEF: la candidata nativa conserva SIGTRAP por Mach bootstrap
+denegado. No se conceden excepciones globales ni se permite contenido de terceros.
+[Fronteras y alternativa arquitectónica](../web-host-lab/docs/h22-security.md).
+
+La auditoría encontró instalaciones de componentes Chromium en perfiles frescos
+de ensayos previos. Se conserva ese confusor y se bloquea repetir esos perfiles.
+El perfil LAB revisado usa resolución cerrada, updater desactivado y un control
+propio registrado por NetLog; no equivale a un firewall OS ni a una política
+de updates de producto. Los perfiles de memoria se separan de gates de FPS y
+no convierten crecimiento de footprint en fuga o caché sin evidencia de ownership.
+La aceptación de H22 es parcial mientras C permanezca BLOCKED; H23 requiere
+autorización explícita e integración con el único owner existente.

@@ -1,0 +1,84 @@
+{
+  "status": "OBSERVED",
+  "scope": "Read-only localization of one original Goal cadence failure; not proof of Chromium internal cause",
+  "input_sha256": {
+    "instance-2-g253300-e1/frames.json": "9472a4623a81fb9ddf8d2a09b39e8a86d3f952cc4be35f6a1b23535828e34f8d",
+    "workload-analysis.json": "3de744b1f360bb0ef916acfc852241ee343ff96dbdaea532ec8cf568536ea02a"
+  },
+  "identity": [
+    2,
+    253300,
+    1
+  ],
+  "interval": {
+    "clock": "native_steady_clock",
+    "start_ns": 239320565599375,
+    "end_ns": 239322466272750,
+    "window_seconds": 1.900673375,
+    "completed_acquisitions": 54,
+    "acquisition_fps": 28.41098355470992,
+    "frame_age_ms": {
+      "n": 54,
+      "median": 6.503396,
+      "p95": 11.388167,
+      "max": 12.533625
+    },
+    "consumer_completion_age_ms": {
+      "n": 54,
+      "median": 6.621271,
+      "p95": 11.484041,
+      "max": 12.68475
+    },
+    "consumer_work_ms": {
+      "n": 54,
+      "median": 0.106792,
+      "p95": 0.1675,
+      "max": 0.210584
+    },
+    "consumer_work_total_ms": 5.825251,
+    "consumer_work_over_100_ms": 0,
+    "acquisition_gap_ms": {
+      "n": 53,
+      "median": 35.389792,
+      "p95": 37.631792,
+      "max": 56.810958
+    },
+    "status": "FAIL",
+    "completed_event": true,
+    "terminal_reason": "visual_complete",
+    "paint_max_active_gap_ms": 71.413666,
+    "acquisition_max_active_gap_ms": 77.23575,
+    "completion_max_active_gap_ms": 77.356541,
+    "after_warmup": true,
+    "capacity_interval": true
+  },
+  "paints_within_active_interval": 54,
+  "acquisitions_within_active_interval": 54,
+  "dispatch_active_to_first_paint_ms": 71.413666,
+  "maximum_internal_paint_gap_ms": 66.615291,
+  "full_identity_accounting": {
+    "paints": 617,
+    "coalesced": 0,
+    "acquired": 617,
+    "stale": 0,
+    "pending": 0,
+    "leased": 0,
+    "consumed": 617,
+    "released_unconsumed": 0,
+    "invalidated_close": 0,
+    "revoked_generation": 0,
+    "retained_leases": 0,
+    "retained_bytes": 0,
+    "copied_bytes": 568627200,
+    "copy_ns": 65694706,
+    "publish_busy": 0,
+    "acquire_busy": 3,
+    "consumer_busy": 0
+  },
+  "max_publish_callback_ms": 0.319625,
+  "interpretation": [
+    "No lost, coalesced, busy-dropped, stale or retained paint reported for this identity; all 617 paints acquired and consumed.",
+    "Cadence reduction is already present at observed CEF paints. A short active interval includes startup/tail boundaries by the unchanged protocol.",
+    "No evidence identifies compositor, GPU, OS scheduling or JS timing as the internal cause. No FPS threshold or original report changed."
+  ]
+}

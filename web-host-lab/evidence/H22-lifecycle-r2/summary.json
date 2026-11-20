@@ -1,0 +1,73 @@
+{
+  "status": "FAIL",
+  "cases": [
+    {
+      "name": "widgetlife3",
+      "run": "evidence/H22-lifecycle-r2-widgetlife3",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_trial.py",
+        "--build",
+        "h22-native-multi-widgets3-ephemeral",
+        "--name",
+        "H22-lifecycle-r2-widgetlife3",
+        "--scenario",
+        "widget-lifecycle",
+        "--instances",
+        "3",
+        "--seconds",
+        "45",
+        "--width",
+        "640",
+        "--height",
+        "360",
+        "--generation",
+        "400000"
+      ],
+      "slot_busy_attempts": 10,
+      "native_returncode": 0,
+      "analysis.json": {
+        "returncode": 0,
+        "sha256": "f8f2319aa69f754e0a833f961c5bdac4a307d6c57813dc26913227f71517947f"
+      },
+      "workload-analysis.json": {
+        "returncode": 0,
+        "sha256": "2f6636f4413ccd6e10e3a2991db5d0c0c80480afece42eb77c6002eab33c4757"
+      },
+      "status": "PASS",
+      "continued_after_performance_failure": false
+    },
+    {
+      "name": "goallife3",
+      "run": "evidence/H22-lifecycle-r2-goallife3",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/luisfarfan/Developer/products/motive-h22/web-host-lab/tools/h22_trial.py",
+        "--build",
+        "h22-native-multi-goal-load3-ephemeral",
+        "--name",
+        "H22-lifecycle-r2-goallife3",
+        "--scenario",
+        "goal-lifecycle",
+        "--instances",
+        "3",
+        "--seconds",
+        "45",
+        "--width",
+        "640",
+        "--height",
+        "360",
+        "--generation",
+        "400100"
+      ],
+      "slot_busy_attempts": 217,
+      "native_returncode": 0,
+      "analysis.json": {
+        "returncode": 1,
+        "sha256": "516436cb715b614acd244c711a339feacd3db949126d01d5d83aaec0d633fd36"
+      },
+      "status": "FAIL",
+      "continued_after_performance_failure": false
+    }
+  ]
+}

@@ -1,0 +1,709 @@
+{
+  "status": "PASS",
+  "scope": "owned CEF lab; no OBS or production credential acceptance",
+  "checker_sha256": "36ec67de6eb78d0cc3c7c3c0370d37d37d75626ba2b67307ab9ce2181913326d",
+  "input_sha256": {
+    "report.json": "d7ddb5b295914eb8e42e9e2c160c0b15356a3999307b578ca2235de4f6a31428",
+    "instances.json": "6a7fa2e9f75a6af2f6198c744e06cf4824f5c27365b7567730d3f15d620f5347",
+    "supervision.json.gz": "ab94e371164f0759a38df33ce4a9deb9bcc38b4fa873947d971f204142f5fad3",
+    "measurement-sources/poc/browser-host/supervisor.py": "961c13054ffdde5de50473392665eeb2723b16da1727703a919af1a2a4ea9f9b",
+    "measurement-sources/tools/h19_metrics.py": "8a109877038ea43f173629bf6edfac66a2fcf68e3be2ec4ac58d5e8935486412",
+    "measurement-sources/tools/h22_partial_evidence.py": "0ed2052f97d7ec594c792d67217540df263a6848601f5e8530f9de2050e2b01b",
+    "measurement-sources/tools/h22_process_snapshot.py": "b3607027d1381655d0f652307000f0b3a8b97c53eac47a61d52a0fbe3e060b2d",
+    "measurement-sources/tools/h22_trial.py": "ac00cd5289e53562b693a6bbf60461742769373646063dbe7b4263f91ae91038",
+    "measurement-sources/tools/h22_with_lock.py": "ad8c72bdee272b54a393f1868b8150fa9a672e01c891e01fd69fb5c6f1804ca9",
+    "measurement-sources/tools/run_h19_multi.py": "b7853bfb708f434a2170596f45408f94e01f58feac15de786bd622ac556c68cc",
+    "lifecycle.jsonl": "7782fdb59e6f26c35503fb42277ad243e1aad2f3c6f2fcb27bfed3fa048cfc92",
+    "instance-1-g222400-e1/lifecycle.jsonl": "744aaf4b4a2bb0b778b1ed507e2c690c017921bba3b0bc679497f1fedf499f3b",
+    "instance-1-g222400-e1/frames.json": "9c82344e5ba55c2facae59ce104cf73b92abf48d8c6a18c9a57584bc83c4b611",
+    "instance-1-g222400-e1/first.json": "243c5ba2ac858ff375fb331aef1113dc5584179d0dca930ccf81d69aee2967c7",
+    "instance-1-g222400-e1/first.bgra.gz": "4c9d681978b313fc212b8953db0d49453e5fa351d0bc8d73f62979705cd26c87",
+    "instance-1-g222400-e1/latest.json": "163493aef1c702ca82d7a7e40fcd4449176845aa2ba74c3ddcaa38fbe4f50951",
+    "instance-1-g222400-e1/latest.bgra.gz": "4c9d681978b313fc212b8953db0d49453e5fa351d0bc8d73f62979705cd26c87",
+    "instance-1-g222400-e1/visual.json": "bed7f806c67d9c5d5230d481388f497a09bac20ba60ea94f1b732be4dc7ff358",
+    "instance-1-g222400-e1/visual.bgra.gz": "117c6d7a9796ad2cca1abfe0743d2997449449d3d535ae8c58d5b55d3c7f9e9f",
+    "instance-2-g222400-e1/lifecycle.jsonl": "1512d1abeaa1477a845b9a0c7dd6be1f702945cc342953fc22efddaf08faa230",
+    "instance-2-g222400-e1/frames.json": "245b912fb64c42de2b5267fd410239c98450c392dc1cb64ec4f8759bc261cbc4",
+    "instance-2-g222400-e1/first.json": "2988bd1fee661cb798f5dd2ff22551dd1368c65b70130526f0a3f068206254ad",
+    "instance-2-g222400-e1/first.bgra.gz": "d1a0bf9b099c572159d8fda642c30956f6becfdefafbd9ed8a92ab4ec84867c6",
+    "instance-2-g222400-e1/latest.json": "05ac3544b29dee09fbfca35bc9fd452ab9173dd6694076b29dd8297887925e58",
+    "instance-2-g222400-e1/latest.bgra.gz": "d1a0bf9b099c572159d8fda642c30956f6becfdefafbd9ed8a92ab4ec84867c6",
+    "instance-2-g222400-e1/visual.json": "c9c2da5db3c6d6c62bcd60860e255331480d0fb5eac3f271127847886e85ae1f",
+    "instance-2-g222400-e1/visual.bgra.gz": "3563b0bc203d737f05f8338ee52aaf3321bca9f03213cb8b2656391a841962fa",
+    "instance-3-g222400-e1/lifecycle.jsonl": "fd90e0e1334f4d3707f4f2c21fc51be13e72ce15ecdbb437c65d1a4b78025f35",
+    "instance-3-g222400-e1/frames.json": "4e64316e4f1ef7ca9e20b1e1dc844d0b1bf1f1c1e62bb94ba5066c73013ca26f",
+    "instance-3-g222400-e1/first.json": "4ad0e5aa732b66beb96de00d01f9b239d222145245cedb001c1624e874cf30dc",
+    "instance-3-g222400-e1/first.bgra.gz": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e",
+    "instance-3-g222400-e1/latest.json": "12ac9b32ce1a95d31c11604d6772415266820724f1a1fbe8ef6ed319f1e54144",
+    "instance-3-g222400-e1/latest.bgra.gz": "39adbb65b7f862b5a706ed019c9a0ef3ac837c1ab427063ed8b82dd13576d17e",
+    "instance-3-g222401-e1/lifecycle.jsonl": "61c8abf4bd795ff5e823eef26eff332d81892eee6d0f4bad467f80237b385629",
+    "instance-3-g222401-e1/frames.json": "f91f34c00190fec6d3a8d842e242bfdb55865725702b3f9ecef4082df7f61264",
+    "instance-3-g222401-e1/first.json": "a99f2f29630765895315fd1e9247e446ef31b01a99dd7dde2f82ee05eb3f7a8d",
+    "instance-3-g222401-e1/first.bgra.gz": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e",
+    "instance-3-g222401-e1/latest.json": "4378a76d6a25f9beddf5165833f2dc0e38340304604f73b601dd97bae511bd54",
+    "instance-3-g222401-e1/latest.bgra.gz": "39adbb65b7f862b5a706ed019c9a0ef3ac837c1ab427063ed8b82dd13576d17e",
+    "instance-3-g222402-e1/lifecycle.jsonl": "d203584d6fe988e57f420e6541f35795d9e27709221d8c34baf21ea6cdbb0f62",
+    "instance-3-g222402-e1/frames.json": "08b865e09e9de78de500392086b8eb71e3f1e1ac73fdd29b3350d93d132dbdb3",
+    "instance-3-g222402-e1/first.json": "1720f936f38ececa3f9f19878596fd48930cfc33a104a75ee47351db5bd0fe44",
+    "instance-3-g222402-e1/first.bgra.gz": "b521c5a42ded9d190026b184cef3b6f71a8ebb286240d1a8910727eb944b3d23",
+    "instance-3-g222402-e1/latest.json": "1720f936f38ececa3f9f19878596fd48930cfc33a104a75ee47351db5bd0fe44",
+    "instance-3-g222402-e1/latest.bgra.gz": "b521c5a42ded9d190026b184cef3b6f71a8ebb286240d1a8910727eb944b3d23",
+    "instance-3-g222403-e1/lifecycle.jsonl": "cd819595eba49d257130ea1c1d38e5bb51e74f71be00e1959195d6490ece46ca",
+    "instance-3-g222403-e1/frames.json": "c1aee2c92117cd098337b9923eb6565169afac5ed08549fb6175f6d51755d765",
+    "instance-3-g222403-e1/first.json": "ad7aa229e1c558444fc868567ed4ff9f5de50a15fcfd61c7968552a19314edd5",
+    "instance-3-g222403-e1/first.bgra.gz": "40a64d767db981278525cbbdbb4a9d27102f21804de1dcd0706e81f08560dc3e",
+    "instance-3-g222403-e1/latest.json": "13c97afcf347230028207fa248cd126f2fe5c8c466a2dc5c1eeda3e836818cb6",
+    "instance-3-g222403-e1/latest.bgra.gz": "39adbb65b7f862b5a706ed019c9a0ef3ac837c1ab427063ed8b82dd13576d17e"
+  },
+  "gates": {
+    "instance-1-g222400-e1": {
+      "status": "PASS",
+      "accepted": 981,
+      "terminal_sum": 981,
+      "consumed": 976,
+      "retained_bytes": 0
+    },
+    "instance-2-g222400-e1": {
+      "status": "PASS",
+      "accepted": 687,
+      "terminal_sum": 687,
+      "consumed": 680,
+      "retained_bytes": 0
+    },
+    "instance-3-g222400-e1": {
+      "status": "PASS",
+      "accepted": 2,
+      "terminal_sum": 2,
+      "consumed": 2,
+      "retained_bytes": 0
+    },
+    "instance-3-g222401-e1": {
+      "status": "PASS",
+      "accepted": 3,
+      "terminal_sum": 3,
+      "consumed": 3,
+      "retained_bytes": 0
+    },
+    "instance-3-g222402-e1": {
+      "status": "PASS",
+      "accepted": 2,
+      "terminal_sum": 2,
+      "consumed": 1,
+      "retained_bytes": 0
+    },
+    "instance-3-g222403-e1": {
+      "status": "PASS",
+      "accepted": 2,
+      "terminal_sum": 2,
+      "consumed": 2,
+      "retained_bytes": 0
+    },
+    "native_close_cleanup": {
+      "status": "PASS",
+      "close_to_shutdown_ms": 63.068208,
+      "supervisor_cleanup_ms": 7.959,
+      "peak_rss_mib": 949.484375,
+      "host_identities": 1
+    },
+    "cold_replacement_barriers": {
+      "status": "PASS",
+      "replacements": [
+        {
+          "instance": 3,
+          "old_generation": 222401,
+          "new_generation": 222402,
+          "first_paint_ms": 63.563,
+          "geometry": [
+            640,
+            360,
+            540,
+            960
+          ]
+        }
+      ]
+    }
+  },
+  "operations": [
+    {
+      "instance": 3,
+      "generation": 222400,
+      "phase": "remove_requested",
+      "start_ns": 233368169013458,
+      "end_ns": 233369269013458,
+      "peers": [
+        {
+          "instance": 1,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 35.244833,
+            "gap_start_ns": 233368578526500,
+            "gap_end_ns": 233368613771333,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 44.21625,
+            "gap_start_ns": 233368147686125,
+            "gap_end_ns": 233368191902375,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 44.206625,
+            "gap_start_ns": 233368147793916,
+            "gap_end_ns": 233368192000541,
+            "observations": 35,
+            "status": "PASS"
+          }
+        },
+        {
+          "instance": 2,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 35.423667,
+            "gap_start_ns": 233368845074166,
+            "gap_end_ns": 233368880497833,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 37.608167,
+            "gap_start_ns": 233368188103333,
+            "gap_end_ns": 233368225711500,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 37.612459,
+            "gap_start_ns": 233368188197666,
+            "gap_end_ns": 233368225810125,
+            "observations": 35,
+            "status": "PASS"
+          }
+        }
+      ]
+    },
+    {
+      "instance": 3,
+      "generation": 222401,
+      "phase": "create_requested",
+      "start_ns": 233374173533041,
+      "end_ns": 233375273533041,
+      "peers": [
+        {
+          "instance": 1,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 46.422792,
+            "gap_start_ns": 233374247728083,
+            "gap_end_ns": 233374294150875,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 49.872709,
+            "gap_start_ns": 233374254876291,
+            "gap_end_ns": 233374304749000,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 49.790084,
+            "gap_start_ns": 233374255065791,
+            "gap_end_ns": 233374304855875,
+            "observations": 35,
+            "status": "PASS"
+          }
+        },
+        {
+          "instance": 2,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 46.594875,
+            "gap_start_ns": 233374247444916,
+            "gap_end_ns": 233374294039791,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 45.907042,
+            "gap_start_ns": 233375012636791,
+            "gap_end_ns": 233375058543833,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 45.943583,
+            "gap_start_ns": 233375012740875,
+            "gap_end_ns": 233375058684458,
+            "observations": 35,
+            "status": "PASS"
+          }
+        }
+      ]
+    },
+    {
+      "instance": 3,
+      "generation": 222401,
+      "phase": "hidden_begin",
+      "start_ns": 233380171790541,
+      "end_ns": 233381271790541,
+      "peers": [
+        {
+          "instance": 1,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 35.217916,
+            "gap_start_ns": 233381011883250,
+            "gap_end_ns": 233381047101166,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 37.67625,
+            "gap_start_ns": 233380387801833,
+            "gap_end_ns": 233380425478083,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 37.648209,
+            "gap_start_ns": 233381117416916,
+            "gap_end_ns": 233381155065125,
+            "observations": 35,
+            "status": "PASS"
+          }
+        },
+        {
+          "instance": 2,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 35.356541,
+            "gap_start_ns": 233380545169750,
+            "gap_end_ns": 233380580526291,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 37.5965,
+            "gap_start_ns": 233381250083625,
+            "gap_end_ns": 233381287680125,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 37.625,
+            "gap_start_ns": 233381250181916,
+            "gap_end_ns": 233381287806916,
+            "observations": 35,
+            "status": "PASS"
+          }
+        }
+      ]
+    },
+    {
+      "instance": 3,
+      "generation": 222401,
+      "phase": "hidden_end",
+      "start_ns": 233386171699958,
+      "end_ns": 233387271699958,
+      "peers": [
+        {
+          "instance": 1,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 35.635542,
+            "gap_start_ns": 233386645210541,
+            "gap_end_ns": 233386680846083,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 37.649375,
+            "gap_start_ns": 233387088124875,
+            "gap_end_ns": 233387125774250,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 37.619125,
+            "gap_start_ns": 233387088230083,
+            "gap_end_ns": 233387125849208,
+            "observations": 35,
+            "status": "PASS"
+          }
+        },
+        {
+          "instance": 2,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 35.404791,
+            "gap_start_ns": 233386412048000,
+            "gap_end_ns": 233386447452791,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 37.626042,
+            "gap_start_ns": 233386950633041,
+            "gap_end_ns": 233386988259083,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 37.651833,
+            "gap_start_ns": 233386950719625,
+            "gap_end_ns": 233386988371458,
+            "observations": 35,
+            "status": "PASS"
+          }
+        }
+      ]
+    },
+    {
+      "instance": 3,
+      "generation": 222401,
+      "phase": "cold_replacement_requested",
+      "start_ns": 233392171016500,
+      "end_ns": 233393271016500,
+      "peers": [
+        {
+          "instance": 1,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 36.570125,
+            "gap_start_ns": 233392247278958,
+            "gap_end_ns": 233392283849083,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 37.609791,
+            "gap_start_ns": 233392319690125,
+            "gap_end_ns": 233392357299916,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 37.604416,
+            "gap_start_ns": 233392319773750,
+            "gap_end_ns": 233392357378166,
+            "observations": 35,
+            "status": "PASS"
+          }
+        },
+        {
+          "instance": 2,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 36.648125,
+            "gap_start_ns": 233392247099041,
+            "gap_end_ns": 233392283747166,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 37.670291,
+            "gap_start_ns": 233392620929875,
+            "gap_end_ns": 233392658600166,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 37.655583,
+            "gap_start_ns": 233392621039500,
+            "gap_end_ns": 233392658695083,
+            "observations": 35,
+            "status": "PASS"
+          }
+        }
+      ]
+    },
+    {
+      "instance": 3,
+      "generation": 222402,
+      "phase": "create_requested",
+      "start_ns": 233392185787791,
+      "end_ns": 233393285787791,
+      "peers": [
+        {
+          "instance": 1,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 36.570125,
+            "gap_start_ns": 233392247278958,
+            "gap_end_ns": 233392283849083,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 37.609791,
+            "gap_start_ns": 233392319690125,
+            "gap_end_ns": 233392357299916,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 37.604416,
+            "gap_start_ns": 233392319773750,
+            "gap_end_ns": 233392357378166,
+            "observations": 35,
+            "status": "PASS"
+          }
+        },
+        {
+          "instance": 2,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 36.648125,
+            "gap_start_ns": 233392247099041,
+            "gap_end_ns": 233392283747166,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 37.670291,
+            "gap_start_ns": 233392620929875,
+            "gap_end_ns": 233392658600166,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 37.655583,
+            "gap_start_ns": 233392621039500,
+            "gap_end_ns": 233392658695083,
+            "observations": 35,
+            "status": "PASS"
+          }
+        }
+      ]
+    },
+    {
+      "instance": 3,
+      "generation": 222402,
+      "phase": "renderer_exit_requested",
+      "start_ns": 233398170972375,
+      "end_ns": 233404824863333,
+      "peers": [
+        {
+          "instance": 1,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 1401.664625,
+            "gap_start_ns": 233402380167541,
+            "gap_end_ns": 233403781832166,
+            "observations": 161,
+            "status": "FAIL"
+          },
+          "acquisition": {
+            "max_gap_ms": 1402.314291,
+            "gap_start_ns": 233402382245125,
+            "gap_end_ns": 233403784559416,
+            "observations": 161,
+            "status": "FAIL"
+          },
+          "completion": {
+            "max_gap_ms": 1402.316041,
+            "gap_start_ns": 233402382342250,
+            "gap_end_ns": 233403784658291,
+            "observations": 161,
+            "status": "FAIL"
+          }
+        },
+        {
+          "instance": 2,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 2802.559875,
+            "gap_start_ns": 233400979388666,
+            "gap_end_ns": 233403781948541,
+            "observations": 119,
+            "status": "FAIL"
+          },
+          "acquisition": {
+            "max_gap_ms": 2796.032917,
+            "gap_start_ns": 233400991949916,
+            "gap_end_ns": 233403787982833,
+            "observations": 119,
+            "status": "FAIL"
+          },
+          "completion": {
+            "max_gap_ms": 2796.0585,
+            "gap_start_ns": 233400992025916,
+            "gap_end_ns": 233403788084416,
+            "observations": 119,
+            "status": "FAIL"
+          }
+        }
+      ]
+    },
+    {
+      "instance": 3,
+      "generation": 222403,
+      "phase": "create_requested",
+      "start_ns": 233404172579666,
+      "end_ns": 233405272579666,
+      "peers": [
+        {
+          "instance": 1,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 47.145125,
+            "gap_start_ns": 233404247265166,
+            "gap_end_ns": 233404294410291,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 56.243125,
+            "gap_start_ns": 233404248483125,
+            "gap_end_ns": 233404304726250,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 56.191208,
+            "gap_start_ns": 233404248602333,
+            "gap_end_ns": 233404304793541,
+            "observations": 35,
+            "status": "PASS"
+          }
+        },
+        {
+          "instance": 2,
+          "generation": 222400,
+          "paint": {
+            "max_gap_ms": 47.455875,
+            "gap_start_ns": 233404247061000,
+            "gap_end_ns": 233404294516875,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "acquisition": {
+            "max_gap_ms": 49.34525,
+            "gap_start_ns": 233404250696458,
+            "gap_end_ns": 233404300041708,
+            "observations": 35,
+            "status": "PASS"
+          },
+          "completion": {
+            "max_gap_ms": 49.325292,
+            "gap_start_ns": 233404250800166,
+            "gap_end_ns": 233404300125458,
+            "observations": 35,
+            "status": "PASS"
+          }
+        }
+      ]
+    }
+  ],
+  "epochs": [
+    {
+      "identity": [
+        1,
+        222400,
+        1
+      ],
+      "paints": 981,
+      "copied_bytes": 904089600,
+      "max_consumer_work_ms": 0.545958,
+      "join_ms": 1.09,
+      "report_ms": 0.965
+    },
+    {
+      "identity": [
+        2,
+        222400,
+        1
+      ],
+      "paints": 687,
+      "copied_bytes": 633139200,
+      "max_consumer_work_ms": 0.57825,
+      "join_ms": 11.933708,
+      "report_ms": 0.726625
+    },
+    {
+      "identity": [
+        3,
+        222400,
+        1
+      ],
+      "paints": 2,
+      "copied_bytes": 1843200,
+      "max_consumer_work_ms": 0.176458,
+      "join_ms": 0.953792,
+      "report_ms": 0.689833
+    },
+    {
+      "identity": [
+        3,
+        222401,
+        1
+      ],
+      "paints": 3,
+      "copied_bytes": 2764800,
+      "max_consumer_work_ms": 0.1445,
+      "join_ms": 9.148917,
+      "report_ms": 0.383417
+    },
+    {
+      "identity": [
+        3,
+        222402,
+        1
+      ],
+      "paints": 2,
+      "copied_bytes": 4147200,
+      "max_consumer_work_ms": 0.394125,
+      "join_ms": 6.88025,
+      "report_ms": 0.749167
+    },
+    {
+      "identity": [
+        3,
+        222403,
+        1
+      ],
+      "paints": 2,
+      "copied_bytes": 1843200,
+      "max_consumer_work_ms": 0.223791,
+      "join_ms": 10.701,
+      "report_ms": 1.958542
+    }
+  ],
+  "executable_sha256": "90574f05bc0ab9aca815bfdc2a627e9a8b8401764f8a90bec2d41e7643a1ffaa",
+  "requested": {
+    "deadline_seconds": 65.0,
+    "duration_ms": 45000,
+    "fps": 30,
+    "height": 360,
+    "instances": 3,
+    "rss_limit_mib": 2048,
+    "scenario": "widget-lifecycle",
+    "width": 640
+  },
+  "credential_backend": "chromium-use-mock-keychain",
+  "ui_heartbeat": {
+    "samples": 838,
+    "maximum_interval_ms": 104.822166
+  },
+  "resources": {
+    "totals": {
+      "total_samples": 175,
+      "partial_samples": 10,
+      "valid_cpu_intervals": 172,
+      "observed_cpu_delta_ns": 4962169292,
+      "measured_wall_delta_ns": 45142973959,
+      "observed_cpu_mean_percent_one_core": 10.992118721524125,
+      "peak_observed_tree_phys_footprint_bytes": 499689072
+    },
+    "windows": []
+  },
+  "steady_frames": [],
+  "steady_frame_performance": {
+    "status": "NOT_EVALUATED",
+    "scope": "continuous-motion native acquisition windows; intermittent animations evaluated separately"
+  },
+  "functional_status": "PASS",
+  "performance_status": "NOT_EVALUATED"
+}

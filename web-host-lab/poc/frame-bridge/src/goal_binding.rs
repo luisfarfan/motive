@@ -152,6 +152,14 @@ impl GoalBinding {
                 self.dispose_sequence = dispatch.envelope()["message"]["seq"].as_u64();
                 dispatch
             }
+            // H22 trusted native workload driver. Same original typed event,
+            // never a renderer/API admission path and never queued while active.
+            5 => {
+                if self.binding.state() != State::Ready {
+                    return Ok(None);
+                }
+                self.binding.goal(&self.owner, &self.event, now)?
+            }
             _ => return Err("CONTROL_ENUM"),
         };
         Ok(Some(dispatch.envelope().clone()))
@@ -223,7 +231,8 @@ pub unsafe extern "C" fn motive_goal_status(
 }
 /// # Safety
 /// Native owner only: live exclusive handle and output spanning capacity bytes.
-/// Fixed fixture enum: 1 repeat-rejection probe, 2 cancel, 3 resume, 4 dispose.
+/// Fixed fixture enum: 1 repeat-rejection probe, 2 cancel, 3 resume, 4 dispose,
+/// 5 H22 owned typed event admitted only while ready (otherwise no queue).
 /// No renderer message routes here. Zero is the expected repeat rejection.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn motive_goal_control(
@@ -357,5 +366,30 @@ mod tests {
         assert_eq!(b.binding.state(), State::Ready);
         assert!(!b.goal_sent);
         assert_eq!(a.status(&ack(1), 4).unwrap().unwrap()["instance"], 1);
+    }
+    #[test]
+    fn h22_owned_events_only_admit_ready_and_never_queue() {
+        let mut s = GoalBinding::create(2, 7, &"a".repeat(64)).unwrap();
+        let ready = status(
+            json!({"kind":"renderer_ready","identity":{"instance":2,"generation":7},"native_terminal_outcome":false}),
+        );
+        s.status(&ready, 1).unwrap();
+        let ack = |seq| {
+            status(
+                json!({"kind":"visual_ack","protocol":1,"instance":2,"generation":7,"seq":seq,"accepted":true}),
+            )
+        };
+        s.status(&ack(1), 2).unwrap();
+        assert_eq!(s.control(5, 3).unwrap().unwrap()["message"]["seq"], 2);
+        assert!(s.control(5, 4).unwrap().is_none());
+        s.status(&ack(2), 5).unwrap();
+        let complete = status(
+            json!({"kind":"visual_state","state":"ready","sequence":2,"identity":{"instance":2,"generation":7},"native_terminal_outcome":false}),
+        );
+        s.status(&complete, 6).unwrap();
+        assert_eq!(s.binding.state(), State::Ready);
+        assert_eq!(s.control(5, 7).unwrap().unwrap()["message"]["seq"], 3);
+        s.control(2, 8).unwrap();
+        assert!(s.control(5, 9).unwrap().is_none());
     }
 }
